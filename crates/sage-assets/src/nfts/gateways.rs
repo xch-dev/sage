@@ -42,115 +42,139 @@ const ARWEAVE_GATEWAY_HOSTS: [&str; 4] =
 /// this is refused up front rather than worked on.
 const MAX_URL_LENGTH: usize = 2084;
 
-/// A CIDv1 in base32 or base36 is at least this long, which is what tells a
-/// subdomain gateway (`<CID>.ipfs.host`) apart from a path gateway whose
-/// hostname merely contains `ipfs` (`gw.ipfs.example.com`).
-const MIN_SUBDOMAIN_CID_LENGTH: usize = 46;
+/// The shortest CID: a CIDv0 is 46 base58 characters, and a CIDv1 in base32
+/// or base36 is longer. Requiring this keeps ordinary words (such as the
+/// `logo` in `https://example.com/ipfs/logo`) from being treated as CIDs, and
+/// tells a subdomain gateway (`<CID>.ipfs.host`) apart from a path gateway
+/// whose hostname merely contains `ipfs` (`gw.ipfs.example.com`).
+const MIN_CID_LENGTH: usize = 46;
 
 /// Arweave transaction ids are 32 bytes encoded as unpadded base64url.
 const ARWEAVE_TXID_LENGTH: usize = 43;
 
-/// Returns the URLs to try for an NFT URI, in order. The first entry is the
-/// URI itself if it can be requested as-is, followed by any gateway fallbacks.
-/// This always returns at least one URL.
-pub fn uri_candidates(uri: &str) -> Vec<String> {
-    if let Some(path) = ipfs_path(uri) {
-        return gateway_urls(&IPFS_GATEWAYS, &path, None);
+/// Returns the URLs to try for an NFT URI, in order. This always returns at
+/// least one URL.
+///
+/// `ipfs://` and `ar://` URIs can't be requested directly, so they're always
+/// translated to gateway URLs. For HTTPS gateway links, the link itself comes
+/// first, and other gateways are only added if `include_fallbacks` is set.
+/// Fallbacks should only be used when the result will be checked against a
+/// known hash, since otherwise they'd hide the fact that the URI is broken.
+pub fn uri_candidates(uri: &str, include_fallbacks: bool) -> Vec<String> {
+    if let Some((path, query)) = ipfs_path(uri) {
+        return gateway_urls(&IPFS_GATEWAYS, &path, query.as_deref(), None);
     }
 
-    if let Some(path) = arweave_path(uri) {
-        return gateway_urls(&ARWEAVE_GATEWAYS, &path, None);
+    if let Some((path, query)) = arweave_path(uri) {
+        return gateway_urls(&ARWEAVE_GATEWAYS, &path, query.as_deref(), None);
     }
 
-    if let Some((path, host)) = ipfs_path_from_gateway_url(uri) {
-        let mut urls = vec![uri.to_string()];
-        urls.extend(gateway_urls(&IPFS_GATEWAYS, &path, Some(&host)));
+    let mut urls = vec![uri.to_string()];
+
+    if !include_fallbacks {
         return urls;
     }
 
-    if let Some((path, host)) = arweave_path_from_gateway_url(uri) {
-        let mut urls = vec![uri.to_string()];
-        urls.extend(gateway_urls(&ARWEAVE_GATEWAYS, &path, Some(&host)));
-        return urls;
+    if let Some((path, query, host)) = ipfs_path_from_gateway_url(uri) {
+        urls.extend(gateway_urls(&IPFS_GATEWAYS, &path, query, Some(&host)));
+    } else if let Some((path, query, host)) = arweave_path_from_gateway_url(uri) {
+        urls.extend(gateway_urls(&ARWEAVE_GATEWAYS, &path, query, Some(host)));
     }
 
-    vec![uri.to_string()]
+    urls
 }
 
 /// Appends a content path to each gateway base, skipping the gateway that
 /// already failed (if any). A URL that would resolve anywhere other than under
 /// the gateway's base is dropped.
-fn gateway_urls(gateways: &[&str], path: &str, skip_host: Option<&str>) -> Vec<String> {
+fn gateway_urls(
+    gateways: &[&str],
+    path: &str,
+    query: Option<&str>,
+    skip_host: Option<&str>,
+) -> Vec<String> {
     gateways
         .iter()
-        .filter(|base| skip_host.is_none_or(|host| gateway_host(base).as_deref() != Some(host)))
         .filter_map(|base| {
             let url = Url::parse(&format!("{base}{path}")).ok()?;
-            url.as_str().starts_with(base).then(|| url.to_string())
+
+            if skip_host.is_some_and(|host| url.host_str() == Some(host))
+                || !url.as_str().starts_with(base)
+            {
+                return None;
+            }
+
+            Some(match query {
+                Some(query) => format!("{url}?{query}"),
+                None => url.to_string(),
+            })
         })
         .collect()
 }
 
-/// The gateway operator serving a URL: its hostname, less the `<CID>.ipfs.`
-/// label of a subdomain gateway and the sandbox label of an Arweave gateway.
-fn gateway_host(url: &str) -> Option<String> {
-    let host = Url::parse(url).ok()?.host_str()?.to_ascii_lowercase();
-
-    if let Some((label, rest)) = host.split_once(".ipfs.")
-        && is_subdomain_cid(label)
-    {
-        return Some(rest.to_string());
-    }
-
-    if let Some(gateway) = arweave_gateway_host(&host) {
-        return Some(gateway.to_string());
-    }
-
-    Some(host)
-}
-
-/// Returns the `<CID>[/path][?query]` part of an `ipfs://` URI.
-fn ipfs_path(uri: &str) -> Option<String> {
+/// Returns the `<CID>[/path]` and query parts of an `ipfs://` URI.
+fn ipfs_path(uri: &str) -> Option<(String, Option<String>)> {
     let rest = strip_scheme(uri, "ipfs://")?;
     let rest = strip_prefix_ignore_case(rest, "ipfs/").unwrap_or(rest);
-    content_path(rest, is_cid)
+    let rest = rest.split('#').next().unwrap_or_default();
+
+    let (path, query) = match rest.split_once('?') {
+        Some((path, query)) => (path, Some(query.to_string())),
+        None => (rest, None),
+    };
+
+    Some((content_path(path, is_cid)?, query))
 }
 
-/// Returns the `<txid>[/path][?query]` part of an `ar://` URI.
-fn arweave_path(uri: &str) -> Option<String> {
+/// Returns the `<txid>[/path]` and query parts of an `ar://` URI.
+fn arweave_path(uri: &str) -> Option<(String, Option<String>)> {
     let rest = strip_scheme(uri, "ar://")?;
-    content_path(rest, is_arweave_txid)
+    let rest = rest.split('#').next().unwrap_or_default();
+
+    let (path, query) = match rest.split_once('?') {
+        Some((path, query)) => (path, Some(query.to_string())),
+        None => (rest, None),
+    };
+
+    Some((content_path(path, is_arweave_txid)?, query))
 }
 
-/// Returns the `<CID>[/path][?query]` part of an HTTPS IPFS gateway link, as
-/// well as the gateway operator serving it.
-fn ipfs_path_from_gateway_url(uri: &str) -> Option<(String, String)> {
+/// Returns the `<CID>[/path]` and query parts of an HTTPS IPFS gateway link,
+/// as well as the gateway operator serving it.
+fn ipfs_path_from_gateway_url(uri: &str) -> Option<(String, Option<&str>, String)> {
     let url = parse_http_url(uri)?;
     let host = url.host_str()?.to_ascii_lowercase();
 
     // The subdomain form is tried first, so that a subdomain gateway serving a
     // directory whose own path starts with `/ipfs/` keeps its CID.
     let (path, gateway) = if let Some((label, gateway)) = host.split_once(".ipfs.")
-        && is_subdomain_cid(label)
+        && is_cid(label)
     {
         (format!("{label}{}", url.path()), gateway.to_string())
     } else {
         let path = strip_prefix_ignore_case(url.path(), "/ipfs/")?;
-        (path.to_string(), host)
+        (path.to_string(), host.clone())
     };
 
-    let path = with_query(&path, url.query());
-    Some((content_path(&path, is_cid)?, gateway))
+    let path = content_path(&path, is_cid)?;
+    let query = uri_query(uri);
+    Some((path, query, gateway))
 }
 
-/// Returns the `<txid>[/path][?query]` part of an HTTPS Arweave gateway link,
-/// as well as the gateway operator serving it.
-fn arweave_path_from_gateway_url(uri: &str) -> Option<(String, String)> {
+/// Returns the `<txid>[/path]` and query parts of an HTTPS Arweave gateway
+/// link, as well as the gateway operator serving it.
+fn arweave_path_from_gateway_url(uri: &str) -> Option<(String, Option<&str>, &'static str)> {
     let url = parse_http_url(uri)?;
     let host = url.host_str()?.to_ascii_lowercase();
     let gateway = arweave_gateway_host(&host)?;
-    let path = with_query(url.path().trim_start_matches('/'), url.query());
-    Some((content_path(&path, is_arweave_txid)?, gateway.to_string()))
+    let path = content_path(url.path().trim_start_matches('/'), is_arweave_txid)?;
+    Some((path, uri_query(uri), gateway))
+}
+
+/// The query of a URL as it was written, so it's passed along unchanged.
+fn uri_query(uri: &str) -> Option<&str> {
+    let uri = uri.split('#').next().unwrap_or_default();
+    uri.split_once('?').map(|(_, query)| query)
 }
 
 /// The known Arweave gateway a hostname belongs to, including the sandbox
@@ -178,13 +202,6 @@ fn parse_http_url(uri: &str) -> Option<Url> {
     Some(url)
 }
 
-fn with_query(path: &str, query: Option<&str>) -> String {
-    match query {
-        Some(query) => format!("{path}?{query}"),
-        None => path.to_string(),
-    }
-}
-
 fn strip_scheme<'a>(uri: &'a str, scheme: &str) -> Option<&'a str> {
     if uri.len() > MAX_URL_LENGTH {
         return None;
@@ -199,17 +216,11 @@ fn strip_prefix_ignore_case<'a>(value: &'a str, prefix: &str) -> Option<&'a str>
         .then(|| &value[prefix.len()..])
 }
 
-/// Validates `<id>[/path][?query][#fragment]` and returns it without the
-/// fragment (which is never sent) or trailing slashes. The value comes from
-/// data the minter wrote and ends up appended to a gateway base, so an id that
-/// isn't valid or any path segment that would resolve somewhere other than
-/// under the base disqualifies the whole thing.
-fn content_path(value: &str, is_valid_id: fn(&str) -> bool) -> Option<String> {
-    let value = value.split('#').next().unwrap_or_default();
-    let (path, query) = match value.split_once('?') {
-        Some((path, query)) => (path, Some(query)),
-        None => (value, None),
-    };
+/// Validates `<id>[/path]` and returns it without trailing slashes. The value
+/// comes from data the minter wrote and ends up appended to a gateway base, so
+/// an id that isn't valid or any path segment that would resolve somewhere
+/// other than under the base disqualifies the whole thing.
+fn content_path(path: &str, is_valid_id: fn(&str) -> bool) -> Option<String> {
     let path = path.trim_end_matches('/');
 
     let mut segments = path.split('/');
@@ -219,17 +230,13 @@ fn content_path(value: &str, is_valid_id: fn(&str) -> bool) -> Option<String> {
         return None;
     }
 
-    Some(with_query(path, query))
+    Some(path.to_string())
 }
 
 /// A CID is base58btc (v0) or base32/base36 (v1): letters and digits only.
 /// CIDv0 is case-sensitive, so it's never case-normalized.
 fn is_cid(value: &str) -> bool {
-    !value.is_empty() && value.bytes().all(|byte| byte.is_ascii_alphanumeric())
-}
-
-fn is_subdomain_cid(value: &str) -> bool {
-    value.len() >= MIN_SUBDOMAIN_CID_LENGTH && is_cid(value)
+    value.len() >= MIN_CID_LENGTH && value.bytes().all(|byte| byte.is_ascii_alphanumeric())
 }
 
 fn is_arweave_txid(value: &str) -> bool {
@@ -239,24 +246,54 @@ fn is_arweave_txid(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
 }
 
-/// Whether a path segment stays under the gateway base once appended to it:
-/// not empty, not `.` or `..` (or their percent-encoded spellings), and free
-/// of backslashes (which URL parsing turns into slashes), whitespace, and
-/// control characters.
+/// Whether a path segment stays under the gateway base once appended to it.
+/// It must not be empty or contain whitespace, control characters, or
+/// backslashes (which URL parsing turns into slashes). Once percent-decoded,
+/// it must not be `.` or `..`, or contain a slash, backslash, or control
+/// character, in case a gateway decodes the path before resolving it.
 fn is_safe_segment(segment: &str) -> bool {
-    if segment.is_empty() || segment.contains(['\\']) {
-        return false;
-    }
-
-    if segment
-        .chars()
-        .any(|char| char.is_whitespace() || char.is_control())
+    if segment.is_empty()
+        || segment
+            .chars()
+            .any(|char| char == '\\' || char.is_whitespace() || char.is_control())
     {
         return false;
     }
 
-    let decoded = segment.to_ascii_lowercase().replace("%2e", ".");
-    decoded != "." && decoded != ".."
+    let decoded = percent_decode(segment);
+
+    if decoded
+        .iter()
+        .any(|&byte| byte == b'/' || byte == b'\\' || byte.is_ascii_control())
+    {
+        return false;
+    }
+
+    decoded != b"." && decoded != b".."
+}
+
+/// Decodes `%XX` escapes, leaving anything that isn't a valid escape as-is.
+fn percent_decode(value: &str) -> Vec<u8> {
+    let bytes = value.as_bytes();
+    let mut decoded = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+
+    while i < bytes.len() {
+        if bytes[i] == b'%'
+            && let Some(byte) = bytes
+                .get(i + 1..i + 3)
+                .and_then(|hex| std::str::from_utf8(hex).ok())
+                .and_then(|hex| u8::from_str_radix(hex, 16).ok())
+        {
+            decoded.push(byte);
+            i += 3;
+        } else {
+            decoded.push(bytes[i]);
+            i += 1;
+        }
+    }
+
+    decoded
 }
 
 #[cfg(test)]
@@ -277,17 +314,17 @@ mod tests {
     #[test]
     fn test_plain_https_is_unchanged() {
         let uri = "https://example.com/nft.png";
-        assert_eq!(uri_candidates(uri), vec![uri.to_string()]);
+        assert_eq!(uri_candidates(uri, true), vec![uri.to_string()]);
     }
 
     #[test]
     fn test_ipfs_scheme() {
         assert_eq!(
-            uri_candidates(&format!("ipfs://{CID_V1}")),
+            uri_candidates(&format!("ipfs://{CID_V1}"), true),
             ipfs_gateways(CID_V1)
         );
         assert_eq!(
-            uri_candidates(&format!("ipfs://{CID_V1}/1.png")),
+            uri_candidates(&format!("ipfs://{CID_V1}/1.png"), true),
             ipfs_gateways(&format!("{CID_V1}/1.png"))
         );
     }
@@ -296,19 +333,19 @@ mod tests {
     fn test_ipfs_scheme_variants() {
         // Redundant `ipfs/` prefix, uppercase scheme, and trailing slash.
         assert_eq!(
-            uri_candidates(&format!("IPFS://ipfs/{CID_V1}/")),
+            uri_candidates(&format!("IPFS://ipfs/{CID_V1}/"), true),
             ipfs_gateways(CID_V1)
         );
 
         // CIDv0 is case-sensitive.
         assert_eq!(
-            uri_candidates(&format!("ipfs://{CID_V0}")),
+            uri_candidates(&format!("ipfs://{CID_V0}"), true),
             ipfs_gateways(CID_V0)
         );
 
         // Queries are kept and fragments are dropped.
         assert_eq!(
-            uri_candidates(&format!("ipfs://{CID_V1}/a.json?x=1#frag")),
+            uri_candidates(&format!("ipfs://{CID_V1}/a.json?x=1#frag"), true),
             ipfs_gateways(&format!("{CID_V1}/a.json?x=1"))
         );
     }
@@ -323,7 +360,7 @@ mod tests {
             "ipfs://not-a-cid/a".to_string(),
             "ipfs://".to_string(),
         ] {
-            assert_eq!(uri_candidates(&uri), vec![uri.clone()], "{uri}");
+            assert_eq!(uri_candidates(&uri, true), vec![uri.clone()], "{uri}");
         }
     }
 
@@ -332,7 +369,7 @@ mod tests {
         let uri = format!("https://nftstorage.link/ipfs/{CID_V1}/1.png");
         let mut expected = vec![uri.clone()];
         expected.extend(ipfs_gateways(&format!("{CID_V1}/1.png")));
-        assert_eq!(uri_candidates(&uri), expected);
+        assert_eq!(uri_candidates(&uri, true), expected);
     }
 
     #[test]
@@ -340,7 +377,7 @@ mod tests {
         let uri = format!("https://{CID_V1}.ipfs.nftstorage.link/1.png?a=b");
         let mut expected = vec![uri.clone()];
         expected.extend(ipfs_gateways(&format!("{CID_V1}/1.png?a=b")));
-        assert_eq!(uri_candidates(&uri), expected);
+        assert_eq!(uri_candidates(&uri, true), expected);
     }
 
     #[test]
@@ -352,7 +389,7 @@ mod tests {
                 .into_iter()
                 .filter(|url| !url.starts_with("https://ipfs.io/")),
         );
-        assert_eq!(uri_candidates(&uri), expected);
+        assert_eq!(uri_candidates(&uri, true), expected);
     }
 
     #[test]
@@ -360,39 +397,42 @@ mod tests {
         let uri = format!("https://gw.ipfs.example.com/ipfs/{CID_V1}");
         let mut expected = vec![uri.clone()];
         expected.extend(ipfs_gateways(CID_V1));
-        assert_eq!(uri_candidates(&uri), expected);
+        assert_eq!(uri_candidates(&uri, true), expected);
     }
 
     #[test]
     fn test_non_cid_gateway_path_is_unchanged() {
         let uri = "https://example.com/ipfs/not-a-cid/1.png";
-        assert_eq!(uri_candidates(uri), vec![uri.to_string()]);
+        assert_eq!(uri_candidates(uri, true), vec![uri.to_string()]);
     }
 
     #[test]
     fn test_arweave_scheme() {
         assert_eq!(
-            uri_candidates(&format!("ar://{TXID}")),
+            uri_candidates(&format!("ar://{TXID}"), true),
             vec![
                 format!("https://arweave.net/{TXID}"),
                 format!("https://permagate.io/{TXID}"),
             ]
         );
         assert_eq!(
-            uri_candidates(&format!("ar://{TXID}/0.png")),
+            uri_candidates(&format!("ar://{TXID}/0.png"), true),
             vec![
                 format!("https://arweave.net/{TXID}/0.png"),
                 format!("https://permagate.io/{TXID}/0.png"),
             ]
         );
-        assert_eq!(uri_candidates("ar://short"), vec!["ar://short".to_string()]);
+        assert_eq!(
+            uri_candidates("ar://short", true),
+            vec!["ar://short".to_string()]
+        );
     }
 
     #[test]
     fn test_arweave_gateway_link() {
         let uri = format!("https://arweave.net/{TXID}");
         assert_eq!(
-            uri_candidates(&uri),
+            uri_candidates(&uri, true),
             vec![uri.clone(), format!("https://permagate.io/{TXID}")]
         );
 
@@ -400,13 +440,13 @@ mod tests {
             "https://ntlmbxjrcbkl5ngglabhfj3t4gj4ofm66xk4m54gneurvw2dw72q.arweave.net/{TXID}"
         );
         assert_eq!(
-            uri_candidates(&uri),
+            uri_candidates(&uri, true),
             vec![uri.clone(), format!("https://permagate.io/{TXID}")]
         );
 
         let uri = format!("https://ar-io.net/{TXID}");
         assert_eq!(
-            uri_candidates(&uri),
+            uri_candidates(&uri, true),
             vec![
                 uri.clone(),
                 format!("https://arweave.net/{TXID}"),
@@ -418,6 +458,44 @@ mod tests {
     #[test]
     fn test_lookalike_arweave_host_is_unchanged() {
         let uri = format!("https://notarweave.net/{TXID}");
-        assert_eq!(uri_candidates(&uri), vec![uri.clone()]);
+        assert_eq!(uri_candidates(&uri, true), vec![uri.clone()]);
+    }
+
+    #[test]
+    fn test_gateway_link_without_fallbacks() {
+        let uri = format!("https://nftstorage.link/ipfs/{CID_V1}/1.png");
+        assert_eq!(uri_candidates(&uri, false), vec![uri.clone()]);
+
+        let uri = format!("https://arweave.net/{TXID}");
+        assert_eq!(uri_candidates(&uri, false), vec![uri.clone()]);
+
+        // Schemes that can't be requested directly are still translated.
+        assert_eq!(
+            uri_candidates(&format!("ipfs://{CID_V1}"), false),
+            ipfs_gateways(CID_V1)
+        );
+    }
+
+    #[test]
+    fn test_short_paths_are_not_cids() {
+        for uri in ["ipfs://ipfs", "https://example.com/ipfs/logo"] {
+            assert_eq!(uri_candidates(uri, true), vec![uri.to_string()], "{uri}");
+        }
+    }
+
+    #[test]
+    fn test_encoded_separators_are_rejected() {
+        for segment in ["..%2F..%2Fipns", "a%5Cb", "a%00b", "%2e%2E", "a%0Ab"] {
+            let uri = format!("ipfs://{CID_V1}/{segment}");
+            assert_eq!(uri_candidates(&uri, true), vec![uri.clone()], "{uri}");
+        }
+    }
+
+    #[test]
+    fn test_encoded_spaces_are_allowed() {
+        assert_eq!(
+            uri_candidates(&format!("ipfs://{CID_V1}/my%20image.png"), true),
+            ipfs_gateways(&format!("{CID_V1}/my%20image.png"))
+        );
     }
 }

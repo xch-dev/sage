@@ -20,6 +20,9 @@ pub enum UriError {
     #[error("No URIs provided")]
     NoUris,
 
+    #[error("Timed out fetching NFT data")]
+    Timeout,
+
     #[error("Failed to create thumbnail: {0}")]
     Thumbnail(#[from] ThumbnailError),
 

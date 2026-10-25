@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Duration};
 use chia_wallet_sdk::prelude::*;
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
-use sage_assets::{Data, base64_data_uri, fetch_mintgarden_archive, fetch_uri_with_hash};
+use sage_assets::{Data, Download, base64_data_uri, download_mintgarden_archive, download_uri};
 use sage_database::{Database, DatabaseTx, FileUri, NftMetadataInfo, ResizedImageKind};
 use tokio::{sync::mpsc, time::sleep};
 use tracing::{debug, info, warn};
@@ -57,50 +57,19 @@ impl NftUriQueue {
             futures.push(fetch_file(hash, items, testnet));
         }
 
-        while let Some((hash, outcome)) = futures.next().await {
+        while let Some(fetched) = futures.next().await {
             let mut tx = self.db.tx().await?;
 
-            match outcome {
-                Outcome::Archived { data, items } => {
-                    save_data(&mut tx, hash, data, true).await?;
+            if let Some((data, is_hash_match)) = fetched.data {
+                save_data(&mut tx, fetched.hash, data, is_hash_match).await?;
+            }
 
-                    for item in items {
-                        tx.update_checked_uri(hash, item.uri).await?;
-                    }
-                }
-                Outcome::Fetched(results) => {
-                    // Prefer a file that matches the hash, but fall back to one
-                    // that doesn't so that there's at least something to show.
-                    let best = results
-                        .iter()
-                        .filter_map(|(_, result)| result.as_ref().ok())
-                        .min_by_key(|data| data.hash != hash)
-                        .cloned();
+            for uri in fetched.checked_uris {
+                tx.update_checked_uri(fetched.hash, uri).await?;
+            }
 
-                    if let Some(data) = best {
-                        let is_hash_match = data.hash == hash;
-                        save_data(&mut tx, hash, data, is_hash_match).await?;
-                    }
-
-                    for (item, result) in results {
-                        match result {
-                            Ok(data) => {
-                                if data.hash != hash {
-                                    warn!(
-                                        "Hash mismatch for URI {} (expected {} but found {})",
-                                        item.uri, hash, data.hash
-                                    );
-                                }
-
-                                tx.update_checked_uri(hash, item.uri).await?;
-                            }
-                            Err(error) => {
-                                debug!("Error fetching URI {}: {error}", item.uri);
-                                tx.update_failed_uri(hash, item.uri).await?;
-                            }
-                        }
-                    }
-                }
+            for uri in fetched.failed_uris {
+                tx.update_failed_uri(fetched.hash, uri).await?;
             }
 
             tx.commit().await?;
@@ -113,40 +82,102 @@ impl NftUriQueue {
 }
 
 #[derive(Debug)]
-enum Outcome {
-    Archived { data: Data, items: Vec<FileUri> },
-    Fetched(Vec<(FileUri, Result<Data, String>)>),
+struct Fetched {
+    hash: Bytes32,
+    data: Option<(Data, bool)>,
+    checked_uris: Vec<String>,
+    failed_uris: Vec<String>,
 }
 
 /// Tries MintGarden's archive first, since it's content addressed and will
 /// work even if the NFT's own URIs have gone offline. If it doesn't have the
 /// file, falls back to fetching each of the NFT's URIs.
-async fn fetch_file(hash: Bytes32, items: Vec<FileUri>, testnet: bool) -> (Bytes32, Outcome) {
-    match fetch_mintgarden_archive(hash, testnet).await {
-        Ok(Some(data)) => return (hash, Outcome::Archived { data, items }),
-        Ok(None) => {}
-        Err(error) => debug!("Error fetching {hash} from MintGarden archive: {error}"),
-    }
+async fn fetch_file(hash: Bytes32, items: Vec<FileUri>, testnet: bool) -> Fetched {
+    let uris = items.into_iter().map(|item| item.uri);
+
+    let archive_unavailable = match download_mintgarden_archive(hash).await {
+        Ok(Some(download)) => {
+            return Fetched {
+                hash,
+                data: Some((download.into_data(testnet).await, true)),
+                checked_uris: uris.collect(),
+                failed_uris: Vec::new(),
+            };
+        }
+        Ok(None) => false,
+        Err(error) => {
+            debug!("Error fetching {hash} from MintGarden archive: {error}");
+            true
+        }
+    };
 
     let mut futures = FuturesUnordered::new();
 
-    for item in items {
+    for uri in uris {
         futures.push(async move {
-            let result = fetch_uri_with_hash(item.uri.clone(), hash, testnet)
-                .await
-                .map_err(|error| error.to_string());
-
-            (item, result)
+            let result = download_uri(&uri, Some(hash), true).await;
+            (uri, result)
         });
     }
 
-    let mut results = Vec::new();
+    let mut best: Option<Download> = None;
+    let mut checked_uris = Vec::new();
+    let mut failed_uris = Vec::new();
 
-    while let Some(result) = futures.next().await {
-        results.push(result);
+    while let Some((uri, result)) = futures.next().await {
+        match result {
+            Ok(download) => {
+                if download.hash != hash {
+                    warn!(
+                        "Hash mismatch for URI {uri} (expected {hash} but found {})",
+                        download.hash
+                    );
+                }
+
+                // Prefer a file that matches the hash, but fall back to one
+                // that doesn't so that there's at least something to show.
+                if best
+                    .as_ref()
+                    .is_none_or(|best| best.hash != hash && download.hash == hash)
+                {
+                    best = Some(download);
+                }
+
+                checked_uris.push(uri);
+            }
+            Err(error) => {
+                debug!("Error fetching URI {uri}: {error}");
+                failed_uris.push(uri);
+            }
+        }
     }
 
-    (hash, Outcome::Fetched(results))
+    let best = best.filter(|download| {
+        // A mismatching file is saved permanently, so don't settle for one if
+        // the archive might have had the right file but couldn't be reached.
+        let keep = download.hash == hash || !archive_unavailable;
+
+        if !keep {
+            debug!("Not saving mismatched file for {hash} since the archive was unavailable");
+        }
+
+        keep
+    });
+
+    let data = match best {
+        Some(download) => {
+            let is_hash_match = download.hash == hash;
+            Some((download.into_data(testnet).await, is_hash_match))
+        }
+        None => None,
+    };
+
+    Fetched {
+        hash,
+        data,
+        checked_uris,
+        failed_uris,
+    }
 }
 
 async fn save_data(
