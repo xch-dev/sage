@@ -321,6 +321,22 @@ mod tests {
         .await?;
         tx.commit().await?;
 
+        // A transfer doesn't change the metadata, so the name is kept.
+        let coin_spends = test
+            .wallet
+            .transfer_nfts(vec![launcher_id], puzzle_hash, 0, None)
+            .await?;
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        let row = test
+            .wallet
+            .db
+            .wallet_nft(launcher_id)
+            .await?
+            .expect("missing nft");
+        assert_eq!(row.asset.name.as_deref(), Some("Alice"));
+
         // The owner replaces all of the metadata, which drops the off-chain metadata file.
         let mut ctx = SpendContext::new();
 

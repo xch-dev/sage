@@ -21,7 +21,7 @@ use sage_wallet::{
     aggregate_offers, insert_transaction, sort_offer,
 };
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{
     ConfirmationInfo, Error, ExtractedNftData, Result, Sage, encode_nft_updater_kind,
@@ -267,6 +267,28 @@ impl Sage {
         })
     }
 
+    /// Makes sure an NFT in an offer has its on-chain info saved, so the offer summary can
+    /// show whether it's mutable. The info is fetched from the network rather than taken
+    /// from the offer, since whoever made the offer controls what it claims about NFTs
+    /// they request. If it can't be fetched, the NFT is reported as unknown.
+    async fn ensure_offer_nft_info(&self, wallet: &Wallet, launcher_id: Bytes32) -> Result<()> {
+        if wallet.db.offer_nft_info(launcher_id).await?.is_some() {
+            return Ok(());
+        }
+
+        let Some(peer) = self.peer_state.lock().await.acquire_peer() else {
+            return Ok(());
+        };
+
+        if let Err(error) = wallet.fetch_offer_nft_info(Some(&peer), launcher_id).await {
+            warn!("Failed to fetch info for NFT {launcher_id} in offer: {error}");
+        }
+
+        Ok(())
+    }
+
+    /// Looks up an NFT's metadata updater, fetching it from the network. Like requesting an
+    /// NFT in an offer, this saves the NFT's on-chain info to the wallet database.
     pub async fn get_nft_metadata_updater(
         &self,
         req: GetNftMetadataUpdater,
@@ -350,6 +372,9 @@ impl Sage {
         let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
 
         for nft in offer.offered_coins().nfts.values() {
+            self.ensure_offer_nft_info(&wallet, nft.info.launcher_id)
+                .await?;
+
             let _info = if let Some(metadata) = ParsedNftMetadata::parse(
                 &ctx,
                 nft.info.metadata.ptr(),
@@ -443,10 +468,7 @@ impl Sage {
             )
             .await?;
 
-            // Requested NFTs usually aren't in the wallet, so their on-chain info is saved
-            // for the offer summary, including whether they're mutable.
-            self.cache_requested_nft_info(&ctx, launcher_id, nft)
-                .await?;
+            self.ensure_offer_nft_info(&wallet, launcher_id).await?;
 
             let _info = if let Some(metadata) =
                 ParsedNftMetadata::parse(&ctx, nft.metadata.ptr(), nft.metadata_updater_kind())

@@ -2,9 +2,7 @@ use std::{collections::hash_map::Entry, time::Duration};
 
 use chia_wallet_sdk::prelude::*;
 use sage_assets::{DexieCat, fetch_uris_with_hash};
-use sage_database::{
-    Asset, AssetKind, NftCoinInfo, NftUpdaterKind, NftUpdaterKindExt, ParsedNftMetadata,
-};
+use sage_database::{Asset, AssetKind, NftUpdaterKind, ParsedNftMetadata};
 use tokio::time::timeout;
 
 use crate::{ConfirmationInfo, Error, ExtractedNftData, Result, Sage, extract_nft_data};
@@ -135,44 +133,6 @@ impl Sage {
         wallet.db.insert_asset(asset.clone()).await?;
 
         Ok(asset)
-    }
-
-    /// Saves the on-chain info of an NFT requested by an offer, if it isn't already known.
-    /// The asset itself must already be cached.
-    pub async fn cache_requested_nft_info(
-        &self,
-        allocator: &Allocator,
-        launcher_id: Bytes32,
-        nft: &NftAssetInfo,
-    ) -> Result<()> {
-        let wallet = self.wallet()?;
-
-        let metadata =
-            ParsedNftMetadata::parse(allocator, nft.metadata.ptr(), nft.metadata_updater_kind());
-
-        let coin_info = NftCoinInfo {
-            collection_hash: Bytes32::default(),
-            collection_name: None,
-            minter_hash: None,
-            owner_hash: None,
-            metadata: Program::from_clvm(allocator, nft.metadata.ptr())?,
-            metadata_updater_puzzle_hash: nft.metadata_updater_puzzle_hash,
-            royalty_puzzle_hash: nft.royalty_puzzle_hash,
-            royalty_basis_points: nft.royalty_basis_points,
-            data_hash: metadata.as_ref().and_then(|m| m.data_hash),
-            metadata_hash: metadata.as_ref().and_then(|m| m.metadata_hash),
-            license_hash: metadata.as_ref().and_then(|m| m.license_hash),
-            edition_number: metadata.as_ref().and_then(|m| m.edition_number),
-            edition_total: metadata.as_ref().and_then(|m| m.edition_total),
-            display_name: metadata.and_then(|m| m.display_name),
-        };
-
-        // This is ignored if the NFT is already known, such as when it's in the wallet.
-        let mut tx = wallet.db.tx().await?;
-        tx.insert_nft(launcher_id, &coin_info).await?;
-        tx.commit().await?;
-
-        Ok(())
     }
 
     pub async fn cache_option(&self, launcher_id: Bytes32) -> Result<Asset> {

@@ -552,6 +552,27 @@ impl DatabaseTx<'_> {
         Ok(())
     }
 
+    /// The data and metadata file hashes currently saved for an NFT, if it's known.
+    pub async fn nft_file_hashes(
+        &mut self,
+        hash: Bytes32,
+    ) -> Result<Option<(Option<Bytes32>, Option<Bytes32>)>> {
+        let hash = hash.as_ref();
+
+        query!(
+            "
+            SELECT data_hash, metadata_hash FROM nfts
+            INNER JOIN assets ON assets.id = nfts.asset_id
+            WHERE assets.hash = ?
+            ",
+            hash
+        )
+        .fetch_optional(&mut *self.tx)
+        .await?
+        .map(|row| Ok((row.data_hash.convert()?, row.metadata_hash.convert()?)))
+        .transpose()
+    }
+
     /// Overwrites the display fields of an NFT's asset, including clearing them. This is
     /// for mutable NFTs, whose old name and icon may no longer apply after their metadata
     /// is replaced. They're filled in again once the new metadata files are downloaded.

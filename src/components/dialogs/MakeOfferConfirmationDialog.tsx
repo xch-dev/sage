@@ -144,50 +144,64 @@ function AssetDisplay({
   }, [assets.tokens]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Returns the NFT's record, and its name if it may be mutable
+    const fetchNftDetail = async (
+      nftId: string,
+    ): Promise<[NftRecord, string | null]> => {
+      try {
+        const { nft } = await commands.getNft({ nft_id: nftId });
+        if (nft) {
+          return [
+            nft,
+            isMutableNft(nft.metadata_updater_kind)
+              ? (nftDisplayName(nft) ?? nftId)
+              : null,
+          ];
+        }
+      } catch {
+        // Fall through to looking it up below
+      }
+
+      // NFTs that aren't in the wallet, such as requested ones, are looked up from
+      // the network. If that fails, the NFT can't be assumed to be append-only.
+      try {
+        const updater = await commands.getNftMetadataUpdater({
+          nft_id: nftId,
+        });
+        const isMutable =
+          updater.metadata_updater_kind === null ||
+          isMutableNft(updater.metadata_updater_kind);
+        return [
+          emptyNftRecord(nftId),
+          isMutable ? (updater.display_name ?? nftId) : null,
+        ];
+      } catch {
+        return [emptyNftRecord(nftId), nftId];
+      }
+    };
+
     const fetchNftDetails = async () => {
       setLoadingNfts(true);
 
-      const displayableNfts: NftRecord[] = [];
-      const mutableNames: string[] = [];
-      for (const nftId of nftIds) {
-        try {
-          const nftRecordResponse = await commands.getNft({ nft_id: nftId });
-          if (nftRecordResponse.nft) {
-            displayableNfts.push(nftRecordResponse.nft);
-            if (isMutableNft(nftRecordResponse.nft.metadata_updater_kind)) {
-              mutableNames.push(nftDisplayName(nftRecordResponse.nft) ?? nftId);
-            }
-            continue;
-          }
-        } catch {
-          // Fall through to looking it up below
-        }
+      const details = await Promise.all(nftIds.map(fetchNftDetail));
 
-        // NFTs that aren't in the wallet, such as requested ones, are looked up from
-        // the network. If that fails, the NFT can't be assumed to be append-only.
-        displayableNfts.push(emptyNftRecord(nftId));
+      // A later run has started, so these results are stale
+      if (cancelled) return;
 
-        try {
-          const updater = await commands.getNftMetadataUpdater({
-            nft_id: nftId,
-          });
-          if (
-            updater.metadata_updater_kind === null ||
-            isMutableNft(updater.metadata_updater_kind)
-          ) {
-            mutableNames.push(updater.display_name ?? nftId);
-          }
-        } catch {
-          mutableNames.push(nftId);
-        }
-      }
-      setNftDetailsList(displayableNfts);
-      setMutableNftNames(mutableNames);
-
+      setNftDetailsList(details.map(([nft]) => nft));
+      setMutableNftNames(
+        details.flatMap(([, name]) => (name === null ? [] : [name])),
+      );
       setLoadingNfts(false);
     };
 
     fetchNftDetails();
+
+    return () => {
+      cancelled = true;
+    };
   }, [nftIds]);
 
   useEffect(() => {
