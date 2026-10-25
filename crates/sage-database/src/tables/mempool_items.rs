@@ -86,12 +86,12 @@ impl DatabaseTx<'_> {
         mempool_items_for_output(&mut *self.tx, coin_id).await
     }
 
-    pub async fn mark_mempool_inputs_spent(
+    pub async fn mark_confirmed_mempool_inputs_spent(
         &mut self,
-        mempool_item_id: Bytes32,
+        output_coin_id: Bytes32,
         spent_height: u32,
     ) -> Result<()> {
-        mark_mempool_inputs_spent(&mut *self.tx, mempool_item_id, spent_height).await
+        mark_confirmed_mempool_inputs_spent(&mut *self.tx, output_coin_id, spent_height).await
     }
 
     pub async fn remove_mempool_item(&mut self, mempool_item_id: Bytes32) -> Result<()> {
@@ -296,29 +296,40 @@ async fn mempool_items_for_output(
     .collect()
 }
 
-async fn mark_mempool_inputs_spent(
+/// Marks the inputs of the mempool item that created a confirmed coin as spent.
+/// If multiple competing mempool items create the same coin, we can't tell which one
+/// was confirmed, so only the inputs they all share are known to be spent.
+async fn mark_confirmed_mempool_inputs_spent(
     conn: impl SqliteExecutor<'_>,
-    mempool_item_id: Bytes32,
+    output_coin_id: Bytes32,
     spent_height: u32,
 ) -> Result<()> {
-    let mempool_item_id = mempool_item_id.as_ref();
-    let spent_height = spent_height as i64;
+    let output_coin_id = output_coin_id.as_ref();
+    let spent_height = i64::from(spent_height);
 
     query!(
         "
+        WITH candidates AS (
+            SELECT DISTINCT mempool_coins.mempool_item_id
+            FROM mempool_coins
+            INNER JOIN coins ON coins.id = mempool_coins.coin_id
+            WHERE coins.hash = ?
+              AND mempool_coins.is_output = TRUE
+        )
         UPDATE coins
         SET spent_height = ?
         WHERE spent_height IS NULL
           AND id IN (
             SELECT mempool_coins.coin_id
             FROM mempool_coins
-            INNER JOIN mempool_items ON mempool_items.id = mempool_coins.mempool_item_id
-            WHERE mempool_items.hash = ?
-              AND mempool_coins.is_input = TRUE
+            INNER JOIN candidates ON candidates.mempool_item_id = mempool_coins.mempool_item_id
+            WHERE mempool_coins.is_input = TRUE
+            GROUP BY mempool_coins.coin_id
+            HAVING COUNT(DISTINCT mempool_coins.mempool_item_id) = (SELECT COUNT(*) FROM candidates)
           )
         ",
-        spent_height,
-        mempool_item_id
+        output_coin_id,
+        spent_height
     )
     .execute(conn)
     .await?;

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        WITH candidates AS (\n            SELECT DISTINCT mempool_coins.mempool_item_id\n            FROM mempool_coins\n            INNER JOIN coins ON coins.id = mempool_coins.coin_id\n            WHERE coins.hash = ?\n              AND mempool_coins.is_output = TRUE\n        )\n        UPDATE coins\n        SET spent_height = ?\n        WHERE spent_height IS NULL\n          AND id IN (\n            SELECT mempool_coins.coin_id\n            FROM mempool_coins\n            INNER JOIN candidates ON candidates.mempool_item_id = mempool_coins.mempool_item_id\n            WHERE mempool_coins.is_input = TRUE\n            GROUP BY mempool_coins.coin_id\n            HAVING COUNT(DISTINCT mempool_coins.mempool_item_id) = (SELECT COUNT(*) FROM candidates)\n          )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "fdb6e76d55b7a9481ceb10eee38cabef93162bc22a1cd1336ccb59f90c3845e2"
+}

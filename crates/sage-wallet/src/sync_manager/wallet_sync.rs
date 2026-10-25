@@ -242,14 +242,13 @@ pub async fn incremental_sync(
         }
 
         if let Some(height) = coin_state.created_height {
-            for mempool_item_id in tx
-                .mempool_items_for_output(coin_state.coin.coin_id())
-                .await?
-            {
-                tx.mark_mempool_inputs_spent(mempool_item_id, height)
-                    .await?;
-                confirmed_transactions.insert(mempool_item_id);
-            }
+            tx.mark_confirmed_mempool_inputs_spent(coin_state.coin.coin_id(), height)
+                .await?;
+
+            confirmed_transactions.extend(
+                tx.mempool_items_for_output(coin_state.coin.coin_id())
+                    .await?,
+            );
         }
 
         if coin_state.spent_height.is_some() {
@@ -353,4 +352,70 @@ pub async fn add_new_subscriptions(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use chia_wallet_sdk::prelude::*;
+    use test_log::test;
+
+    use crate::TestWallet;
+
+    #[test(tokio::test)]
+    async fn test_confirmed_output_only_marks_shared_inputs_spent() -> anyhow::Result<()> {
+        let test = TestWallet::new(1000).await?;
+        let db = &test.wallet.db;
+
+        let coin = |n: u8, amount| Coin::new(Bytes32::new([n; 32]), test.puzzle_hash, amount);
+        let shared = coin(1, 1);
+        let fee_a = coin(2, 2);
+        let fee_b = coin(3, 3);
+        let output = coin(4, 4);
+
+        let mut tx = db.tx().await?;
+
+        tx.insert_height(1).await?;
+        tx.insert_height(10).await?;
+
+        for input in [shared, fee_a, fee_b] {
+            tx.insert_coin(CoinState::new(input, None, Some(1))).await?;
+            tx.update_coin(input.coin_id(), Bytes32::default(), test.puzzle_hash)
+                .await?;
+        }
+
+        tx.insert_coin(CoinState::new(output, None, None)).await?;
+
+        // Two competing mempool items create the same output with different fee coins
+        for (n, fee_coin) in [(5, fee_a), (6, fee_b)] {
+            let item = Bytes32::new([n; 32]);
+            tx.insert_mempool_item(item, Signature::default(), 0)
+                .await?;
+            tx.insert_mempool_coin(item, shared.coin_id(), true, false)
+                .await?;
+            tx.insert_mempool_coin(item, fee_coin.coin_id(), true, false)
+                .await?;
+            tx.insert_mempool_coin(item, output.coin_id(), false, true)
+                .await?;
+        }
+
+        tx.mark_confirmed_mempool_inputs_spent(output.coin_id(), 10)
+            .await?;
+        tx.commit().await?;
+
+        let spent_height = |coin: Coin| async move {
+            anyhow::Ok(
+                db.coins_by_ids(&[hex::encode(coin.coin_id())])
+                    .await?
+                    .first()
+                    .expect("coin should exist")
+                    .spent_height,
+            )
+        };
+
+        assert_eq!(spent_height(shared).await?, Some(10));
+        assert_eq!(spent_height(fee_a).await?, None);
+        assert_eq!(spent_height(fee_b).await?, None);
+
+        Ok(())
+    }
 }
