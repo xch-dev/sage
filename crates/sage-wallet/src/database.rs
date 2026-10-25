@@ -86,7 +86,7 @@ pub async fn insert_puzzle(
                 return Ok(false);
             }
 
-            tx.insert_clawbackv1_p2_puzzle(info).await?;
+            tx.insert_clawback_v1_p2_puzzle(info).await?;
 
             tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into())
                 .await?;

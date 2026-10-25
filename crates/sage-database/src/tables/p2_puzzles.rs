@@ -172,8 +172,8 @@ impl DatabaseTx<'_> {
         insert_clawback_p2_puzzle(&mut *self.tx, clawback).await
     }
 
-    pub async fn insert_clawbackv1_p2_puzzle(&mut self, clawback: ClawbackV1) -> Result<()> {
-        insert_clawbackv1_p2_puzzle(&mut *self.tx, clawback).await
+    pub async fn insert_clawback_v1_p2_puzzle(&mut self, clawback: ClawbackV1) -> Result<()> {
+        insert_clawback_v1_p2_puzzle(&mut *self.tx, clawback).await
     }
 
     pub async fn insert_option_p2_puzzle(&mut self, underlying: OptionUnderlying) -> Result<()> {
@@ -395,7 +395,7 @@ async fn insert_clawback_p2_puzzle(
     Ok(())
 }
 
-async fn insert_clawbackv1_p2_puzzle(
+async fn insert_clawback_v1_p2_puzzle(
     conn: impl SqliteExecutor<'_>,
     clawback: ClawbackV1,
 ) -> Result<()> {

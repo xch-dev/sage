@@ -131,9 +131,9 @@ export function TokenConfirmation({
       variant: 'info' as const,
       message: (
         <Trans>
-          You are about to claim coins from a early type of clawback. This will
-          send the funds to your wallet, and the original sender will no longer
-          be able to claw it back.
+          You are about to claim coins from a v1 clawback. This will send the
+          funds to your wallet, and the original sender will no longer be able
+          to claw it back.
         </Trans>
       ),
     },

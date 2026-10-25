@@ -656,9 +656,9 @@ export function ClawbackCoinsCard({
             </DialogTitle>
             <DialogDescription>
               <Trans>
-                This will claim all of the selected coins from an early type of
-                clawback. This will send the funds to your wallet, and the
-                original sender will no longer be able to claw it back.
+                This will claim all of the selected coins from a v1 clawback.
+                This will send the funds to your wallet, and the original sender
+                will no longer be able to claw it back.
               </Trans>
             </DialogDescription>
           </DialogHeader>
