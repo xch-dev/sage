@@ -23,6 +23,9 @@ pub enum UriError {
     #[error("Timed out fetching NFT data")]
     Timeout,
 
+    #[error("MintGarden archive served content that doesn't match the hash")]
+    InvalidArchiveContent,
+
     #[error("Failed to create thumbnail: {0}")]
     Thumbnail(#[from] ThumbnailError),
 
@@ -41,7 +44,7 @@ impl UriError {
                         status == reqwest::StatusCode::TOO_MANY_REQUESTS || status.is_server_error()
                     })
             }
-            Self::Timeout => true,
+            Self::Timeout | Self::InvalidArchiveContent => true,
             _ => false,
         }
     }

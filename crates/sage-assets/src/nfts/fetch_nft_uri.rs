@@ -1,6 +1,9 @@
 use std::{
     pin::Pin,
-    sync::LazyLock,
+    sync::{
+        Arc, LazyLock,
+        atomic::{AtomicUsize, Ordering},
+    },
     time::{Duration, Instant},
 };
 
@@ -8,7 +11,7 @@ use chia_wallet_sdk::{chia::sha2::Sha256, prelude::*};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use mime_sniffer::MimeTypeSniffer;
-use reqwest::{Client, Response, StatusCode, header::CONTENT_TYPE};
+use reqwest::{Client, StatusCode, header::CONTENT_TYPE};
 use tokio::{
     task::spawn_blocking,
     time::{sleep, timeout},
@@ -37,25 +40,59 @@ pub struct Download {
     pub hash: Bytes32,
 }
 
-/// MintGarden archives NFT data, metadata, and license files by their SHA-256
-/// hash, so this works even after every URI baked into the NFT has died.
+/// Somewhere a file can be downloaded from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Source {
+    /// MintGarden's archive, which stores NFT data, metadata, and license
+    /// files by their SHA-256 hash, so it works even after every URI baked
+    /// into the NFT has died.
+    Archive(Bytes32),
+    Url(String),
+}
+
+/// How a set of sources should be raced against each other.
+#[derive(Debug, Clone, Copy)]
+pub struct RaceOptions {
+    /// If set, only a download with this hash counts as a success.
+    pub expected_hash: Option<Bytes32>,
+    /// The next source is started as soon as one fails, or after this long if
+    /// none of the sources in flight have started sending the file. That way a
+    /// stalled source can't use up the whole deadline, but a large file that's
+    /// downloading fine isn't downloaded from several places at once.
+    pub hedge_delay: Duration,
+    /// The time limit for downloading, across all sources.
+    pub deadline: Duration,
+}
+
+/// The result of racing a set of sources.
+#[derive(Debug, Default)]
+pub struct RaceOutcome {
+    /// The first download that matches the expected hash, or the first
+    /// successful download if there isn't one.
+    pub matched: Option<Download>,
+    /// The first download that didn't match the expected hash.
+    pub mismatch: Option<Download>,
+    /// Whether a source failed in a way that might succeed if retried later,
+    /// or the deadline was reached before every source had been tried.
+    pub transient_failure: bool,
+    /// The last error a source failed with.
+    pub last_error: Option<UriError>,
+}
+
 const MINTGARDEN_ARCHIVE_URL: &str = "https://archive.mintgarden.io/content";
 
 /// The time limit for a single request to a single source.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
 
-/// The time limit for downloading a URI, across all of the gateways it may
-/// be tried through.
+/// The time limit for downloading a URI when minting, across all of the
+/// gateways it may be tried through.
 const URI_DEADLINE: Duration = Duration::from_secs(30);
 
 /// MintGarden thumbnails are optional, so they get less time than the file.
 const THUMBNAIL_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// When racing sources against each other, the next one is started as soon as
-/// one fails, or after this long if the ones in flight are slow. That way a
-/// single stalled source can't use up the whole deadline, without every
-/// source being downloaded at once.
-const HEDGE_DELAY: Duration = Duration::from_secs(2);
+/// See [`RaceOptions::hedge_delay`].
+pub const HEDGE_DELAY: Duration = Duration::from_secs(2);
 
 static CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
@@ -67,81 +104,105 @@ static CLIENT: LazyLock<Client> = LazyLock::new(|| {
         .expect("failed to build HTTP client")
 });
 
-/// Downloads a URI, trying each of its candidates (see [`uri_candidates`]) in
-/// turn within [`URI_DEADLINE`].
-///
-/// If an expected hash is given, a candidate that serves mismatching content
-/// is skipped in favor of the next one. If none of them match, the first
-/// mismatching download is returned.
-pub async fn download_uri(
-    uri: &str,
-    expected_hash: Option<Bytes32>,
-    include_fallbacks: bool,
-) -> Result<Download, UriError> {
-    let mut mismatch = None;
-    let mut last_error = None;
+/// The sources to try for an NFT file with a known hash, in order: MintGarden's
+/// archive, then each URI as-is, then gateway fallbacks for them (see
+/// [`uri_candidates`]). Candidates are interleaved so that every URI is tried
+/// directly before any of them fall back to other gateways, and duplicates
+/// (such as an `ipfs://` URI and a gateway link to the same CID) are removed.
+pub fn nft_sources(uris: &[String], hash: Bytes32) -> Vec<Source> {
+    let candidates: Vec<Vec<String>> = uris.iter().map(|uri| uri_candidates(uri, true)).collect();
+    let rounds = candidates.iter().map(Vec::len).max().unwrap_or_default();
 
-    let search = async {
-        for url in uri_candidates(uri, include_fallbacks) {
-            match download(&url).await {
-                Ok(download) if expected_hash.is_none_or(|hash| hash == download.hash) => {
-                    return Some(download);
+    let mut sources = vec![Source::Archive(hash)];
+
+    for round in 0..rounds {
+        for url in candidates.iter().filter_map(|urls| urls.get(round)) {
+            let source = Source::Url(url.clone());
+
+            if !sources.contains(&source) {
+                sources.push(source);
+            }
+        }
+    }
+
+    sources
+}
+
+/// Races sources against each other in order (see [`RaceOptions`]), until one
+/// of them produces a matching file or the deadline is reached.
+pub async fn race_sources(sources: Vec<Source>, options: RaceOptions) -> RaceOutcome {
+    let streaming = Arc::new(AtomicUsize::new(0));
+    let mut pending = sources.into_iter();
+    let mut in_flight: FuturesUnordered<SourceFuture> = FuturesUnordered::new();
+    let mut outcome = RaceOutcome::default();
+
+    let start = |source: Source| -> SourceFuture {
+        let streaming = streaming.clone();
+        Box::pin(async move {
+            let result = download_source(&source, &streaming).await;
+            (source, result)
+        })
+    };
+
+    if let Some(source) = pending.next() {
+        in_flight.push(start(source));
+    }
+
+    let race = async {
+        loop {
+            tokio::select! {
+                result = in_flight.next() => {
+                    let Some((source, result)) = result else {
+                        return;
+                    };
+
+                    match result {
+                        Ok(Some(download))
+                            if options
+                                .expected_hash
+                                .is_none_or(|hash| hash == download.hash) =>
+                        {
+                            outcome.matched = Some(download);
+                            return;
+                        }
+                        Ok(Some(download)) => {
+                            debug!("Hash mismatch for {source:?}, found {}", download.hash);
+                            outcome.mismatch.get_or_insert(download);
+                        }
+                        Ok(None) => {}
+                        Err(error) => {
+                            debug!("Failed to fetch {source:?}: {error}");
+                            outcome.transient_failure |= error.is_transient();
+                            outcome.last_error = Some(error);
+                        }
+                    }
+
+                    if let Some(source) = pending.next() {
+                        in_flight.push(start(source));
+                    } else if in_flight.is_empty() {
+                        return;
+                    }
                 }
-                Ok(download) => {
-                    debug!(
-                        "Hash mismatch for {url} (NFT URI {uri}), found {}",
-                        download.hash
-                    );
-                    mismatch.get_or_insert(download);
-                }
-                Err(error) => {
-                    debug!("Failed to fetch {url} for NFT URI {uri}: {error}");
-                    last_error = Some(error);
+                () = sleep(options.hedge_delay), if pending.len() > 0 => {
+                    if streaming.load(Ordering::Relaxed) == 0
+                        && let Some(source) = pending.next()
+                    {
+                        in_flight.push(start(source));
+                    }
                 }
             }
         }
-
-        None
     };
 
-    if let Ok(Some(download)) = timeout(URI_DEADLINE, search).await {
-        return Ok(download);
+    if timeout(options.deadline, race).await.is_err() {
+        outcome.transient_failure = true;
     }
 
-    if let Some(download) = mismatch {
-        return Ok(download);
-    }
-
-    Err(last_error.unwrap_or(UriError::Timeout))
-}
-
-/// Downloads a file from MintGarden's archive by its hash. Returns `None` if
-/// MintGarden doesn't have it, or if what it returns doesn't match the hash.
-pub async fn download_mintgarden_archive(hash: Bytes32) -> Result<Option<Download>, UriError> {
-    let url = format!("{MINTGARDEN_ARCHIVE_URL}/{hash}");
-
-    let response = CLIENT.get(&url).timeout(REQUEST_TIMEOUT).send().await?;
-
-    if response.status() == StatusCode::NOT_FOUND {
-        return Ok(None);
-    }
-
-    let download = read_response(response).await?;
-
-    if download.hash != hash {
-        debug!(
-            "Hash mismatch from MintGarden archive, expected {hash} but found {}",
-            download.hash
-        );
-        return Ok(None);
-    }
-
-    Ok(Some(download))
+    outcome
 }
 
 /// Fetches a file with a known hash within a deadline, racing MintGarden's
-/// archive against the NFT's own URIs (and gateway fallbacks for them). The
-/// first source that produces matching content wins. The deadline only
+/// archive against the NFT's own URIs (see [`nft_sources`]). The deadline only
 /// covers downloading, not making the thumbnail afterward.
 pub async fn fetch_uris_with_hash(
     uris: Vec<String>,
@@ -149,97 +210,63 @@ pub async fn fetch_uris_with_hash(
     testnet: bool,
     deadline: Duration,
 ) -> Option<Data> {
-    // Interleave the candidates so that each URI is tried as-is before any of
-    // them fall back to other gateways.
-    let candidates: Vec<Vec<String>> = uris.iter().map(|uri| uri_candidates(uri, true)).collect();
-    let rounds = candidates.iter().map(Vec::len).max().unwrap_or_default();
+    let outcome = race_sources(
+        nft_sources(&uris, hash),
+        RaceOptions {
+            expected_hash: Some(hash),
+            hedge_delay: HEDGE_DELAY,
+            deadline,
+        },
+    )
+    .await;
 
-    let mut urls = Vec::new();
+    Some(outcome.matched?.into_data(testnet).await)
+}
 
-    for round in 0..rounds {
-        for url in candidates.iter().filter_map(|urls| urls.get(round)) {
-            if !urls.contains(url) {
-                urls.push(url.clone());
-            }
-        }
-    }
+type SourceFuture =
+    Pin<Box<dyn Future<Output = (Source, Result<Option<Download>, UriError>)> + Send>>;
 
-    let mut urls = urls.into_iter();
-    let mut in_flight: FuturesUnordered<SourceFuture> = FuturesUnordered::new();
-
-    in_flight.push(Box::pin(async move {
-        match download_mintgarden_archive(hash).await {
-            Ok(download) => download,
-            Err(error) => {
-                debug!("Failed to fetch {hash} from MintGarden archive: {error}");
-                None
-            }
-        }
-    }));
-
-    if let Some(url) = urls.next() {
-        in_flight.push(Box::pin(download_matching(url, hash)));
-    }
-
-    // The next source is started either when one fails, or when the ones in
-    // flight are taking a while.
-    let race = async {
-        loop {
-            tokio::select! {
-                result = in_flight.next() => match result {
-                    Some(Some(download)) => return Some(download),
-                    Some(None) => {
-                        if let Some(url) = urls.next() {
-                            in_flight.push(Box::pin(download_matching(url, hash)));
-                        } else if in_flight.is_empty() {
-                            return None;
-                        }
-                    }
-                    None => return None,
-                },
-                () = sleep(HEDGE_DELAY), if urls.len() > 0 => {
-                    if let Some(url) = urls.next() {
-                        in_flight.push(Box::pin(download_matching(url, hash)));
-                    }
+/// Downloads a source. Returns `None` if the archive doesn't have the file.
+async fn download_source(
+    source: &Source,
+    streaming: &AtomicUsize,
+) -> Result<Option<Download>, UriError> {
+    match source {
+        Source::Archive(hash) => {
+            let url = format!("{MINTGARDEN_ARCHIVE_URL}/{hash}");
+            match download(&url, streaming).await {
+                Err(UriError::Fetch(error)) if error.status() == Some(StatusCode::NOT_FOUND) => {
+                    Ok(None)
                 }
+                // Anything else the archive serves (such as a bot challenge
+                // page) isn't the file, and is likely to be temporary.
+                Ok(download) if download.hash != *hash => Err(UriError::InvalidArchiveContent),
+                result => result.map(Some),
             }
         }
-    };
-
-    let download = timeout(deadline, race).await.ok().flatten();
-
-    // Stop the downloads that lost the race before making the thumbnail.
-    drop(in_flight);
-
-    let download = download?;
-
-    Some(download.into_data(testnet).await)
-}
-
-type SourceFuture = Pin<Box<dyn Future<Output = Option<Download>> + Send>>;
-
-async fn download_matching(url: String, hash: Bytes32) -> Option<Download> {
-    match download(&url).await {
-        Ok(download) if download.hash == hash => Some(download),
-        Ok(download) => {
-            debug!(
-                "Hash mismatch for {url}, expected {hash} but found {}",
-                download.hash
-            );
-            None
-        }
-        Err(error) => {
-            debug!("Failed to fetch {url}, expected hash {hash}: {error}");
-            None
-        }
+        Source::Url(url) => download(url, streaming).await.map(Some),
     }
 }
 
-async fn download(url: &str) -> Result<Download, UriError> {
-    read_response(CLIENT.get(url).timeout(REQUEST_TIMEOUT).send().await?).await
+/// Counts a source as sending its file for as long as this is alive.
+struct StreamingGuard<'a>(&'a AtomicUsize);
+
+impl<'a> StreamingGuard<'a> {
+    fn new(streaming: &'a AtomicUsize) -> Self {
+        streaming.fetch_add(1, Ordering::Relaxed);
+        Self(streaming)
+    }
 }
 
-async fn read_response(response: Response) -> Result<Download, UriError> {
+impl Drop for StreamingGuard<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::Relaxed);
+    }
+}
+
+async fn download(url: &str, streaming: &AtomicUsize) -> Result<Download, UriError> {
+    let response = CLIENT.get(url).timeout(REQUEST_TIMEOUT).send().await?;
+
     // Error pages (such as a gateway's 404, 429, or bot challenge) aren't the
     // file, so treat them as a failure rather than as mismatched content.
     let response = response.error_for_status()?;
@@ -254,7 +281,10 @@ async fn read_response(response: Response) -> Result<Download, UriError> {
         None => None,
     };
 
-    let blob = response.bytes().await?.to_vec();
+    let blob = {
+        let _guard = StreamingGuard::new(streaming);
+        response.bytes().await?.to_vec()
+    };
 
     // Object storage often serves files as a generic binary type, which isn't
     // useful for displaying them, so try to detect the real type. If that
@@ -289,20 +319,22 @@ fn sniff_mime_type(blob: &[u8]) -> Option<String> {
     None
 }
 
-/// MintGarden only has thumbnails for media, so there's no point asking for
-/// one for metadata or license files.
-fn has_mintgarden_thumbnail(mime_type: &str) -> bool {
-    let essence = mime_type.split(';').next().unwrap_or_default().trim();
+/// The type and subtype of a MIME type, without any parameters.
+fn mime_essence(mime_type: &str) -> &str {
+    mime_type.split(';').next().unwrap_or_default().trim()
+}
 
+/// MintGarden only has thumbnails for media, so there's no point asking for
+/// one for metadata or license files. This is deliberately narrow, since media
+/// is sometimes served with a misleading type (such as SVG as `text/plain`).
+fn has_mintgarden_thumbnail(mime_type: &str) -> bool {
+    let essence = mime_essence(mime_type);
     !(essence.eq_ignore_ascii_case("application/json")
-        || essence.eq_ignore_ascii_case("application/pdf")
-        || essence
-            .get(..5)
-            .is_some_and(|prefix| prefix.eq_ignore_ascii_case("text/")))
+        || essence.eq_ignore_ascii_case("application/pdf"))
 }
 
 fn is_generic_mime_type(mime_type: &str) -> bool {
-    let essence = mime_type.split(';').next().unwrap_or_default().trim();
+    let essence = mime_essence(mime_type);
     essence.eq_ignore_ascii_case("application/octet-stream")
         || essence.eq_ignore_ascii_case("binary/octet-stream")
 }
@@ -373,7 +405,26 @@ pub async fn fetch_uris_without_hash(uris: Vec<String>, testnet: bool) -> Result
     let mut futures = FuturesUnordered::new();
 
     for uri in &uris {
-        futures.push(download_uri(uri, None, false));
+        let sources = uri_candidates(uri, false)
+            .into_iter()
+            .map(Source::Url)
+            .collect();
+
+        futures.push(async move {
+            let outcome = race_sources(
+                sources,
+                RaceOptions {
+                    expected_hash: None,
+                    hedge_delay: HEDGE_DELAY,
+                    deadline: URI_DEADLINE,
+                },
+            )
+            .await;
+
+            outcome
+                .matched
+                .ok_or(outcome.last_error.unwrap_or(UriError::Timeout))
+        });
     }
 
     let mut first: Option<Download> = None;
@@ -441,6 +492,40 @@ mod tests {
             Some("application/json")
         );
         assert_eq!(sniff_mime_type(b"\0\x01\x02"), None);
+    }
+
+    #[test]
+    fn test_has_mintgarden_thumbnail() {
+        assert!(has_mintgarden_thumbnail("image/png"));
+        assert!(has_mintgarden_thumbnail("text/plain; charset=utf-8"));
+        assert!(!has_mintgarden_thumbnail("application/json"));
+        assert!(!has_mintgarden_thumbnail("Application/PDF"));
+    }
+
+    #[test]
+    fn test_nft_sources() {
+        let hash = Bytes32::default();
+        let cid = "bafybeicsfvwqp25vgqoc5azurhtdklb7imhlxsjb4lyvkt2mqgx2jibmi4";
+        let sources = nft_sources(
+            &[
+                format!("ipfs://{cid}"),
+                format!("https://nftstorage.link/ipfs/{cid}"),
+            ],
+            hash,
+        );
+
+        let url = |url: String| Source::Url(url);
+
+        assert_eq!(
+            sources,
+            vec![
+                Source::Archive(hash),
+                url(format!("https://ipfs.filebase.io/ipfs/{cid}")),
+                url(format!("https://nftstorage.link/ipfs/{cid}")),
+                url(format!("https://gateway.pinata.cloud/ipfs/{cid}")),
+                url(format!("https://ipfs.io/ipfs/{cid}")),
+            ]
+        );
     }
 
     #[test]

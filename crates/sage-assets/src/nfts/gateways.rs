@@ -102,8 +102,10 @@ fn gateway_urls(
         .filter_map(|base| {
             let url = Url::parse(&format!("{base}{path}")).ok()?;
 
-            if skip_host.is_some_and(|host| url.host_str() == Some(host))
-                || !url.as_str().starts_with(base)
+            if skip_host.is_some_and(|host| {
+                url.host_str()
+                    .is_some_and(|url_host| same_operator(url_host, host))
+            }) || !url.as_str().starts_with(base)
             {
                 return None;
             }
@@ -114,6 +116,26 @@ fn gateway_urls(
             })
         })
         .collect()
+}
+
+/// Domains that are known to be run by the same operator as a gateway, such as
+/// the subdomain gateway for ipfs.io.
+const GATEWAY_ALIASES: [(&str, &str); 1] = [("dweb.link", "ipfs.io")];
+
+/// Whether two hosts belong to the same gateway operator, so that a gateway
+/// that already failed isn't tried again under a different name. For example,
+/// `<CID>.ipfs.filebase.io` links are served by the same operator as
+/// `ipfs.filebase.io`, and `<CID>.ipfs.dweb.link` by the same as `ipfs.io`.
+fn same_operator(a: &str, b: &str) -> bool {
+    let canonical = |host: &str| -> String {
+        GATEWAY_ALIASES
+            .into_iter()
+            .find(|(alias, _)| host == *alias || host.ends_with(&format!(".{alias}")))
+            .map_or_else(|| host.to_string(), |(_, operator)| operator.to_string())
+    };
+
+    let (a, b) = (canonical(a), canonical(b));
+    a == b || a.ends_with(&format!(".{b}")) || b.ends_with(&format!(".{a}"))
 }
 
 /// Returns the `<CID>[/path]` and query parts of an `ipfs://` URI.
@@ -496,5 +518,26 @@ mod tests {
             uri_candidates(&format!("ipfs://{CID_V1}/my image.png"), true),
             ipfs_gateways(&format!("{CID_V1}/my%20image.png"))
         );
+    }
+
+    #[test]
+    fn test_subdomain_link_skips_same_operator() {
+        let uri = format!("https://{CID_V1}.ipfs.dweb.link/1.png");
+        let mut expected = vec![uri.clone()];
+        expected.extend(
+            ipfs_gateways(&format!("{CID_V1}/1.png"))
+                .into_iter()
+                .filter(|url| !url.starts_with("https://ipfs.io/")),
+        );
+        assert_eq!(uri_candidates(&uri, true), expected);
+
+        let uri = format!("https://{CID_V1}.ipfs.filebase.io/1.png");
+        let mut expected = vec![uri.clone()];
+        expected.extend(
+            ipfs_gateways(&format!("{CID_V1}/1.png"))
+                .into_iter()
+                .filter(|url| !url.starts_with("https://ipfs.filebase.io/")),
+        );
+        assert_eq!(uri_candidates(&uri, true), expected);
     }
 }

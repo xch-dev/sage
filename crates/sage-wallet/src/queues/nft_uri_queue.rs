@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Duration};
 use chia_wallet_sdk::prelude::*;
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
-use sage_assets::{Data, Download, base64_data_uri, download_mintgarden_archive, download_uri};
+use sage_assets::{Data, HEDGE_DELAY, RaceOptions, base64_data_uri, nft_sources, race_sources};
 use sage_database::{Database, DatabaseTx, FileUri, NftMetadataInfo, ResizedImageKind};
 use tokio::{sync::mpsc, time::sleep};
 use tracing::{debug, info, warn};
@@ -11,6 +11,9 @@ use tracing::{debug, info, warn};
 use crate::{SyncEvent, WalletError, compute_nft_info};
 use chia_wallet_sdk::types::TESTNET11_CONSTANTS;
 use sage_config::Network;
+
+/// The time limit for downloading a file, across all of its sources.
+const FETCH_DEADLINE: Duration = Duration::from_mins(1);
 
 #[derive(Debug)]
 pub struct NftUriQueue {
@@ -89,95 +92,77 @@ struct Fetched {
     failed_uris: Vec<String>,
 }
 
-/// Tries MintGarden's archive first, since it's content addressed and will
-/// work even if the NFT's own URIs have gone offline. If it doesn't have the
-/// file, falls back to fetching each of the NFT's URIs.
+/// Fetches a file from MintGarden's archive, which is tried first since it's
+/// content addressed and will work even if the NFT's own URIs have gone
+/// offline, and then from the NFT's URIs (see [`nft_sources`]).
 async fn fetch_file(hash: Bytes32, items: Vec<FileUri>, testnet: bool) -> Fetched {
-    let uris = items.into_iter().map(|item| item.uri);
+    let uris: Vec<String> = items.into_iter().map(|item| item.uri).collect();
 
-    let archive_unavailable = match download_mintgarden_archive(hash).await {
-        Ok(Some(download)) => {
-            return Fetched {
-                hash,
-                data: Some((download.into_data(testnet).await, true)),
-                checked_uris: uris.collect(),
-                failed_uris: Vec::new(),
-            };
-        }
-        Ok(None) => false,
-        Err(error) => {
-            debug!("Error fetching {hash} from MintGarden archive: {error}");
-            error.is_transient()
-        }
-    };
+    let outcome = race_sources(
+        nft_sources(&uris, hash),
+        RaceOptions {
+            expected_hash: Some(hash),
+            hedge_delay: HEDGE_DELAY,
+            deadline: FETCH_DEADLINE,
+        },
+    )
+    .await;
 
-    let mut futures = FuturesUnordered::new();
-
-    for uri in uris {
-        futures.push(async move {
-            let result = download_uri(&uri, Some(hash), true).await;
-            (uri, result)
-        });
+    if let Some(download) = outcome.matched {
+        return Fetched {
+            hash,
+            data: Some((download.into_data(testnet).await, true)),
+            checked_uris: uris,
+            failed_uris: Vec::new(),
+        };
     }
 
-    let mut best: Option<Download> = None;
-    let mut checked_uris = Vec::new();
-    let mut failed_uris = Vec::new();
+    // A mismatching file is saved permanently, so don't settle for one if a
+    // source that might have had the right file was temporarily unavailable
+    // (such as being rate limited). Fall back to it otherwise, so that there's
+    // at least something to show.
+    if let Some(download) = outcome.mismatch {
+        warn!(
+            "Hash mismatch for {hash} (found {}), from URIs {uris:?}",
+            download.hash
+        );
 
-    while let Some((uri, result)) = futures.next().await {
-        match result {
-            Ok(download) => {
-                if download.hash != hash {
-                    warn!(
-                        "Hash mismatch for URI {uri} (expected {hash} but found {})",
-                        download.hash
-                    );
-                }
+        let data = if outcome.transient_failure {
+            debug!("Not saving mismatched file for {hash}, since a source may succeed later");
+            None
+        } else {
+            Some((download.into_data(testnet).await, false))
+        };
 
-                // Prefer a file that matches the hash, but fall back to one
-                // that doesn't so that there's at least something to show.
-                if best
-                    .as_ref()
-                    .is_none_or(|best| best.hash != hash && download.hash == hash)
-                {
-                    best = Some(download);
-                }
-
-                checked_uris.push(uri);
-            }
-            Err(error) => {
-                debug!("Error fetching URI {uri}: {error}");
-                failed_uris.push(uri);
-            }
-        }
+        return Fetched {
+            hash,
+            data,
+            checked_uris: uris,
+            failed_uris: Vec::new(),
+        };
     }
 
-    let best = best.filter(|download| {
-        // A mismatching file is saved permanently, so don't settle for one if
-        // the archive might have had the right file but was temporarily
-        // unavailable (such as being rate limited).
-        let keep = download.hash == hash || !archive_unavailable;
+    if let Some(error) = &outcome.last_error {
+        debug!("Error fetching {hash} from URIs {uris:?}: {error}");
+    }
 
-        if !keep {
-            debug!("Not saving mismatched file for {hash} since the archive was unavailable");
+    // Only count this against the URIs if it wasn't down to a temporary
+    // problem, so that a file isn't given up on while the archive or a
+    // gateway is rate limiting.
+    if outcome.transient_failure {
+        Fetched {
+            hash,
+            data: None,
+            checked_uris: uris,
+            failed_uris: Vec::new(),
         }
-
-        keep
-    });
-
-    let data = match best {
-        Some(download) => {
-            let is_hash_match = download.hash == hash;
-            Some((download.into_data(testnet).await, is_hash_match))
+    } else {
+        Fetched {
+            hash,
+            data: None,
+            checked_uris: Vec::new(),
+            failed_uris: uris,
         }
-        None => None,
-    };
-
-    Fetched {
-        hash,
-        data,
-        checked_uris,
-        failed_uris,
     }
 }
 
