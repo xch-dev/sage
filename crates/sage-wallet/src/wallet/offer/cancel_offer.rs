@@ -8,7 +8,8 @@ impl Wallet {
         spend_bundle: SpendBundle,
         fee: u64,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        self.cancel_offers(vec![spend_bundle], fee).await
+        self.cancel_offers(vec![spend_bundle], fee, Vec::new())
+            .await
     }
 
     /// Cancels every offer in one spend, paying `fee` once for the whole batch.
@@ -16,11 +17,13 @@ impl Wallet {
     /// Each offer is cancelled by spending one of its own coins back to the wallet. Building
     /// them all in one spend means any extra XCH the fee needs (when an offer holds no XCH of
     /// its own, such as a CAT or NFT offer) is selected once, so two offers can never pick the
-    /// same fee coin and produce a bundle that spends it twice.
+    /// same fee coin and produce a bundle that spends it twice. `fee_coin_ids` are spent first
+    /// for the fee; coin selection only adds what they do not cover.
     pub async fn cancel_offers(
         &self,
         spend_bundles: Vec<SpendBundle>,
         fee: u64,
+        fee_coin_ids: Vec<Bytes32>,
     ) -> Result<Vec<CoinSpend>, WalletError> {
         let mut ctx = SpendContext::new();
 
@@ -47,6 +50,12 @@ impl Wallet {
                 return Err(WalletError::UncancellableOffer);
             };
 
+            if !selected_coin_ids.contains(&coin_id) {
+                selected_coin_ids.push(coin_id);
+            }
+        }
+
+        for coin_id in fee_coin_ids {
             if !selected_coin_ids.contains(&coin_id) {
                 selected_coin_ids.push(coin_id);
             }
