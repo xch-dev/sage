@@ -1,4 +1,5 @@
 import { addressInfo } from '@/lib/utils';
+import { bech32m } from 'bech32';
 
 const SCHEME_PREFIX = 'sage:';
 
@@ -74,13 +75,22 @@ function parseOfferString(value: string): string | null {
   // bech32m is case-insensitive but must not be mixed case
   const offer = /^[A-Z0-9]+$/.test(value) ? value.toLowerCase() : value;
   if (
-    offer.startsWith('offer1') &&
-    offer.length <= MAX_OFFER_LENGTH &&
-    /^[a-z0-9]+$/.test(offer)
+    !offer.startsWith('offer1') ||
+    offer.length > MAX_OFFER_LENGTH ||
+    !/^[a-z0-9]+$/.test(offer)
   ) {
-    return offer;
+    return null;
   }
-  return null;
+
+  // Verify the checksum so a truncated or made-up offer is rejected here
+  // rather than surfacing as an internal decode error on the offer page
+  try {
+    return bech32m.decode(offer, MAX_OFFER_LENGTH).prefix === 'offer'
+      ? offer
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function parseOfferUrl(value: string): string | null {

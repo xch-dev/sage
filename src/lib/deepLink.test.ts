@@ -3,7 +3,9 @@ import { parseDeepLinkUrl } from './deepLink';
 
 const XCH = 'xch1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs3fazuv';
 const TXCH = 'txch1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygsuw65al';
-const OFFER = 'offer1qqzhthfamqu2eyjeuedycmzaqaqqxpea5vagelamekxa6';
+// A real (public) dexie.space offer, so the bech32m checksum is valid
+const OFFER =
+  'offer1qqr83wcuu2rykcmqvpsxygqqhqh7hu0l08gxt4gkk8ua3sl7h2hcrh66r69vezh0a6glrctp39vzvrznqah60rkkl63mtlmga5l447u06ml28d0ll7q64lwpshas9umanufaadfkrfhekxcex5slwjpvu0aqpuaedvp7xasxwmk6ayw442pz4kaa24dz2l7lc9du9t8mpnhhctqv83ekrpajjnwxrdhtulny0au5dr8cx4s45vks5g46l7xppxg9we4w00mwj5grcuxk8hx78a5uyrttvvkfm84r7hf4kvnls37yw0de5qv48s4eu7hg097cauyenuykzpa5v4hpk24wvkupuxn6hlev65a93kr3j78lxuekd8fxggwu33hue8w7y3erhm88k2recn4amqmxn02uawv3dyrp8trwddl9cwje72xtljy93w4j4jjv027ad8pdv6l6awl9wnduaaekvlkutac8d40hxmmztsls8q7d8nfm5cag4kvwr0zjpak0pp5x466f6hclr095thtch45a50nd4049qdkfn0j4mnvtfkunam2vvce9zlmy05emla8m0f8aumuhjuz8w7vqkkpq6pqkr5kscy6kfvprnahlzu79n4l2z7mctalqjtl75eudz6hvlly34s5j7ld4le829wzpwmrukmaqv6fvmlc9j2d678lcmwjhnau2urpzwznt23hgd8pamham5003e2gug9gd3cfddw2q2hr079uumal77mvve738hdkutu2hd8hkme0xyef6l0ft8pgazlnne0llglcl9ulld5m083phyceqq4vml3hez0vmegqqawvazchh73zy5c9rnm3av44tq5j94h3h0j3levnu7fkk84ct7f8s5rklx6el0036d9et5cmdsha7hy7wmszhq6h0hlm8hmk54804uhua7l4knyahwp6dfh2555w073vxdnznh6h7yyxhuwnc0z3xr6whl0j9a0e50zg7fyqy82ypdqgxvn78';
 const ASSET_ID =
   'A628C1C2C6FCB74D53746157E438E108EAB5C0BB3E5C80FF9B1910B3E98A1E14';
 
@@ -79,6 +81,19 @@ describe('parseDeepLinkUrl', () => {
         action: 'take_offer',
         offer: OFFER,
       });
+    });
+
+    it('rejects an offer whose checksum does not match', () => {
+      const last = OFFER.at(-1) === 'q' ? 'p' : 'q';
+      const corrupt = OFFER.slice(0, -1) + last;
+      expect(parseDeepLinkUrl(`sage:take_offer?offer=${corrupt}`).ok).toBe(
+        false,
+      );
+      expect(
+        parseDeepLinkUrl(
+          'sage:take_offer?offer=offer1qqzhthfamqu2eyjeuedycmzaqaqqxpea5vagelamekxa6',
+        ).ok,
+      ).toBe(false);
     });
 
     it('rejects malformed offers', () => {
