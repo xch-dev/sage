@@ -1,0 +1,6 @@
+[env]
+# Temporary workaround: chia-pos2 (pulled in by chia-protocol) compiles its C++ with
+# `-W4 -WX`, and on aarch64 MSVC its portable AES fallback uses a nameless struct (C4201),
+# which breaks the Windows (ARM) build. cc-rs appends target-specific CXXFLAGS last, so
+# this suppresses just that warning. Remove once chia-pos2 can be disabled or is fixed upstream.
+CXXFLAGS_aarch64_pc_windows_msvc = "/wd4201"

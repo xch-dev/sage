@@ -196,6 +196,9 @@ impl Sage {
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
                 clawback_timestamp: row.clawback_timestamp,
+                clawback_version: row.clawback_version,
+                clawback_is_sender: row.clawback_version.map(|_| row.clawback_is_sender),
+                clawback_is_receiver: row.clawback_version.map(|_| row.clawback_is_receiver),
                 created_height: row.created_height,
                 spent_height: row.spent_height,
                 created_timestamp: row.created_timestamp,
@@ -213,6 +216,7 @@ impl Sage {
             ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
             ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
             ApiCoinSortMode::ClawbackTimestamp => CoinSortMode::ClawbackTimestamp,
+            ApiCoinSortMode::ClawbackVersion => CoinSortMode::ClawbackVersion,
         };
         let filter_mode = match req.filter_mode {
             ApiCoinFilterMode::All => CoinFilterMode::All,
@@ -247,6 +251,9 @@ impl Sage {
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
                 clawback_timestamp: row.clawback_timestamp,
+                clawback_version: row.clawback_version,
+                clawback_is_sender: row.clawback_version.map(|_| row.clawback_is_sender),
+                clawback_is_receiver: row.clawback_version.map(|_| row.clawback_is_receiver),
                 created_height: row.created_height,
                 spent_height: row.spent_height,
                 created_timestamp: row.created_timestamp,
@@ -416,6 +423,12 @@ impl Sage {
             ApiOptionSortMode::ExpirationSeconds => OptionSortMode::ExpirationSeconds,
         };
 
+        let filter = match req.filter {
+            sage_api::OptionFilter::Owned => sage_database::OptionFilter::Owned,
+            sage_api::OptionFilter::Created => sage_database::OptionFilter::Created,
+            sage_api::OptionFilter::All => sage_database::OptionFilter::All,
+        };
+
         let mut options = Vec::new();
 
         let (rows, total) = wallet
@@ -427,6 +440,7 @@ impl Sage {
                 req.ascending,
                 req.find_value,
                 req.include_hidden,
+                filter,
             )
             .await?;
 
@@ -447,6 +461,8 @@ impl Sage {
                 expiration_seconds: row.expiration_seconds,
                 created_height: row.coin_row.created_height,
                 created_timestamp: row.coin_row.created_timestamp,
+                is_owned: row.coin_row.spent_height.is_none()
+                    && row.coin_row.mempool_item_hash.is_none(),
             });
         }
 
@@ -479,6 +495,7 @@ impl Sage {
             expiration_seconds: row.expiration_seconds,
             created_height: row.coin_row.created_height,
             created_timestamp: row.coin_row.created_timestamp,
+            is_owned: row.coin_row.spent_height.is_none(),
         };
 
         Ok(GetOptionResponse {
