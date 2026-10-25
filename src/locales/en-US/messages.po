@@ -234,7 +234,6 @@ msgstr "A request-only offer requires a network fee."
 msgid "Accent"
 msgstr "Accent"
 
-#: src/components/AddressList.tsx:47
 #: src/components/MultiSelectActionBar.tsx:106
 #: src/pages/PeerList.tsx:110
 msgid "Actions"
@@ -340,10 +339,8 @@ msgstr "Added {addedCount} {nfts} to offer"
 #~ msgid "Added NFT to offer"
 #~ msgstr "Added NFT to offer"
 
-#: src/components/AddressList.tsx:18
-#: src/components/AddressList.tsx:25
-#: src/components/dialogs/SignMessageDialog.tsx:99
-#: src/components/dialogs/SignMessageDialog.tsx:107
+#: src/components/AddressList.tsx:16
+#: src/components/AddressList.tsx:23
 #: src/components/TransactionColumns.tsx:132
 #: src/components/TransferDialog.tsx:90
 #: src/pages/Nft.tsx:622
@@ -356,7 +353,7 @@ msgstr "Address"
 #~ msgid "Address Batch Size"
 #~ msgstr "Address Batch Size"
 
-#: src/pages/Addresses.tsx:67
+#: src/pages/Addresses.tsx:59
 msgid "Address belongs to your wallet"
 msgstr "Address belongs to your wallet"
 
@@ -370,7 +367,7 @@ msgstr "Address belongs to your wallet"
 msgid "Address copied to clipboard"
 msgstr "Address copied to clipboard"
 
-#: src/pages/Addresses.tsx:147
+#: src/pages/Addresses.tsx:134
 msgid "Address is invalid"
 msgstr "Address is invalid"
 
@@ -378,15 +375,15 @@ msgstr "Address is invalid"
 msgid "Address is required"
 msgstr "Address is required"
 
-#: src/pages/Addresses.tsx:146
+#: src/pages/Addresses.tsx:133
 msgid "Address is valid"
 msgstr "Address is valid"
 
-#: src/pages/Addresses.tsx:69
+#: src/pages/Addresses.tsx:61
 msgid "Address not found in your wallet"
 msgstr "Address not found in your wallet"
 
-#: src/pages/Addresses.tsx:116
+#: src/pages/Addresses.tsx:103
 msgid "Address to check"
 msgstr "Address to check"
 
@@ -406,7 +403,7 @@ msgstr "Advanced Feature"
 msgid "Advanced options"
 msgstr "Advanced options"
 
-#: src/pages/Addresses.tsx:168
+#: src/pages/Addresses.tsx:155
 msgid "All Addresses"
 msgstr "All Addresses"
 
@@ -716,7 +713,6 @@ msgstr "By disabling this you are creating a cold wallet, with no ability to sig
 #: src/components/dialogs/MigrationDialog.tsx:52
 #: src/components/dialogs/OfferCreationProgressDialog.tsx:352
 #: src/components/dialogs/ResyncDialog.tsx:95
-#: src/components/dialogs/SignMessageDialog.tsx:160
 #: src/components/FeeOnlyDialog.tsx:93
 #: src/components/NftCard.tsx:697
 #: src/components/OfferRowCard.tsx:107
@@ -807,15 +803,15 @@ msgstr "Change"
 msgid "Change Address"
 msgstr "Change Address"
 
-#: src/pages/Addresses.tsx:144
+#: src/pages/Addresses.tsx:131
 msgid "Check address"
 msgstr "Check address"
 
-#: src/pages/Addresses.tsx:107
+#: src/pages/Addresses.tsx:94
 msgid "Check Address"
 msgstr "Check Address"
 
-#: src/pages/Addresses.tsx:110
+#: src/pages/Addresses.tsx:97
 msgid "Check if an address is owned by this wallet."
 msgstr "Check if an address is owned by this wallet."
 
@@ -1589,7 +1585,6 @@ msgid "Display name"
 msgstr "Display name"
 
 #: src/components/dialogs/OfferCreationProgressDialog.tsx:356
-#: src/components/dialogs/SignMessageDialog.tsx:154
 #: src/components/WalletCard.tsx:509
 msgid "Done"
 msgstr "Done"
@@ -1662,9 +1657,8 @@ msgstr "Enable clawback"
 #~ msgid "Enable Delta Sync"
 #~ msgstr "Enable Delta Sync"
 
-#: src/components/dialogs/SignMessageDialog.tsx:112
 #: src/components/TransferDialog.tsx:99
-#: src/pages/Addresses.tsx:115
+#: src/pages/Addresses.tsx:102
 #: src/pages/MintNft.tsx:264
 #: src/pages/Send.tsx:320
 msgid "Enter address"
@@ -1699,10 +1693,6 @@ msgstr "Enter derivation index"
 #: src/pages/Send.tsx:424
 msgid "Enter memo"
 msgstr "Enter memo"
-
-#: src/components/dialogs/SignMessageDialog.tsx:132
-msgid "Enter message to sign"
-msgstr "Enter message to sign"
 
 #: src/pages/Send.tsx:312
 msgid "Enter multiple distinct addresses"
@@ -2017,7 +2007,7 @@ msgstr "Finalize Clawback"
 msgid "Finalize Clawback Details"
 msgstr "Finalize Clawback Details"
 
-#: src/pages/Addresses.tsx:90
+#: src/pages/Addresses.tsx:77
 msgid "Fresh Address"
 msgstr "Fresh Address"
 
@@ -2277,7 +2267,7 @@ msgstr "Increase Derivation Index"
 msgid "Increase the derivation index to generate new addresses. Setting this too high can cause issues, and it can't be reversed without resyncing the wallet."
 msgstr "Increase the derivation index to generate new addresses. Setting this too high can cause issues, and it can't be reversed without resyncing the wallet."
 
-#: src/components/AddressList.tsx:13
+#: src/components/AddressList.tsx:11
 msgid "Index"
 msgstr "Index"
 
@@ -2297,7 +2287,6 @@ msgstr "Input field example"
 msgid "Insert address from another wallet"
 msgstr "Insert address from another wallet"
 
-#: src/components/dialogs/SignMessageDialog.tsx:66
 #: src/pages/Send.tsx:128
 msgid "Invalid address"
 msgstr "Invalid address"
@@ -2540,10 +2529,6 @@ msgstr "Memo (optional)"
 #: src/pages/Send.tsx:160
 msgid "Memo must be valid hex bytes (even length, 0-9, a-f)"
 msgstr "Memo must be valid hex bytes (even length, 0-9, a-f)"
-
-#: src/components/dialogs/SignMessageDialog.tsx:127
-msgid "Message"
-msgstr "Message"
 
 #: src/components/NftCard.tsx:662
 msgid "Metadata"
@@ -3405,7 +3390,7 @@ msgstr "Position the QR code within the frame"
 msgid "Preferences"
 msgstr "Preferences"
 
-#: src/pages/Addresses.tsx:160
+#: src/pages/Addresses.tsx:147
 msgid "Press Enter to check the address after typing"
 msgstr "Press Enter to check the address after typing"
 
@@ -3492,16 +3477,11 @@ msgstr "Profile name"
 msgid "Profiles"
 msgstr "Profiles"
 
-#: src/components/dialogs/SignMessageDialog.tsx:90
-msgid "Prove that you own an address by signing a message with its key. Hex messages starting with 0x are signed as raw bytes."
-msgstr "Prove that you own an address by signing a message with its key. Hex messages starting with 0x are signed as raw bytes."
-
-#: src/components/AddressList.tsx:40
-#: src/components/dialogs/SignMessageDialog.tsx:100
+#: src/components/AddressList.tsx:38
 msgid "Public key"
 msgstr "Public key"
 
-#: src/components/AddressList.tsx:33
+#: src/components/AddressList.tsx:31
 #: src/components/WalletCard.tsx:474
 msgid "Public Key"
 msgstr "Public Key"
@@ -3539,7 +3519,7 @@ msgstr "Receive"
 #~ msgstr "Receive {0}"
 
 #: src/components/QRCodeDialog.tsx:99
-#: src/pages/Addresses.tsx:79
+#: src/pages/Addresses.tsx:71
 msgid "Receive {ticker}"
 msgstr "Receive {ticker}"
 
@@ -4098,7 +4078,7 @@ msgstr "Show {size} items per page"
 #~ msgid "Show collection"
 #~ msgstr "Show collection"
 
-#: src/pages/Addresses.tsx:174
+#: src/pages/Addresses.tsx:161
 msgid "Show hardened addresses"
 msgstr "Show hardened addresses"
 
@@ -4160,7 +4140,7 @@ msgstr "Showing {length} of {maxRows} {rowLabelPlural}"
 #~ msgid "Showing {length} rows"
 #~ msgstr "Showing {length} rows"
 
-#: src/components/AddressList.tsx:128
+#: src/components/AddressList.tsx:102
 msgid "Showing {shownDerivations} of {totalDerivations} addresses"
 msgstr "Showing {shownDerivations} of {totalDerivations} addresses"
 
@@ -4168,42 +4148,13 @@ msgstr "Showing {shownDerivations} of {totalDerivations} addresses"
 msgid "Sidebar navigation"
 msgstr "Sidebar navigation"
 
-#: src/components/dialogs/SignMessageDialog.tsx:168
-msgid "Sign"
-msgstr "Sign"
-
-#: src/components/dialogs/SignMessageDialog.tsx:151
-msgid "Sign Another"
-msgstr "Sign Another"
-
-#: src/components/AddressList.tsx:61
-msgid "Sign message"
-msgstr "Sign message"
-
-#: src/components/dialogs/SignMessageDialog.tsx:87
-#: src/pages/Addresses.tsx:82
-msgid "Sign Message"
-msgstr "Sign Message"
-
-#: src/components/AddressList.tsx:60
-msgid "Sign message with this address"
-msgstr "Sign message with this address"
-
 #: src/components/ConfirmationDialog.tsx:563
 msgid "Sign Transaction"
 msgstr "Sign Transaction"
 
-#: src/components/dialogs/SignMessageDialog.tsx:101
-msgid "Signature"
-msgstr "Signature"
-
 #: src/components/ConfirmationDialog.tsx:560
 msgid "Signed"
 msgstr "Signed"
-
-#: src/components/dialogs/SignMessageDialog.tsx:164
-msgid "Signing"
-msgstr "Signing"
 
 #: src/components/NftOptions.tsx:255
 msgid "Small Cards"
@@ -4560,7 +4511,7 @@ msgstr "The offer to fulfill the swap has been created successfully. It will now
 msgid "The transaction fee of {fee} applies to each offer being canceled."
 msgstr "The transaction fee of {fee} applies to each offer being canceled."
 
-#: src/pages/Addresses.tsx:93
+#: src/pages/Addresses.tsx:80
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "The wallet generates a new address after each transaction. Old ones stay valid."
 
@@ -4652,10 +4603,6 @@ msgstr "This collection ID does not exist."
 #: src/pages/ViewOffer.tsx:90
 #~ msgid "This does not include a fee of {makerFee} which was already added by the maker."
 #~ msgstr "This does not include a fee of {makerFee} which was already added by the maker."
-
-#: src/components/dialogs/SignMessageDialog.tsx:139
-msgid "This is a read-only wallet, so it cannot sign messages."
-msgstr "This is a read-only wallet, so it cannot sign messages."
 
 #: src/pages/TokenList.tsx:252
 msgid "This is an estimate only and does not account for liquidity"
