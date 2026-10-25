@@ -8,10 +8,10 @@ use chia_wallet_sdk::{
 use itertools::Itertools;
 use sage_api::{
     AddNftUri, AssignNftsToDid, AutoCombineCat, AutoCombineCatResponse, AutoCombineXch,
-    AutoCombineXchResponse, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch, Combine,
-    CreateDid, ExerciseOptions, FinalizeClawback, IssueCat, MintOption, MintOptionResponse,
-    MultiSend, NftUriKind, NormalizeDids, OptionAsset, SendCat, SendXch, SignCoinSpends,
-    SignCoinSpendsResponse, Split, SubmitTransaction, SubmitTransactionResponse,
+    AutoCombineXchResponse, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch,
+    ClaimClawback, Combine, CreateDid, ExerciseOptions, FinalizeClawback, IssueCat, MintOption,
+    MintOptionResponse, MultiSend, NftUriKind, NormalizeDids, OptionAsset, SendCat, SendXch,
+    SignCoinSpends, SignCoinSpendsResponse, Split, SubmitTransaction, SubmitTransactionResponse,
     TransactionResponse, TransferDids, TransferNfts, TransferOptions, ViewCoinSpends,
     ViewCoinSpendsResponse,
 };
@@ -23,7 +23,7 @@ use tokio::time::timeout;
 use crate::{
     ConfirmationInfo, Error, Result, Sage, json_bundle, json_spend, parse_amount, parse_asset_id,
     parse_coin_ids, parse_did_id, parse_hash, parse_memos, parse_nft_id, parse_option_id,
-    rust_bundle, rust_spend,
+    rust_bundle, rust_spend, selectable_coin_ids,
 };
 
 impl Sage {
@@ -33,9 +33,16 @@ impl Sage {
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
         let memos = parse_memos(req.memos)?;
+        let selected_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
 
         let coin_spends = wallet
-            .send_xch(vec![(puzzle_hash, amount)], fee, memos, req.clawback)
+            .send_xch_with_coins(
+                vec![(puzzle_hash, amount)],
+                fee,
+                memos,
+                req.clawback,
+                selected_coin_ids,
+            )
             .await?;
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -193,15 +200,17 @@ impl Sage {
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
         let memos = parse_memos(req.memos)?;
+        let selected_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, Some(asset_id)).await?;
 
         let coin_spends = wallet
-            .send_cat(
+            .send_cat_with_coins(
                 asset_id,
                 vec![(puzzle_hash, amount)],
                 fee,
                 req.include_hint,
                 memos,
                 req.clawback,
+                selected_coin_ids,
             )
             .await?;
         self.transact(coin_spends, req.auto_submit).await
@@ -492,6 +501,15 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet.finalize_clawback(coin_ids, fee).await?;
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
+    pub async fn claim_clawback(&self, req: ClaimClawback) -> Result<TransactionResponse> {
+        let wallet = self.wallet()?;
+        let coin_ids = parse_coin_ids(req.coin_ids)?;
+        let fee = parse_amount(req.fee)?;
+
+        let coin_spends = wallet.claim_clawback(coin_ids, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
