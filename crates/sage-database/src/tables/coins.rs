@@ -631,6 +631,12 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
     Ok(coins)
 }
 
+/// V1 stores a relative timelock and V2 an absolute expiration, so normalize both to the
+/// unix time at which the clawback unlocks for sorting.
+const CLAWBACK_UNLOCK_TIMESTAMP: &str = "CASE WHEN clawback_version = 1
+    THEN created_timestamp + clawback_expiration_seconds
+    ELSE clawback_expiration_seconds END";
+
 async fn coin_records(
     conn: &SqlitePool,
     asset_filter: AssetFilter,
@@ -674,8 +680,12 @@ async fn coin_records(
         CoinSortMode::CreatedHeight => query.push("created_height DESC NULLS FIRST"),
         CoinSortMode::SpentHeight if ascending => query.push("spent_height ASC NULLS LAST"),
         CoinSortMode::SpentHeight => query.push("spent_height DESC NULLS FIRST"),
-        CoinSortMode::ClawbackTimestamp if ascending => query.push("clawback_timestamp ASC"),
-        CoinSortMode::ClawbackTimestamp => query.push("clawback_timestamp DESC"),
+        CoinSortMode::ClawbackTimestamp if ascending => {
+            query.push(format!("{CLAWBACK_UNLOCK_TIMESTAMP} ASC NULLS LAST"))
+        }
+        CoinSortMode::ClawbackTimestamp => {
+            query.push(format!("{CLAWBACK_UNLOCK_TIMESTAMP} DESC NULLS FIRST"))
+        }
         CoinSortMode::ClawbackVersion if ascending => query.push("clawback_version ASC"),
         CoinSortMode::ClawbackVersion => query.push("clawback_version DESC"),
     };
