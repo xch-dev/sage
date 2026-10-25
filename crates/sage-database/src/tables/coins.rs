@@ -712,6 +712,9 @@ async fn coin_records(
         CoinSortMode::ClawbackVersion => query.push("clawback_version DESC"),
     };
 
+    // Ensure a stable order between pages when the sort column has ties
+    query.push(", coin_hash ASC");
+
     query.push(" LIMIT ");
     query.push_bind(limit as i64);
     query.push(" OFFSET ");

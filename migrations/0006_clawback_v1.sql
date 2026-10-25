@@ -7,8 +7,6 @@
 
 ALTER TABLE clawbacks ADD COLUMN version INTEGER NOT NULL DEFAULT 2;
 
-CREATE INDEX idx_clawbacks_version ON clawbacks(version);
-
 DROP VIEW wallet_coins;
 DROP VIEW selectable_coins;
 DROP VIEW owned_coins;
