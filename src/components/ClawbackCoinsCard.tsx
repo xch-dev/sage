@@ -69,10 +69,10 @@ function isClawBackEligible(coin: CoinRecord, now: number): boolean {
   return false;
 }
 
+// Pushing through an expired V2 clawback needs no key, so either party can finalize.
 function isFinalizeEligible(coin: CoinRecord, now: number): boolean {
   return (
     coin.clawback_version === 2 &&
-    !!coin.clawback_is_sender &&
     coin.clawback_timestamp != null &&
     now >= Number(coin.clawback_timestamp)
   );
@@ -511,12 +511,7 @@ export function ClawbackCoinsCard({
 
               <Button
                 variant='outline'
-                disabled={
-                  isTransactionDisabled ||
-                  selectedCoinIds.length === 0 ||
-                  canClawBack ||
-                  !canFinalize
-                }
+                disabled={isTransactionDisabled || !canFinalize}
                 onClick={() => {
                   if (canFinalize) setFinalizeOpen(true);
                 }}
@@ -527,12 +522,7 @@ export function ClawbackCoinsCard({
 
               <Button
                 variant='outline'
-                disabled={
-                  isTransactionDisabled ||
-                  selectedCoinIds.length === 0 ||
-                  canClawBack ||
-                  !canClaim
-                }
+                disabled={isTransactionDisabled || !canClaim}
                 onClick={() => {
                   if (canClaim) setClaimOpen(true);
                 }}
@@ -667,8 +657,8 @@ export function ClawbackCoinsCard({
             <DialogDescription>
               <Trans>
                 This will claim all of the selected coins from an early type of
-                clawback. This will send the funds to your wallet, and the original
-                sender will no longer be able to claw it back.
+                clawback. This will send the funds to your wallet, and the
+                original sender will no longer be able to claw it back.
               </Trans>
             </DialogDescription>
           </DialogHeader>
