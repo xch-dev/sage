@@ -647,7 +647,6 @@ export function ClawbackCoinsCard({
         </DialogContent>
       </Dialog>
 
-      {/* @TODO: Decide whether this should be wrapped up in the Finalize flow, or an additional flow. */}
       <Dialog open={claimOpen} onOpenChange={setClaimOpen}>
         <DialogContent>
           <DialogHeader>
