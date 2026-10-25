@@ -348,6 +348,23 @@ impl Wallet {
                     match p2_puzzle {
                         P2Puzzle::PublicKey(public_key) => StandardLayer::new(*public_key)
                             .spend_with_conditions(ctx, spend.finish())?,
+                        P2Puzzle::Clawback(clawback) if clawback.version == 1 => {
+                            // The V1 key lookup only resolves the sender key, since the sender can
+                            // claw back at any time. Receivers must go through claim_clawback.
+                            let Some(public_key) = clawback.public_key else {
+                                return Err(WalletError::ClawbackClaimRequired);
+                            };
+
+                            let spend = StandardLayer::new(public_key)
+                                .spend_with_conditions(ctx, spend.finish())?;
+
+                            ClawbackV1::new(
+                                clawback.seconds,
+                                clawback.sender_puzzle_hash,
+                                clawback.receiver_puzzle_hash,
+                            )
+                            .sender_spend(ctx, spend)?
+                        }
                         P2Puzzle::Clawback(clawback) => {
                             let Some(public_key) = clawback.public_key else {
                                 return Err(DriverError::MissingKey.into());
@@ -360,38 +377,22 @@ impl Wallet {
                             let is_sender =
                                 custody.tree_hash() == clawback.sender_puzzle_hash.into();
 
-                            if clawback.version == 1 {
-                                // V1 sender can claw anytime; receiver must use claim_clawback.
-                                let v1 = ClawbackV1::new(
-                                    clawback.seconds,
-                                    clawback.sender_puzzle_hash,
-                                    clawback.receiver_puzzle_hash,
-                                );
-                                if is_sender {
-                                    v1.sender_spend(ctx, spend)?
-                                } else if is_receiver {
-                                    return Err(WalletError::ClawbackClaimRequired);
-                                } else {
-                                    return Err(DriverError::MissingKey.into());
-                                }
-                            } else {
-                                let v2 = ClawbackV2::new(
-                                    clawback.sender_puzzle_hash,
-                                    clawback.receiver_puzzle_hash,
-                                    clawback.seconds,
-                                    asset.coin().amount,
-                                    !matches!(asset, SpendableAsset::Xch(..)),
-                                );
+                            let v2 = ClawbackV2::new(
+                                clawback.sender_puzzle_hash,
+                                clawback.receiver_puzzle_hash,
+                                clawback.seconds,
+                                asset.coin().amount,
+                                !matches!(asset, SpendableAsset::Xch(..)),
+                            );
 
-                                if is_sender && timestamp < clawback.seconds {
-                                    v2.sender_spend(ctx, spend)?
-                                } else if is_receiver && timestamp >= clawback.seconds {
-                                    v2.receiver_spend(ctx, spend)?
-                                } else if is_sender || is_receiver {
-                                    return Err(WalletError::ClawbackSpendNotAllowed);
-                                } else {
-                                    return Err(DriverError::MissingKey.into());
-                                }
+                            if is_sender && timestamp < clawback.seconds {
+                                v2.sender_spend(ctx, spend)?
+                            } else if is_receiver && timestamp >= clawback.seconds {
+                                v2.receiver_spend(ctx, spend)?
+                            } else if is_sender || is_receiver {
+                                return Err(WalletError::ClawbackSpendNotAllowed);
+                            } else {
+                                return Err(DriverError::MissingKey.into());
                             }
                         }
                         P2Puzzle::Option(underlying) => {
