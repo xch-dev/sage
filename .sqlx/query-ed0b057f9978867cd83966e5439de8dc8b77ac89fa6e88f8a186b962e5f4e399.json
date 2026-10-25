@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM resized_images WHERE file_id = (SELECT id FROM files WHERE hash = ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "ed0b057f9978867cd83966e5439de8dc8b77ac89fa6e88f8a186b962e5f4e399"
+}

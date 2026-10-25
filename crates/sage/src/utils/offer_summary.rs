@@ -28,8 +28,8 @@ impl Sage {
 
         let offered_amounts = offer.offered_coins().amounts();
         let requested_amounts = offer.requested_payments().amounts();
-        let offered_royalties = offer.offered_royalty_amounts();
-        let requested_royalties = offer.requested_royalty_amounts();
+        let offered_royalties = offer.offered_royalty_amounts()?;
+        let requested_royalties = offer.requested_royalty_amounts()?;
 
         let mut maker = Vec::new();
 
@@ -39,8 +39,8 @@ impl Sage {
             };
 
             maker.push(OfferAsset {
-                amount: Amount::u64(offered_amounts.xch),
-                royalty: Amount::u64(offered_royalties.xch),
+                amount: Amount::u128(offered_amounts.xch),
+                royalty: Amount::u128(offered_royalties.xch),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
                 option_assets: None,
@@ -54,8 +54,8 @@ impl Sage {
                 .and_then(|cat| cat.hidden_puzzle_hash);
 
             maker.push(OfferAsset {
-                amount: Amount::u64(amount),
-                royalty: Amount::u64(offered_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
+                amount: Amount::u128(amount),
+                royalty: Amount::u128(offered_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
                 asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
                 option_assets: None,
@@ -118,8 +118,8 @@ impl Sage {
             };
 
             taker.push(OfferAsset {
-                amount: Amount::u64(requested_amounts.xch),
-                royalty: Amount::u64(requested_royalties.xch),
+                amount: Amount::u128(requested_amounts.xch),
+                royalty: Amount::u128(requested_royalties.xch),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
                 option_assets: None,
@@ -133,8 +133,8 @@ impl Sage {
                 .and_then(|cat| cat.hidden_puzzle_hash);
 
             taker.push(OfferAsset {
-                amount: Amount::u64(amount),
-                royalty: Amount::u64(*requested_royalties.cats.get(&asset_id).unwrap_or(&0)),
+                amount: Amount::u128(amount),
+                royalty: Amount::u128(*requested_royalties.cats.get(&asset_id).unwrap_or(&0)),
                 asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
                 option_assets: None,
@@ -144,8 +144,13 @@ impl Sage {
         for (&launcher_id, payments) in &offer.requested_payments().nfts {
             let amount = payments
                 .iter()
-                .map(|p| p.payments.iter().map(|p| p.amount).sum::<u64>())
-                .sum::<u64>();
+                .map(|p| {
+                    p.payments
+                        .iter()
+                        .map(|p| u128::from(p.amount))
+                        .sum::<u128>()
+                })
+                .sum::<u128>();
 
             let nft = offer
                 .asset_info()
@@ -162,7 +167,7 @@ impl Sage {
                 .await?;
 
             taker.push(OfferAsset {
-                amount: Amount::u64(amount),
+                amount: Amount::u128(amount),
                 royalty: Amount::u64(0),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: Some(NftRoyalty {
@@ -177,8 +182,13 @@ impl Sage {
         for (&launcher_id, payments) in &offer.requested_payments().options {
             let amount = payments
                 .iter()
-                .map(|p| p.payments.iter().map(|p| p.amount).sum::<u64>())
-                .sum::<u64>();
+                .map(|p| {
+                    p.payments
+                        .iter()
+                        .map(|p| u128::from(p.amount))
+                        .sum::<u128>()
+                })
+                .sum::<u128>();
 
             let asset = self.cache_option(launcher_id).await?;
 
@@ -187,7 +197,7 @@ impl Sage {
             };
 
             taker.push(OfferAsset {
-                amount: Amount::u64(amount),
+                amount: Amount::u128(amount),
                 royalty: Amount::u64(0),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,

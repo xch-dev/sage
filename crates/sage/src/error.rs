@@ -203,6 +203,11 @@ pub enum Error {
     #[error("Coin already spent: {0}")]
     CoinSpent(Bytes32),
 
+    #[error(
+        "Coin {0} cannot be selected: it must be this wallet's, confirmed, unspent, of an asset this transaction spends, and not pending or locked in an offer"
+    )]
+    CoinNotSelectable(Bytes32),
+
     #[error("IP addr parse error: {0}")]
     IpAddrParse(#[from] AddrParseError),
 
@@ -302,6 +307,7 @@ impl Error {
             | Self::InvalidSignature(..)
             | Self::InvalidPublicKey(..)
             | Self::CoinSpent(..)
+            | Self::CoinNotSelectable(..)
             | Self::Uri(..)
             | Self::IpAddrParse(..)
             | Self::NoPeers
