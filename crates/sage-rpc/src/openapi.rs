@@ -79,6 +79,7 @@ pub fn generate_openapi() -> OpenApi {
         .schema_from::<sage_api::CoinSortMode>()
         .schema_from::<sage_api::CoinFilterMode>()
         .schema_from::<sage_api::OptionSortMode>()
+        .schema_from::<sage_api::OptionFilter>()
         .schema_from::<sage_api::NftSortMode>()
         .schema_from::<sage_api::NftUriKind>()
         .schema_from::<sage_api::TransactionSummary>()

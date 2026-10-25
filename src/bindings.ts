@@ -1465,7 +1465,11 @@ find_value: string | null;
 /**
  * Include hidden options
  */
-include_hidden?: boolean }
+include_hidden?: boolean; 
+/**
+ * Which options to list (defaults to owned options)
+ */
+filter?: OptionFilter }
 /**
  * Response with options list
  */
@@ -2138,7 +2142,20 @@ asset_id: string | null;
  */
 amount: Amount }
 export type OptionAssets = { underlying_asset: Asset; underlying_amount: Amount; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number }
-export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null }
+export type OptionFilter = 
+/**
+ * Options currently held by the wallet
+ */
+"owned" | 
+/**
+ * Options minted by the wallet, including ones that have since been transferred
+ */
+"created" | 
+/**
+ * Both owned and created options
+ */
+"all"
+export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null; is_owned: boolean }
 export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }

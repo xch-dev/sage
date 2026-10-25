@@ -33,7 +33,7 @@ msgstr ""
 msgid "{0, plural, one {You do not currently have any DID profile. Would you like to create one?} other {You do not currently have any DID profiles. Would you like to create one?}}"
 msgstr ""
 
-#: src/pages/OptionList.tsx:126
+#: src/pages/OptionList.tsx:182
 msgid "{0, plural, one {You do not currently have any option contracts. Would you like to mint one?} other {You do not currently have any option contracts. Would you like to mint one?}}"
 msgstr ""
 
@@ -251,8 +251,8 @@ msgstr ""
 msgid "Actions for selected NFTs"
 msgstr ""
 
-#: src/components/OptionCard.tsx:212
-#: src/components/OptionColumns.tsx:158
+#: src/components/OptionCard.tsx:207
+#: src/components/OptionColumns.tsx:162
 #: src/pages/Option.tsx:127
 msgid "Active"
 msgstr ""
@@ -265,7 +265,7 @@ msgstr ""
 msgid "Add {nftName} to offer"
 msgstr ""
 
-#: src/components/OptionCard.tsx:145
+#: src/components/OptionCard.tsx:140
 msgid "Add {optionName} to offer"
 msgstr ""
 
@@ -312,7 +312,7 @@ msgstr "添加请求的资产."
 
 #: src/components/MultiSelectActions.tsx:274
 #: src/components/NftCard.tsx:521
-#: src/components/OptionCard.tsx:149
+#: src/components/OptionCard.tsx:144
 msgid "Add to Offer"
 msgstr ""
 
@@ -411,6 +411,10 @@ msgstr "所有地址"
 msgid "All Levels"
 msgstr ""
 
+#: src/pages/OptionList.tsx:142
+msgid "All Options"
+msgstr ""
+
 #: src/pages/Settings.tsx:954
 msgid "All Sources"
 msgstr ""
@@ -444,11 +448,11 @@ msgstr "金额包括"
 msgid "Analyze Duration"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:935
+#: src/contexts/WalletConnectContext.tsx:1013
 msgid "Approve"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:925
+#: src/contexts/WalletConnectContext.tsx:1003
 msgid "Approving"
 msgstr ""
 
@@ -656,8 +660,8 @@ msgstr "批量转移NFT"
 #: src/components/MultiSelectActions.tsx:311
 #: src/components/NftCard.tsx:484
 #: src/components/NftCard.tsx:713
-#: src/components/OptionCard.tsx:114
-#: src/components/OptionColumns.tsx:209
+#: src/components/OptionCard.tsx:110
+#: src/components/OptionColumns.tsx:213
 #: src/hooks/useOptionActions.tsx:155
 #: src/pages/DidList.tsx:278
 #: src/pages/DidList.tsx:394
@@ -894,7 +898,7 @@ msgid "Clear Selection"
 msgstr ""
 
 #: src/components/NftCard.tsx:506
-#: src/components/OptionCard.tsx:135
+#: src/components/OptionCard.tsx:131
 msgid "Click here to go to offer."
 msgstr ""
 
@@ -1202,8 +1206,8 @@ msgstr ""
 #: src/components/NftCard.tsx:576
 #: src/components/NftGroupCard.tsx:397
 #: src/components/OfferRowCard.tsx:121
-#: src/components/OptionCard.tsx:163
-#: src/components/OptionColumns.tsx:222
+#: src/components/OptionCard.tsx:158
+#: src/components/OptionColumns.tsx:226
 #: src/pages/DidList.tsx:294
 msgid "Copy ID"
 msgstr "复制ID"
@@ -1240,7 +1244,7 @@ msgstr "创建一个新报价以开始点对点交易."
 msgid "Create a profile?"
 msgstr "创建个人资料?"
 
-#: src/pages/OptionList.tsx:123
+#: src/pages/OptionList.tsx:179
 msgid "Create an option?"
 msgstr ""
 
@@ -1594,7 +1598,7 @@ msgid "e.g. ff00ab"
 msgstr ""
 
 #: src/components/TokenCard.tsx:169
-#: src/contexts/WalletConnectContext.tsx:446
+#: src/contexts/WalletConnectContext.tsx:447
 msgid "Edit"
 msgstr "编辑"
 
@@ -1775,7 +1779,7 @@ msgid "Error loading themes: {error}"
 msgstr ""
 
 #: src/components/OptionCard.tsx:86
-#: src/components/OptionColumns.tsx:193
+#: src/components/OptionColumns.tsx:197
 #: src/hooks/useOptionActions.tsx:133
 msgid "Exercise"
 msgstr ""
@@ -1806,7 +1810,7 @@ msgid "Experimental Feature"
 msgstr ""
 
 #: src/components/confirmations/MintOptionConfirmation.tsx.tsx:143
-#: src/components/OptionCard.tsx:194
+#: src/components/OptionCard.tsx:189
 #: src/components/OptionColumns.tsx:106
 #: src/pages/MintOption.tsx:247
 msgid "Expiration"
@@ -1818,7 +1822,7 @@ msgid "Expiration must be at least 1 second in the future"
 msgstr ""
 
 #: src/components/OfferCard.tsx:145
-#: src/components/OptionCard.tsx:201
+#: src/components/OptionCard.tsx:196
 #: src/components/OptionColumns.tsx:120
 #: src/pages/Option.tsx:129
 msgid "Expired"
@@ -1841,7 +1845,7 @@ msgstr ""
 msgid "Expiring offer"
 msgstr "包含有效期的报价"
 
-#: src/components/OptionCard.tsx:207
+#: src/components/OptionCard.tsx:202
 #: src/components/OptionColumns.tsx:127
 msgid "Expiring soon"
 msgstr ""
@@ -1940,8 +1944,8 @@ msgstr ""
 
 #: src/components/AdvancedTransactionSummary.tsx:89
 #: src/components/ConfirmationDialog.tsx:453
-#: src/contexts/WalletConnectContext.tsx:426
-#: src/contexts/WalletConnectContext.tsx:466
+#: src/contexts/WalletConnectContext.tsx:427
+#: src/contexts/WalletConnectContext.tsx:467
 msgid "Fee"
 msgstr "手续费"
 
@@ -1975,6 +1979,10 @@ msgstr ""
 
 #: src/pages/PeerList.tsx:595
 msgid "Files Processed"
+msgstr ""
+
+#: src/pages/OptionList.tsx:130
+msgid "Filter options"
 msgstr ""
 
 #: src/components/ClawbackCoinsCard.tsx:345
@@ -2122,8 +2130,8 @@ msgstr ""
 
 #: src/components/NftCard.tsx:561
 #: src/components/NftGroupCard.tsx:349
-#: src/components/OptionCard.tsx:183
-#: src/components/OptionColumns.tsx:234
+#: src/components/OptionCard.tsx:178
+#: src/components/OptionColumns.tsx:238
 #: src/components/TokenCard.tsx:183
 #: src/components/TokenColumns.tsx:198
 #: src/components/TokenGridView.tsx:72
@@ -2143,7 +2151,7 @@ msgstr ""
 msgid "Hide {nftName}"
 msgstr ""
 
-#: src/components/OptionCard.tsx:174
+#: src/components/OptionCard.tsx:169
 msgid "Hide {optionName}"
 msgstr ""
 
@@ -2406,7 +2414,7 @@ msgstr ""
 msgid "Loading NFT details..."
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:610
+#: src/contexts/WalletConnectContext.tsx:611
 msgid "Loading offer details..."
 msgstr ""
 
@@ -2414,7 +2422,7 @@ msgstr ""
 msgid "Loading option details..."
 msgstr ""
 
-#: src/pages/OptionList.tsx:137
+#: src/pages/OptionList.tsx:193
 msgid "Loading options..."
 msgstr ""
 
@@ -2555,7 +2563,7 @@ msgstr "铸造"
 #~ msgid "Mint an NFT?"
 #~ msgstr "铸造NFT?"
 
-#: src/pages/OptionList.tsx:91
+#: src/pages/OptionList.tsx:110
 msgid "Mint new option"
 msgstr ""
 
@@ -2566,8 +2574,12 @@ msgstr "铸造NFT"
 
 #: src/pages/MintOption.tsx:137
 #: src/pages/MintOption.tsx:330
-#: src/pages/OptionList.tsx:96
+#: src/pages/OptionList.tsx:114
 msgid "Mint Option"
+msgstr ""
+
+#: src/pages/OptionList.tsx:139
+msgid "Minted by me"
 msgstr ""
 
 #: src/components/NftGroupCard.tsx:203
@@ -2719,7 +2731,7 @@ msgstr "新报价"
 msgid "New Wallet"
 msgstr ""
 
-#: src/pages/OptionList.tsx:176
+#: src/pages/OptionList.tsx:232
 msgid "Next"
 msgstr ""
 
@@ -2870,6 +2882,7 @@ msgid "No offers yet"
 msgstr "还没有报价"
 
 #: src/components/selectors/OptionSelector.tsx:200
+#: src/pages/OptionList.tsx:171
 msgid "No options found."
 msgstr ""
 
@@ -3052,7 +3065,7 @@ msgstr ""
 msgid "Only issue a revocable CAT if you understand the risks. Sage cannot revoke it; revocation currently requires external tools."
 msgstr ""
 
-#: src/components/OptionColumns.tsx:179
+#: src/components/OptionColumns.tsx:183
 #: src/components/TokenColumns.tsx:169
 #: src/components/TokenGridView.tsx:44
 #: src/components/TransactionColumns.tsx:161
@@ -3063,7 +3076,7 @@ msgstr ""
 msgid "Open external link: {content}"
 msgstr ""
 
-#: src/components/OptionColumns.tsx:181
+#: src/components/OptionColumns.tsx:185
 #: src/components/TokenColumns.tsx:171
 #: src/components/TokenGridView.tsx:47
 #: src/components/TransactionColumns.tsx:163
@@ -3103,7 +3116,7 @@ msgstr ""
 msgid "Option contract not found"
 msgstr ""
 
-#: src/pages/OptionList.tsx:84
+#: src/pages/OptionList.tsx:102
 msgid "Option Contracts"
 msgstr ""
 
@@ -3121,15 +3134,15 @@ msgstr ""
 
 #: src/components/AssetCoin.tsx:93
 #: src/components/confirmations/OptionConfirmation.tsx:94
-#: src/components/OptionCard.tsx:191
+#: src/components/OptionCard.tsx:186
 #: src/pages/Option.tsx:275
 msgid "Option ID"
 msgstr ""
 
 #: src/components/AssetCoin.tsx:94
 #: src/components/confirmations/OptionConfirmation.tsx:96
-#: src/components/OptionCard.tsx:159
-#: src/components/OptionColumns.tsx:218
+#: src/components/OptionCard.tsx:154
+#: src/components/OptionColumns.tsx:222
 msgid "Option ID copied to clipboard"
 msgstr ""
 
@@ -3190,6 +3203,10 @@ msgstr ""
 #~ msgid "Override the default of whether to sync old blocks"
 #~ msgstr ""
 
+#: src/pages/OptionList.tsx:136
+msgid "Owned"
+msgstr ""
+
 #: src/components/OwnedCoinsCard.tsx:434
 msgid "Owned Coins"
 msgstr ""
@@ -3223,7 +3240,7 @@ msgstr ""
 #~ msgid "Page {page} of {0}"
 #~ msgstr ""
 
-#: src/pages/OptionList.tsx:168
+#: src/pages/OptionList.tsx:224
 msgid "Page {page} of {pageCount}"
 msgstr ""
 
@@ -3288,7 +3305,7 @@ msgid "peers"
 msgstr ""
 
 #: src/components/OfferCard.tsx:140
-#: src/components/OptionColumns.tsx:154
+#: src/components/OptionColumns.tsx:158
 #: src/components/TransactionColumns.tsx:59
 #: src/pages/Option.tsx:125
 msgid "Pending"
@@ -3385,7 +3402,7 @@ msgstr ""
 msgid "Preview of the current theme's color palette and styling."
 msgstr ""
 
-#: src/pages/OptionList.tsx:165
+#: src/pages/OptionList.tsx:221
 msgid "Previous"
 msgstr ""
 
@@ -3599,7 +3616,7 @@ msgstr ""
 msgid "Require biometrics for sensitive actions"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:484
+#: src/contexts/WalletConnectContext.tsx:485
 msgid "Reset"
 msgstr ""
 
@@ -4024,8 +4041,8 @@ msgstr ""
 
 #: src/components/NftCard.tsx:561
 #: src/components/NftGroupCard.tsx:356
-#: src/components/OptionCard.tsx:183
-#: src/components/OptionColumns.tsx:234
+#: src/components/OptionCard.tsx:178
+#: src/components/OptionColumns.tsx:238
 #: src/components/TokenCard.tsx:183
 #: src/components/TokenColumns.tsx:198
 #: src/components/TokenGridView.tsx:72
@@ -4045,7 +4062,7 @@ msgstr ""
 msgid "Show {nftName}"
 msgstr ""
 
-#: src/components/OptionCard.tsx:175
+#: src/components/OptionCard.tsx:170
 msgid "Show {optionName}"
 msgstr ""
 
@@ -4281,7 +4298,7 @@ msgstr ""
 msgid "Strike Asset"
 msgstr ""
 
-#: src/components/OptionCard.tsx:253
+#: src/components/OptionCard.tsx:255
 msgid "Strike Price"
 msgstr ""
 
@@ -4297,7 +4314,7 @@ msgstr "提交"
 msgid "Submitting"
 msgstr "正在提交"
 
-#: src/contexts/WalletConnectContext.tsx:428
+#: src/contexts/WalletConnectContext.tsx:429
 msgid "suggested by dApp"
 msgstr ""
 
@@ -4672,7 +4689,7 @@ msgstr ""
 msgid "This profile will be transferred to the address below."
 msgstr ""
 
-#: src/walletconnect/handler.ts:51
+#: src/walletconnect/handler.ts:52
 msgid "This wallet is read-only and cannot sign, so {command} is not available"
 msgstr ""
 
@@ -5007,8 +5024,8 @@ msgstr ""
 #: src/components/FeeOnlyDialog.tsx:95
 #: src/components/MultiSelectActions.tsx:196
 #: src/components/NftCard.tsx:432
-#: src/components/OptionCard.tsx:100
-#: src/components/OptionColumns.tsx:201
+#: src/components/OptionCard.tsx:98
+#: src/components/OptionColumns.tsx:205
 #: src/components/TransferDialog.tsx:132
 #: src/pages/DidList.tsx:244
 msgid "Transfer"
@@ -5051,6 +5068,11 @@ msgstr ""
 msgid "Transfer Profile"
 msgstr "转移个人资料"
 
+#: src/components/OptionCard.tsx:214
+#: src/components/OptionColumns.tsx:154
+msgid "Transferred"
+msgstr ""
+
 #: src/pages/PeerList.tsx:217
 #~ msgid "Trusted"
 #~ msgstr "受信任的"
@@ -5077,7 +5099,7 @@ msgstr ""
 #~ msgstr ""
 
 #: src/components/Assets.tsx:160
-#: src/components/OptionCard.tsx:252
+#: src/components/OptionCard.tsx:254
 #: src/components/OptionColumns.tsx:51
 #: src/pages/MintOption.tsx:158
 #: src/pages/Option.tsx:189
@@ -5097,7 +5119,7 @@ msgstr ""
 #: src/components/AdvancedTransactionSummary.tsx:269
 #: src/components/Assets.tsx:56
 #: src/components/OfferSummaryCard.tsx:90
-#: src/components/OptionCard.tsx:267
+#: src/components/OptionCard.tsx:269
 #: src/components/OptionColumns.tsx:72
 #: src/components/OptionColumns.tsx:98
 msgid "Unknown"
@@ -5286,7 +5308,7 @@ msgstr ""
 msgid "Use 24 words"
 msgstr "使用24词"
 
-#: src/contexts/WalletConnectContext.tsx:455
+#: src/contexts/WalletConnectContext.tsx:456
 msgid "Use default"
 msgstr ""
 
