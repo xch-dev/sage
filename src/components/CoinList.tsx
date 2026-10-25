@@ -538,6 +538,9 @@ export interface CoinListProps {
   totalPages: number;
   setCurrentPage: (page: number) => void;
   maxRows: number;
+  pageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
+  pageSizeOptions?: number[];
   actions?: React.ReactNode;
   // Backend sorting and filtering props
   sortMode: CoinSortMode;
@@ -628,6 +631,9 @@ export default function CoinList(props: CoinListProps) {
           size='sm'
           align='between'
           actions={props.actions}
+          pageSize={props.pageSize}
+          onPageSizeChange={props.onPageSizeChange}
+          pageSizeOptions={props.pageSizeOptions}
         />
       </div>
     </div>
