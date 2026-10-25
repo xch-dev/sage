@@ -217,13 +217,7 @@ impl ChildKind {
                 Ok(None) => {}
             }
 
-            let did = match Did::parse_child(
-                allocator,
-                parent_coin,
-                parent_puzzle,
-                parent_solution,
-                coin,
-            ) {
+            match Did::parse_child(allocator, parent_coin, parent_puzzle, parent_solution, coin) {
                 // If there was an error parsing the DID, we can exit early.
                 Err(error) => {
                     warn!("Invalid DID: {}", error);
@@ -231,31 +225,47 @@ impl ChildKind {
                 }
 
                 // If the coin is a DID coin, return the relevant information.
-                Ok(Some(did)) => Some((did, None)),
+                Ok(Some(did)) => {
+                    // We don't support parsing eve DIDs during syncing.
+                    let Proof::Lineage(lineage_proof) = did.proof else {
+                        return Ok(Self::Unknown);
+                    };
 
-                // The hint of a clawback DID is the receiver puzzle hash rather than the p2 puzzle
-                // hash, so it has to be derived from the parent instead.
-                Ok(None) => parse_clawback_did(
-                    allocator,
-                    parent_coin,
-                    parent_puzzle,
-                    parent_solution,
-                    &create_coin,
-                    coin,
-                ),
-            };
+                    let clawback = parse_clawback_unchecked(allocator, &create_coin, true);
 
-            if let Some((did, clawback)) = did {
-                // We don't support parsing eve DIDs during syncing.
-                let Proof::Lineage(lineage_proof) = did.proof else {
-                    return Ok(Self::Unknown);
-                };
+                    let did = if let Some(clawback) = clawback {
+                        let p2_puzzle_hash = clawback.tree_hash().into();
 
-                return Ok(Self::Did {
-                    lineage_proof,
-                    info: did.serialize(allocator)?.info,
-                    clawback,
-                });
+                        let clawback_did = Did::new(
+                            did.coin,
+                            did.proof,
+                            DidInfo::new(
+                                did.info.launcher_id,
+                                did.info.recovery_list_hash,
+                                did.info.num_verifications_required,
+                                did.info.metadata,
+                                p2_puzzle_hash,
+                            ),
+                        );
+
+                        if clawback_did.info.puzzle_hash() == coin.puzzle_hash.into() {
+                            clawback_did
+                        } else {
+                            did
+                        }
+                    } else {
+                        did
+                    };
+
+                    return Ok(Self::Did {
+                        lineage_proof,
+                        info: did.serialize(allocator)?.info,
+                        clawback,
+                    });
+                }
+
+                // If the coin is not a DID coin, continue parsing.
+                Ok(None) => {}
             }
 
             match OptionContract::parse_child(
@@ -373,29 +383,6 @@ impl ChildKind {
                 | Self::Option { .. }
         )
     }
-}
-
-fn parse_clawback_did(
-    allocator: &mut Allocator,
-    parent_coin: Coin,
-    parent_puzzle: Puzzle,
-    parent_solution: NodePtr,
-    create_coin: &CreateCoin<NodePtr>,
-    coin: Coin,
-) -> Option<(Did, Option<ClawbackV2>)> {
-    let clawback = parse_clawback_unchecked(allocator, create_coin, true)?;
-
-    let (parent_did, _) = Did::parse(allocator, parent_coin, parent_puzzle, parent_solution)
-        .ok()
-        .flatten()?;
-
-    let did = parent_did.child(
-        clawback.tree_hash().into(),
-        parent_did.info.metadata,
-        coin.amount,
-    );
-
-    (did.coin == coin).then_some((did, Some(clawback)))
 }
 
 fn parse_clawback_unchecked(
