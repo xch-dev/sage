@@ -268,7 +268,7 @@ impl Sage {
 
     pub async fn switch_network(&mut self) -> Result<()> {
         self.command_sender
-            .send(SyncCommand::SwitchNetwork(self.network().clone()))
+            .send(SyncCommand::SwitchNetwork(Box::new(self.network().clone())))
             .await?;
 
         Ok(())

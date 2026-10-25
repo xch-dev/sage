@@ -173,7 +173,7 @@ impl SyncManager {
                     {
                         self.state.lock().await.reset();
                         self.abort_wallet_tasks();
-                        self.network = network;
+                        self.network = *network;
                         let _ = self
                             .event_sender
                             .send(SyncEvent::NetworkChanged {
@@ -310,6 +310,13 @@ impl SyncManager {
                 let message =
                     CoinStateUpdate::from_bytes(&message.data).map_err(ClientError::from)?;
                 if let Some(wallet) = self.wallet.as_ref() {
+                    // Handle mappings verified against blocks above the fork point must be
+                    // verified again, since those blocks may no longer be in the chain.
+                    wallet
+                        .db
+                        .invalidate_xchandles_above(message.fork_height)
+                        .await?;
+
                     let unspent_count = message
                         .items
                         .iter()

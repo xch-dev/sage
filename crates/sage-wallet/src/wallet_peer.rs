@@ -320,4 +320,24 @@ impl WalletPeer {
             timestamp.ok_or(WalletError::PeerMisbehaved)?,
         ))
     }
+
+    /// Returns the timestamp of the block at the given height, or `None` if it isn't a
+    /// transaction block and therefore has no timestamp.
+    pub async fn block_timestamp_if_transaction_block(
+        &self,
+        height: u32,
+    ) -> Result<Option<u64>, WalletError> {
+        let header_block = timeout(
+            Duration::from_secs(5),
+            self.peer
+                .request_infallible::<RespondBlockHeader, _>(RequestBlockHeader::new(height)),
+        )
+        .await??
+        .header_block;
+
+        Ok(header_block
+            .foliage_transaction_block
+            .as_ref()
+            .map(|block| block.timestamp))
+    }
 }
