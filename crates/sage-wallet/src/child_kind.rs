@@ -5,7 +5,7 @@ use chia_wallet_sdk::{
     puzzles::SINGLETON_LAUNCHER_HASH,
 };
 use sage_database::{
-    NftUpdaterKind, ParsedNftMetadata, SerializePrimitive, SerializedDidInfo, SerializedNftInfo,
+    NftUpdaterKindExt, ParsedNftMetadata, SerializePrimitive, SerializedDidInfo, SerializedNftInfo,
 };
 use tracing::{debug_span, warn};
 
@@ -214,7 +214,7 @@ impl ChildKind {
                     let metadata = ParsedNftMetadata::parse(
                         allocator,
                         nft.info.metadata.ptr(),
-                        NftUpdaterKind::from_puzzle_hash(nft.info.metadata_updater_puzzle_hash),
+                        nft.info.metadata_updater_kind(),
                     );
 
                     let clawback = parse_clawback_unchecked(allocator, &create_coin, true)

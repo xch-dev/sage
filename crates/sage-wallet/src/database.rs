@@ -327,11 +327,26 @@ pub async fn insert_nft(
         }
     }
 
+    let is_current = coin_state.spent_height.is_none() || lineage_proof.is_none();
+
+    // Mutable NFTs can replace their metadata, so the name and icon from the previous
+    // metadata are cleared rather than kept when the new metadata doesn't provide them.
+    if is_current && !coin_info.metadata_updater_kind().is_append_only() {
+        tx.reset_nft_asset_display(
+            asset.hash,
+            asset.name.clone(),
+            asset.description.clone(),
+            asset.icon_url.clone(),
+            asset.is_sensitive_content,
+        )
+        .await?;
+    }
+
     tx.insert_asset(asset).await?;
 
     tx.insert_nft(info.launcher_id, &coin_info).await?;
 
-    if coin_state.spent_height.is_none() || lineage_proof.is_none() {
+    if is_current {
         tx.update_nft(info.launcher_id, &coin_info).await?;
     }
 

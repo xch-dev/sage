@@ -4,7 +4,7 @@ use chia_wallet_sdk::{
     prelude::*,
     puzzles::NFT_METADATA_UPDATER_DEFAULT_HASH,
 };
-use sage_database::{NftUpdaterKind, SerializePrimitive, SerializedNft};
+use sage_database::{SerializePrimitive, SerializedNft};
 
 use crate::{
     WalletError,
@@ -170,8 +170,7 @@ impl Wallet {
             .await?
             .ok_or(WalletError::MissingNft(nft_id))?;
 
-        if !NftUpdaterKind::from_puzzle_hash(nft.info.metadata_updater_puzzle_hash).is_append_only()
-        {
+        if !nft.info.metadata_updater_kind().is_append_only() {
             return Err(WalletError::NftMetadataNotAppendOnly(nft_id));
         }
 
@@ -207,8 +206,9 @@ mod tests {
 
     use chia_wallet_sdk::{
         driver::UriKind,
-        types::puzzles::{ANY_METADATA_UPDATER_HASH, HandleNftMetadata},
+        types::puzzles::{ANY_METADATA_UPDATER_HASH, AnyMetadataUpdater, HandleNftMetadata},
     };
+    use sage_database::{NftMetadataInfo, NftUpdaterKind};
     use test_log::test;
     use tokio::time::sleep;
 
@@ -306,6 +306,57 @@ mod tests {
             .await?
             .expect("missing nft");
         assert_eq!(row.nft_info.display_name.as_deref(), Some("@alice"));
+
+        // Give the NFT a name, as if its off-chain metadata had been downloaded.
+        let mut tx = test.wallet.db.tx().await?;
+        tx.update_nft_metadata(
+            launcher_id,
+            NftMetadataInfo {
+                name: Some("Alice".to_string()),
+                description: Some("Old description".to_string()),
+                is_sensitive_content: false,
+                collection_id: Bytes32::default(),
+            },
+        )
+        .await?;
+        tx.commit().await?;
+
+        // The owner replaces all of the metadata, which drops the off-chain metadata file.
+        let mut ctx = SpendContext::new();
+
+        let new_metadata = ctx.alloc(&HandleNftMetadata {
+            display_name: Some("@bob".to_string()),
+            image_uris: vec!["https://example.com/bob.png".to_string()],
+            image_hash: Some(Bytes32::new([2; 32])),
+            ..Default::default()
+        })?;
+
+        let metadata_update = Spend::new(ctx.alloc_mod::<AnyMetadataUpdater>()?, new_metadata);
+
+        test.wallet
+            .spend(
+                &mut ctx,
+                vec![],
+                &[
+                    Action::fee(0),
+                    Action::update_nft(Id::Existing(launcher_id), vec![metadata_update], None),
+                ],
+            )
+            .await?;
+        test.transact(ctx.take()).await?;
+        test.wait_for_coins().await;
+
+        let row = test
+            .wallet
+            .db
+            .wallet_nft(launcher_id)
+            .await?
+            .expect("missing nft");
+        assert_eq!(row.nft_info.display_name.as_deref(), Some("@bob"));
+        assert_eq!(row.nft_info.data_hash, Some(Bytes32::new([2; 32])));
+        assert_eq!(row.nft_info.metadata_hash, None);
+        assert_eq!(row.asset.name, None, "the old name no longer applies");
+        assert_eq!(row.asset.description, None);
 
         Ok(())
     }

@@ -24,9 +24,10 @@ use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
     Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CoinJson, CoinSpendJson, CreateDid,
-    CreateTransaction, GetDids, GetKey, GetNft, GetOffers, GetPeers, GetSyncStatus, GetVersion,
-    Id as ApiId, ImportKey, Login, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind, OfferAmount,
-    OfferAsset, SendXch, SignCoinSpends, UpdateNftAction, ViewOffer,
+    CreateTransaction, GetDids, GetKey, GetNft, GetNftMetadataUpdater, GetOffers, GetPeers,
+    GetSyncStatus, GetVersion, Id as ApiId, ImportKey, ImportOffer, Login, MakeOffer, NewNftUri,
+    NftUpdaterKind, NftUriKind, OfferAmount, OfferAsset, SendXch, SignCoinSpends, UpdateNftAction,
+    ViewOffer,
 };
 use sage_api_macro::impl_endpoints;
 use sage_wallet::{SyncCommand, SyncEvent};
@@ -610,6 +611,91 @@ async fn test_mutable_nft() -> Result<()> {
     assert_eq!(nft.metadata_updater_kind, NftUpdaterKind::Default);
     assert_eq!(nft.display_name, None);
     assert_eq!(nft.edition_number, Some(1));
+
+    Ok(())
+}
+
+/// Removes an NFT's saved on-chain info from a wallet's database, as for offers imported
+/// before that info was saved.
+async fn forget_nft_info(app: &TestApp, fingerprint: u32, nft_id: &str) -> Result<()> {
+    let path = app.sage.lock().await.wallet_db_path(fingerprint)?;
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display())).await?;
+    let launcher_id = Address::decode(nft_id)?.puzzle_hash;
+
+    sqlx::query("DELETE FROM nfts WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)")
+        .bind(launcher_id.to_vec())
+        .execute(&pool)
+        .await?;
+
+    pool.close().await;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_requested_mutable_nft() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(1000).await?;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let nft_id = mint_mutable_nft(&mut app).await?;
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
+
+    // Bob doesn't own the NFT, so it's looked up from the network.
+    let updater = app
+        .get_nft_metadata_updater(GetNftMetadataUpdater {
+            nft_id: nft_id.clone(),
+        })
+        .await?;
+    assert_eq!(updater.metadata_updater_kind, Some(NftUpdaterKind::Any));
+    assert_eq!(updater.display_name.as_deref(), Some("@alice"));
+
+    let offer = app
+        .make_offer(MakeOffer {
+            requested_assets: vec![OfferAmount {
+                asset_id: Some(nft_id.clone()),
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(1),
+            }],
+            offered_assets: vec![OfferAmount {
+                asset_id: None,
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(1),
+            }],
+            fee: Amount::u64(0),
+            receive_address: None,
+            expires_at_second: None,
+            auto_import: false,
+            coin_ids: None,
+        })
+        .await?
+        .offer;
+
+    // Importing saves the requested NFT's info, even if it wasn't known beforehand.
+    forget_nft_info(&app, bob, &nft_id).await?;
+    app.import_offer(ImportOffer { offer }).await?;
+
+    let offers = app.get_offers(GetOffers {}).await?.offers;
+    let asset = find_nft(&offers[0].summary.taker, &nft_id);
+    assert_eq!(asset.nft_metadata_updater_kind, Some(NftUpdaterKind::Any));
+    assert_eq!(asset.nft_display_name.as_deref(), Some("@alice"));
+
+    // Without saved info, the NFT is reported as unknown rather than append-only.
+    forget_nft_info(&app, bob, &nft_id).await?;
+
+    let offers = app.get_offers(GetOffers {}).await?.offers;
+    let asset = find_nft(&offers[0].summary.taker, &nft_id);
+    assert_eq!(
+        asset.nft_metadata_updater_kind,
+        Some(NftUpdaterKind::Unknown)
+    );
+    assert_eq!(asset.nft_display_name, None);
 
     Ok(())
 }

@@ -5,15 +5,16 @@ use chia_wallet_sdk::{
 use itertools::Itertools;
 use sage_api::{
     Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CombineOffers,
-    CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
-    GetOffersForAsset, GetOffersForAssetResponse, GetOffersResponse, ImportOffer,
-    ImportOfferResponse, MakeOffer, MakeOfferResponse, NftRoyalty, OfferAmount, OfferAsset,
-    OfferRecord, OfferRecordStatus, OfferSummary, OptionAssets, TakeOffer, TakeOfferResponse,
-    ViewOffer, ViewOfferResponse,
+    CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetNftMetadataUpdater,
+    GetNftMetadataUpdaterResponse, GetOffer, GetOfferResponse, GetOffers, GetOffersForAsset,
+    GetOffersForAssetResponse, GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer,
+    MakeOfferResponse, NftRoyalty, OfferAmount, OfferAsset, OfferRecord, OfferRecordStatus,
+    OfferSummary, OptionAssets, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{
-    AssetKind, NftUpdaterKind, OfferRow, OfferStatus, OfferedAsset, ParsedNftMetadata,
+    AssetKind, NftOfferInfo, NftUpdaterKind, NftUpdaterKindExt, OfferRow, OfferStatus,
+    OfferedAsset, ParsedNftMetadata,
 };
 use sage_wallet::{
     Offered, Requested, RequestedCat, SyncCommand, TakenOffer, Transaction, Wallet, WalletError,
@@ -266,6 +267,31 @@ impl Sage {
         })
     }
 
+    pub async fn get_nft_metadata_updater(
+        &self,
+        req: GetNftMetadataUpdater,
+    ) -> Result<GetNftMetadataUpdaterResponse> {
+        let wallet = self.wallet()?;
+        let nft_id = parse_nft_id(req.nft_id)?;
+
+        // This is the same lookup used when requesting an NFT in an offer, which also
+        // saves the NFT's info. Without a peer, it falls back to what's already saved.
+        let peer = self.peer_state.lock().await.acquire_peer();
+        let info = wallet.fetch_offer_nft_info(peer.as_ref(), nft_id).await?;
+
+        let display_name = if info.is_some() {
+            wallet.db.nft_display_name(nft_id).await?
+        } else {
+            None
+        };
+
+        Ok(GetNftMetadataUpdaterResponse {
+            metadata_updater_kind: info
+                .map(|info| encode_nft_updater_kind(info.metadata_updater_kind())),
+            display_name,
+        })
+    }
+
     pub async fn view_offer(&self, req: ViewOffer) -> Result<ViewOfferResponse> {
         let (offer, status) = self.summarize_offer(decode_offer(&req.offer)?).await?;
 
@@ -327,7 +353,7 @@ impl Sage {
             let _info = if let Some(metadata) = ParsedNftMetadata::parse(
                 &ctx,
                 nft.info.metadata.ptr(),
-                NftUpdaterKind::from_puzzle_hash(nft.info.metadata_updater_puzzle_hash),
+                nft.info.metadata_updater_kind(),
             ) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
@@ -417,11 +443,14 @@ impl Sage {
             )
             .await?;
 
-            let _info = if let Some(metadata) = ParsedNftMetadata::parse(
-                &ctx,
-                nft.metadata.ptr(),
-                NftUpdaterKind::from_puzzle_hash(nft.metadata_updater_puzzle_hash),
-            ) {
+            // Requested NFTs usually aren't in the wallet, so their on-chain info is saved
+            // for the offer summary, including whether they're mutable.
+            self.cache_requested_nft_info(&ctx, launcher_id, nft)
+                .await?;
+
+            let _info = if let Some(metadata) =
+                ParsedNftMetadata::parse(&ctx, nft.metadata.ptr(), nft.metadata_updater_kind())
+            {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash
@@ -672,14 +701,20 @@ impl Sage {
                 })
                 .transpose()?;
 
-            let nft_metadata_updater_kind = nft_info
-                .as_ref()
-                .map(|info| encode_nft_updater_kind(info.metadata_updater_kind()));
-
-            let nft_display_name = nft_info.and_then(|info| {
-                ParsedNftMetadata::parse_program(&info.metadata, info.metadata_updater_kind())
-                    .and_then(|metadata| metadata.display_name)
+            // An NFT whose updater isn't known is never assumed to be append-only.
+            let nft_metadata_updater_kind = (asset.kind == AssetKind::Nft).then(|| {
+                encode_nft_updater_kind(
+                    nft_info
+                        .as_ref()
+                        .map_or(NftUpdaterKind::Unknown, NftOfferInfo::metadata_updater_kind),
+                )
             });
+
+            let nft_display_name = if nft_info.is_some() {
+                wallet.db.nft_display_name(asset.hash).await?
+            } else {
+                None
+            };
 
             let option_assets = if asset.kind == AssetKind::Option {
                 let Some(row) = wallet.db.option_assets(asset.hash).await? else {

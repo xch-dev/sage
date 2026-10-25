@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT display_name FROM nfts\n            INNER JOIN assets ON assets.id = nfts.asset_id\n            WHERE hash = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "display_name",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "9ba3a96e2f1f7551d42ef2c105bd6f2944cbc2bc5104f3416f7345bfa0a02076"
+}

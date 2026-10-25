@@ -1,5 +1,6 @@
 use chia_wallet_sdk::{
     chia::puzzle_types::nft::NftMetadata,
+    driver::NftAssetInfo,
     prelude::*,
     puzzles::NFT_METADATA_UPDATER_DEFAULT_HASH,
     types::puzzles::{ANY_METADATA_UPDATER_HASH, HandleNftMetadata},
@@ -84,6 +85,23 @@ impl ParsedNftMetadata {
         let mut allocator = Allocator::new();
         let ptr = program.to_clvm(&mut allocator).ok()?;
         Self::parse(&allocator, ptr, kind)
+    }
+}
+
+/// Classifies the metadata updater of NFT types from the SDK.
+pub trait NftUpdaterKindExt {
+    fn metadata_updater_kind(&self) -> NftUpdaterKind;
+}
+
+impl NftUpdaterKindExt for NftInfo {
+    fn metadata_updater_kind(&self) -> NftUpdaterKind {
+        NftUpdaterKind::from_puzzle_hash(self.metadata_updater_puzzle_hash)
+    }
+}
+
+impl NftUpdaterKindExt for NftAssetInfo {
+    fn metadata_updater_kind(&self) -> NftUpdaterKind {
+        NftUpdaterKind::from_puzzle_hash(self.metadata_updater_puzzle_hash)
     }
 }
 

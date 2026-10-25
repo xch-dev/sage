@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use chia_wallet_sdk::prelude::*;
 use sage_database::{
-    NftOfferInfo, NftUpdaterKind, OptionOfferInfo, ParsedNftMetadata, SerializePrimitive,
+    NftOfferInfo, NftUpdaterKindExt, OptionOfferInfo, ParsedNftMetadata, SerializePrimitive,
 };
 use tokio::time::sleep;
 
@@ -82,7 +82,7 @@ impl Wallet {
         let parsed_metadata = ParsedNftMetadata::parse(
             &allocator,
             nft.info.metadata.ptr(),
-            NftUpdaterKind::from_puzzle_hash(nft.info.metadata_updater_puzzle_hash),
+            nft.info.metadata_updater_kind(),
         );
 
         let mut tx = self.db.tx().await?;

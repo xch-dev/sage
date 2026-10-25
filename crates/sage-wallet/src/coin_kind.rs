@@ -1,6 +1,6 @@
 use chia_wallet_sdk::{prelude::*, puzzles::SINGLETON_LAUNCHER_HASH};
 use sage_database::{
-    NftUpdaterKind, ParsedNftMetadata, SerializePrimitive, SerializedDidInfo, SerializedNftInfo,
+    NftUpdaterKindExt, ParsedNftMetadata, SerializePrimitive, SerializedDidInfo, SerializedNftInfo,
 };
 use tracing::{debug_span, warn};
 
@@ -72,7 +72,7 @@ impl CoinKind {
                 let metadata = ParsedNftMetadata::parse(
                     allocator,
                     nft.metadata.ptr(),
-                    NftUpdaterKind::from_puzzle_hash(nft.metadata_updater_puzzle_hash),
+                    nft.metadata_updater_kind(),
                 );
 
                 return Ok(Self::Nft {

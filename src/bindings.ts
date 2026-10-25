@@ -194,6 +194,9 @@ async getNftIcon(req: GetNftIcon) : Promise<GetNftIconResponse> {
 async getNftThumbnail(req: GetNftThumbnail) : Promise<GetNftThumbnailResponse> {
     return await TAURI_INVOKE("get_nft_thumbnail", { req });
 },
+async getNftMetadataUpdater(req: GetNftMetadataUpdater) : Promise<GetNftMetadataUpdaterResponse> {
+    return await TAURI_INVOKE("get_nft_metadata_updater", { req });
+},
 async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTransactionsResponse> {
     return await TAURI_INVOKE("get_pending_transactions", { req });
 },
@@ -1339,6 +1342,26 @@ export type GetNftIconResponse = {
  * Base64-encoded icon image
  */
 icon: string | null }
+/**
+ * Get the metadata updater of any NFT, including ones not in the wallet
+ */
+export type GetNftMetadataUpdater = { 
+/**
+ * NFT launcher ID
+ */
+nft_id: string }
+/**
+ * Response with an NFT's metadata updater kind
+ */
+export type GetNftMetadataUpdaterResponse = { 
+/**
+ * The metadata updater kind, or null if the NFT couldn't be found
+ */
+metadata_updater_kind: NftUpdaterKind | null; 
+/**
+ * The owner-editable display name (`dn`) from `XCHandles` metadata, if any
+ */
+display_name: string | null }
 /**
  * Response with NFT details
  */

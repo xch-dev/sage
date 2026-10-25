@@ -27,13 +27,6 @@ pub enum NftUpdaterKind {
     Unknown,
 }
 
-impl NftUpdaterKind {
-    /// Whether the owner may be able to change metadata beyond appending URIs.
-    pub fn is_mutable(self) -> bool {
-        !matches!(self, Self::Default)
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]

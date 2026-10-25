@@ -21,11 +21,11 @@ msgstr ""
 msgid "(Dexie, OfferCo.de, chia-offer.com URLs are supported)"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:473
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:490
 msgid "(for each offer)"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:566
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:583
 msgid "(Plus any blockchain royalties for offered assets)"
 msgstr ""
 
@@ -709,7 +709,7 @@ msgstr "Wenn Sie diese Funktion deaktivieren, erstellen Sie ein Cold Wallet, in 
 #: src/components/ConfirmationDialog.tsx:622
 #: src/components/dialogs/CancelOfferDialog.tsx:84
 #: src/components/dialogs/DeleteOfferDialog.tsx:58
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:625
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:642
 #: src/components/dialogs/MigrationDialog.tsx:52
 #: src/components/dialogs/OfferCreationProgressDialog.tsx:352
 #: src/components/dialogs/ResyncDialog.tsx:95
@@ -815,7 +815,7 @@ msgstr ""
 msgid "Check if an address is owned by this wallet."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:238
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:255
 msgid "Chia"
 msgstr ""
 
@@ -1077,11 +1077,11 @@ msgstr ""
 msgid "Confirm"
 msgstr "Bestätigen"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:628
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:645
 msgid "Confirm & Create"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:428
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:445
 msgid "Confirm Offer Creation"
 msgstr ""
 
@@ -1953,11 +1953,11 @@ msgstr "Gebühr"
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "Gebühr übersteigt das empfohlene Maximum von 0.001 {ticker}"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:517
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:534
 msgid "Fee per offer:"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:512
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:529
 msgid "Fees"
 msgstr ""
 
@@ -2410,7 +2410,7 @@ msgstr ""
 msgid "Loading Collection..."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:254
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:271
 msgid "Loading NFT details..."
 msgstr ""
 
@@ -2418,7 +2418,7 @@ msgstr ""
 msgid "Loading offer details..."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:306
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:323
 msgid "Loading option details..."
 msgstr ""
 
@@ -2436,7 +2436,7 @@ msgstr ""
 msgid "Loading themes..."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:211
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:228
 msgid "Loading token details..."
 msgstr ""
 
@@ -2724,7 +2724,7 @@ msgstr ""
 msgid "Network fee amount"
 msgstr "Netzwerkgebührenbetrag"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:549
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:566
 msgid "Network Fee:"
 msgstr ""
 
@@ -2879,11 +2879,11 @@ msgstr ""
 msgid "No NFTs found."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:286
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:303
 msgid "No NFTs offered or details unavailable."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:288
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:305
 msgid "No NFTs requested or details unavailable."
 msgstr ""
 
@@ -2971,11 +2971,11 @@ msgstr "Nicht genügend Guthaben, um die Gebühr zu decken"
 msgid "Note"
 msgstr "Notiz"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:367
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:384
 msgid "Nothing offered."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:369
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:386
 msgid "Nothing requested."
 msgstr ""
 
@@ -3352,7 +3352,7 @@ msgstr "Permanent löschen"
 msgid "Place the NFC tag near your device to scan it."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:431
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:448
 msgid "Please review the details of your offer(s) before proceeding."
 msgstr ""
 
@@ -4337,7 +4337,7 @@ msgid "Summarized View"
 msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:220
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:440
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:457
 msgid "Summary"
 msgstr "Zusammenfassung"
 
@@ -4809,7 +4809,7 @@ msgstr ""
 #~ msgid "This will make your offer(s) immediately public and takeable on {0}."
 #~ msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:609
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:626
 msgid "This will make your offer(s) immediately public and takeable on {marketplaceName}."
 msgstr ""
 
@@ -4933,7 +4933,7 @@ msgstr ""
 #~ msgid "Token search and filters"
 #~ msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:206
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:223
 msgid "Tokens"
 msgstr ""
 
@@ -4957,7 +4957,7 @@ msgstr ""
 msgid "Total Estimated Balance"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:532
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:549
 msgid "Total fees for {numberOfOffers} offers:"
 msgstr ""
 
@@ -5267,7 +5267,7 @@ msgstr "Unbenanntes Profil"
 #~ msgid "Upload to {0}"
 #~ msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:605
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:622
 #: src/components/MarketplaceCard.tsx:151
 msgid "Upload to {marketplaceName}"
 msgstr ""
@@ -5553,7 +5553,7 @@ msgstr "Wallets"
 msgid "Warning"
 msgstr "Warnung"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:495
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:512
 msgid "Warning: This is a one-sided offer. You are not requesting anything in return."
 msgstr ""
 
@@ -5602,11 +5602,11 @@ msgstr "Sie"
 msgid "You are about to claw back coins. This will return them to your wallet."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:444
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:461
 msgid "You are about to create <0>{numberOfOffers}</0> individual offers. Each offer will request the same assets and offer one of the selected NFTs."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:453
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:470
 msgid "You are about to create <0>1</0> offer."
 msgstr ""
 
@@ -5646,11 +5646,11 @@ msgstr ""
 msgid "You are minting a new option contract. This will lock up the underlying funds until the expiration, or until the current owner chooses to exercise it."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:464
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:481
 msgid "You Are Offering"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:470
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:487
 msgid "You Are Requesting"
 msgstr ""
 

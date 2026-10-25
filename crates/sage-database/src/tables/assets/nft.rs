@@ -354,6 +354,22 @@ impl Database {
         Ok((dids, total_count))
     }
 
+    pub async fn nft_display_name(&self, hash: Bytes32) -> Result<Option<String>> {
+        let hash = hash.as_ref();
+
+        Ok(query!(
+            "
+            SELECT display_name FROM nfts
+            INNER JOIN assets ON assets.id = nfts.asset_id
+            WHERE hash = ?
+            ",
+            hash
+        )
+        .fetch_optional(&self.pool)
+        .await?
+        .and_then(|row| row.display_name))
+    }
+
     pub async fn offer_nft_info(&self, hash: Bytes32) -> Result<Option<NftOfferInfo>> {
         let hash = hash.as_ref();
 
@@ -532,6 +548,40 @@ impl DatabaseTx<'_> {
             .execute(&mut *self.tx)
             .await?;
         }
+
+        Ok(())
+    }
+
+    /// Overwrites the display fields of an NFT's asset, including clearing them. This is
+    /// for mutable NFTs, whose old name and icon may no longer apply after their metadata
+    /// is replaced. They're filled in again once the new metadata files are downloaded.
+    pub async fn reset_nft_asset_display(
+        &mut self,
+        hash: Bytes32,
+        name: Option<String>,
+        description: Option<String>,
+        icon_url: Option<String>,
+        is_sensitive_content: bool,
+    ) -> Result<()> {
+        let hash = hash.as_ref();
+
+        query!(
+            "
+            UPDATE assets SET
+                name = ?,
+                description = ?,
+                icon_url = ?,
+                is_sensitive_content = ?
+            WHERE hash = ?
+            ",
+            name,
+            description,
+            icon_url,
+            is_sensitive_content,
+            hash
+        )
+        .execute(&mut *self.tx)
+        .await?;
 
         Ok(())
     }

@@ -48,7 +48,7 @@ function AssetDisplay({
   type: 'offered' | 'requested';
 }) {
   const [nftDetailsList, setNftDetailsList] = useState<NftRecord[]>([]);
-  // Only NFTs whose details were found, since placeholders have no known updater
+  // Includes NFTs whose updater couldn't be determined
   const [mutableNftNames, setMutableNftNames] = useState<string[]>([]);
   const [loadingNfts, setLoadingNfts] = useState(false);
   const [optionDetailsList, setOptionDetailsList] = useState<OptionRecord[]>(
@@ -157,11 +157,28 @@ function AssetDisplay({
             if (isMutableNft(nftRecordResponse.nft.metadata_updater_kind)) {
               mutableNames.push(nftDisplayName(nftRecordResponse.nft) ?? nftId);
             }
-          } else {
-            displayableNfts.push(emptyNftRecord(nftId));
+            continue;
           }
         } catch {
-          displayableNfts.push(emptyNftRecord(nftId));
+          // Fall through to looking it up below
+        }
+
+        // NFTs that aren't in the wallet, such as requested ones, are looked up from
+        // the network. If that fails, the NFT can't be assumed to be append-only.
+        displayableNfts.push(emptyNftRecord(nftId));
+
+        try {
+          const updater = await commands.getNftMetadataUpdater({
+            nft_id: nftId,
+          });
+          if (
+            updater.metadata_updater_kind === null ||
+            isMutableNft(updater.metadata_updater_kind)
+          ) {
+            mutableNames.push(updater.display_name ?? nftId);
+          }
+        } catch {
+          mutableNames.push(nftId);
         }
       }
       setNftDetailsList(displayableNfts);

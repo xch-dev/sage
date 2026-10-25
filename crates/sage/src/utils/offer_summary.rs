@@ -4,7 +4,7 @@ use std::time::UNIX_EPOCH;
 use chia_wallet_sdk::prelude::*;
 use sage_api::OptionAssets;
 use sage_api::{Amount, NftRoyalty, OfferAsset, OfferSummary};
-use sage_database::{NftUpdaterKind, OfferStatus, ParsedNftMetadata};
+use sage_database::{NftUpdaterKindExt, OfferStatus, ParsedNftMetadata};
 use sage_wallet::WalletError;
 
 use crate::ConfirmationInfo;
@@ -78,7 +78,7 @@ impl Sage {
                 )
                 .await?;
 
-            let kind = NftUpdaterKind::from_puzzle_hash(nft.info.metadata_updater_puzzle_hash);
+            let kind = nft.info.metadata_updater_kind();
             let display_name = ParsedNftMetadata::parse(&ctx, nft.info.metadata.ptr(), kind)
                 .and_then(|metadata| metadata.display_name);
 
@@ -185,7 +185,7 @@ impl Sage {
                 )
                 .await?;
 
-            let kind = NftUpdaterKind::from_puzzle_hash(nft.metadata_updater_puzzle_hash);
+            let kind = nft.metadata_updater_kind();
             let display_name = ParsedNftMetadata::parse(&ctx, nft.metadata.ptr(), kind)
                 .and_then(|metadata| metadata.display_name);
 
