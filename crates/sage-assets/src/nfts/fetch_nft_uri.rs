@@ -1,4 +1,5 @@
 use std::{
+    pin::Pin,
     sync::LazyLock,
     time::{Duration, Instant},
 };
@@ -50,9 +51,10 @@ const URI_DEADLINE: Duration = Duration::from_secs(30);
 /// MintGarden thumbnails are optional, so they get less time than the file.
 const THUMBNAIL_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// When racing sources against each other, each one is started this long
-/// after the previous one, so that a single stalled source can't use up the
-/// whole deadline without every source being downloaded at once.
+/// When racing sources against each other, the next one is started as soon as
+/// one fails, or after this long if the ones in flight are slow. That way a
+/// single stalled source can't use up the whole deadline, without every
+/// source being downloaded at once.
 const HEDGE_DELAY: Duration = Duration::from_secs(2);
 
 static CLIENT: LazyLock<Client> = LazyLock::new(|| {
@@ -64,18 +66,6 @@ static CLIENT: LazyLock<Client> = LazyLock::new(|| {
         .build()
         .expect("failed to build HTTP client")
 });
-
-/// Fetches an NFT URI when its hash isn't known, such as when minting.
-///
-/// `ipfs://` and `ar://` URIs are translated to HTTPS gateways, but gateway
-/// links aren't retried through other gateways, since there's no hash to check
-/// the result against and the fallback would hide that the URI is broken.
-pub async fn fetch_uri(uri: String, testnet: bool) -> Result<Data, UriError> {
-    Ok(download_uri(&uri, None, false)
-        .await?
-        .into_data(testnet)
-        .await)
-}
 
 /// Downloads a URI, trying each of its candidates (see [`uri_candidates`]) in
 /// turn within [`URI_DEADLINE`].
@@ -174,9 +164,10 @@ pub async fn fetch_uris_with_hash(
         }
     }
 
-    let mut futures = FuturesUnordered::new();
+    let mut urls = urls.into_iter();
+    let mut in_flight: FuturesUnordered<SourceFuture> = FuturesUnordered::new();
 
-    futures.push(Box::pin(async move {
+    in_flight.push(Box::pin(async move {
         match download_mintgarden_archive(hash).await {
             Ok(download) => download,
             Err(error) => {
@@ -184,43 +175,64 @@ pub async fn fetch_uris_with_hash(
                 None
             }
         }
-    })
-        as std::pin::Pin<Box<dyn Future<Output = Option<Download>> + Send>>);
+    }));
 
-    for (index, url) in urls.into_iter().enumerate() {
-        futures.push(Box::pin(async move {
-            sleep(HEDGE_DELAY * index as u32).await;
-
-            match download(&url).await {
-                Ok(download) if download.hash == hash => Some(download),
-                Ok(download) => {
-                    debug!(
-                        "Hash mismatch for {url}, expected {hash} but found {}",
-                        download.hash
-                    );
-                    None
-                }
-                Err(error) => {
-                    debug!("Failed to fetch {url}, expected hash {hash}: {error}");
-                    None
-                }
-            }
-        }));
+    if let Some(url) = urls.next() {
+        in_flight.push(Box::pin(download_matching(url, hash)));
     }
 
+    // The next source is started either when one fails, or when the ones in
+    // flight are taking a while.
     let race = async {
-        while let Some(result) = futures.next().await {
-            if let Some(download) = result {
-                return Some(download);
+        loop {
+            tokio::select! {
+                result = in_flight.next() => match result {
+                    Some(Some(download)) => return Some(download),
+                    Some(None) => {
+                        if let Some(url) = urls.next() {
+                            in_flight.push(Box::pin(download_matching(url, hash)));
+                        } else if in_flight.is_empty() {
+                            return None;
+                        }
+                    }
+                    None => return None,
+                },
+                () = sleep(HEDGE_DELAY), if urls.len() > 0 => {
+                    if let Some(url) = urls.next() {
+                        in_flight.push(Box::pin(download_matching(url, hash)));
+                    }
+                }
             }
         }
-
-        None
     };
 
-    let download = timeout(deadline, race).await.ok().flatten()?;
+    let download = timeout(deadline, race).await.ok().flatten();
+
+    // Stop the downloads that lost the race before making the thumbnail.
+    drop(in_flight);
+
+    let download = download?;
 
     Some(download.into_data(testnet).await)
+}
+
+type SourceFuture = Pin<Box<dyn Future<Output = Option<Download>> + Send>>;
+
+async fn download_matching(url: String, hash: Bytes32) -> Option<Download> {
+    match download(&url).await {
+        Ok(download) if download.hash == hash => Some(download),
+        Ok(download) => {
+            debug!(
+                "Hash mismatch for {url}, expected {hash} but found {}",
+                download.hash
+            );
+            None
+        }
+        Err(error) => {
+            debug!("Failed to fetch {url}, expected hash {hash}: {error}");
+            None
+        }
+    }
 }
 
 async fn download(url: &str) -> Result<Download, UriError> {
@@ -277,6 +289,18 @@ fn sniff_mime_type(blob: &[u8]) -> Option<String> {
     None
 }
 
+/// MintGarden only has thumbnails for media, so there's no point asking for
+/// one for metadata or license files.
+fn has_mintgarden_thumbnail(mime_type: &str) -> bool {
+    let essence = mime_type.split(';').next().unwrap_or_default().trim();
+
+    !(essence.eq_ignore_ascii_case("application/json")
+        || essence.eq_ignore_ascii_case("application/pdf")
+        || essence
+            .get(..5)
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case("text/")))
+}
+
 fn is_generic_mime_type(mime_type: &str) -> bool {
     let essence = mime_type.split(';').next().unwrap_or_default().trim();
     essence.eq_ignore_ascii_case("application/octet-stream")
@@ -292,12 +316,16 @@ impl Download {
             hash,
         } = self;
 
-        let mut thumbnail = match mintgarden_thumbnail(hash, testnet).await {
-            Ok(thumbnail) => thumbnail,
-            Err(error) => {
-                debug!("Failed to fetch MintGarden thumbnail for {hash}: {error}");
-                None
+        let mut thumbnail = if has_mintgarden_thumbnail(&mime_type) {
+            match mintgarden_thumbnail(hash, testnet).await {
+                Ok(thumbnail) => thumbnail,
+                Err(error) => {
+                    debug!("Failed to fetch MintGarden thumbnail for {hash}: {error}");
+                    None
+                }
             }
+        } else {
+            None
         };
 
         if thumbnail.is_none() {
@@ -335,41 +363,47 @@ impl Download {
     }
 }
 
+/// Fetches an NFT's URIs when their hash isn't known yet, such as when
+/// minting, and makes sure they all serve the same file.
+///
+/// `ipfs://` and `ar://` URIs are translated to HTTPS gateways, but gateway
+/// links aren't retried through other gateways, since there's no hash to check
+/// the result against and the fallback would hide that the URI is broken.
 pub async fn fetch_uris_without_hash(uris: Vec<String>, testnet: bool) -> Result<Data, UriError> {
     let mut futures = FuturesUnordered::new();
 
-    for uri in uris {
-        futures.push(fetch_uri(uri, testnet));
+    for uri in &uris {
+        futures.push(download_uri(uri, None, false));
     }
 
-    let mut data = None;
+    let mut first: Option<Download> = None;
 
     while let Some(result) = futures.next().await {
         let item = result?;
 
-        let Some(old_data) = data.take() else {
-            data = Some(item);
+        let Some(first) = &first else {
+            first = Some(item);
             continue;
         };
 
-        if old_data.hash != item.hash {
+        if first.hash != item.hash {
             return Err(UriError::HashMismatch {
-                expected: old_data.hash,
+                expected: first.hash,
                 found: item.hash,
             });
         }
 
-        if old_data.mime_type != item.mime_type {
+        if first.mime_type != item.mime_type {
             return Err(UriError::MimeTypeMismatch {
-                expected: old_data.mime_type,
+                expected: first.mime_type.clone(),
                 found: item.mime_type,
             });
         }
-
-        data = Some(old_data);
     }
 
-    data.ok_or(UriError::NoUris)
+    drop(futures);
+
+    Ok(first.ok_or(UriError::NoUris)?.into_data(testnet).await)
 }
 
 pub async fn mintgarden_thumbnail(

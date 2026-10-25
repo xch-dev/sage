@@ -29,3 +29,20 @@ pub enum UriError {
     #[error("Invalid XCH/USD price response")]
     InvalidPriceResponse,
 }
+
+impl UriError {
+    /// Whether the error is likely to go away if the request is retried later,
+    /// such as a timeout, rate limit, or server error.
+    pub fn is_transient(&self) -> bool {
+        match self {
+            Self::Fetch(error) => {
+                error.is_timeout()
+                    || error.status().is_some_and(|status| {
+                        status == reqwest::StatusCode::TOO_MANY_REQUESTS || status.is_server_error()
+                    })
+            }
+            Self::Timeout => true,
+            _ => false,
+        }
+    }
+}

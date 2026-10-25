@@ -107,7 +107,7 @@ async fn fetch_file(hash: Bytes32, items: Vec<FileUri>, testnet: bool) -> Fetche
         Ok(None) => false,
         Err(error) => {
             debug!("Error fetching {hash} from MintGarden archive: {error}");
-            true
+            error.is_transient()
         }
     };
 
@@ -154,7 +154,8 @@ async fn fetch_file(hash: Bytes32, items: Vec<FileUri>, testnet: bool) -> Fetche
 
     let best = best.filter(|download| {
         // A mismatching file is saved permanently, so don't settle for one if
-        // the archive might have had the right file but couldn't be reached.
+        // the archive might have had the right file but was temporarily
+        // unavailable (such as being rate limited).
         let keep = download.hash == hash || !archive_unavailable;
 
         if !keep {

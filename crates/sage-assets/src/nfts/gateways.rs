@@ -18,6 +18,7 @@
 //! checked against the hash committed to on-chain before it's marked as
 //! matching.
 
+use percent_encoding::percent_decode;
 use reqwest::Url;
 
 /// HTTPS gateways that `ipfs://` content is fetched through, in order of
@@ -49,6 +50,9 @@ const MAX_URL_LENGTH: usize = 2084;
 /// whose hostname merely contains `ipfs` (`gw.ipfs.example.com`).
 const MIN_CID_LENGTH: usize = 46;
 
+/// How many rounds of percent-decoding a path segment is checked through.
+const MAX_DECODE_ROUNDS: usize = 4;
+
 /// Arweave transaction ids are 32 bytes encoded as unpadded base64url.
 const ARWEAVE_TXID_LENGTH: usize = 43;
 
@@ -62,11 +66,11 @@ const ARWEAVE_TXID_LENGTH: usize = 43;
 /// known hash, since otherwise they'd hide the fact that the URI is broken.
 pub fn uri_candidates(uri: &str, include_fallbacks: bool) -> Vec<String> {
     if let Some((path, query)) = ipfs_path(uri) {
-        return gateway_urls(&IPFS_GATEWAYS, &path, query.as_deref(), None);
+        return gateway_urls(&IPFS_GATEWAYS, &path, query, None);
     }
 
     if let Some((path, query)) = arweave_path(uri) {
-        return gateway_urls(&ARWEAVE_GATEWAYS, &path, query.as_deref(), None);
+        return gateway_urls(&ARWEAVE_GATEWAYS, &path, query, None);
     }
 
     let mut urls = vec![uri.to_string()];
@@ -113,29 +117,16 @@ fn gateway_urls(
 }
 
 /// Returns the `<CID>[/path]` and query parts of an `ipfs://` URI.
-fn ipfs_path(uri: &str) -> Option<(String, Option<String>)> {
+fn ipfs_path(uri: &str) -> Option<(String, Option<&str>)> {
     let rest = strip_scheme(uri, "ipfs://")?;
     let rest = strip_prefix_ignore_case(rest, "ipfs/").unwrap_or(rest);
-    let rest = rest.split('#').next().unwrap_or_default();
-
-    let (path, query) = match rest.split_once('?') {
-        Some((path, query)) => (path, Some(query.to_string())),
-        None => (rest, None),
-    };
-
+    let (path, query) = split_query(rest);
     Some((content_path(path, is_cid)?, query))
 }
 
 /// Returns the `<txid>[/path]` and query parts of an `ar://` URI.
-fn arweave_path(uri: &str) -> Option<(String, Option<String>)> {
-    let rest = strip_scheme(uri, "ar://")?;
-    let rest = rest.split('#').next().unwrap_or_default();
-
-    let (path, query) = match rest.split_once('?') {
-        Some((path, query)) => (path, Some(query.to_string())),
-        None => (rest, None),
-    };
-
+fn arweave_path(uri: &str) -> Option<(String, Option<&str>)> {
+    let (path, query) = split_query(strip_scheme(uri, "ar://")?);
     Some((content_path(path, is_arweave_txid)?, query))
 }
 
@@ -157,8 +148,7 @@ fn ipfs_path_from_gateway_url(uri: &str) -> Option<(String, Option<&str>, String
     };
 
     let path = content_path(&path, is_cid)?;
-    let query = uri_query(uri);
-    Some((path, query, gateway))
+    Some((path, split_query(uri).1, gateway))
 }
 
 /// Returns the `<txid>[/path]` and query parts of an HTTPS Arweave gateway
@@ -168,13 +158,19 @@ fn arweave_path_from_gateway_url(uri: &str) -> Option<(String, Option<&str>, &'s
     let host = url.host_str()?.to_ascii_lowercase();
     let gateway = arweave_gateway_host(&host)?;
     let path = content_path(url.path().trim_start_matches('/'), is_arweave_txid)?;
-    Some((path, uri_query(uri), gateway))
+    Some((path, split_query(uri).1, gateway))
 }
 
-/// The query of a URL as it was written, so it's passed along unchanged.
-fn uri_query(uri: &str) -> Option<&str> {
+/// Splits a URI into the part before the query and the query itself, as they
+/// were written so that the query is passed along unchanged. The fragment is
+/// dropped, since it's never sent to the server.
+fn split_query(uri: &str) -> (&str, Option<&str>) {
     let uri = uri.split('#').next().unwrap_or_default();
-    uri.split_once('?').map(|(_, query)| query)
+
+    match uri.split_once('?') {
+        Some((path, query)) => (path, Some(query)),
+        None => (uri, None),
+    }
 }
 
 /// The known Arweave gateway a hostname belongs to, including the sandbox
@@ -247,53 +243,43 @@ fn is_arweave_txid(value: &str) -> bool {
 }
 
 /// Whether a path segment stays under the gateway base once appended to it.
-/// It must not be empty or contain whitespace, control characters, or
-/// backslashes (which URL parsing turns into slashes). Once percent-decoded,
-/// it must not be `.` or `..`, or contain a slash, backslash, or control
-/// character, in case a gateway decodes the path before resolving it.
+/// It must not be empty or contain control characters or backslashes (URL
+/// parsing strips the former and turns the latter into slashes). Spaces are
+/// fine, since they get percent-encoded. Once percent-decoded (repeatedly, in
+/// case something along the way decodes more than once), it must not be `.`
+/// or `..`, or contain a slash, backslash, or control character.
 fn is_safe_segment(segment: &str) -> bool {
     if segment.is_empty()
         || segment
             .chars()
-            .any(|char| char == '\\' || char.is_whitespace() || char.is_control())
+            .any(|char| char == '\\' || char.is_control())
     {
         return false;
     }
 
-    let decoded = percent_decode(segment);
+    let mut decoded = segment.as_bytes().to_vec();
 
-    if decoded
-        .iter()
-        .any(|&byte| byte == b'/' || byte == b'\\' || byte.is_ascii_control())
-    {
-        return false;
-    }
-
-    decoded != b"." && decoded != b".."
-}
-
-/// Decodes `%XX` escapes, leaving anything that isn't a valid escape as-is.
-fn percent_decode(value: &str) -> Vec<u8> {
-    let bytes = value.as_bytes();
-    let mut decoded = Vec::with_capacity(bytes.len());
-    let mut i = 0;
-
-    while i < bytes.len() {
-        if bytes[i] == b'%'
-            && let Some(byte) = bytes
-                .get(i + 1..i + 3)
-                .and_then(|hex| std::str::from_utf8(hex).ok())
-                .and_then(|hex| u8::from_str_radix(hex, 16).ok())
+    for _ in 0..MAX_DECODE_ROUNDS {
+        if decoded
+            .iter()
+            .any(|&byte| byte == b'/' || byte == b'\\' || byte.is_ascii_control())
+            || decoded == b"."
+            || decoded == b".."
         {
-            decoded.push(byte);
-            i += 3;
-        } else {
-            decoded.push(bytes[i]);
-            i += 1;
+            return false;
         }
+
+        let next: Vec<u8> = percent_decode(&decoded).collect();
+
+        if next == decoded {
+            return true;
+        }
+
+        decoded = next;
     }
 
-    decoded
+    // Anything still changing after this many rounds of decoding is suspicious.
+    false
 }
 
 #[cfg(test)]
@@ -356,6 +342,7 @@ mod tests {
             format!("ipfs://{CID_V1}/../evil"),
             format!("ipfs://{CID_V1}/%2e%2E/evil"),
             format!("ipfs://{CID_V1}/a\\b"),
+            format!("ipfs://{CID_V1}/a\nb"),
             format!("ipfs://{CID_V1}//a"),
             "ipfs://not-a-cid/a".to_string(),
             "ipfs://".to_string(),
@@ -485,16 +472,28 @@ mod tests {
 
     #[test]
     fn test_encoded_separators_are_rejected() {
-        for segment in ["..%2F..%2Fipns", "a%5Cb", "a%00b", "%2e%2E", "a%0Ab"] {
+        for segment in [
+            "..%2F..%2Fipns",
+            "a%5Cb",
+            "a%00b",
+            "%2e%2E",
+            "a%0Ab",
+            "%252e%252e",
+            "a%252Fb",
+        ] {
             let uri = format!("ipfs://{CID_V1}/{segment}");
             assert_eq!(uri_candidates(&uri, true), vec![uri.clone()], "{uri}");
         }
     }
 
     #[test]
-    fn test_encoded_spaces_are_allowed() {
+    fn test_spaces_are_allowed() {
         assert_eq!(
             uri_candidates(&format!("ipfs://{CID_V1}/my%20image.png"), true),
+            ipfs_gateways(&format!("{CID_V1}/my%20image.png"))
+        );
+        assert_eq!(
+            uri_candidates(&format!("ipfs://{CID_V1}/my image.png"), true),
             ipfs_gateways(&format!("{CID_V1}/my%20image.png"))
         );
     }

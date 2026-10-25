@@ -6803,6 +6803,7 @@ dependencies = [
  "image",
  "mime-sniffer",
  "num-bigint",
+ "percent-encoding",
  "reqwest 0.12.24",
  "serde",
  "serde_json",
