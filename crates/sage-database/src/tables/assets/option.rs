@@ -13,6 +13,16 @@ pub enum OptionSortMode {
     ExpirationSeconds,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum OptionFilter {
+    /// Options currently held by the wallet
+    Owned,
+    /// Options minted by the wallet, whether or not they are still held
+    Created,
+    /// Both owned and created options
+    All,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct OptionCoinInfo {
     pub underlying_coin_hash: Bytes32,
@@ -49,6 +59,7 @@ pub struct OptionAssetsRow {
 }
 
 impl Database {
+    #[allow(clippy::too_many_arguments)]
     pub async fn owned_options(
         &self,
         limit: u32,
@@ -57,6 +68,7 @@ impl Database {
         ascending: bool,
         find_value: Option<String>,
         include_hidden: bool,
+        filter: OptionFilter,
     ) -> Result<(Vec<OptionRow>, u32)> {
         owned_options(
             &self.pool,
@@ -66,6 +78,7 @@ impl Database {
             ascending,
             find_value,
             include_hidden,
+            filter,
         )
         .await
     }
@@ -359,6 +372,7 @@ impl DatabaseTx<'_> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn owned_options(
     conn: impl SqliteExecutor<'_>,
     limit: u32,
@@ -367,14 +381,22 @@ async fn owned_options(
     ascending: bool,
     find_value: Option<String>,
     include_hidden: bool,
+    filter: OptionFilter,
 ) -> Result<(Vec<OptionRow>, u32)> {
-    let mut query = sqlx::QueryBuilder::new(
+    // Owned options come from the unspent coins, whereas created options may have been
+    // transferred away, so they are read from all wallet coins (including spent ones)
+    let source = match filter {
+        OptionFilter::Owned => "owned_coins",
+        OptionFilter::Created | OptionFilter::All => "wallet_coins",
+    };
+
+    let mut query = sqlx::QueryBuilder::new(format!(
         "SELECT
             asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
             asset_description, asset_is_visible, asset_is_sensitive_content,
-            asset_hidden_puzzle_hash, owned_coins.created_height, owned_coins.spent_height,
-            owned_coins.parent_coin_hash, owned_coins.puzzle_hash, owned_coins.amount, owned_coins.p2_puzzle_hash,
-            offer_hash, created_timestamp, spent_timestamp,
+            asset_hidden_puzzle_hash, option_coins.created_height, option_coins.spent_height,
+            option_coins.parent_coin_hash, option_coins.puzzle_hash, option_coins.amount, option_coins.p2_puzzle_hash,
+            offer_hash, mempool_item_hash, created_timestamp, spent_timestamp,
             clawback_expiration_seconds AS clawback_timestamp, clawback_version,
             p2_options.expiration_seconds AS option_expiration_seconds,
 
@@ -393,14 +415,38 @@ async fn owned_options(
             strike_amount, underlying_coin.amount AS underlying_amount, underlying_coin.hash AS underlying_coin_id,
 
             COUNT(*) OVER() as total_count
-        FROM owned_coins
-        INNER JOIN options ON options.asset_id = owned_coins.asset_id
+        FROM {source} AS option_coins
+        INNER JOIN options ON options.asset_id = option_coins.asset_id
         INNER JOIN p2_options ON p2_options.option_asset_id = options.asset_id
         INNER JOIN coins AS underlying_coin ON underlying_coin.id = options.underlying_coin_id
         INNER JOIN assets AS strike_asset ON strike_asset.id = options.strike_asset_id
         INNER JOIN assets AS underlying_asset ON underlying_asset.id = underlying_coin.asset_id
         WHERE 1=1",
-    );
+    ));
+
+    if filter != OptionFilter::Owned {
+        // Only show the latest coin of each option, preferring the unspent one if we hold it
+        query.push(
+            " AND option_coins.coin_id = (
+                SELECT latest.id FROM coins AS latest
+                WHERE latest.asset_id = option_coins.asset_id AND latest.p2_puzzle_id IS NOT NULL
+                ORDER BY latest.spent_height IS NULL DESC, latest.created_height DESC
+                LIMIT 1
+            )",
+        );
+
+        let is_created = "EXISTS (
+            SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = p2_options.creator_puzzle_hash
+        )";
+
+        if filter == OptionFilter::Created {
+            query.push(format!(" AND {is_created}"));
+        } else {
+            query.push(format!(
+                " AND ({is_created} OR (option_coins.spent_height IS NULL AND option_coins.mempool_item_hash IS NULL))"
+            ));
+        }
+    }
 
     if !include_hidden {
         query.push(" AND asset_is_visible = 1");
@@ -448,7 +494,7 @@ async fn owned_options(
     query.push(" ORDER BY ");
     let order_column = match sort_mode {
         OptionSortMode::Name => "asset_name",
-        OptionSortMode::CreatedHeight => "owned_coins.created_height",
+        OptionSortMode::CreatedHeight => "option_coins.created_height",
         OptionSortMode::ExpirationSeconds => "p2_options.expiration_seconds",
     };
     query.push(order_column);
@@ -538,7 +584,9 @@ async fn owned_options(
                     ),
                     p2_puzzle_hash: row.get::<Vec<u8>, _>("p2_puzzle_hash").convert()?,
                     kind: CoinKind::Option,
-                    mempool_item_hash: None,
+                    mempool_item_hash: row
+                        .get::<Option<Vec<u8>>, _>("mempool_item_hash")
+                        .convert()?,
                     offer_hash: row.get::<Option<Vec<u8>>, _>("offer_hash").convert()?,
                     clawback_timestamp: row
                         .get::<Option<i64>, _>("clawback_timestamp")
