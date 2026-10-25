@@ -8,6 +8,7 @@ import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
 import { nftUri } from '@/lib/nftUri';
+import { nftDisplayName } from '@/lib/nftUpdater';
 
 interface NftConfirmationProps {
   type: 'burn' | 'transfer' | 'edit';
@@ -101,7 +102,7 @@ export function NftConfirmation({
       )}
 
       {nfts.map((nft) => {
-        const nftName = nft.name ?? t`Unnamed NFT`;
+        const nftName = nftDisplayName(nft) ?? t`Unnamed NFT`;
         const thumbnail = thumbnails[nft.launcher_id] || null;
 
         return (

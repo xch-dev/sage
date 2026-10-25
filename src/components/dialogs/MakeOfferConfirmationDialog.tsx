@@ -1,5 +1,6 @@
 import { commands, NftRecord, OptionRecord, TokenRecord } from '@/bindings';
 import { AssetIcon } from '@/components/AssetIcon';
+import { MutableNftWarning } from '@/components/MutableNftWarning';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,6 +13,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
+import { isMutableNft, nftDisplayName } from '@/lib/nftUpdater';
 import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
 import { Assets, OfferState, TokenAmount } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -46,6 +48,8 @@ function AssetDisplay({
   type: 'offered' | 'requested';
 }) {
   const [nftDetailsList, setNftDetailsList] = useState<NftRecord[]>([]);
+  // Only NFTs whose details were found, since placeholders have no known updater
+  const [mutableNftNames, setMutableNftNames] = useState<string[]>([]);
   const [loadingNfts, setLoadingNfts] = useState(false);
   const [optionDetailsList, setOptionDetailsList] = useState<OptionRecord[]>(
     [],
@@ -144,11 +148,15 @@ function AssetDisplay({
       setLoadingNfts(true);
 
       const displayableNfts: NftRecord[] = [];
+      const mutableNames: string[] = [];
       for (const nftId of nftIds) {
         try {
           const nftRecordResponse = await commands.getNft({ nft_id: nftId });
           if (nftRecordResponse.nft) {
             displayableNfts.push(nftRecordResponse.nft);
+            if (isMutableNft(nftRecordResponse.nft.metadata_updater_kind)) {
+              mutableNames.push(nftDisplayName(nftRecordResponse.nft) ?? nftId);
+            }
           } else {
             displayableNfts.push(emptyNftRecord(nftId));
           }
@@ -157,6 +165,7 @@ function AssetDisplay({
         }
       }
       setNftDetailsList(displayableNfts);
+      setMutableNftNames(mutableNames);
 
       setLoadingNfts(false);
     };
@@ -251,7 +260,7 @@ function AssetDisplay({
                     <div
                       key={nft.launcher_id}
                       className='flex flex-col items-center text-center'
-                      title={`${nft.name}\nID: ${nft.launcher_id}`}
+                      title={`${nftDisplayName(nft)}\nID: ${nft.launcher_id}`}
                     >
                       <AssetIcon
                         asset={{
@@ -264,7 +273,7 @@ function AssetDisplay({
                       />
                       {!nft.icon_url && (
                         <span className='text-xs truncate w-full'>
-                          {nft.name}
+                          {nftDisplayName(nft)}
                         </span>
                       )}
                     </div>
@@ -281,6 +290,9 @@ function AssetDisplay({
               </p>
             )}
           </ScrollArea>
+          {!loadingNfts && (
+            <MutableNftWarning names={mutableNftNames} className='mt-2' />
+          )}
         </div>
       )}
 

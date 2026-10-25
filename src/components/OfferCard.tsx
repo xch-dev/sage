@@ -1,8 +1,10 @@
 import { commands, OfferRecordStatus, OfferSummary } from '@/bindings';
 import { Assets } from '@/components/Assets';
 import { MarketplaceCard } from '@/components/MarketplaceCard';
+import { MutableNftWarning } from '@/components/MutableNftWarning';
 import { NumberFormat } from '@/components/NumberFormat';
 import { marketplaces } from '@/lib/marketplaces';
+import { mutableOfferNftNames } from '@/lib/nftUpdater';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { useNetwork } from '@/hooks/useNetwork';
 import { useWalletState } from '@/state';
@@ -201,6 +203,13 @@ export function OfferCard({
           </div>
         </CardContent>
       </Card>
+
+      <MutableNftWarning
+        names={[
+          ...mutableOfferNftNames(offerSummary.taker),
+          ...mutableOfferNftNames(offerSummary.maker),
+        ]}
+      />
 
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
         <Card>

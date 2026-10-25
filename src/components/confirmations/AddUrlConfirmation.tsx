@@ -8,6 +8,7 @@ import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
 import { nftUri } from '@/lib/nftUri';
+import { nftDisplayName } from '@/lib/nftUpdater';
 
 interface AddUrlConfirmationProps {
   nft: NftRecord;
@@ -22,7 +23,7 @@ export function AddUrlConfirmation({
   url,
   kind,
 }: AddUrlConfirmationProps) {
-  const nftName = nft.name ?? t`Unnamed NFT`;
+  const nftName = nftDisplayName(nft) ?? t`Unnamed NFT`;
 
   return (
     <div className='space-y-3 text-xs'>
