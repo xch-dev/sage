@@ -139,6 +139,8 @@ macro_rules! sage_commands {
             commands::sign_message_with_public_key,
             commands::sign_message_by_address,
             commands::send_transaction_immediately,
+            commands::get_selected_theme,
+            commands::set_selected_theme,
             commands::is_rpc_running,
             commands::start_rpc_server,
             commands::stop_rpc_server,
