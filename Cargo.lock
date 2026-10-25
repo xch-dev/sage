@@ -6803,6 +6803,7 @@ dependencies = [
  "image",
  "mime-sniffer",
  "num-bigint",
+ "percent-encoding",
  "reqwest 0.12.24",
  "serde",
  "serde_json",
@@ -6864,10 +6865,12 @@ dependencies = [
 name = "sage-database"
 version = "0.13.1"
 dependencies = [
+ "anyhow",
  "chia-wallet-sdk",
  "hex",
  "sqlx",
  "thiserror 1.0.69",
+ "tokio",
  "tracing",
 ]
 

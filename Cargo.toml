@@ -102,6 +102,7 @@ argon2 = "0.5.3"
 
 # Async
 tokio = "1.39.2"
+percent-encoding = "2.3.2"
 futures-util = "0.3.30"
 futures-lite = "2.3.0"
 sqlx = "0.8.0"

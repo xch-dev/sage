@@ -27,5 +27,6 @@ tracing = { workspace = true }
 mime-sniffer = { workspace = true }
 image = { workspace = true }
 webp = { workspace = true }
-tokio = { workspace = true, features = ["sync"] }
+tokio = { workspace = true, features = ["sync", "time", "macros", "rt"] }
 base64 = { workspace = true }
+percent-encoding = { workspace = true }
