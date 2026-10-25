@@ -128,6 +128,23 @@ describe('parseDeepLinkUrl', () => {
       }
     });
 
+    it('rejects offer ids that are not plain tokens', () => {
+      for (const raw of [
+        'https://chia-offer.com/offers/abc&evil=1',
+        'https://offerco.de/offers/a%26b=c',
+        'https://dexie.space/offers/..%2F..%2Fv2%2Fx',
+        'https://dexie.space/offers/abc.def',
+        `https://dexie.space/offers/${'a'.repeat(129)}`,
+      ]) {
+        const url = encodeURIComponent(raw);
+        // Literal & separator so the encoded value is not split
+        expect(
+          parseDeepLinkUrl(`sage:take_offer?fee=1&url=${url}`).ok,
+          raw,
+        ).toBe(false);
+      }
+    });
+
     it('requires exactly one of offer or url', () => {
       const url = encodeURIComponent('https://dexie.space/offers/abc');
       expect(parseDeepLinkUrl('sage:take_offer').ok).toBe(false);
@@ -168,6 +185,39 @@ describe('parseDeepLinkUrl', () => {
     it('requires a valid address', () => {
       expect(parseDeepLinkUrl('sage:send?amount=1').ok).toBe(false);
       expect(parseDeepLinkUrl('sage:send?address=xch1nope').ok).toBe(false);
+    });
+
+    it('accepts any network prefix, leaving the network check to the wallet', () => {
+      const dev =
+        'dev1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3q6ucjwm';
+      expect(parseDeepLinkUrl(`sage:send?address=${dev}`)).toEqual({
+        ok: true,
+        link: { action: 'send', address: dev },
+      });
+    });
+
+    it('rejects addresses that are not a 32-byte puzzle hash', () => {
+      const short =
+        'xch1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygtejw8s';
+      expect(parseDeepLinkUrl(`sage:send?address=${short}`).ok).toBe(false);
+    });
+
+    it('rejects address prefixes that are not plain lowercase letters', () => {
+      const odd =
+        'xc-h1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3qlqh7ej';
+      expect(parseDeepLinkUrl(`sage:send?address=${odd}`).ok).toBe(false);
+    });
+
+    it('drops amounts and fees longer than a u64', () => {
+      const big = '9'.repeat(21);
+      const url = `sage:send?address=${XCH}&amount=${big}&fee=${big}`;
+      expect(parseDeepLinkUrl(url)).toEqual({
+        ok: true,
+        link: { action: 'send', address: XCH },
+      });
+      const max = '18446744073709551615';
+      const result = parseDeepLinkUrl(`sage:send?address=${XCH}&amount=${max}`);
+      expect(result.ok && result.link).toMatchObject({ amount: max });
     });
 
     it('drops invalid optional parameters', () => {

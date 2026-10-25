@@ -63,6 +63,8 @@ Opens the send screen with pre-filled values.
 | `memos`    | No       | Memo text to attach to the transaction (at most 1,000 characters)    |
 | `asset_id` | No       | 64-char hex CAT asset id. Omit to send XCH/TXCH (network-dependent). |
 
+If `address` belongs to a different network than the active wallet (for example a `txch1...` address while on mainnet), the app shows an error toast naming both networks instead of navigating.
+
 If `asset_id` is present but the asset isn't held by the current wallet, the app shows an error toast (including the asset id) instead of navigating to the send screen.
 
 **Examples:**

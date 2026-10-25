@@ -1,4 +1,4 @@
-import { isValidAddress } from '@/lib/utils';
+import { addressInfo } from '@/lib/utils';
 
 const SCHEME_PREFIX = 'sage:';
 
@@ -9,6 +9,7 @@ const MAX_MEMO_LENGTH = 1000;
 
 // Hosts resolveOfferData knows how to fetch an offer from
 const OFFER_URL_HOSTS = ['dexie.space', 'offerco.de', 'chia-offer.com'];
+const OFFER_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
 export interface TakeOfferDeepLink {
   action: 'take_offer';
@@ -53,7 +54,20 @@ function decodeQueryString(queryString: string): URLSearchParams {
 }
 
 function isMojos(value: string | null): value is string {
-  return !!value && /^\d+$/.test(value);
+  // At most 20 digits, the width of a u64
+  return !!value && /^\d{1,20}$/.test(value);
+}
+
+// Any network's address is accepted here; the link handler checks it against
+// the active network so a mismatch gets its own message. The prefix is shown
+// in that message, so it is held to plain lowercase letters.
+function isWellFormedAddress(address: string): boolean {
+  try {
+    const { prefix, puzzleHash } = addressInfo(address);
+    return puzzleHash.length === 64 && /^[a-z]{1,16}$/.test(prefix);
+  } catch {
+    return false;
+  }
 }
 
 function parseOfferString(value: string): string | null {
@@ -83,10 +97,11 @@ function parseOfferUrl(value: string): string | null {
     return null;
   }
 
-  // resolveOfferData reads the offer id from the last path segment, so drop
-  // anything that would end up there instead
+  // resolveOfferData reads the offer id from the last path segment and
+  // interpolates it unencoded into marketplace API requests, so it must be a
+  // plain token. The query string and fragment are dropped for the same reason.
   const path = url.pathname.replace(/\/+$/, '');
-  if (!path.split('/').pop()) return null;
+  if (!OFFER_ID_PATTERN.test(path.split('/').pop() ?? '')) return null;
 
   return `https://${url.hostname}${path}`;
 }
@@ -111,12 +126,7 @@ function parseTakeOffer(params: URLSearchParams): TakeOfferDeepLink | null {
 
 function parseSend(params: URLSearchParams): SendDeepLink | null {
   const address = params.get('address');
-  if (
-    !address ||
-    !(isValidAddress(address, 'xch') || isValidAddress(address, 'txch'))
-  ) {
-    return null;
-  }
+  if (!address || !isWellFormedAddress(address)) return null;
 
   const link: SendDeepLink = { action: 'send', address };
   const amount = params.get('amount');

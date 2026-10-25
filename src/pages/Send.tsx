@@ -45,7 +45,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { AlertCircleIcon } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import * as z from 'zod';
@@ -171,29 +171,44 @@ export default function Send() {
   });
   const memoMode = form.watch('memoMode') || MemoMode.Text;
 
-  // Populate form from URL query parameters (e.g., from deep links)
+  // Populate form from URL query parameters (e.g., from deep links). Applied
+  // once per distinct query so later re-renders (asset refreshes on every sync
+  // event) never overwrite the user's edits, and a new link replaces every
+  // field rather than mixing its values with whatever was already typed.
+  const appliedPrefill = useRef<string | null>(null);
   useEffect(() => {
-    const address = searchParams.get('address');
+    const prefill = searchParams.toString();
+    if (!searchParams.has('address') || appliedPrefill.current === prefill) {
+      return;
+    }
+
     const amountMojos = searchParams.get('amount');
     const feeMojos = searchParams.get('fee');
-    const memos = searchParams.get('memos');
 
-    if (address) {
-      form.setValue('address', address);
-    }
+    // The amount's precision comes from the asset, so wait for the one this
+    // route names - a link from one send page to another keeps this component,
+    // and with it the previous asset, until the new one loads
+    if (amountMojos && asset?.asset_id !== assetId) return;
 
-    if (amountMojos && asset) {
-      const amountDecimal = fromMojos(amountMojos, asset.precision);
-      form.setValue('amount', amountDecimal.toString());
-    }
-    if (feeMojos) {
-      const feeDecimal = fromMojos(feeMojos, walletState.sync.unit.precision);
-      form.setValue('fee', feeDecimal.toString());
-    }
-    if (memos) {
-      form.setValue('memo', memos);
-    }
-  }, [searchParams, asset, walletState.sync.unit.precision, form]);
+    appliedPrefill.current = prefill;
+    setResponse(null);
+
+    form.setValue('address', searchParams.get('address') ?? '');
+    form.setValue(
+      'amount',
+      amountMojos && asset
+        ? fromMojos(amountMojos, asset.precision).toString()
+        : '',
+    );
+    form.setValue(
+      'fee',
+      feeMojos
+        ? fromMojos(feeMojos, walletState.sync.unit.precision).toString()
+        : '',
+    );
+    form.setValue('memoMode', MemoMode.Text);
+    form.setValue('memo', searchParams.get('memos') ?? '');
+  }, [searchParams, asset, assetId, walletState.sync.unit.precision, form]);
 
   const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
     (scanResValue) => {

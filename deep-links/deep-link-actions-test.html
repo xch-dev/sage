@@ -394,6 +394,27 @@ memos=test memo</textarea
             ERR,
             'Invalid deep link',
           ],
+          [
+            'Offer id with & (API injection)',
+            link(
+              'take_offer',
+              [
+                ['fee', '1'],
+                ['url', 'https://chia-offer.com/offers/abc&evil=1'],
+              ],
+              { sep: '&' },
+            ),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Offer id with ..%2F (path traversal)',
+            link('take_offer', [
+              ['url', 'https://dexie.space/offers/..%2F..%2Fv2%2Fx'],
+            ]),
+            ERR,
+            'Invalid deep link',
+          ],
         ],
         send: (v) => [
           [
@@ -475,6 +496,39 @@ memos=test memo</textarea
             'Send XCH, only the address prefilled',
           ],
           [
+            'Other network: testnet address',
+            link('send', [
+              [
+                'address',
+                'txch1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygsuw65al',
+              ],
+            ]),
+            ERR,
+            'On a mainnet wallet: different network (txch) toast',
+          ],
+          [
+            'Other network: mainnet address',
+            link('send', [
+              [
+                'address',
+                'xch1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs3fazuv',
+              ],
+            ]),
+            OK,
+            'On a testnet wallet: different network (xch) toast',
+          ],
+          [
+            'Other network: custom prefix',
+            link('send', [
+              [
+                'address',
+                'dev1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3q6ucjwm',
+              ],
+            ]),
+            ERR,
+            'Different network (dev) toast',
+          ],
+          [
             'Unknown asset_id',
             link('send', [
               ['address', v.address],
@@ -485,6 +539,15 @@ memos=test memo</textarea
             ]),
             ERR,
             'Toast: unknown asset, not in your wallet',
+          ],
+          [
+            'Amount longer than a u64',
+            link('send', [
+              ['address', v.address],
+              ['amount', '9'.repeat(21)],
+            ]),
+            OK,
+            'Send XCH, amount field empty',
           ],
           [
             'Missing address',

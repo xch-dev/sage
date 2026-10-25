@@ -43,14 +43,18 @@ export function Offer() {
   const [resolvedOffer, setResolvedOffer] = useState<string | null>(null);
   const { isTestnet } = useNetwork();
 
-  // Populate fee from URL query parameters (e.g., from deep links)
+  // A different offer (e.g. from a second deep link while this page is open)
+  // stays on this component, so drop any pending confirmation, which was built
+  // for the previous offer, and take the fee only from the new URL (e.g. deep links)
   useEffect(() => {
+    setResponse(null);
     const feeMojos = searchParams.get('fee');
-    if (feeMojos) {
-      const feeDecimal = fromMojos(feeMojos, walletState.sync.unit.precision);
-      setFee(feeDecimal.toString());
-    }
-  }, [searchParams, walletState.sync.unit.precision]);
+    setFee(
+      feeMojos
+        ? fromMojos(feeMojos, walletState.sync.unit.precision).toString()
+        : '',
+    );
+  }, [offer, searchParams, walletState.sync.unit.precision]);
 
   const resolveOffer = useCallback(async () => {
     if (!offer) return;

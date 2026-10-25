@@ -1,5 +1,6 @@
 import { useWallet } from '@/contexts/WalletContext';
 import { DeepLink, parseDeepLinkUrl } from '@/lib/deepLink';
+import { addressInfo } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -71,6 +72,31 @@ export function useDeepLink() {
           offerUrl += `?fee=${encodeURIComponent(deepLinkData.fee)}`;
         }
         navigateRef.current(offerUrl);
+        return;
+      }
+
+      // The parser accepts any network's address; the wallet decides whether it
+      // matches the active network, the same check the send form applies
+      const isActiveNetwork = await commands
+        .validateAddress(deepLinkData.address)
+        .catch(() => false);
+
+      if (!isMounted) return;
+
+      if (!isActiveNetwork) {
+        const linkPrefix = addressInfo(deepLinkData.address).prefix;
+        const walletPrefix = await commands
+          .getNetwork({})
+          .then(({ network }) => network.prefix ?? network.ticker.toLowerCase())
+          .catch(() => null);
+
+        if (!isMounted) return;
+
+        toast.error(
+          walletPrefix
+            ? t`This link is for a different network (${linkPrefix}); your wallet is on ${walletPrefix}`
+            : t`This link is for a different network (${linkPrefix})`,
+        );
         return;
       }
 
