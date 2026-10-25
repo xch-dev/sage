@@ -134,6 +134,9 @@ async performDatabaseMaintenance(req: PerformDatabaseMaintenance) : Promise<Perf
 async checkAddress(req: CheckAddress) : Promise<CheckAddressResponse> {
     return await TAURI_INVOKE("check_address", { req });
 },
+async resolveHandle(req: ResolveHandle) : Promise<ResolveHandleResponse> {
+    return await TAURI_INVOKE("resolve_handle", { req });
+},
 async getDerivations(req: GetDerivations) : Promise<GetDerivationsResponse> {
     return await TAURI_INVOKE("get_derivations", { req });
 },
@@ -701,7 +704,7 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean;
+auto_submit?: boolean; 
 /**
  * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
  */
@@ -721,7 +724,7 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean;
+auto_submit?: boolean; 
 /**
  * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
  */
@@ -1718,6 +1721,89 @@ export type GetWalletAddressResponse = {
 address: string }
 export type GetXchUsdPrice = Record<string, never>
 export type GetXchUsdPriceResponse = { usd: number }
+/**
+ * A handle mapping which was verified against the chain
+ */
+export type HandleRecord = { 
+/**
+ * The handle, without the leading `@`
+ */
+handle: string; 
+/**
+ * The hash the registry stores the handle under
+ */
+handle_hash: string; 
+/**
+ * The address the handle resolves to
+ */
+address: string; 
+/**
+ * Whether the resolved address is new since it was last verified
+ */
+status: HandleStatus; 
+/**
+ * The address the handle resolved to before it changed, while the change is
+ * unacknowledged
+ */
+previous_address: string | null; 
+/**
+ * The address this handle last resolved to when it was sent to
+ */
+last_sent_address: string | null; 
+/**
+ * Whether the mapping comes from an earlier verification, because the handle could
+ * not be verified right now
+ */
+cached: boolean; 
+/**
+ * Launcher ID of the singleton which owns the handle
+ */
+owner_launcher_id: string; 
+/**
+ * Launcher ID of the singleton the handle resolves to
+ */
+resolved_launcher_id: string; 
+/**
+ * Unix timestamp after which the handle expires
+ */
+expiration: number; 
+/**
+ * The handle's registry slot coin
+ */
+slot_coin_id: string; 
+/**
+ * Height the slot coin was confirmed at
+ */
+slot_confirmation_height: number; 
+/**
+ * The resolved singleton coin the address was derived from
+ */
+resolved_coin_id: string; 
+/**
+ * Height of the peak transaction block the mapping was verified at
+ */
+verified_height: number; 
+/**
+ * Timestamp of the peak transaction block the mapping was verified at
+ */
+verified_timestamp: number; 
+/**
+ * Local Unix timestamp of the verification
+ */
+last_verified_at: number }
+/**
+ * Whether a verified handle mapping has changed
+ */
+export type HandleStatus = 
+/**
+ * The handle resolves to the same address as when it was first verified, or the
+ * change has been acknowledged
+ */
+"verified" | 
+/**
+ * The handle now resolves to a different address than it did previously
+ */
+"changed"
 export type Id = 
 /**
  * The XCH asset
@@ -2025,7 +2111,12 @@ summary: TransactionSummary;
  * Coin spends in the transaction
  */
 coin_spends: CoinSpendJson[] }
-export type Network = { name: string; ticker: string; prefix?: string | null; precision: number; network_id?: string | null; default_port: number; genesis_challenge: string; agg_sig_me?: string | null; dns_introducers: string[]; peer_introducers: string[]; inherit?: InheritedNetwork | null }
+export type Network = { name: string; ticker: string; prefix?: string | null; precision: number; network_id?: string | null; default_port: number; genesis_challenge: string; agg_sig_me?: string | null; dns_introducers: string[]; peer_introducers: string[]; inherit?: InheritedNetwork | null; 
+/**
+ * Overrides the XCHandles deployment for this network. When unset, the deployment
+ * is inherited from the built-in network named by `inherit`, if there is one.
+ */
+xchandles?: XchandlesConfig | null }
 export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean }
 export type NetworkKind = "mainnet" | "testnet" | "unknown"
 export type NetworkList = { networks: Network[] }
@@ -2245,6 +2336,22 @@ name: string }
 export type RenameKeyResponse = Record<string, never>
 export type ReorderTaskbarRuntimesParams = { windowLabel: string; appIds: string[] }
 /**
+ * Resolve an XCHandles handle to an address
+ */
+export type ResolveHandle = { 
+/**
+ * The handle, with or without a leading `@`
+ */
+handle: string }
+/**
+ * Response with the verified handle mapping
+ */
+export type ResolveHandleResponse = { 
+/**
+ * The verified handle mapping
+ */
+handle: HandleRecord }
+/**
  * Resynchronize wallet data with the blockchain
  */
 export type Resync = { 
@@ -2407,7 +2514,7 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean;
+auto_submit?: boolean; 
 /**
  * Optional coin IDs to spend first: coins of this CAT for the amount, XCH coins for the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
  */
@@ -2459,7 +2566,7 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean;
+auto_submit?: boolean; 
 /**
  * Optional XCH coin IDs to spend first, for the amount and the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
  */
@@ -2960,6 +3067,13 @@ status: OfferRecordStatus }
 export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
 export type WindowTargetParams = { windowLabel: string }
+/**
+ * The XCHandles deployment used to resolve handles on a network.
+ * 
+ * The constants must match the ones committed to in the registry's launcher solution,
+ * since they determine the registry's puzzle and therefore which slots are authentic.
+ */
+export type XchandlesConfig = { registry_launcher_id: string; price_singleton_launcher_id: string; precommit_payout_puzzle_hash: string; relative_block_height: number; api_url: string }
 
 /** tauri-specta globals **/
 

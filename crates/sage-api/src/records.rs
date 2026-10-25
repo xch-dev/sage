@@ -1,5 +1,6 @@
 mod coin;
 mod derivation;
+mod handle;
 mod did;
 mod nft;
 mod nft_collection;
@@ -14,6 +15,7 @@ mod transaction_summary;
 
 pub use coin::*;
 pub use derivation::*;
+pub use handle::*;
 pub use did::*;
 pub use nft::*;
 pub use nft_collection::*;

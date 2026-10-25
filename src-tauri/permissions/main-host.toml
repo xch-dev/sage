@@ -45,6 +45,7 @@ commands.allow = [
     "get_database_stats",
     "perform_database_maintenance",
     "check_address",
+    "resolve_handle",
     "get_derivations",
     "get_are_coins_spendable",
     "get_spendable_coin_count",

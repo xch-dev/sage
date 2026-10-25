@@ -21,7 +21,7 @@ use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
     Amount, GetKey, GetPeers, GetSyncStatus, GetVersion, ImportKey, Login, MakeOffer, OfferAmount,
-    SendXch,
+    ResolveHandle, SendXch,
 };
 use sage_api_macro::impl_endpoints;
 use sage_wallet::{SyncCommand, SyncEvent};
@@ -373,6 +373,52 @@ async fn test_send_xch_with_coin_ids() -> Result<()> {
 
     app.send_xch(send(vec![free.coin_id().to_string()], own, 100))
         .await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_resolve_handle_rejects_invalid_handles() -> Result<()> {
+    let mut app = TestApp::new().await?;
+    app.setup_bls(0).await?;
+
+    for handle in ["@Alice", "al", "alice.xch", "@@alice"] {
+        let error = app
+            .resolve_handle(ResolveHandle {
+                handle: handle.to_string(),
+            })
+            .await
+            .unwrap_err()
+            .to_string();
+
+        assert!(error.contains("status 400"), "{handle}: {error}");
+        assert!(error.contains("Invalid handle"), "{handle}: {error}");
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_resolve_handle_rejects_unsupported_networks() -> Result<()> {
+    let mut app = TestApp::new().await?;
+    app.setup_bls(0).await?;
+
+    // A network which doesn't inherit from a built-in network has no XCHandles deployment,
+    // and must not fall back to another network's.
+    for network in &mut app.sage.lock().await.network_list.networks {
+        network.inherit = None;
+    }
+
+    let error = app
+        .resolve_handle(ResolveHandle {
+            handle: "alice".to_string(),
+        })
+        .await
+        .unwrap_err()
+        .to_string();
+
+    assert!(error.contains("status 400"), "{error}");
+    assert!(error.contains("not supported on this network"), "{error}");
 
     Ok(())
 }
