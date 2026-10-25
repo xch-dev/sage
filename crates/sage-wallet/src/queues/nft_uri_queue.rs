@@ -5,19 +5,12 @@ use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use sage_assets::{Data, base64_data_uri, fetch_mintgarden_archive, fetch_uri_with_hash};
 use sage_database::{Database, DatabaseTx, FileUri, NftMetadataInfo, ResizedImageKind};
-use tokio::{
-    sync::mpsc,
-    time::{sleep, timeout},
-};
+use tokio::{sync::mpsc, time::sleep};
 use tracing::{debug, info, warn};
 
 use crate::{SyncEvent, WalletError, compute_nft_info};
 use chia_wallet_sdk::types::TESTNET11_CONSTANTS;
 use sage_config::Network;
-
-/// Each source may try several gateways in turn, so this is longer than a
-/// single request would need.
-const FETCH_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Debug)]
 pub struct NftUriQueue {
@@ -129,27 +122,19 @@ enum Outcome {
 /// work even if the NFT's own URIs have gone offline. If it doesn't have the
 /// file, falls back to fetching each of the NFT's URIs.
 async fn fetch_file(hash: Bytes32, items: Vec<FileUri>, testnet: bool) -> (Bytes32, Outcome) {
-    match timeout(FETCH_TIMEOUT, fetch_mintgarden_archive(hash, testnet)).await {
-        Ok(Ok(Some(data))) => return (hash, Outcome::Archived { data, items }),
-        Ok(Ok(None)) => {}
-        Ok(Err(error)) => debug!("Error fetching {hash} from MintGarden archive: {error}"),
-        Err(_) => debug!("Timed out fetching {hash} from MintGarden archive"),
+    match fetch_mintgarden_archive(hash, testnet).await {
+        Ok(Some(data)) => return (hash, Outcome::Archived { data, items }),
+        Ok(None) => {}
+        Err(error) => debug!("Error fetching {hash} from MintGarden archive: {error}"),
     }
 
     let mut futures = FuturesUnordered::new();
 
     for item in items {
         futures.push(async move {
-            let result = match timeout(
-                FETCH_TIMEOUT,
-                fetch_uri_with_hash(item.uri.clone(), hash, testnet),
-            )
-            .await
-            {
-                Ok(Ok(data)) => Ok(data),
-                Ok(Err(error)) => Err(error.to_string()),
-                Err(_) => Err("timed out".to_string()),
-            };
+            let result = fetch_uri_with_hash(item.uri.clone(), hash, testnet)
+                .await
+                .map_err(|error| error.to_string());
 
             (item, result)
         });

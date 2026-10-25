@@ -29,6 +29,14 @@ pub struct Data {
 /// hash, so this works even after every URI baked into the NFT has died.
 const MINTGARDEN_ARCHIVE_URL: &str = "https://archive.mintgarden.io/content";
 
+/// The time limit for downloading a single file from a single source. This
+/// only covers the network transfer, so a slow thumbnail doesn't cause a file
+/// that was already downloaded to be thrown away.
+const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(20);
+
+/// MintGarden thumbnails are optional, so they get less time than the file.
+const THUMBNAIL_TIMEOUT: Duration = Duration::from_secs(10);
+
 static CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
         // Some gateways sit behind bot protection that challenges clients
@@ -103,7 +111,7 @@ pub async fn fetch_mintgarden_archive(
 ) -> Result<Option<Data>, UriError> {
     let url = format!("{MINTGARDEN_ARCHIVE_URL}/{hash}");
 
-    let response = CLIENT.get(&url).send().await?;
+    let response = CLIENT.get(&url).timeout(DOWNLOAD_TIMEOUT).send().await?;
 
     if response.status() == StatusCode::NOT_FOUND {
         return Ok(None);
@@ -124,7 +132,7 @@ pub async fn fetch_mintgarden_archive(
 }
 
 async fn download(url: &str) -> Result<(Vec<u8>, String), UriError> {
-    read_response(CLIENT.get(url).send().await?).await
+    read_response(CLIENT.get(url).timeout(DOWNLOAD_TIMEOUT).send().await?).await
 }
 
 async fn read_response(response: Response) -> Result<(Vec<u8>, String), UriError> {
@@ -148,14 +156,23 @@ async fn read_response(response: Response) -> Result<(Vec<u8>, String), UriError
     // generic binary type, which isn't useful for displaying them.
     let mime_type = match mime_type {
         Some(mime_type) if !is_generic_mime_type(&mime_type) => mime_type,
-        _ => blob
-            .as_slice()
-            .sniff_mime_type()
-            .unwrap_or("image/png")
-            .to_string(),
+        _ => sniff_mime_type(&blob),
     };
 
     Ok((blob, mime_type))
+}
+
+fn sniff_mime_type(blob: &[u8]) -> String {
+    if let Some(mime_type) = blob.sniff_mime_type() {
+        return mime_type.to_string();
+    }
+
+    // The sniffer doesn't detect JSON, which metadata files are.
+    if serde_json::from_slice::<serde::de::IgnoredAny>(blob).is_ok() {
+        return "application/json".to_string();
+    }
+
+    "image/png".to_string()
 }
 
 fn is_generic_mime_type(mime_type: &str) -> bool {
@@ -308,7 +325,7 @@ pub async fn mintgarden_thumbnail(
         if testnet { "testnet" } else { "mainnet" }
     );
 
-    let response = CLIENT.get(&url).send().await?;
+    let response = CLIENT.get(&url).timeout(THUMBNAIL_TIMEOUT).send().await?;
 
     if response.status() != StatusCode::OK {
         return Ok(None);
@@ -317,4 +334,26 @@ pub async fn mintgarden_thumbnail(
     let bytes = response.bytes().await?;
 
     Ok(make_thumbnail(&bytes, "image/webp")?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sniff_mime_type() {
+        assert_eq!(sniff_mime_type(b"\x89PNG\r\n\x1a\n\0\0\0\0"), "image/png");
+        assert_eq!(
+            sniff_mime_type(br#"{"format":"CHIP-0007"}"#),
+            "application/json"
+        );
+        assert_eq!(sniff_mime_type(b"\0\x01\x02"), "image/png");
+    }
+
+    #[test]
+    fn test_is_generic_mime_type() {
+        assert!(is_generic_mime_type("application/octet-stream"));
+        assert!(is_generic_mime_type("Binary/Octet-Stream; charset=binary"));
+        assert!(!is_generic_mime_type("application/json"));
+    }
 }
