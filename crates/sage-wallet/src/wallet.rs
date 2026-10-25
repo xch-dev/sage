@@ -352,7 +352,16 @@ impl Wallet {
                             // The V1 key lookup only resolves the sender key, since the sender can
                             // claw back at any time. Receivers must go through claim_clawback.
                             let Some(public_key) = clawback.public_key else {
-                                return Err(WalletError::ClawbackClaimRequired);
+                                if self
+                                    .db
+                                    .public_key(clawback.receiver_puzzle_hash)
+                                    .await?
+                                    .is_some()
+                                {
+                                    return Err(WalletError::ClawbackClaimRequired);
+                                }
+
+                                return Err(DriverError::MissingKey.into());
                             };
 
                             let spend = StandardLayer::new(public_key)
