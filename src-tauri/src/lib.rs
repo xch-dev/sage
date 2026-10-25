@@ -313,16 +313,7 @@ pub fn run() {
                 let apps_db = tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
                     .expect("failed to initialize Sage apps database");
 
-                let apps_host_state = AppsHostState::new(path.clone(), apps_db);
-
-                #[cfg(target_os = "windows")]
-                if let Err(err) = tauri::async_runtime::block_on(
-                    apps::migrate_legacy_windows_profiles(&apps_host_state),
-                ) {
-                    tracing::error!("failed to migrate legacy app profiles: {err}");
-                }
-
-                app.manage(apps_host_state);
+                app.manage(AppsHostState::new(path.clone(), apps_db));
 
                 apps::start_background_app_update_checker(app.handle().clone());
 

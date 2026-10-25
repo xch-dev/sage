@@ -41,8 +41,6 @@ pub use bridge::{export_system_bridge_typescript, export_user_bridge_typescript}
 
 // Operations
 pub use bridge::emit_selected_wallet_changed;
-#[cfg(target_os = "windows")]
-pub use lifecycle::migrate_legacy_windows_profiles;
 pub use lifecycle::{process_pending_storage_cleanup, start_background_app_update_checker};
 pub use runtime::process_sage_network_change;
 pub use sandbox::ensure_initial_sandbox_run;
