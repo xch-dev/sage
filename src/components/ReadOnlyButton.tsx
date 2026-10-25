@@ -6,7 +6,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Trans } from '@lingui/react/macro';
-import { ComponentProps } from 'react';
+import { ComponentProps, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 type ButtonProps = ComponentProps<typeof Button> & {
@@ -15,12 +15,15 @@ type ButtonProps = ComponentProps<typeof Button> & {
    *  stay disabled on cold wallets even when the user has opted in to unsigned
    *  transactions. */
   requiresSigning?: boolean;
+  /** Overrides the tooltip shown while the button is disabled. */
+  disabledTooltip?: ReactNode;
 };
 
 export function ReadOnlyButton({
   children,
   onClick,
   requiresSigning = false,
+  disabledTooltip,
   ...props
 }: ButtonProps) {
   const { isReadOnly, isTransactionDisabled } = useWallet();
@@ -41,11 +44,12 @@ export function ReadOnlyButton({
           </span>
         </TooltipTrigger>
         <TooltipContent>
-          {requiresSigning ? (
-            <Trans>Cold wallets cannot sign offers</Trans>
-          ) : (
-            <Trans>Not available for read-only wallets</Trans>
-          )}
+          {disabledTooltip ??
+            (requiresSigning ? (
+              <Trans>Cold wallets cannot sign offers</Trans>
+            ) : (
+              <Trans>Not available for read-only wallets</Trans>
+            ))}
         </TooltipContent>
       </Tooltip>
     );
