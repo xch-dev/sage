@@ -36,7 +36,8 @@ interface ClawbackCoinsCardProps {
 }
 
 function isClawBackEligible(coin: CoinRecord, now: number): boolean {
-  if (!coin.clawback_is_sender) return false;
+  // Unconfirmed coins can't be spent yet.
+  if (!coin.clawback_is_sender || coin.created_height == null) return false;
   // V1 sender can claw until claimed; V2 only before absolute expiry.
   if (coin.clawback_version === 1) return true;
   if (coin.clawback_version === 2) {
@@ -51,6 +52,7 @@ function isClawBackEligible(coin: CoinRecord, now: number): boolean {
 function isFinalizeEligible(coin: CoinRecord, now: number): boolean {
   return (
     coin.clawback_version === 2 &&
+    coin.created_height != null &&
     coin.clawback_timestamp != null &&
     now >= Number(coin.clawback_timestamp)
   );

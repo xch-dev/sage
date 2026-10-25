@@ -146,6 +146,9 @@ pub enum WalletError {
     #[error("Clawback coin {0} is already spent or pending in the mempool")]
     ClawbackAlreadySpentOrPending(Bytes32),
 
+    #[error("Clawback coin {0} has not been confirmed yet")]
+    ClawbackUnconfirmed(Bytes32),
+
     #[error("Try from int error: {0}")]
     TryFromInt(#[from] TryFromIntError),
 }

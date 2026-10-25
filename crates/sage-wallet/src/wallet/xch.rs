@@ -14,7 +14,7 @@ use crate::{
 
 use super::Wallet;
 
-/// Loads an unspent clawback coin and its clawback info, checking that it has the expected version.
+/// Loads a confirmed, unspent clawback coin and its clawback info, checking that it has the expected version.
 async fn unspent_clawback(
     db: &Database,
     coin_id: Bytes32,
@@ -36,6 +36,10 @@ async fn unspent_clawback(
 
     if row.spent_height.is_some() || row.mempool_item_hash.is_some() || row.offer_hash.is_some() {
         return Err(WalletError::ClawbackAlreadySpentOrPending(coin_id));
+    }
+
+    if row.created_height.is_none() {
+        return Err(WalletError::ClawbackUnconfirmed(coin_id));
     }
 
     let P2Puzzle::Clawback(clawback) = db.p2_puzzle(row.p2_puzzle_hash).await? else {
@@ -168,11 +172,6 @@ impl Wallet {
 
             if kind != CoinKind::Xch {
                 return Err(WalletError::UnsupportedClawbackCoinKind(kind));
-            }
-
-            // Must be confirmed on-chain before claim (relative lock is from birth).
-            if row.created_height.is_none() {
-                return Err(WalletError::ClawbackNotYetClaimable(coin_id));
             }
 
             // Preflight relative lock when created_timestamp is known; otherwise defer to chain.
