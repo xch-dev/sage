@@ -1,6 +1,6 @@
 use chia_wallet_sdk::{
     chia::puzzle_types::nft::NftMetadata,
-    driver::{decode_offer, encode_offer},
+    driver::{coin_amount, decode_offer, encode_offer},
     prelude::*,
 };
 use itertools::Itertools;
@@ -304,8 +304,8 @@ impl Sage {
 
         let offered_amounts = offer.offered_coins().amounts();
         let requested_amounts = offer.requested_payments().amounts();
-        let offered_royalties = offer.offered_royalty_amounts();
-        let requested_royalties = offer.requested_royalty_amounts();
+        let offered_royalties = offer.offered_royalty_amounts()?;
+        let requested_royalties = offer.requested_royalty_amounts()?;
 
         let mut cat_rows = Vec::new();
         let mut nft_rows = Vec::new();
@@ -316,8 +316,8 @@ impl Sage {
                 offer_id,
                 is_requested: false,
                 asset_id,
-                amount,
-                royalty: offered_royalties.cats.get(&asset_id).copied().unwrap_or(0),
+                amount: coin_amount(amount)?,
+                royalty: coin_amount(offered_royalties.cats.get(&asset_id).copied().unwrap_or(0))?,
             });
         }
 
@@ -383,12 +383,14 @@ impl Sage {
                 offer_id,
                 is_requested: true,
                 asset_id,
-                amount,
-                royalty: requested_royalties
-                    .cats
-                    .get(&asset_id)
-                    .copied()
-                    .unwrap_or(0),
+                amount: coin_amount(amount)?,
+                royalty: coin_amount(
+                    requested_royalties
+                        .cats
+                        .get(&asset_id)
+                        .copied()
+                        .unwrap_or(0),
+                )?,
             });
         }
 
@@ -485,8 +487,8 @@ impl Sage {
             tx.insert_offer_asset(
                 offer_id,
                 Bytes32::default(),
-                offered_amounts.xch,
-                offered_royalties.xch,
+                coin_amount(offered_amounts.xch)?,
+                coin_amount(offered_royalties.xch)?,
                 false,
             )
             .await?;
@@ -496,8 +498,8 @@ impl Sage {
             tx.insert_offer_asset(
                 offer_id,
                 Bytes32::default(),
-                requested_amounts.xch,
-                requested_royalties.xch,
+                coin_amount(requested_amounts.xch)?,
+                coin_amount(requested_royalties.xch)?,
                 true,
             )
             .await?;
