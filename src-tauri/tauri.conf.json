@@ -53,6 +53,9 @@
     ],
     "iOS": {
       "developmentTeam": "NQJQRYZZG3"
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0"
     }
   },
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json"

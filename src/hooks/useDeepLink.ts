@@ -1,118 +1,10 @@
 import { useWallet } from '@/contexts/WalletContext';
-import { isValidAddress } from '@/lib/utils';
+import { DeepLink, parseDeepLinkUrl } from '@/lib/deepLink';
 import { t } from '@lingui/core/macro';
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands } from '../bindings';
-
-const SCHEME_PREFIX = 'sage:';
-
-interface OfferDeepLink {
-  type: 'offer';
-  offerString: string;
-  fee?: string;
-}
-
-interface AddressDeepLink {
-  type: 'address';
-  address: string;
-  amount?: string;
-  fee?: string;
-  /** Named `memos` to match the `?memos=` query parameter the scheme accepts. */
-  memos?: string;
-  assetId?: string;
-}
-
-type DeepLinkData = OfferDeepLink | AddressDeepLink | null;
-
-interface ParseResult {
-  data: DeepLinkData;
-  error?: string;
-}
-
-function decodeQueryString(queryString: string): URLSearchParams {
-  // Android's Intent system truncates a URL at the first literal `&`, so senders
-  // targeting Android encode the parameter separators as `%26` instead. Unescape
-  // those separators only when the string actually has that shape - blanket
-  // decoding a well-formed query string first would promote an encoded `&`, `+`
-  // or `%` *inside* a value (a memo, typically) into a structural character and
-  // silently corrupt it.
-  if (!queryString.includes('&') && queryString.includes('%26')) {
-    return new URLSearchParams(queryString.replace(/%26/g, '&'));
-  }
-  return new URLSearchParams(queryString);
-}
-
-function parseDeepLinkUrl(url: string): ParseResult {
-  if (!url.toLowerCase().startsWith(SCHEME_PREFIX)) {
-    return { data: null, error: 'invalid_scheme' };
-  }
-
-  const payload = url.slice(SCHEME_PREFIX.length);
-
-  if (!payload) {
-    return { data: null, error: 'empty_payload' };
-  }
-
-  const [mainPart, queryString] = payload.split('?');
-
-  // Validate offer string: must start with offer1, be alphanumeric, and reasonable length
-  // Chia offers are bech32m encoded, max ~10KB when compressed
-  const MAX_OFFER_LENGTH = 15000;
-  const offerCandidate = /^[A-Z0-9]+$/.test(mainPart)
-    ? mainPart.toLowerCase()
-    : mainPart;
-  if (
-    offerCandidate.startsWith('offer1') &&
-    offerCandidate.length <= MAX_OFFER_LENGTH &&
-    /^[a-z0-9]+$/.test(offerCandidate)
-  ) {
-    const result: OfferDeepLink = {
-      type: 'offer',
-      offerString: offerCandidate,
-    };
-
-    if (queryString) {
-      const params = decodeQueryString(queryString);
-      const fee = params.get('fee');
-      // Validate fee is a positive integer (mojos)
-      if (fee && /^\d+$/.test(fee)) result.fee = fee;
-    }
-
-    return { data: result };
-  }
-
-  if (isValidAddress(mainPart, 'xch') || isValidAddress(mainPart, 'txch')) {
-    const result: AddressDeepLink = {
-      type: 'address',
-      address: mainPart,
-    };
-
-    if (queryString) {
-      const params = decodeQueryString(queryString);
-      const amount = params.get('amount');
-      const fee = params.get('fee');
-      const memos = params.get('memos');
-      const assetId = params.get('asset_id');
-
-      // Validate amount and fee are positive integers (mojos)
-      if (amount && /^\d+$/.test(amount)) result.amount = amount;
-      if (fee && /^\d+$/.test(fee)) result.fee = fee;
-      // Memo is freeform text but limit length to prevent abuse
-      if (memos && memos.length <= 1000) result.memos = memos;
-      // CAT asset IDs are 32-byte hex strings
-      if (assetId && /^[0-9a-fA-F]{64}$/.test(assetId)) {
-        result.assetId = assetId.toLowerCase();
-      }
-    }
-
-    return { data: result };
-  }
-
-  console.warn('Unrecognized deep link payload:', payload);
-  return { data: null, error: 'unrecognized_payload' };
-}
 
 /**
  * Hook to handle sage: deep links on all platforms.
@@ -160,9 +52,7 @@ export function useDeepLink() {
       }
     };
 
-    const handleDeepLink = async (
-      deepLinkData: OfferDeepLink | AddressDeepLink,
-    ) => {
+    const handleDeepLink = async (deepLinkData: DeepLink) => {
       if (!isInitializedRef.current) {
         await waitForWalletInit();
       }
@@ -175,8 +65,8 @@ export function useDeepLink() {
         return;
       }
 
-      if (deepLinkData.type === 'offer') {
-        let offerUrl = `/offers/view/${encodeURIComponent(deepLinkData.offerString)}`;
+      if (deepLinkData.action === 'take_offer') {
+        let offerUrl = `/offers/view/${encodeURIComponent(deepLinkData.offer)}`;
         if (deepLinkData.fee) {
           offerUrl += `?fee=${encodeURIComponent(deepLinkData.fee)}`;
         }
@@ -216,9 +106,12 @@ export function useDeepLink() {
     const handleDeepLinkUrls = async (urls: string[]) => {
       for (const url of urls) {
         // Parse and validate URL first before checking wallet
-        const { data: deepLinkData, error } = parseDeepLinkUrl(url);
-        if (!deepLinkData) {
-          if (error) {
+        const result = parseDeepLinkUrl(url);
+        if (!result.ok) {
+          if (result.error === 'unsupported_action' && result.action) {
+            const action = result.action;
+            toast.error(t`Unsupported deep link action: ${action}`);
+          } else {
             toast.error(t`Invalid deep link`);
           }
           // Skip past unusable links to see if a later one is actionable
@@ -226,7 +119,7 @@ export function useDeepLink() {
         }
 
         // The first actionable link wins - stop regardless of how it turned out
-        await handleDeepLink(deepLinkData);
+        await handleDeepLink(result.link);
         return;
       }
     };

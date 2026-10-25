@@ -56,4 +56,4 @@ cp -R "$BUNDLE_SRC" "$APPLICATIONS_DEST"
 echo "==> Launching once to register the sage: URL scheme"
 open "$APPLICATIONS_DEST"
 
-echo "==> Done. Open sage-scheme-handler-test.html in a browser and click a link to test."
+echo "==> Done. Open a sage: link to test."

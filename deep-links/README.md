@@ -4,31 +4,53 @@ Sage supports custom URL scheme deep linking via the `sage:` protocol. When a `s
 
 ## URL Formats
 
-### Offer Links
+Every link names the action it requests, followed by named query parameters:
 
 ```
-sage:<offer_string>[?fee=<fee_in_mojos>]
+sage:<action>?<param>=<value>&...
 ```
 
-| Parameter      | Required | Description                                               |
-| -------------- | -------- | --------------------------------------------------------- |
-| `offer_string` | Yes      | A valid Chia offer string starting with `offer1`          |
-| `fee`          | No       | Network fee in mojos to prepopulate when taking the offer |
+`sage://<action>?...` is accepted as well, and both the scheme and the action are case-insensitive. There are no positional payloads: a link without an action (such as a bare `sage:offer1...` or `sage:xch1...`) is rejected.
+
+| Outcome                                                     | What the user sees                       |
+| ----------------------------------------------------------- | ---------------------------------------- |
+| Unknown action                                              | `Unsupported deep link action: <action>` |
+| No action, or a required parameter missing or invalid       | `Invalid deep link`                      |
+| An optional parameter is invalid (e.g. a non-numeric `fee`) | The parameter is ignored                 |
+
+### `take_offer`: view and take an offer
+
+```
+sage:take_offer?offer=<offer_string>[&fee=<fee_in_mojos>]
+sage:take_offer?url=<offer_url>[&fee=<fee_in_mojos>]
+```
+
+Opens the offer view. Exactly one of `offer` or `url` is required.
+
+| Parameter | Required       | Description                                                                                                 |
+| --------- | -------------- | ----------------------------------------------------------------------------------------------------------- |
+| `offer`   | One of the two | A Chia offer string starting with `offer1` (at most 15,000 characters)                                      |
+| `url`     | One of the two | An `https://` offer page on `dexie.space`, `offerco.de` or `chia-offer.com`; Sage fetches the offer from it |
+| `fee`     | No             | Network fee in mojos to prepopulate when taking the offer                                                   |
+
+The `url` form keeps links short for large offers. Its query string and fragment are dropped, and the offer id is read from the last path segment. Remember to percent-encode it as a parameter value.
 
 **Examples:**
 
 ```bash
-# Basic offer link
-sage:offer1qqr83wcuu2rykcmqvpsxvgqq...
+sage:take_offer?offer=offer1qqr83wcuu2rykcmqvpsxvgqq...
 
-# Offer link with pre-filled fee (1 million mojos = 0.000001 XCH)
-sage:offer1qqr83wcuu2rykcmqvpsxvgqq...?fee=1000000
+# With a pre-filled fee (1 million mojos = 0.000001 XCH)
+sage:take_offer?offer=offer1qqr83wcuu2rykcmqvpsxvgqq...&fee=1000000
+
+# By reference
+sage:take_offer?url=https%3A%2F%2Fdexie.space%2Foffers%2F<offer_id>
 ```
 
-### Address Links (Send XCH or a CAT)
+### `send`: send XCH or a CAT
 
-```bash
-sage:<address>?amount=<amount_in_mojos>[&fee=<fee_in_mojos>][&memos=<memo_text>][&asset_id=<cat_asset_id>]
+```
+sage:send?address=<address>[&amount=<amount_in_mojos>][&fee=<fee_in_mojos>][&memos=<memo_text>][&asset_id=<cat_asset_id>]
 ```
 
 Opens the send screen with pre-filled values.
@@ -38,18 +60,18 @@ Opens the send screen with pre-filled values.
 | `address`  | Yes      | The destination address (xch1... or txch1...)                        |
 | `amount`   | No       | Amount to send in mojos (1 XCH = 1,000,000,000,000 mojos)            |
 | `fee`      | No       | Transaction fee in mojos                                             |
-| `memos`    | No       | Memo text to attach to the transaction                               |
+| `memos`    | No       | Memo text to attach to the transaction (at most 1,000 characters)    |
 | `asset_id` | No       | 64-char hex CAT asset id. Omit to send XCH/TXCH (network-dependent). |
 
 If `asset_id` is present but the asset isn't held by the current wallet, the app shows an error toast (including the asset id) instead of navigating to the send screen.
 
-**Example:**
+**Examples:**
 
 ```bash
-sage:xch1abc123...?amount=1000000000000&fee=1000000&memos=Payment%20for%20services
+sage:send?address=xch1abc123...&amount=1000000000000&fee=1000000&memos=Payment%20for%20services
 
 # Send a CAT instead of XCH
-sage:xch1abc123...?amount=1000000000000&asset_id=a628c1c2c6fcb74d53746157e438e108eab5c0bb3e5c80ff9b1910b3e98a1e14
+sage:send?address=xch1abc123...&amount=1000000000000&asset_id=a628c1c2c6fcb74d53746157e438e108eab5c0bb3e5c80ff9b1910b3e98a1e14
 ```
 
 ## Android URL Encoding Requirement
@@ -69,13 +91,13 @@ sage:xch1abc123...?amount=1000000000000&asset_id=a628c1c2c6fcb74d53746157e438e10
 **Correct (works everywhere):**
 
 ```
-sage:xch1abc...?amount=1000000000000%26fee=1000000%26memos=hello
+sage:send?address=xch1abc...%26amount=1000000000000%26fee=1000000%26memos=hello
 ```
 
 **Incorrect (fails on Android):**
 
 ```
-sage:xch1abc...?amount=1000000000000&fee=1000000&memos=hello
+sage:send?address=xch1abc...&amount=1000000000000&fee=1000000&memos=hello
 ```
 
 The app handles both formats, but Android will truncate URLs with literal `&` before they reach the app.
@@ -109,31 +131,30 @@ The `sage:` URL scheme is automatically registered in the app's `Info.plist` dur
 3. **Test the deep link:**
 
    ```bash
-   open "sage:offer1qqr83wcuu..."
+   open "sage:take_offer?offer=offer1qqr83wcuu..."
    ```
 
 #### Local build + test workflow (this directory)
 
-This directory has a helper script and a static test page for exercising the scheme handler end to end on macOS without a full release build:
+This directory has a helper script for exercising the scheme handler end to end on macOS without a full release build:
 
-- **[`build-test-deeplinks.sh`](build-test-deeplinks.sh)** — builds the app (frontend + builtin apps + debug Tauri bundle). Self-locates the repo root from the script's own path, so it can be run from anywhere.
-  - `./deep-links/build-test-deeplinks.sh` — build only (default). Use this to typecheck/compile after code changes without touching your installed `/Applications/Sage.app` or re-registering the URL scheme.
-  - `./deep-links/build-test-deeplinks.sh --full` — also installs the freshly built app to `/Applications` (replacing any existing copy) and launches it once so macOS (re-)registers the `sage:` scheme.
-- **[`sage-scheme-handler-test.html`](sage-scheme-handler-test.html)** — a plain HTML page with buttons/links for the offer and address flows (including the optional `asset_id` CAT param) plus a few deliberately invalid links to exercise the error-toast paths. Open it directly in a browser (`open deep-links/sage-scheme-handler-test.html`) — no server needed.
+- **[`build-test.sh`](build-test.sh)** — builds the app (frontend + builtin apps + debug Tauri bundle). Self-locates the repo root from the script's own path, so it can be run from anywhere.
+  - `./deep-links/build-test.sh` — build only (default). Use this to typecheck/compile after code changes without touching your installed `/Applications/Sage.app` or re-registering the URL scheme.
+  - `./deep-links/build-test.sh --full` — also installs the freshly built app to `/Applications` (replacing any existing copy) and launches it once so macOS (re-)registers the `sage:` scheme.
 
 Typical loop while iterating on deep-link code:
 
 ```bash
-# 1. Make changes under src/hooks/useDeepLink.ts, src/contexts/WalletContext.tsx, etc.
+# 1. Make changes under src/lib/deepLink.ts, src/hooks/useDeepLink.ts, etc.
 
 # 2. Rebuild and reinstall the app, registering the sage: scheme
-./deep-links/build-test-deeplinks.sh --full
+./deep-links/build-test.sh --full
 
 # 3. Quit Sage completely (Cmd+Q) if you want to test a cold launch via deep link,
 #    or leave it running to test the already-running path.
 
-# 4. Open the test page and click a link
-open deep-links/sage-scheme-handler-test.html
+# 4. Open a link
+open "sage:send?address=xch1abc..."
 ```
 
 Notes:
@@ -173,7 +194,7 @@ Registry entries are created at:
 3. **Test the deep link:**
 
    ```cmd
-   start sage:offer1qqr83wcuu...
+   start sage:take_offer?offer=offer1qqr83wcuu...
    ```
 
    Or open the URL in a web browser.
@@ -208,7 +229,7 @@ On Linux, the URL scheme is registered via a `.desktop` file that includes `Mime
 3. **Test the deep link:**
 
    ```bash
-   xdg-open "sage:offer1qqr83wcuu..."
+   xdg-open "sage:take_offer?offer=offer1qqr83wcuu..."
    ```
 
 #### Development Testing
@@ -250,11 +271,11 @@ The URL scheme is automatically configured in the app's `Info.plist` during the 
    - Or use TestFlight for distribution
 
 3. **Test the deep link:**
-   - Open Safari and navigate to `sage:offer1qqr83wcuu...`
+   - Open Safari and navigate to `sage:take_offer?offer=offer1qqr83wcuu...`
    - Or use the command line on a simulator:
 
      ```bash
-     xcrun simctl openurl booted "sage:offer1qqr83wcuu..."
+     xcrun simctl openurl booted "sage:take_offer?offer=offer1qqr83wcuu..."
      ```
 
 #### Development Testing
@@ -298,10 +319,10 @@ The generated manifest includes:
 
    ```bash
    # Offer link
-   adb shell am start -a android.intent.action.VIEW -d "sage:offer1qqr83wcuu..."
+   adb shell am start -a android.intent.action.VIEW -d "sage:take_offer?offer=offer1qqr83wcuu..."
 
    # Address link with parameters (note: use %26 for &)
-   adb shell am start -a android.intent.action.VIEW -d "sage:xch1abc...?amount=1000000000000%26fee=1000000%26memos=hello"
+   adb shell am start -a android.intent.action.VIEW -d "sage:send?address=xch1abc...%26amount=1000000000000%26fee=1000000%26memos=hello"
    ```
 
 #### Development Testing
@@ -313,7 +334,7 @@ For Android development, you can test on an emulator or physical device:
 pnpm tauri android dev
 
 # In another terminal, trigger the deep link
-adb shell am start -a android.intent.action.VIEW -d "sage:offer1qqr83wcuu..."
+adb shell am start -a android.intent.action.VIEW -d "sage:take_offer?offer=offer1qqr83wcuu..."
 ```
 
 #### URL Encoding Note
@@ -407,10 +428,10 @@ If only the address is populated but amount, fee, or memos are missing, the URL 
 
 ```
 # Wrong - parameters after first & will be lost
-sage:xch1...?amount=100&fee=100&memos=test
+sage:send?address=xch1...&amount=100&fee=100&memos=test
 
 # Correct - all parameters will be received
-sage:xch1...?amount=100%26fee=100%26memos=test
+sage:send?address=xch1...%26amount=100%26fee=100%26memos=test
 ```
 
 ## References
