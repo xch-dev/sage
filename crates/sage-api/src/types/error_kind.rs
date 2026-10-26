@@ -11,4 +11,5 @@ pub enum ErrorKind {
     Internal,
     DatabaseMigration,
     Nfc,
+    AlreadyRunning,
 }

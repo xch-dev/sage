@@ -238,6 +238,17 @@ pub enum Error {
     #[error("Database version too old")]
     DatabaseVersionTooOld,
 
+    #[error("Another instance of Sage is already running with this data directory")]
+    AlreadyRunning,
+
+    #[error("Sage did not initialize successfully, so changes cannot be saved")]
+    NotInitialized,
+
+    #[error(
+        "The config file at {path} is invalid: {error}\nFix or delete this file, then restart Sage. Deleting it resets the settings it contains, but doesn't affect your keys."
+    )]
+    InvalidConfig { path: String, error: String },
+
     #[error("Timeout")]
     Timeout(#[from] Elapsed),
 }
@@ -282,7 +293,10 @@ impl Error {
             | Self::Bincode(..)
             | Self::Eval(..)
             | Self::Driver(..)
-            | Self::Timeout(..) => ErrorKind::Internal,
+            | Self::Timeout(..)
+            | Self::NotInitialized
+            | Self::InvalidConfig { .. } => ErrorKind::Internal,
+            Self::AlreadyRunning => ErrorKind::AlreadyRunning,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
             | Self::MissingCoin(..)

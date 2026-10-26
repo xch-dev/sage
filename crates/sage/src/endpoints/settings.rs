@@ -91,6 +91,10 @@ impl Sage {
     }
 
     pub async fn set_network(&mut self, req: SetNetwork) -> Result<SetNetworkResponse> {
+        if self.network_list.by_name(&req.name).is_none() {
+            return Err(Error::UnknownNetwork);
+        }
+
         self.config.network.default_network.clone_from(&req.name);
         self.save_config()?;
         self.switch_wallet().await?;
@@ -102,6 +106,12 @@ impl Sage {
         &mut self,
         req: SetNetworkOverride,
     ) -> Result<SetNetworkOverrideResponse> {
+        if let Some(name) = &req.name
+            && self.network_list.by_name(name).is_none()
+        {
+            return Err(Error::UnknownNetwork);
+        }
+
         let config = self
             .wallet_config
             .wallets

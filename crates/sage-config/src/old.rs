@@ -14,7 +14,6 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Type)]
 #[serde(default)]
 pub struct OldConfig {
-    version: u32,
     app: OldAppConfig,
     rpc: OldRpcConfig,
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
@@ -22,16 +21,17 @@ pub struct OldConfig {
     network: OldNetworkConfig,
 }
 
-impl OldConfig {
-    pub fn is_old(&self) -> bool {
-        self.version == 1
-    }
+/// Whether this is a config from before the wallet config was split out of it. Those had an
+/// `[app]` table and no `version`. This is checked explicitly, because every field has a default,
+/// so an empty or damaged file would otherwise parse as an old config.
+pub fn is_old_config(text: &str) -> bool {
+    toml::from_str::<toml::Table>(text)
+        .is_ok_and(|table| table.contains_key("app") && !table.contains_key("version"))
 }
 
 impl Default for OldConfig {
     fn default() -> Self {
         Self {
-            version: 1,
             app: OldAppConfig::default(),
             rpc: OldRpcConfig::default(),
             wallets: IndexMap::new(),

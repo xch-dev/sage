@@ -29,15 +29,19 @@ pub async fn initialize(
 ) -> Result<()> {
     let mut initialized = initialized.0.lock().await;
 
-    if *initialized {
-        return Ok(());
+    // The frontend calls this again whenever the webview reloads, so report the original outcome.
+    if let Some(result) = initialized.as_ref() {
+        return result.clone();
     }
 
-    *initialized = true;
-
     let mut sage = state.lock().await;
-    app_state::initialize(app_handle.clone(), &mut sage).await?;
+    let result = app_state::initialize(app_handle.clone(), &mut sage)
+        .await
+        .map_err(Into::into);
     drop(sage);
+
+    *initialized = Some(result.clone());
+    result?;
 
     let app_state = (*state).clone();
 
@@ -47,8 +51,11 @@ pub async fn initialize(
 
             let app_state = app_state.lock().await;
 
-            if let Err(error) = app_state.save_peers().await {
-                error!("Error while saving peers: {error:?}");
+            match app_state.save_peers().await {
+                Ok(()) => {}
+                // A newer instance in this process has taken over, so this one should stop.
+                Err(Error::AlreadyRunning) => break,
+                Err(error) => error!("Error while saving peers: {error:?}"),
             }
 
             drop(app_state);
@@ -62,6 +69,14 @@ pub async fn initialize(
     }
 
     Ok(())
+}
+
+/// Exits the app. This is used when initialization fails, since Sage can't continue safely.
+#[command]
+#[specta]
+#[allow(clippy::needless_pass_by_value)] // Tauri commands can't take the handle by reference
+pub fn quit(app_handle: AppHandle) {
+    app_handle.exit(0);
 }
 
 impl_endpoints_tauri! {
