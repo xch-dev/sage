@@ -150,7 +150,7 @@ pub async fn verify_handle(
     if slot.info.value.expiration <= tip.timestamp {
         return Err(XchandlesError::Expired {
             expiration: slot.info.value.expiration,
-            peak_timestamp: tip.timestamp,
+            timestamp: tip.timestamp,
         });
     }
 

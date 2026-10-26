@@ -6718,6 +6718,7 @@ dependencies = [
  "log",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
+ "reqwest 0.12.24",
  "sage-api",
  "sage-assets",
  "sage-config",

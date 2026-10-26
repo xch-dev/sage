@@ -3,7 +3,8 @@
 //! Policy:
 //!
 //! - Every lookup is verified against the chain when the API and peers are reachable. A
-//!   stored mapping never stands in for a lookup that succeeded or was rejected.
+//!   stored mapping never stands in for a lookup that succeeded or was rejected. A handle
+//!   counts as expired once either the peak or the local clock reaches its expiration.
 //! - When the API or peers are unavailable, a mapping that was verified within
 //!   [`OFFLINE_MAX_AGE_SECONDS`] is returned instead, marked as cached, as long as it has
 //!   not expired by the later of the local clock and the peak it was verified at. This
@@ -22,6 +23,7 @@ use std::future::Future;
 
 use chia_wallet_sdk::prelude::*;
 use sage_database::{Database, XchandleRow, XchandleStatus};
+use tracing::warn;
 
 use super::{Handle, VerifiedHandle, XchandlesError};
 
@@ -124,7 +126,20 @@ pub async fn resolve_and_store(
     now: u64,
     lookup: impl Future<Output = Result<VerifiedHandle, XchandlesError>>,
 ) -> Result<HandleResolution, XchandlesError> {
-    let error = match lookup.await {
+    // The peak timestamp comes from a peer which may be behind, so the handle must not have
+    // expired by the local clock either.
+    let result = lookup.await.and_then(|verified| {
+        if verified.expiration() <= now {
+            Err(XchandlesError::Expired {
+                expiration: verified.expiration(),
+                timestamp: now,
+            })
+        } else {
+            Ok(verified)
+        }
+    });
+
+    let error = match result {
         Ok(verified) => {
             let mut tx = db.tx().await?;
             let previous = tx.xchandle(registry_launcher_id, handle.as_str()).await?;
@@ -143,14 +158,19 @@ pub async fn resolve_and_store(
             return Ok(HandleResolution { row, cached: true });
         }
     } else if error.is_rejection() {
-        // Only affects an existing mapping, keeping its last verified values.
-        db.set_xchandle_status(
-            registry_launcher_id,
-            handle.as_str(),
-            XchandleStatus::Unverified,
-            Some(&error.to_string()),
-        )
-        .await?;
+        // Only affects an existing mapping, keeping its last verified values. Failing to
+        // record this must not hide why the lookup was rejected.
+        if let Err(db_error) = db
+            .set_xchandle_status(
+                registry_launcher_id,
+                handle.as_str(),
+                XchandleStatus::Unverified,
+                Some(&error.to_string()),
+            )
+            .await
+        {
+            warn!("Failed to mark the mapping for {handle} as unverified: {db_error}");
+        }
     }
 
     Err(error)

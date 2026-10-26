@@ -34,8 +34,11 @@ impl Sage {
                 (peer, peak_height)
             };
 
-            let tip = chain_tip(&peer, peak_height).await?;
-            let client = XchandlesClient::new(&config.api_url, config.registry_launcher_id)?;
+            let client = XchandlesClient::new(
+                self.http_client.clone(),
+                &config.api_url,
+                config.registry_launcher_id,
+            )?;
 
             resolve_handle(
                 &client,
@@ -43,13 +46,13 @@ impl Sage {
                 wallet.genesis_challenge,
                 config.registry_launcher_id,
                 &handle,
-                tip,
+                async { Ok(chain_tip(&peer, peak_height).await?) },
             )
             .await
         };
 
         let lookup = async {
-            timeout(RESOLVE_TIMEOUT, lookup)
+            timeout(RESOLVE_TIMEOUT, Box::pin(lookup))
                 .await
                 .unwrap_or(Err(XchandlesError::Timeout))
         };

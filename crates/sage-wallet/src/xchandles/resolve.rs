@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{future::Future, time::Duration};
 
 use chia_wallet_sdk::prelude::*;
 use tracing::debug;
@@ -36,21 +36,24 @@ pub async fn chain_tip(peer: &WalletPeer, peak_height: u32) -> Result<ChainTip, 
 ///
 /// A spent slot causes the handle to be fetched again rather than rejected, since slots
 /// are recreated by unrelated activity on neighboring handles.
+///
+/// The chain tip doesn't depend on the API, so it's fetched at the same time as the first
+/// response.
 pub async fn resolve_handle(
     index: &impl XchandlesIndex,
     peer: &WalletPeer,
     genesis_challenge: Bytes32,
     registry_launcher_id: Bytes32,
     handle: &Handle,
-    tip: ChainTip,
+    tip: impl Future<Output = Result<ChainTip, XchandlesError>>,
 ) -> Result<VerifiedHandle, XchandlesError> {
-    let mut attempt = 0;
+    let (tip, mut response) = tokio::try_join!(tip, async {
+        Ok::<_, XchandlesError>(index.handle(handle).await?)
+    })?;
+
+    let mut attempt = 1;
 
     loop {
-        attempt += 1;
-
-        let response = index.handle(handle).await?;
-
         match verify_handle(
             peer,
             genesis_challenge,
@@ -66,5 +69,8 @@ pub async fn resolve_handle(
             }
             result => return result,
         }
+
+        attempt += 1;
+        response = index.handle(handle).await?;
     }
 }

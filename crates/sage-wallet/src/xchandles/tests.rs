@@ -495,7 +495,7 @@ async fn test_spent_slot_is_fetched_again() -> anyhow::Result<()> {
         genesis_challenge(),
         setup.registry.launcher_id,
         &setup.handle,
-        tip(1000),
+        async { Ok(tip(1000)) },
     )
     .await?;
 
@@ -528,7 +528,7 @@ async fn test_resolve_gives_up_on_persistently_spent_slot() -> anyhow::Result<()
         genesis_challenge(),
         setup.registry.launcher_id,
         &setup.handle,
-        tip(1000),
+        async { Ok(tip(1000)) },
     )
     .await
     .unwrap_err();
@@ -914,6 +914,43 @@ mod store {
         assert!(error.is_not_registered());
         let row = db.xchandle(registry(), "alice").await?.unwrap();
         assert_eq!(row.status, XchandleStatus::Unverified);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_expired_by_local_clock_is_rejected() -> anyhow::Result<()> {
+        let db = test_db().await?;
+
+        store(&db, NOW, Ok(verified(A))).await?;
+
+        // The peer's peak is behind, so the verification didn't see the expiration, but the
+        // local clock has already passed it.
+        let expired = verified(A);
+        let now = expired.expiration();
+        let error = store(&db, now, Ok(expired)).await.unwrap_err();
+        assert!(matches!(error, XchandlesError::Expired { timestamp, .. } if timestamp == now));
+
+        let row = db.xchandle(registry(), "alice").await?.unwrap();
+        assert_eq!(row.status, XchandleStatus::Unverified);
+        assert_eq!(row.last_verified_at, NOW);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_rejection_is_kept_if_status_cannot_be_stored() -> anyhow::Result<()> {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await?;
+        let db = Database::new(pool.clone());
+        pool.close().await;
+
+        let error = store(&db, NOW, Err(XchandlesError::InvalidLineage))
+            .await
+            .unwrap_err();
+        assert!(matches!(error, XchandlesError::InvalidLineage));
 
         Ok(())
     }

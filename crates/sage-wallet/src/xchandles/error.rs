@@ -41,11 +41,8 @@ pub enum XchandlesError {
     #[error("The handle slot {0} has already been spent")]
     SlotSpent(Bytes32),
 
-    #[error("Handle expired at {expiration}, before the peak timestamp {peak_timestamp}")]
-    Expired {
-        expiration: u64,
-        peak_timestamp: u64,
-    },
+    #[error("Handle expired at {expiration}, before the timestamp {timestamp}")]
+    Expired { expiration: u64, timestamp: u64 },
 
     #[error("The API did not return the singleton the handle resolves to")]
     ResolutionUnavailable,

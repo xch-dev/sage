@@ -249,6 +249,8 @@ impl Error {
             Self::Xchandles(error) => match error {
                 XchandlesError::Database(..) => ErrorKind::Internal,
                 error if error.is_not_registered() => ErrorKind::NotFound,
+                // Failures that may succeed if retried, rather than a problem with the request.
+                error if error.is_unavailable() => ErrorKind::Internal,
                 _ => ErrorKind::Api,
             },
             Self::NotLoggedIn => ErrorKind::Unauthorized,
@@ -326,5 +328,33 @@ impl Error {
             | Self::InvalidThemeJson
             | Self::MissingThemeData => ErrorKind::Api,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_xchandles_error_kinds() {
+        let kind = |error: XchandlesError| Error::from(error).kind();
+
+        assert!(matches!(kind(XchandlesError::NoPeers), ErrorKind::Internal));
+        assert!(matches!(kind(XchandlesError::Timeout), ErrorKind::Internal));
+        assert!(matches!(
+            kind(XchandlesError::InvalidLineage),
+            ErrorKind::Api
+        ));
+        assert!(matches!(
+            kind(XchandlesError::UnsupportedNetwork),
+            ErrorKind::Api
+        ));
+        assert!(matches!(
+            kind(XchandlesError::Expired {
+                expiration: 0,
+                timestamp: 0
+            }),
+            ErrorKind::NotFound
+        ));
     }
 }

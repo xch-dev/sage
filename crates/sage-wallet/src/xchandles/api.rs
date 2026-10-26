@@ -154,8 +154,13 @@ pub struct XchandlesClient {
 
 impl XchandlesClient {
     /// Creates a client which only queries the given registry, rather than whichever
-    /// registry the API treats as its default.
-    pub fn new(base_url: &str, registry_launcher_id: Bytes32) -> Result<Self, XchandlesApiError> {
+    /// registry the API treats as its default. The HTTP client can be shared between
+    /// lookups, so that connections to the API are reused.
+    pub fn new(
+        client: Client,
+        base_url: &str,
+        registry_launcher_id: Bytes32,
+    ) -> Result<Self, XchandlesApiError> {
         let mut base_url = Url::parse(base_url)
             .map_err(|_| XchandlesApiError::InvalidUrl(base_url.to_string()))?;
 
@@ -169,7 +174,7 @@ impl XchandlesClient {
         }
 
         Ok(Self {
-            client: Client::builder().timeout(REQUEST_TIMEOUT).build()?,
+            client,
             base_url,
             registry_launcher_id,
         })
@@ -192,7 +197,7 @@ impl XchandlesClient {
     }
 
     async fn get(&self, url: Url) -> Result<(StatusCode, Vec<u8>), XchandlesApiError> {
-        let response = self.client.get(url).send().await?;
+        let response = self.client.get(url).timeout(REQUEST_TIMEOUT).send().await?;
         let status = response.status();
         let body = response.bytes().await?;
         Ok((status, body.to_vec()))
@@ -393,7 +398,7 @@ mod tests {
         let handle = Handle::parse("alice").unwrap();
 
         for base in ["https://api.xchandles.com", "https://api.xchandles.com/"] {
-            let client = XchandlesClient::new(base, launcher_id).unwrap();
+            let client = XchandlesClient::new(Client::new(), base, launcher_id).unwrap();
             assert_eq!(
                 client.url(&["handle", handle.as_str()], true).as_str(),
                 format!(
@@ -407,13 +412,14 @@ mod tests {
             );
         }
 
-        let client = XchandlesClient::new("http://localhost:8080/v1", launcher_id).unwrap();
+        let client =
+            XchandlesClient::new(Client::new(), "http://localhost:8080/v1", launcher_id).unwrap();
         assert_eq!(
             client.url(&["price"], false).as_str(),
             "http://localhost:8080/v1/price"
         );
 
-        let error = XchandlesClient::new("not a url", launcher_id).unwrap_err();
+        let error = XchandlesClient::new(Client::new(), "not a url", launcher_id).unwrap_err();
         assert!(matches!(error, XchandlesApiError::InvalidUrl(..)));
         assert!(error.is_unavailable());
     }
