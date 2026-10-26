@@ -291,6 +291,32 @@ impl WalletPeer {
         })
     }
 
+    /// Looks up the unspent coins with a puzzle hash, without subscribing to it.
+    pub async fn fetch_unspent_coins_by_puzzle_hash(
+        &self,
+        puzzle_hash: Bytes32,
+        genesis_challenge: Bytes32,
+    ) -> Result<Vec<CoinState>, WalletError> {
+        let response = timeout(
+            Duration::from_secs(10),
+            self.peer.request_puzzle_state(
+                vec![puzzle_hash],
+                None,
+                genesis_challenge,
+                CoinStateFilters::new(false, true, false, 0),
+                false,
+            ),
+        )
+        .await??
+        .map_err(|_| WalletError::PeerMisbehaved)?;
+
+        Ok(response
+            .coin_states
+            .into_iter()
+            .filter(|state| state.coin.puzzle_hash == puzzle_hash && state.spent_height.is_none())
+            .collect())
+    }
+
     pub async fn unsubscribe_coins(&self, coin_ids: Vec<Bytes32>) -> Result<(), WalletError> {
         timeout(
             Duration::from_secs(10),

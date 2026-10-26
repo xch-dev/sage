@@ -13,11 +13,11 @@ use chia_wallet_sdk::{
     utils::Bech32Error,
 };
 use hex::FromHexError;
-use sage_api::ErrorKind;
+use sage_api::{ErrorKind, HandleErrorCode};
 use sage_assets::UriError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::{SyncCommand, WalletError, XchandlesError};
+use sage_wallet::{SyncCommand, WalletError, XchandlesApiError, XchandlesError};
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
 use tokio::{sync::mpsc::error::SendError, time::error::Elapsed};
@@ -240,6 +240,9 @@ pub enum Error {
 
     #[error("Timeout")]
     Timeout(#[from] Elapsed),
+
+    #[error("At most {0} addresses can be looked up at once")]
+    TooManyAddresses(usize),
 }
 
 impl Error {
@@ -326,13 +329,35 @@ impl Error {
             | Self::MissingAssetId
             | Self::InvalidGroup
             | Self::InvalidThemeJson
-            | Self::MissingThemeData => ErrorKind::Api,
+            | Self::MissingThemeData
+            | Self::TooManyAddresses(..) => ErrorKind::Api,
         }
+    }
+
+    /// A machine-readable reason for an `XCHandles` failure, so that callers can tell the
+    /// cases apart without parsing the message.
+    pub fn handle_error_code(&self) -> Option<HandleErrorCode> {
+        let Self::Xchandles(error) = self else {
+            return None;
+        };
+
+        Some(match error {
+            XchandlesError::InvalidHandle(..) => HandleErrorCode::InvalidHandle,
+            XchandlesError::UnsupportedNetwork => HandleErrorCode::UnsupportedNetwork,
+            XchandlesError::Expired { .. }
+            | XchandlesError::Api(XchandlesApiError::HandleExpired) => HandleErrorCode::Expired,
+            XchandlesError::Api(XchandlesApiError::HandleNotFound) => HandleErrorCode::NotFound,
+            XchandlesError::Database(..) => return None,
+            error if error.is_unavailable() => HandleErrorCode::Unavailable,
+            _ => HandleErrorCode::VerificationFailed,
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use sage_wallet::HandleError;
+
     use super::*;
 
     #[test]
@@ -356,5 +381,50 @@ mod tests {
             }),
             ErrorKind::NotFound
         ));
+    }
+
+    #[test]
+    fn test_xchandles_error_codes() {
+        let code = |error: XchandlesError| Error::from(error).handle_error_code();
+
+        assert_eq!(
+            code(XchandlesError::InvalidHandle(HandleError::InvalidLength)),
+            Some(HandleErrorCode::InvalidHandle)
+        );
+        assert_eq!(
+            code(XchandlesError::UnsupportedNetwork),
+            Some(HandleErrorCode::UnsupportedNetwork)
+        );
+        assert_eq!(
+            code(XchandlesApiError::HandleNotFound.into()),
+            Some(HandleErrorCode::NotFound)
+        );
+        assert_eq!(
+            code(XchandlesApiError::HandleExpired.into()),
+            Some(HandleErrorCode::Expired)
+        );
+        assert_eq!(
+            code(XchandlesError::Expired {
+                expiration: 0,
+                timestamp: 0
+            }),
+            Some(HandleErrorCode::Expired)
+        );
+        for error in [
+            XchandlesError::NoPeers,
+            XchandlesError::Timeout,
+            XchandlesApiError::IndexStale.into(),
+            XchandlesError::SlotSpent(Bytes32::default()),
+        ] {
+            assert_eq!(code(error), Some(HandleErrorCode::Unavailable));
+        }
+        for error in [
+            XchandlesError::InvalidLineage,
+            XchandlesError::ResponseMismatch,
+            XchandlesError::ResolvedSingletonMelted(Bytes32::default()),
+        ] {
+            assert_eq!(code(error), Some(HandleErrorCode::VerificationFailed));
+        }
+        assert_eq!(Error::NotLoggedIn.handle_error_code(), None);
     }
 }

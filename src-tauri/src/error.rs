@@ -1,6 +1,6 @@
 use std::fmt;
 
-use sage_api::ErrorKind;
+use sage_api::{ErrorKind, HandleErrorCode};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -8,6 +8,8 @@ use specta::Type;
 pub struct Error {
     pub kind: ErrorKind,
     pub reason: String,
+    /// Why an XCHandles request failed, if it did
+    pub handle_error: Option<HandleErrorCode>,
 }
 
 impl From<sage::Error> for Error {
@@ -15,6 +17,7 @@ impl From<sage::Error> for Error {
         Self {
             kind: error.kind(),
             reason: error.to_string(),
+            handle_error: error.handle_error_code(),
         }
     }
 }
@@ -30,6 +33,7 @@ impl From<reqwest::Error> for Error {
         Self {
             kind: ErrorKind::Internal,
             reason: error.to_string(),
+            handle_error: None,
         }
     }
 }
@@ -39,6 +43,7 @@ impl From<std::io::Error> for Error {
         Self {
             kind: ErrorKind::Internal,
             reason: error.to_string(),
+            handle_error: None,
         }
     }
 }
