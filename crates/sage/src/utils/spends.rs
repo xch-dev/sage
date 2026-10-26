@@ -1,5 +1,5 @@
 use chia_wallet_sdk::prelude::*;
-use sage_wallet::{SyncCommand, Transaction, insert_transaction};
+use sage_wallet::{SyncCommand, Transaction, insert_transaction, is_fully_signed};
 
 use crate::{Error, Result, Sage};
 
@@ -27,6 +27,18 @@ impl Sage {
             .await?;
 
         Ok(spend_bundle)
+    }
+
+    pub(crate) fn is_fully_signed(
+        &self,
+        coin_spends: &[CoinSpend],
+        signature: &Signature,
+    ) -> Result<bool> {
+        Ok(is_fully_signed(
+            coin_spends,
+            signature,
+            &AggSigConstants::new(self.network().agg_sig_me()),
+        )?)
     }
 
     pub(crate) async fn submit(&self, spend_bundle: SpendBundle) -> Result<()> {

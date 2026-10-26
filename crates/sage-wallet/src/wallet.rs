@@ -33,6 +33,7 @@ pub use multi_send::*;
 pub use nfts::*;
 pub use offer::*;
 pub use options::*;
+pub use signing::*;
 
 use crate::WalletError;
 
