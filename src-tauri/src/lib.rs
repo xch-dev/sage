@@ -32,6 +32,7 @@ macro_rules! sage_commands {
     ($($extra_command:tt)*) => {
         collect_commands![
             commands::initialize,
+            commands::quit,
             commands::login,
             commands::logout,
             commands::resync,
@@ -325,7 +326,7 @@ pub fn run() {
             let path = root_override.unwrap_or(default_root);
             let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
 
-            app.manage(Initialized(Mutex::new(false)));
+            app.manage(Initialized(Mutex::new(None)));
             app.manage(RpcTask(Mutex::new(None)));
             app.manage(app_state);
 
