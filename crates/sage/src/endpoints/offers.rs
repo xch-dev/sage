@@ -8,8 +8,9 @@ use sage_api::{
     CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetNftMetadataUpdater,
     GetNftMetadataUpdaterResponse, GetOffer, GetOfferResponse, GetOffers, GetOffersForAsset,
     GetOffersForAssetResponse, GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer,
-    MakeOfferResponse, NftRoyalty, OfferAmount, OfferAsset, OfferRecord, OfferRecordStatus,
-    OfferSummary, OptionAssets, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
+    MakeOfferResponse, NftRoyalty, OfferAmount, OfferAsset, OfferHandleStatus, OfferRecord,
+    OfferRecordStatus, OfferSummary, OptionAssets, TakeOffer, TakeOfferResponse, ViewOffer,
+    ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{
@@ -44,12 +45,19 @@ impl Sage {
 
         let selected_coin_ids = parse_coin_ids(req.coin_ids.unwrap_or_default())?;
 
+        let mut info = ConfirmationInfo::default();
+        let p2_puzzle_hash = if let Some(address) = &req.receive_address {
+            Some(
+                self.resolve_recipient(address, &req.confirmed_handles, &mut info)
+                    .await?,
+            )
+        } else {
+            None
+        };
+
         let mut offered = Offered {
             fee: parse_amount(req.fee)?,
-            p2_puzzle_hash: req
-                .receive_address
-                .map(|address| self.parse_address(address))
-                .transpose()?,
+            p2_puzzle_hash,
             selected_coin_ids,
             ..Default::default()
         };
@@ -184,6 +192,9 @@ impl Sage {
 
         let encoded_offer = encode_offer(&offer)?;
 
+        // Creating the offer commits to the receive address, since anyone can take it.
+        self.record_handle_sends(&info.handle_sends).await;
+
         if req.auto_import {
             self.import_offer(ImportOffer {
                 offer: encoded_offer.clone(),
@@ -202,6 +213,26 @@ impl Sage {
 
         let offer = decode_offer(&req.offer)?;
         let fee = parse_amount(req.fee)?;
+
+        // The handle NFTs are checked right before the offer is taken, rather than relying
+        // on the check made when it was viewed.
+        if let Some(handle_nft) = self
+            .check_offer_handle_nfts(&offer)
+            .await?
+            .into_iter()
+            .find(|handle_nft| {
+                matches!(
+                    handle_nft.status,
+                    OfferHandleStatus::PendingTransfer | OfferHandleStatus::Unavailable
+                )
+            })
+        {
+            return Err(Error::OfferHandleNft(
+                handle_nft
+                    .reason
+                    .unwrap_or_else(|| handle_nft.handle.clone()),
+            ));
+        }
 
         let taken = wallet.take_offer(offer, fee).await?;
 
@@ -315,10 +346,13 @@ impl Sage {
     }
 
     pub async fn view_offer(&self, req: ViewOffer) -> Result<ViewOfferResponse> {
-        let (offer, status) = self.summarize_offer(decode_offer(&req.offer)?).await?;
+        let spend_bundle = decode_offer(&req.offer)?;
+        let handle_nfts = self.check_offer_handle_nfts(&spend_bundle).await?;
+        let (offer, status) = self.summarize_offer(spend_bundle).await?;
 
         Ok(ViewOfferResponse {
             offer,
+            handle_nfts,
             status: match status {
                 OfferStatus::Pending => OfferRecordStatus::Pending,
                 OfferStatus::Active => OfferRecordStatus::Active,

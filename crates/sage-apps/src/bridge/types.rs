@@ -76,6 +76,12 @@ pub enum RustBridgeApprovalResponse {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WalletSendXchApprovalResponse {
     pub selected_fee: String,
+    /// The address the user reviewed the handle recipient as resolving to, if the
+    /// recipient is a handle. The send is rejected if the handle resolves elsewhere by the
+    /// time it's submitted. Without it, a handle which changed since it was last sent to is
+    /// rejected.
+    #[serde(default)]
+    pub confirmed_address: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]

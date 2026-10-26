@@ -1,10 +1,18 @@
-use std::{sync::Arc, time::Duration};
+mod recipients;
+
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex as StdMutex},
+    time::Duration,
+};
 
 use anyhow::{Result, bail};
 use axum::{
     Router,
     body::Body,
-    http::{Request, StatusCode},
+    extract::State,
+    http::{Request, StatusCode, Uri},
+    response::{IntoResponse, Response},
 };
 use bip39::Mnemonic;
 use chia_wallet_sdk::{
@@ -47,7 +55,55 @@ struct TestApp {
     rng: ChaCha8Rng,
     sim: PeerSimulator,
     events: mpsc::Receiver<SyncEvent>,
+    xchandles: MockXchandles,
     _dir: TempDir,
+}
+
+/// A stand-in for the XCHandles API, so that tests never reach the real one. Paths without
+/// a configured response answer that the index is stale, so lookups are unavailable and
+/// fall back to the mappings stored in the wallet.
+#[derive(Debug, Clone, Default)]
+struct MockXchandles {
+    responses: Arc<StdMutex<HashMap<String, (StatusCode, String)>>>,
+}
+
+impl MockXchandles {
+    async fn start(&self) -> Result<String> {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+        let url = format!("http://{}", listener.local_addr()?);
+        let router = Router::new()
+            .fallback(mock_xchandles_response)
+            .with_state(self.clone());
+
+        tokio::spawn(async move { axum::serve(listener, router).await });
+
+        Ok(url)
+    }
+
+    fn respond(&self, path: &str, status: StatusCode, body: &str) {
+        self.responses
+            .lock()
+            .expect("mock lock poisoned")
+            .insert(path.to_string(), (status, body.to_string()));
+    }
+}
+
+async fn mock_xchandles_response(State(mock): State<MockXchandles>, uri: Uri) -> Response {
+    let response = mock
+        .responses
+        .lock()
+        .expect("mock lock poisoned")
+        .get(uri.path())
+        .cloned();
+
+    match response {
+        Some((status, body)) => (status, body).into_response(),
+        None => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            r#"{"code":"index_stale","message":"The index is behind the chain"}"#,
+        )
+            .into_response(),
+    }
 }
 
 impl TestApp {
@@ -67,6 +123,16 @@ impl TestApp {
 
         let events = sage.initialize().await?;
 
+        let xchandles = MockXchandles::default();
+        let xchandles_url = xchandles.start().await?;
+
+        for network in &mut sage.network_list.networks {
+            if let Some(mut config) = network.xchandles() {
+                config.api_url.clone_from(&xchandles_url);
+                network.xchandles = Some(config);
+            }
+        }
+
         let sage = Arc::new(Mutex::new(sage));
         let router = make_router(sage.clone());
 
@@ -76,6 +142,7 @@ impl TestApp {
             rng,
             sim,
             events,
+            xchandles,
             _dir: dir,
         };
 
@@ -257,6 +324,7 @@ async fn test_send_xch() -> Result<()> {
     app.wait_for_coins().await;
 
     app.send_xch(SendXch {
+        confirmed_handles: Vec::new(),
         address: bob_address,
         amount: Amount::u64(1000),
         fee: Amount::u64(0),
@@ -309,6 +377,7 @@ async fn test_send_xch_with_coin_ids() -> Result<()> {
             .await?)
     };
     let send = |coin_ids: Vec<String>, address: String, amount: u64| SendXch {
+        confirmed_handles: Vec::new(),
         address,
         amount: Amount::u64(amount),
         fee: Amount::u64(0),
@@ -352,6 +421,7 @@ async fn test_send_xch_with_coin_ids() -> Result<()> {
         .find(|coin| coin.amount == 600)
         .expect("600 coin");
     app.make_offer(MakeOffer {
+        confirmed_handles: Vec::new(),
         requested_assets: vec![OfferAmount {
             asset_id: None,
             hidden_puzzle_hash: None,
@@ -409,9 +479,11 @@ async fn test_resolve_handle_rejects_unsupported_networks() -> Result<()> {
     app.setup_bls(0).await?;
 
     // A network which doesn't inherit from a built-in network has no XCHandles deployment,
-    // and must not fall back to another network's.
+    // and must not fall back to another network's. The tests configure their own API, so
+    // that is removed too.
     for network in &mut app.sage.lock().await.network_list.networks {
         network.inherit = None;
+        network.xchandles = None;
     }
 
     let error = app
@@ -540,6 +612,7 @@ async fn test_mutable_nft() -> Result<()> {
 
     let error = app
         .create_transaction(CreateTransaction {
+            confirmed_handles: Vec::new(),
             actions: vec![ApiAction::UpdateNft(UpdateNftAction {
                 id: ApiId::Existing {
                     asset_id: nft_id.clone(),
@@ -574,6 +647,7 @@ async fn test_mutable_nft() -> Result<()> {
 
     let offer = app
         .make_offer(MakeOffer {
+            confirmed_handles: Vec::new(),
             requested_assets: vec![xch.clone()],
             offered_assets: vec![nft_amount.clone()],
             fee: Amount::u64(0),
@@ -605,6 +679,7 @@ async fn test_mutable_nft() -> Result<()> {
     // And on the taker side, when the NFT is requested.
     let offer = app
         .make_offer(MakeOffer {
+            confirmed_handles: Vec::new(),
             requested_assets: vec![nft_amount],
             offered_assets: vec![xch],
             fee: Amount::u64(0),
@@ -691,6 +766,7 @@ async fn test_requested_mutable_nft() -> Result<()> {
 
     let offer = app
         .make_offer(MakeOffer {
+            confirmed_handles: Vec::new(),
             requested_assets: vec![OfferAmount {
                 asset_id: Some(nft_id.clone()),
                 hidden_puzzle_hash: None,
@@ -756,6 +832,7 @@ async fn test_nft_metadata_updater_of_unspent_singleton() -> Result<()> {
     // The coin's only odd child is unspent, so it looks like a singleton that has never
     // been spent since it was launched.
     app.send_xch(SendXch {
+        confirmed_handles: Vec::new(),
         address: bob_address,
         amount: Amount::u64(1),
         fee: Amount::u64(1),

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use sage_api::ErrorKind;
+use sage_api::{ErrorKind, RecipientError};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -8,6 +8,10 @@ use specta::Type;
 pub struct Error {
     pub kind: ErrorKind,
     pub reason: String,
+    /// The recipients which couldn't be used, if that's why the request failed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[specta(optional)]
+    pub recipients: Option<Vec<RecipientError>>,
 }
 
 impl From<sage::Error> for Error {
@@ -15,6 +19,7 @@ impl From<sage::Error> for Error {
         Self {
             kind: error.kind(),
             reason: error.to_string(),
+            recipients: error.recipient_errors().map(<[RecipientError]>::to_vec),
         }
     }
 }
@@ -30,6 +35,7 @@ impl From<reqwest::Error> for Error {
         Self {
             kind: ErrorKind::Internal,
             reason: error.to_string(),
+            recipients: None,
         }
     }
 }
@@ -39,6 +45,7 @@ impl From<std::io::Error> for Error {
         Self {
             kind: ErrorKind::Internal,
             reason: error.to_string(),
+            recipients: None,
         }
     }
 }

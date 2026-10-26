@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Amount, OfferRecord, OfferRecordStatus, OfferSummary, SpendBundleJson, TransactionSummary,
+    Amount, HandleConfirmation, OfferHandleNft, OfferRecord, OfferRecordStatus, OfferSummary,
+    SpendBundleJson, TransactionSummary,
 };
 
 use super::TransactionResponse;
@@ -40,6 +41,11 @@ pub struct MakeOffer {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub coin_ids: Option<Vec<String>>,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 /// Asset amount in an offer
@@ -160,6 +166,11 @@ pub struct ViewOfferResponse {
     pub offer: OfferSummary,
     /// Offer status
     pub status: OfferRecordStatus,
+    /// Offered NFTs which claim to be XCHandles handles, checked against the registry.
+    /// An offer with a pending handle transfer, or a handle which couldn't be checked,
+    /// can't be taken.
+    #[serde(default)]
+    pub handle_nfts: Vec<OfferHandleNft>,
 }
 
 /// Import an offer

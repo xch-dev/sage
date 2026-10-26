@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sage_api::SendXch;
+use sage_api::{HandleConfirmation, RecipientErrorKind, SendXch};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -25,10 +25,17 @@ pub struct WalletSendXchParams {
     pub clawback: Option<u64>,
 }
 
+/// Whether the recipient is an XCHandles handle, which is resolved by Sage.
+fn is_handle_recipient(params: &WalletSendXchParams) -> bool {
+    params.address.starts_with('@')
+}
+
+/// The send XCH parameters the user approved, and the address they reviewed a handle
+/// recipient as resolving to.
 fn approved_send_xch_params(
     approval: &RustBridgeApprovalRequest,
     response: Option<&RustBridgeApprovalResponse>,
-) -> Result<WalletSendXchParams, BridgeMethodHandleError> {
+) -> Result<(WalletSendXchParams, Option<String>), BridgeMethodHandleError> {
     let RustBridgeApprovalBody::SendXch { summary } = &approval.body else {
         return Err(BridgeMethodHandleError::invalid_request(
             "The send XCH approval does not match its bridge request",
@@ -60,7 +67,14 @@ fn approved_send_xch_params(
 
     let mut params = summary.clone();
     params.fee = selected_fee;
-    Ok(params)
+
+    let confirmed_address = if is_handle_recipient(&params) {
+        response.confirmed_address.clone()
+    } else {
+        None
+    };
+
+    Ok((params, confirmed_address))
 }
 
 fn parse_amount(value: String) -> sage_api::Amount {
@@ -80,6 +94,7 @@ impl From<WalletSendXchParams> for SendXch {
             clawback: v.clawback,
             auto_submit: true,
             coin_ids: None,
+            confirmed_handles: Vec::new(),
         }
     }
 }
@@ -87,15 +102,39 @@ impl From<WalletSendXchParams> for SendXch {
 async fn execute_send_xch(
     tools: BridgeTools<'_>,
     params: WalletSendXchParams,
+    confirmed_address: Option<String>,
 ) -> BridgeHandleResult {
+    let mut request = SendXch::from(params);
+
+    if let Some(address) = confirmed_address {
+        request.confirmed_handles.push(HandleConfirmation {
+            handle: request.address.clone(),
+            address,
+        });
+    }
+
     let result = tools
         .app_state
         .lock()
         .await
-        .send_xch(params.into())
+        .send_xch(request)
         .await
         .map_err(|err| {
-            BridgeMethodHandleError::internal_error(format!("wallet.sendXch failed: {err}"))
+            let message = format!("wallet.sendXch failed: {err}");
+
+            // Apps can tell a handle which changed hands, which the user has to confirm in
+            // Sage, from one which couldn't be resolved.
+            match err.recipient_errors() {
+                Some(errors)
+                    if errors
+                        .iter()
+                        .any(|error| error.kind == RecipientErrorKind::Changed) =>
+                {
+                    BridgeMethodHandleError::new("recipient_changed", message)
+                }
+                Some(_) => BridgeMethodHandleError::new("recipient_unresolved", message),
+                None => BridgeMethodHandleError::internal_error(message),
+            }
         })?;
 
     Ok(Box::new(result))
@@ -116,14 +155,17 @@ impl BridgeMethod for WalletSendXch {
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
-        if ctx
-            .app
-            .is_capability_granted(UserBridgeCapability::WalletSendXchAutoSubmit.into())
+        let params = parse_required_params::<WalletSendXchParams>(self, request)?;
+
+        // A handle is always reviewed by the user, even with auto submit, since it can
+        // change hands and only Sage can show what it resolves to now.
+        if !is_handle_recipient(&params)
+            && ctx
+                .app
+                .is_capability_granted(UserBridgeCapability::WalletSendXchAutoSubmit.into())
         {
             return Ok(None);
         }
-
-        let params = parse_required_params::<WalletSendXchParams>(self, request)?;
 
         Ok(Some(RustBridgeApprovalRequest {
             body: RustBridgeApprovalBody::SendXch { summary: params },
@@ -142,7 +184,8 @@ impl BridgeMethod for WalletSendXch {
         _request: &RustBridgeRequest,
         response: Option<&RustBridgeApprovalResponse>,
     ) -> BridgeHandleResult {
-        execute_send_xch(tools, approved_send_xch_params(approval, response)?).await
+        let (params, confirmed_address) = approved_send_xch_params(approval, response)?;
+        execute_send_xch(tools, params, confirmed_address).await
     }
 
     async fn handle(
@@ -151,7 +194,17 @@ impl BridgeMethod for WalletSendXch {
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        execute_send_xch(tools, parse_required_params(self, request)?).await
+        let params: WalletSendXchParams = parse_required_params(self, request)?;
+
+        // Handles always require approval, so this can't be reached with one, but the
+        // approval is what confirms the handle's address.
+        if is_handle_recipient(&params) {
+            return Err(BridgeMethodHandleError::invalid_request(
+                "Sending to a handle requires approval",
+            ));
+        }
+
+        execute_send_xch(tools, params, None).await
     }
 }
 
@@ -176,13 +229,14 @@ mod tests {
     fn approval_response(selected_fee: &str) -> RustBridgeApprovalResponse {
         RustBridgeApprovalResponse::SendXch(crate::WalletSendXchApprovalResponse {
             selected_fee: selected_fee.to_string(),
+            confirmed_address: None,
         })
     }
 
     #[test]
     fn selected_fee_replaces_app_suggestion_and_uses_reviewed_summary() {
         let response = approval_response("0");
-        let params = approved_send_xch_params(&send_xch_approval(), Some(&response))
+        let (params, _) = approved_send_xch_params(&send_xch_approval(), Some(&response))
             .expect("selected zero fee should be accepted");
 
         assert_eq!(params.address, "reviewed-address");
@@ -195,10 +249,33 @@ mod tests {
     #[test]
     fn selected_fee_is_canonicalized_without_losing_large_values() {
         let response = approval_response("00018446744073709551615");
-        let params = approved_send_xch_params(&send_xch_approval(), Some(&response))
+        let (params, _) = approved_send_xch_params(&send_xch_approval(), Some(&response))
             .expect("u64 max fee should be accepted");
 
         assert_eq!(params.fee, u64::MAX.to_string());
+    }
+
+    #[test]
+    fn confirmed_address_only_applies_to_handle_recipients() {
+        let response = RustBridgeApprovalResponse::SendXch(crate::WalletSendXchApprovalResponse {
+            selected_fee: "0".to_string(),
+            confirmed_address: Some("xch1reviewed".to_string()),
+        });
+
+        let (_, confirmed) = approved_send_xch_params(&send_xch_approval(), Some(&response))
+            .expect("approval should be accepted");
+        assert_eq!(confirmed, None);
+
+        let mut approval = send_xch_approval();
+        let RustBridgeApprovalBody::SendXch { summary } = &mut approval.body else {
+            unreachable!();
+        };
+        summary.address = "@alice".to_string();
+
+        let (params, confirmed) = approved_send_xch_params(&approval, Some(&response))
+            .expect("approval should be accepted");
+        assert_eq!(params.address, "@alice");
+        assert_eq!(confirmed.as_deref(), Some("xch1reviewed"));
     }
 
     #[test]

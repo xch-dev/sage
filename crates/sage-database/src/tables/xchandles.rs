@@ -132,6 +132,23 @@ impl DatabaseTx<'_> {
     pub async fn upsert_xchandle(&mut self, row: &XchandleRow) -> Result<()> {
         upsert_xchandle(&mut *self.tx, row).await
     }
+
+    pub async fn acknowledge_xchandle_change(
+        &mut self,
+        registry_launcher_id: Bytes32,
+        handle: &str,
+    ) -> Result<()> {
+        acknowledge_xchandle_change(&mut *self.tx, registry_launcher_id, handle).await
+    }
+
+    pub async fn set_xchandle_last_sent(
+        &mut self,
+        registry_launcher_id: Bytes32,
+        handle: &str,
+        puzzle_hash: Bytes32,
+    ) -> Result<()> {
+        set_xchandle_last_sent(&mut *self.tx, registry_launcher_id, handle, puzzle_hash).await
+    }
 }
 
 macro_rules! xchandle_row {

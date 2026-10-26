@@ -38,8 +38,8 @@ pub async fn chain_tip(peer: &WalletPeer, peak_height: u32) -> Result<ChainTip, 
 /// A spent slot causes the handle to be fetched again rather than rejected, since slots
 /// are recreated by unrelated activity on neighboring handles.
 ///
-/// The chain tip doesn't depend on the API, so it's fetched at the same time as the first
-/// response.
+/// The chain tip is only fetched once the API has answered, so that peers aren't queried
+/// for a lookup which can't succeed, such as while the API is unavailable.
 pub async fn resolve_handle(
     index: &impl XchandlesIndex,
     peer: &WalletPeer,
@@ -48,9 +48,8 @@ pub async fn resolve_handle(
     handle: &Handle,
     tip: impl Future<Output = Result<ChainTip, XchandlesError>>,
 ) -> Result<VerifiedHandle, XchandlesError> {
-    let (tip, mut response) = tokio::try_join!(tip, async {
-        Ok::<_, XchandlesError>(index.handle(handle).await?)
-    })?;
+    let mut response = index.handle(handle).await?;
+    let tip = tip.await?;
 
     let mut attempt = 1;
 

@@ -13,7 +13,7 @@ use chia_wallet_sdk::{
     utils::Bech32Error,
 };
 use hex::FromHexError;
-use sage_api::ErrorKind;
+use sage_api::{ErrorKind, RecipientError};
 use sage_assets::UriError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
@@ -240,11 +240,34 @@ pub enum Error {
 
     #[error("Timeout")]
     Timeout(#[from] Elapsed),
+
+    #[error("{}", recipient_errors_message(.0))]
+    Recipients(Vec<RecipientError>),
+
+    #[error("The offer can't be taken: {0}")]
+    OfferHandleNft(String),
+}
+
+fn recipient_errors_message(errors: &[RecipientError]) -> String {
+    errors
+        .iter()
+        .map(|error| error.reason.as_str())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 impl Error {
+    /// The recipients which couldn't be used, if that's why the request failed.
+    pub fn recipient_errors(&self) -> Option<&[RecipientError]> {
+        match self {
+            Self::Recipients(errors) => Some(errors),
+            _ => None,
+        }
+    }
+
     pub fn kind(&self) -> ErrorKind {
         match self {
+            Self::Recipients(..) => ErrorKind::Recipient,
             Self::Wallet(..) | Self::NoSigningKey => ErrorKind::Wallet,
             Self::Xchandles(error) => match error {
                 XchandlesError::Database(..) => ErrorKind::Internal,
@@ -326,7 +349,8 @@ impl Error {
             | Self::MissingAssetId
             | Self::InvalidGroup
             | Self::InvalidThemeJson
-            | Self::MissingThemeData => ErrorKind::Api,
+            | Self::MissingThemeData
+            | Self::OfferHandleNft(..) => ErrorKind::Api,
         }
     }
 }

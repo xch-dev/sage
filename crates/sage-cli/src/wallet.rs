@@ -189,6 +189,7 @@ async fn send(client: &Client, args: SendArgs, json: bool) -> Result<()> {
 
         let built = rpc(client
             .send_cat(SendCat {
+                confirmed_handles: Vec::new(),
                 asset_id,
                 address: args.address.clone(),
                 amount: Amount::u64(amount),
@@ -206,6 +207,7 @@ async fn send(client: &Client, args: SendArgs, json: bool) -> Result<()> {
 
         let built = rpc(client
             .send_xch(SendXch {
+                confirmed_handles: Vec::new(),
                 address: args.address.clone(),
                 amount: Amount::u64(amount),
                 fee: Amount::u64(fee),
