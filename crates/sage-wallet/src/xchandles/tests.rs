@@ -954,7 +954,7 @@ fn test_handle_slot_matches_live_registries() -> anyhow::Result<()> {
 }
 
 mod store {
-    use sage_database::{Database, XchandleStatus};
+    use sage_database::{Database, XchandleRow, XchandleStatus};
     use sqlx::{migrate, sqlite::SqlitePoolOptions};
 
     use super::*;
@@ -1089,6 +1089,53 @@ mod store {
         assert_eq!(resolution.changed_from(), Some(C));
         let resolution = store(&db, NOW, Ok(verified(C))).await?;
         assert_eq!(resolution.changed_from(), None);
+
+        Ok(())
+    }
+
+    /// Addresses are labelled from `xchandles_by_puzzle_hash`, so a handle must stop labelling
+    /// an address as soon as its resolved NFT is found to have moved, and only label the new
+    /// one.
+    #[tokio::test]
+    async fn test_resolved_nft_transfer_moves_address_lookup() -> anyhow::Result<()> {
+        let db = test_db().await?;
+
+        let names = |rows: Vec<XchandleRow>| {
+            rows.into_iter()
+                .map(|row| row.handle)
+                .collect::<Vec<String>>()
+        };
+
+        store(&db, NOW, Ok(verified(A))).await?;
+
+        // A second handle resolving to the same address.
+        let bob = Handle::parse("bob").unwrap();
+        let mut bob_verified = verified(A);
+        bob_verified.slot_value.handle_hash = bob.hash();
+        bob_verified.handle = bob.clone();
+        resolve_and_store(&db, registry(), &bob, NOW, async { Ok(bob_verified) }).await?;
+
+        assert_eq!(
+            names(db.xchandles_by_puzzle_hash(registry(), A).await?),
+            ["alice", "bob"]
+        );
+
+        // Alice's resolved NFT is transferred, and the next lookup verifies the new owner.
+        store(&db, NOW + 60, Ok(verified(B))).await?;
+
+        assert_eq!(
+            names(db.xchandles_by_puzzle_hash(registry(), A).await?),
+            ["bob"]
+        );
+        let moved = db.xchandles_by_puzzle_hash(registry(), B).await?;
+        assert_eq!(names(moved.clone()), ["alice"]);
+        assert_eq!(moved[0].previous_resolved_puzzle_hash, Some(A));
+
+        // Once a lookup is rejected, the mapping no longer labels any address.
+        store(&db, NOW + 120, Err(XchandlesError::InvalidLineage))
+            .await
+            .unwrap_err();
+        assert!(db.xchandles_by_puzzle_hash(registry(), B).await?.is_empty());
 
         Ok(())
     }
