@@ -380,9 +380,8 @@ mod tests {
 
     #[tokio::test]
     async fn incremental_sync_does_not_wait_on_a_full_command_queue() -> anyhow::Result<()> {
-        let pool =
-            SqlitePool::connect("file:incremental_sync_full_queue?mode=memory&cache=shared")
-                .await?;
+        let pool = SqlitePool::connect("file:incremental_sync_full_queue?mode=memory&cache=shared")
+            .await?;
         migrate!("../../migrations").run(&pool).await?;
         let db = Database::new(pool);
         db.run_rust_migrations("TXCH".to_string()).await?;
@@ -400,7 +399,9 @@ mod tests {
         // The sync manager is the queue's only reader, so while it runs incremental_sync
         // nothing drains the queue. A full queue must not stop it.
         let (command_sender, mut command_receiver) = mpsc::channel(1);
-        command_sender.send(SyncCommand::SetDiscoverPeers(true)).await?;
+        command_sender
+            .send(SyncCommand::SetDiscoverPeers(true))
+            .await?;
         let (event_sender, _event_receiver) = mpsc::channel(10);
 
         // A wallet with no derivations always derives new ones, so this reaches the send.
