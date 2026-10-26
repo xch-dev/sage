@@ -6,6 +6,8 @@ use specta::Type;
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
 
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "windows"))]
+use crate::SageAppStorage;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use crate::parse_data_store_id;
 #[cfg(target_os = "windows")]
@@ -13,12 +15,11 @@ use crate::windows_profile_dir;
 use crate::{
     AppMutationManager, AppPresentation, AppsHostState, CreateInstalledRuntimeArgs,
     OriginCleanupRuntimeTarget, ResolvedApp, RuntimeChangeSet, SageAppRuntimeMode,
-    SageAppRuntimeRecord, SageAppRuntimeRecordView, SageAppRuntimeVisibility, SageAppStorage,
-    SharedRuntime, SharedSageApp, build_entry_src, close_runtime_internal,
-    emit_runtime_manager_runtimes_changed, focus_taskbar_runtime, get_sage_window,
-    get_webview_in_sage_window, is_allowed_app_url, remove_runtime_by_runtime_id,
-    remove_runtime_id_by_app_id, resolve_app, rotate_app_storage_and_origin, sandbox,
-    sync_modal_runtime_visibility, write_runtime,
+    SageAppRuntimeRecord, SageAppRuntimeRecordView, SageAppRuntimeVisibility, SharedRuntime,
+    SharedSageApp, build_entry_src, close_runtime_internal, emit_runtime_manager_runtimes_changed,
+    focus_taskbar_runtime, get_sage_window, get_webview_in_sage_window, is_allowed_app_url,
+    remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, resolve_app,
+    rotate_app_storage_and_origin, sandbox, sync_modal_runtime_visibility, write_runtime,
 };
 
 #[derive(Debug, Type)]

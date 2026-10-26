@@ -114,6 +114,10 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       kind = 'Recipient';
       break;
 
+    case 'already_running':
+      kind = 'Already Running';
+      break;
+
     default:
       kind = null;
   }

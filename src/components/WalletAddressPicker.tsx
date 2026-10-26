@@ -1,7 +1,7 @@
 import { commands, KeyInfo } from '@/bindings';
-import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
+import { toCustomError } from '@/lib/errors';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { WalletIcon } from 'lucide-react';
@@ -16,26 +16,6 @@ import {
 
 interface WalletAddressPickerProps {
   onSelect: (address: string) => void;
-}
-
-// Tauri IPC rejects with a plain string (e.g. a missing-permission error)
-// instead of the usual { kind, reason } shape when the command itself is
-// unreachable, so callers here can't assume `e` is already a CustomError.
-function toCustomError(e: unknown): CustomError {
-  if (
-    typeof e === 'object' &&
-    e !== null &&
-    'kind' in e &&
-    'reason' in e &&
-    typeof (e as CustomError).reason === 'string'
-  ) {
-    return e as CustomError;
-  }
-
-  return {
-    kind: 'internal',
-    reason: e instanceof Error ? e.message : String(e),
-  };
 }
 
 export function WalletAddressPicker({ onSelect }: WalletAddressPickerProps) {

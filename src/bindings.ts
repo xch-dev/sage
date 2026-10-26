@@ -8,6 +8,12 @@ export const commands = {
 async initialize() : Promise<null> {
     return await TAURI_INVOKE("initialize");
 },
+/**
+ * Exits the app. This is used when initialization fails, since Sage can't continue safely.
+ */
+async quit() : Promise<void> {
+    await TAURI_INVOKE("quit");
+},
 async login(req: Login) : Promise<LoginResponse> {
     return await TAURI_INVOKE("login", { req });
 },
@@ -959,7 +965,7 @@ export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "inter
 /**
  * One or more recipients couldn't be used. See the attached recipient errors.
  */
-"recipient"
+"recipient" | "already_running"
 /**
  * Exercise options
  */

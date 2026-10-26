@@ -59,6 +59,7 @@ where
                 ErrorKind::Api | ErrorKind::Recipient => StatusCode::BAD_REQUEST,
                 ErrorKind::NotFound => StatusCode::NOT_FOUND,
                 ErrorKind::Unauthorized => StatusCode::UNAUTHORIZED,
+                ErrorKind::AlreadyRunning => StatusCode::CONFLICT,
                 ErrorKind::DatabaseMigration
                 | ErrorKind::Wallet
                 | ErrorKind::Internal

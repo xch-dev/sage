@@ -13,4 +13,5 @@ pub enum ErrorKind {
     Nfc,
     /// One or more recipients couldn't be used. See the attached recipient errors.
     Recipient,
+    AlreadyRunning,
 }
