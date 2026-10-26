@@ -14,8 +14,8 @@ use chia_wallet_sdk::{
 use indexmap::IndexMap;
 use sage_api::{Unit, XCH};
 use sage_config::{
-    Config, Network, NetworkList, OldConfig, OldNetwork, WalletConfig, is_old_config,
-    migrate_config, migrate_networks,
+    Config, Network, NetworkList, OldConfig, OldNetwork, Wallet as WalletEntry, WalletConfig,
+    is_old_config, migrate_config, migrate_networks,
 };
 use sage_database::Database;
 use sage_keychain::Keychain;
@@ -74,6 +74,7 @@ impl Sage {
         self.setup_keys()?;
         self.setup_config()?;
         self.setup_logging()?;
+        self.recover_missing_wallets()?;
 
         let receiver = self.setup_sync_manager()?;
         self.setup_peers().await?;
@@ -149,6 +150,39 @@ impl Sage {
         }
 
         Ok(())
+    }
+
+    /// Adds a wallet entry for every key in the keychain that isn't listed in `wallets.toml`.
+    /// Otherwise those keys are inaccessible, since the wallet list is driven by the config.
+    fn recover_missing_wallets(&mut self) -> Result<()> {
+        let mut missing: Vec<u32> = self
+            .keychain
+            .fingerprints()
+            .filter(|fingerprint| {
+                !self
+                    .wallet_config
+                    .wallets
+                    .iter()
+                    .any(|wallet| wallet.fingerprint == *fingerprint)
+            })
+            .collect();
+
+        if missing.is_empty() {
+            return Ok(());
+        }
+
+        missing.sort_unstable();
+
+        for fingerprint in missing {
+            warn!("Recovering wallet {fingerprint}, which is in the keychain but not the config");
+
+            self.wallet_config.wallets.push(WalletEntry {
+                fingerprint,
+                ..Default::default()
+            });
+        }
+
+        self.save_config()
     }
 
     fn setup_config(&mut self) -> Result<()> {
@@ -557,7 +591,6 @@ async fn update_query_planner_stats(pool: &SqlitePool) {
 
 #[cfg(test)]
 mod tests {
-    use sage_config::Wallet as WalletEntry;
     use tempfile::TempDir;
 
     use super::*;
@@ -566,7 +599,13 @@ mod tests {
         let mut sage = Sage::new(path, true);
         sage.setup_keys()?;
         sage.setup_config()?;
+        sage.recover_missing_wallets()?;
         Ok(sage)
+    }
+
+    fn add_key(sage: &mut Sage, seed: u8) -> Result<u32> {
+        let master_pk = SecretKey::from_seed(&[seed; 32]).public_key();
+        Ok(sage.keychain.add_public_key(&master_pk)?)
     }
 
     fn save_named_wallet(path: &Path) -> Result<()> {
@@ -649,6 +688,52 @@ mod tests {
 
         let sage = load(dir.path())?;
         assert_eq!(sage.network().name, "mainnet");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_recover_wallets_missing_from_config() -> Result<()> {
+        let dir = TempDir::new()?;
+
+        let mut sage = load(dir.path())?;
+        let named = add_key(&mut sage, 1)?;
+        let lost = add_key(&mut sage, 2)?;
+        sage.save_keychain()?;
+        drop(sage);
+
+        fs::write(
+            dir.path().join("wallets.toml"),
+            format!("[[wallets]]\nname = \"Named\"\nfingerprint = {named}\n"),
+        )?;
+
+        let sage = load(dir.path())?;
+        let wallets = &sage.wallet_config.wallets;
+        assert_eq!(wallets.len(), 2);
+        assert_eq!(wallets[0].name, "Named");
+        assert_eq!(wallets[1].fingerprint, lost);
+
+        // The recovered entry is saved
+        let text = fs::read_to_string(dir.path().join("wallets.toml"))?;
+        assert!(text.contains(&lost.to_string()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_recover_wallets_when_wallet_config_deleted() -> Result<()> {
+        let dir = TempDir::new()?;
+
+        let mut sage = load(dir.path())?;
+        let fingerprint = add_key(&mut sage, 1)?;
+        sage.save_keychain()?;
+        drop(sage);
+
+        fs::remove_file(dir.path().join("wallets.toml"))?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.wallet_config.wallets.len(), 1);
+        assert_eq!(sage.wallet_config.wallets[0].fingerprint, fingerprint);
 
         Ok(())
     }
