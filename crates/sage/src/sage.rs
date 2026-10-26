@@ -21,11 +21,15 @@ use sage_config::{
 use sage_database::Database;
 use sage_keychain::Keychain;
 use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
+use serde::de::DeserializeOwned;
 use sqlx::{
     ConnectOptions, SqlitePool,
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
-use tokio::sync::{Mutex, mpsc};
+use tokio::{
+    sync::{Mutex, mpsc},
+    task::JoinHandle,
+};
 use tracing::{Level, error, info, warn};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{
@@ -50,6 +54,9 @@ pub struct Sage {
     pub test: bool,
     /// Shared between requests so that connections are reused.
     pub http_client: reqwest::Client,
+    /// Whether the config and keychain can be saved. This is only the case once initialization
+    /// has started, and stops if it fails, since the state in memory may then be incomplete.
+    writable: bool,
 }
 
 impl Sage {
@@ -66,10 +73,24 @@ impl Sage {
             unit: XCH.clone(),
             test,
             http_client: reqwest::Client::new(),
+            writable: false,
         }
     }
 
     pub async fn initialize(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
+        self.writable = true;
+
+        let result = self.try_initialize().await;
+
+        if let Err(error) = &result {
+            error!("Failed to initialize Sage: {error}");
+            self.writable = false;
+        }
+
+        result
+    }
+
+    async fn try_initialize(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
         fs::create_dir_all(&self.path)?;
 
         self.setup_keys()?;
@@ -77,8 +98,14 @@ impl Sage {
         self.setup_logging()?;
         self.recover_missing_wallets()?;
 
-        let receiver = self.setup_sync_manager()?;
-        self.setup_peers().await?;
+        let (receiver, sync_task) = self.setup_sync_manager()?;
+
+        // Don't leave the sync manager running if initialization fails.
+        if let Err(error) = self.setup_peers().await {
+            sync_task.abort();
+            self.command_sender = mpsc::channel(1).0;
+            return Err(error);
+        }
 
         info!("Sage wallet initialized");
 
@@ -195,13 +222,13 @@ impl Sage {
             let config_text = fs::read_to_string(&config_path)?;
 
             if is_old_config(&config_text) {
-                let old_config: OldConfig = toml::from_str(&config_text)?;
+                let old_config: OldConfig = parse_config_file(&config_path, &config_text)?;
                 let (config, wallet_config) = migrate_config(old_config)?;
                 self.config = config;
                 write_atomic(&config_path, toml::to_string_pretty(&self.config)?)?;
                 write_atomic(&wallet_config_path, toml::to_string_pretty(&wallet_config)?)?;
             } else {
-                self.config = toml::from_str(&config_text)?;
+                self.config = parse_config_file(&config_path, &config_text)?;
             }
         } else {
             write_atomic(&config_path, toml::to_string_pretty(&self.config)?)?;
@@ -210,7 +237,7 @@ impl Sage {
         // This is loaded separately, so that a missing main config doesn't overwrite the wallets.
         if wallet_config_path.try_exists()? {
             let wallet_config_text = fs::read_to_string(&wallet_config_path)?;
-            self.wallet_config = toml::from_str(&wallet_config_text)?;
+            self.wallet_config = parse_config_file(&wallet_config_path, &wallet_config_text)?;
         } else {
             write_atomic(
                 &wallet_config_path,
@@ -232,7 +259,7 @@ impl Sage {
                     toml::to_string_pretty(&self.network_list)?,
                 )?;
             } else {
-                self.network_list = toml::from_str(&text)?;
+                self.network_list = parse_config_file(&network_list_path, &text)?;
             }
         } else {
             write_atomic(
@@ -264,7 +291,7 @@ impl Sage {
         Ok(create_rustls_connector(&cert)?)
     }
 
-    fn setup_sync_manager(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
+    fn setup_sync_manager(&mut self) -> Result<(mpsc::Receiver<SyncEvent>, JoinHandle<()>)> {
         let connector = self.setup_ssl()?;
 
         let (sync_manager, command_sender, receiver) = SyncManager::new(
@@ -301,10 +328,10 @@ impl Sage {
             connector,
         );
 
-        tokio::spawn(sync_manager.sync());
+        let sync_task = tokio::spawn(sync_manager.sync());
         self.command_sender = command_sender;
 
-        Ok(receiver)
+        Ok((receiver, sync_task))
     }
 
     pub async fn switch_network(&mut self) -> Result<()> {
@@ -565,7 +592,17 @@ impl Sage {
         Ok(wallet.clone())
     }
 
+    fn ensure_writable(&self) -> Result<()> {
+        if self.writable {
+            Ok(())
+        } else {
+            Err(Error::NotInitialized)
+        }
+    }
+
     pub fn save_config(&self) -> Result<()> {
+        self.ensure_writable()?;
+
         let config = toml::to_string_pretty(&self.config)?;
         write_atomic(&self.path.join("config.toml"), config)?;
         let wallet_config = toml::to_string_pretty(&self.wallet_config)?;
@@ -576,6 +613,8 @@ impl Sage {
     }
 
     pub fn save_keychain(&self) -> Result<()> {
+        self.ensure_writable()?;
+
         write_atomic(&self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
         Ok(())
     }
@@ -588,6 +627,13 @@ async fn update_query_planner_stats(pool: &SqlitePool) {
     } else {
         info!("Updated database query planner statistics");
     }
+}
+
+fn parse_config_file<T: DeserializeOwned>(path: &Path, text: &str) -> Result<T> {
+    toml::from_str(text).map_err(|error| Error::InvalidConfig {
+        path: path.display().to_string(),
+        error,
+    })
 }
 
 /// Writes to a temporary file in the same directory, then renames it over the destination, so
@@ -617,6 +663,7 @@ mod tests {
 
     fn load(path: &Path) -> Result<Sage> {
         let mut sage = Sage::new(path, true);
+        sage.writable = true;
         sage.setup_keys()?;
         sage.setup_config()?;
         sage.recover_missing_wallets()?;
@@ -768,6 +815,36 @@ mod tests {
 
         assert_eq!(fs::read_to_string(&path)?, "new");
         assert_eq!(fs::read_dir(dir.path())?.count(), 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_save_requires_initialization() -> Result<()> {
+        let dir = TempDir::new()?;
+
+        let sage = Sage::new(dir.path(), true);
+        assert!(matches!(sage.save_config(), Err(Error::NotInitialized)));
+        assert!(matches!(sage.save_keychain(), Err(Error::NotInitialized)));
+        assert!(!dir.path().join("wallets.toml").try_exists()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_invalid_config_names_file() -> Result<()> {
+        let dir = TempDir::new()?;
+        drop(load(dir.path())?);
+
+        fs::write(
+            dir.path().join("wallets.toml"),
+            "[[wallets]]\nname = Main\n",
+        )?;
+
+        let Err(Error::InvalidConfig { path, .. }) = load(dir.path()) else {
+            panic!("expected an invalid config error");
+        };
+        assert!(path.ends_with("wallets.toml"));
 
         Ok(())
     }
