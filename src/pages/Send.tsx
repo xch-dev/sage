@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { DeepLinkNotice } from '@/components/DeepLinkNotice';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import {
   fromHexStrict,
@@ -185,7 +186,11 @@ export default function Send() {
     const feeMojos = searchParams.get('fee');
     const memos = searchParams.get('memos');
 
-    if (address) form.setValue('address', address);
+    // The page mounts empty, so an address already here was just scanned in
+    // (on mobile the scanner returns before the asset loads) and wins
+    if (address && !form.getValues('address')) {
+      form.setValue('address', address);
+    }
     if (amountMojos && asset) {
       form.setValue(
         'amount',
@@ -290,6 +295,7 @@ export default function Send() {
       <Header title={t`Send ${ticker}`} back={() => navigate(-1)} />
 
       <Container className='max-w-xl'>
+        <DeepLinkNotice className='mb-4' />
         {asset && (
           <Card className='mb-6'>
             <CardContent className='pt-6'>

@@ -72,11 +72,11 @@ function RootLayout() {
   return <Outlet />;
 }
 
-// Remounts its page whenever the URL changes, so a deep link that lands on a
-// page already showing starts from fresh state instead of the previous link's
+// Remounts its page on every navigation (each history entry has its own key),
+// so a deep link, even one repeating the current URL, starts from fresh state
 function RemountOnUrl({ children }: { children: ReactNode }) {
-  const { pathname, search } = useLocation();
-  return <Fragment key={pathname + search}>{children}</Fragment>;
+  const { key } = useLocation();
+  return <Fragment key={key}>{children}</Fragment>;
 }
 
 // Theme-aware toast container component

@@ -67,7 +67,6 @@ tauri-plugin-biometric = { workspace = true }
 tauri-plugin-barcode-scanner = { workspace = true }
 tauri-plugin-safe-area-insets = { workspace = true }
 tauri-plugin-sage = { workspace = true }
-tauri-plugin-deep-link = { workspace = true }
 
 [build-dependencies]
 tauri-build = { workspace = true, features = [] }

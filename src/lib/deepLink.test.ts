@@ -1,5 +1,11 @@
+import { bech32m } from 'bech32';
 import { describe, expect, it } from 'vitest';
-import { parseDeepLinkUrl } from './deepLink';
+import {
+  buildSendLink,
+  buildTakeOfferLink,
+  isDeepLink,
+  parseDeepLinkUrl,
+} from './deepLink';
 
 const XCH = 'xch1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs3fazuv';
 const TXCH = 'txch1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygsuw65al';
@@ -250,6 +256,14 @@ describe('parseDeepLinkUrl', () => {
       });
     });
 
+    it.each(['nft', 'col'])('rejects a %s id as an address', (prefix) => {
+      const id = bech32m.encode(prefix, bech32m.toWords(new Uint8Array(32)));
+      expect(parseDeepLinkUrl(`sage:send?address=${id}`)).toEqual({
+        ok: false,
+        error: 'invalid_params',
+      });
+    });
+
     it('treats %26 as a separator when there is no literal &', () => {
       const result = parseDeepLinkUrl(
         `sage:send?address=${XCH}%26amount=10%26fee=2%26memos=hello`,
@@ -317,5 +331,56 @@ describe('parseDeepLinkUrl', () => {
         error: 'invalid_params',
       });
     });
+  });
+});
+
+describe('link builders', () => {
+  it('builds a send link the parser accepts', () => {
+    expect(parseDeepLinkUrl(buildSendLink(XCH))).toEqual({
+      ok: true,
+      link: { action: 'send', address: XCH },
+    });
+  });
+
+  it('includes the asset id for a CAT', () => {
+    expect(parseDeepLinkUrl(buildSendLink(XCH, ASSET_ID))).toEqual({
+      ok: true,
+      link: { action: 'send', address: XCH, assetId: ASSET_ID.toLowerCase() },
+    });
+  });
+
+  it('separates parameters with %26 so Android keeps the asset id', () => {
+    const link = buildSendLink(XCH, ASSET_ID);
+    expect(link).not.toContain('&');
+    expect(link).toContain('%26asset_id=');
+  });
+
+  it('returns null for an address the parser would reject', () => {
+    expect(buildSendLink('Unknown')).toBeNull();
+    expect(buildSendLink(XCH, 'xyz')).toBeNull();
+  });
+
+  it('returns null for an offer too large for a link', () => {
+    expect(buildTakeOfferLink(`offer1${'q'.repeat(15000)}`)).toBeNull();
+  });
+
+  it('builds a take_offer link the parser accepts', () => {
+    expect(parseDeepLinkUrl(buildTakeOfferLink(OFFER))).toEqual({
+      ok: true,
+      link: { action: 'take_offer', offer: OFFER },
+    });
+  });
+});
+
+describe('isDeepLink', () => {
+  it.each([
+    ['sage:send?address=x', true],
+    ['  SAGE://take_offer', true],
+    ['sage:', true],
+    [XCH, false],
+    ['https://dexie.space/offers/abc', false],
+    ['', false],
+  ])('%j → %s', (text, expected) => {
+    expect(isDeepLink(text)).toBe(expected);
   });
 });

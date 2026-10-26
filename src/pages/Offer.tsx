@@ -7,6 +7,7 @@ import {
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { TakeOfferConfirmation } from '@/components/confirmations/TakeOfferConfirmation';
 import Container from '@/components/Container';
+import { DeepLinkNotice } from '@/components/DeepLinkNotice';
 import Header from '@/components/Header';
 import { Loading } from '@/components/Loading';
 import { OfferCard } from '@/components/OfferCard';
@@ -16,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { FeeAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
+import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { resolveOfferData } from '@/lib/offerData';
 import { fromMojos, toMojos } from '@/lib/utils';
@@ -30,6 +32,7 @@ export function Offer() {
   const { offer } = useParams();
   const { addError } = useErrors();
   const { isReadOnly } = useWallet();
+  const { promptIfEnabled } = useBiometric();
   const walletState = useWalletState();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -112,6 +115,10 @@ export function Offer() {
       return;
     }
 
+    // takeOffer signs before the confirmation dialog, which only prompts when
+    // it does the signing itself, so ask here
+    if (!(await promptIfEnabled())) return;
+
     try {
       const result = await commands.takeOffer({
         offer: resolvedOffer,
@@ -128,6 +135,7 @@ export function Offer() {
       <Header title='View Offer' />
 
       <Container>
+        <DeepLinkNotice className='mb-4' />
         {isLoading ? (
           <Loading className='my-8' text={loadingStatus} />
         ) : (

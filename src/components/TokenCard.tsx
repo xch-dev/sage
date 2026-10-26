@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { buildSendLink } from '@/lib/deepLink';
 import { fromMojos } from '@/lib/utils';
 import { useNetwork } from '@/hooks/useNetwork';
 import { dexieAssetUrl } from '@/lib/urls';
@@ -299,6 +300,10 @@ export function TokenCard({
         onClose={() => setIsReceiveOpen(false)}
         asset={asset}
         qr_code_contents={walletState.sync.receive_address}
+        deepLink={
+          buildSendLink(walletState.sync.receive_address, asset.asset_id) ??
+          undefined
+        }
       />
     </>
   );

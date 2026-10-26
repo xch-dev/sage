@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
+import { buildTakeOfferLink } from '@/lib/deepLink';
 import { deleteOffers } from '@/lib/offers';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -23,8 +24,9 @@ import {
   MoreVertical,
   Tags,
   TrashIcon,
+  Link2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface OfferRowCardProps {
@@ -42,6 +44,11 @@ export function OfferRowCard({
   const { isTransactionDisabled } = useWallet();
   const { addError } = useErrors();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  // Null when the offer is too large for a link, so the menu item is disabled
+  const offerLink = useMemo(
+    () => buildTakeOfferLink(record.offer),
+    [record.offer],
+  );
   const [isCancelOpen, setIsCancelOpen] = useState(false);
 
   return (
@@ -77,6 +84,20 @@ export function OfferRowCard({
                     <CopyIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                     <span>
                       <Trans>Copy</Trans>
+                    </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (offerLink) writeText(offerLink);
+                    }}
+                    disabled={!offerLink}
+                  >
+                    <Link2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>Copy Sage link</Trans>
                     </span>
                   </DropdownMenuItem>
 

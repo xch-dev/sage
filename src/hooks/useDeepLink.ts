@@ -1,15 +1,38 @@
+import { DEEP_LINK_NAV_STATE } from '@/components/DeepLinkNotice';
 import { useWallet } from '@/contexts/WalletContext';
 import { supportsSageApps } from '@/lib/apps/platform';
-import { DeepLink, parseDeepLinkUrl } from '@/lib/deepLink';
+import { DeepLink, isDeepLink, parseDeepLinkUrl } from '@/lib/deepLink';
 import { addressInfo } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { useEffect, useState } from 'react';
 import { NavigateFunction, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { commands } from '../bindings';
+import { commands, Network } from '../bindings';
 
 // Matches SYSTEM_APP_APP_INSTALL_ID in crates/sage-apps
 const APP_INSTALL_ID = 'app-install';
+
+// Set while the hook is mounted, so scanned and pasted links share its handling
+let queueInAppLinks: ((urls: string[]) => void) | null = null;
+
+// A page with several scan fields hands one scanned result to each of them in
+// a single effect pass, so ignore repeats until that pass is over
+let inAppLinkThisTick: string | null = null;
+
+/** Opens a scanned or pasted `sage:` link; returns false if `text` isn't one. */
+export function openInAppDeepLink(text: string): boolean {
+  if (!queueInAppLinks || !isDeepLink(text)) return false;
+
+  const url = text.trim();
+  if (url !== inAppLinkThisTick) {
+    inAppLinkThisTick = url;
+    queueMicrotask(() => {
+      inAppLinkThisTick = null;
+    });
+    queueInAppLinks([url]);
+  }
+  return true;
+}
 
 /** Handles `sage:` deep links; per-platform setup is in deep-links/README.md. */
 export function useDeepLink() {
@@ -38,20 +61,28 @@ export function useDeepLink() {
         }
       }
     };
+    queueInAppLinks = queueFirstActionable;
 
     (async () => {
       try {
         const { getCurrent, onOpenUrl } =
           await import('@tauri-apps/plugin-deep-link');
 
-        // A link the app was launched with
+        // A link the app was launched with. The plugin keeps returning the
+        // latest link it saw, so skip it if this webview already handled it
+        // (a reload or an Android activity restart remounts this hook).
         const initialUrls = await getCurrent();
         if (!isMounted) return;
-        if (initialUrls) queueFirstActionable(initialUrls);
+        if (initialUrls && !wasHandled(initialUrls)) {
+          queueFirstActionable(initialUrls);
+        }
 
         // Links opened while running; the single-instance plugin forwards
         // these from a second launch on Windows and Linux
-        const stop = await onOpenUrl(queueFirstActionable);
+        const stop = await onOpenUrl((urls) => {
+          wasHandled(urls);
+          queueFirstActionable(urls);
+        });
         if (isMounted) unlisten = stop;
         else stop();
       } catch (error) {
@@ -62,6 +93,7 @@ export function useDeepLink() {
 
     return () => {
       isMounted = false;
+      queueInAppLinks = null;
       unlisten?.();
     };
   }, []);
@@ -109,10 +141,25 @@ async function openDeepLink(link: DeepLink, navigate: NavigateFunction) {
   }
 
   if (link.action === 'take_offer') {
+    // Every marketplace a link can name is mainnet-only. Raw offer strings
+    // don't say which network they're for, so they can't be checked here.
+    if (link.offer.startsWith('https://')) {
+      const network = await commands.getNetwork({}).catch(() => null);
+      if (network && network.kind !== 'mainnet') {
+        const walletPrefix = prefixOf(network.network);
+        toast.error(
+          t`This offer link is for mainnet; your wallet is on ${walletPrefix}`,
+        );
+        return;
+      }
+    }
+
     const query = link.fee
       ? `?${new URLSearchParams({ fee: link.fee }).toString()}`
       : '';
-    navigate(`/offers/view/${encodeURIComponent(link.offer)}${query}`);
+    navigate(`/offers/view/${encodeURIComponent(link.offer)}${query}`, {
+      state: DEEP_LINK_NAV_STATE,
+    });
     return;
   }
 
@@ -126,7 +173,7 @@ async function openDeepLink(link: DeepLink, navigate: NavigateFunction) {
     const linkPrefix = addressInfo(link.address).prefix;
     const walletPrefix = await commands
       .getNetwork({})
-      .then(({ network }) => network.prefix ?? network.ticker.toLowerCase())
+      .then(({ network }) => prefixOf(network))
       .catch(() => null);
 
     toast.error(
@@ -154,5 +201,26 @@ async function openDeepLink(link: DeepLink, navigate: NavigateFunction) {
   if (link.fee) params.set('fee', link.fee);
   if (link.memos) params.set('memos', link.memos);
 
-  navigate(`/wallet/send/${link.assetId ?? 'xch'}?${params.toString()}`);
+  navigate(`/wallet/send/${link.assetId ?? 'xch'}?${params.toString()}`, {
+    state: DEEP_LINK_NAV_STATE,
+  });
+}
+
+const HANDLED_KEY = 'sage-deep-link-handled';
+
+// Records `urls` as the latest link this webview handled, returning whether it
+// already was. Session storage survives a reload but not an app restart.
+function wasHandled(urls: string[]) {
+  const value = JSON.stringify(urls);
+  try {
+    if (sessionStorage.getItem(HANDLED_KEY) === value) return true;
+    sessionStorage.setItem(HANDLED_KEY, value);
+  } catch {
+    // Storage can be unavailable; a replay is better than a lost link
+  }
+  return false;
+}
+
+function prefixOf(network: Network) {
+  return network.prefix ?? network.ticker.toLowerCase();
 }

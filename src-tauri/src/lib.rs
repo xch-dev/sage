@@ -298,12 +298,9 @@ pub fn run() {
             #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
-                // Registering rewrites the handler and shells out to xdg tools on Linux,
-                // so skip it on launches where this executable already owns the scheme
-                let deep_link = app.deep_link();
-                if !deep_link.is_registered("sage").unwrap_or(false)
-                    && let Err(e) = deep_link.register_all()
-                {
+                // Always re-register: on Linux `is_registered` only matches the handler's
+                // file name, so it can't tell a dev build from an installed binary
+                if let Err(e) = app.deep_link().register_all() {
                     eprintln!("Failed to register deep link: {e}");
                 }
             }

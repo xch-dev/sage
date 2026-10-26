@@ -11,6 +11,8 @@ const MAX_APP_URL_LENGTH = 2048;
 const MAX_MEMO_LENGTH = 1000;
 const MAX_U64 = 18446744073709551615n;
 const OFFER_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+// Bech32m ids for things that can't be paid, so not a network prefix
+const NON_WALLET_PREFIXES = ['nft', 'col', 'offer'];
 
 interface TakeOfferDeepLink {
   action: 'take_offer';
@@ -69,7 +71,11 @@ function isMojos(value: string | null): value is string {
 function isWellFormedAddress(address: string): boolean {
   try {
     const { prefix, puzzleHash } = addressInfo(address);
-    return puzzleHash.length === 64 && /^[a-z]{1,16}$/.test(prefix);
+    return (
+      puzzleHash.length === 64 &&
+      /^[a-z]{1,16}$/.test(prefix) &&
+      !NON_WALLET_PREFIXES.includes(prefix)
+    );
   } catch {
     return false;
   }
@@ -174,6 +180,39 @@ function parseInstallApp(params: URLSearchParams): InstallAppDeepLink | null {
   if (url.protocol !== 'https:' || url.username || url.password) return null;
 
   return { action: 'install_app', url: `${url.origin}${url.pathname}` };
+}
+
+/** Whether `text` is meant as a `sage:` link, valid or not. */
+export function isDeepLink(text: string): boolean {
+  return text.trim().toLowerCase().startsWith(SCHEME_PREFIX);
+}
+
+// Separates parameters with `%26`, which the parser accepts on every platform
+// and Android doesn't truncate at. The values here are bech32 or hex, so none
+// contains an encoded `&` that would be mistaken for a separator.
+function buildLink(action: string, params: Record<string, string>) {
+  const query = Object.entries(params)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join('%26');
+  return `${SCHEME_PREFIX}${action}?${query}`;
+}
+
+/** Builds a link that opens the send screen to pay `address`, if it's valid. */
+export function buildSendLink(
+  address: string,
+  assetId?: string | null,
+): string | null {
+  if (!isWellFormedAddress(address)) return null;
+  if (assetId && !isValidAssetId(assetId)) return null;
+  return buildLink(
+    'send',
+    assetId ? { address, asset_id: assetId } : { address },
+  );
+}
+
+/** Builds a link that opens `offer` for taking, if a link can carry it. */
+export function buildTakeOfferLink(offer: string): string | null {
+  return parseOfferString(offer) ? buildLink('take_offer', { offer }) : null;
 }
 
 /** Parses `sage:<action>?<params>` (or `sage://<action>?<params>`). */

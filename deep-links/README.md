@@ -35,6 +35,8 @@ Opens the offer view. Exactly one of `offer` or `url` is required.
 
 The `url` form keeps links short for large offers. Its query string and fragment are dropped, and the offer id is read from the last path segment. Remember to percent-encode it as a parameter value.
 
+All three marketplaces are mainnet-only, so a `url` link opened with a testnet (or custom network) wallet shows `This offer link is for mainnet; your wallet is on <prefix>` instead of a failed fetch. Raw offer strings don't record a network, so they can't be checked up front.
+
 **Examples:**
 
 ```bash
@@ -91,6 +93,12 @@ Opens the Apps page with the installer showing and the URL field prefilled. Noth
 ```
 sage:install_app?url=https://xch.place
 ```
+
+## Links inside Sage
+
+- **Notice:** pages opened by a `send` or `take_offer` link show an "Opened from a link" notice, so prefilled details aren't mistaken for the user's own.
+- **Scanning and pasting:** a `sage:` link scanned from a QR code, read from an image, or pasted with a field's paste button is handled like any other link, rather than being put into the field. That lets one QR code work with a phone camera and with Sage's own scanner.
+- **Copy Sage link:** the Receive dialog has a "Copy Sage link" button that builds `sage:send?address=<receive address>` (plus `asset_id` for a CAT). The saved-offer menu has "Copy Sage link" for `sage:take_offer?offer=...`, disabled when the offer is too large for a link. Both separate parameters with `%26`, so they work on Android as-is.
 
 ## Android URL Encoding Requirement
 
