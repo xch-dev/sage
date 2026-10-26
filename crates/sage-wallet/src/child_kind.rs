@@ -259,6 +259,16 @@ impl ChildKind {
                         (did, None)
                     };
 
+                    // The p2 puzzle hash comes from the hint, which anyone can choose, so it
+                    // must produce the coin that was actually created.
+                    if did.info.puzzle_hash() != coin.puzzle_hash.into() {
+                        warn!(
+                            "DID coin {:?} does not match the puzzle hash implied by its hint",
+                            coin.coin_id()
+                        );
+                        return Ok(Self::Unknown);
+                    }
+
                     return Ok(Self::Did {
                         lineage_proof,
                         info: did.serialize(allocator)?.info,
@@ -429,10 +439,9 @@ mod tests {
 
     use super::*;
 
-    fn transfer_did(
-        clawback: Option<ClawbackV2>,
-        memo_receiver: Bytes32,
-    ) -> anyhow::Result<ChildKind> {
+    /// Sends a DID to the given p2 puzzle hash, with memos that hint the given puzzle hash
+    /// and always claim a clawback, whether or not the DID is actually sent to one.
+    fn transfer_did(p2_puzzle_hash: Bytes32, hint: Bytes32) -> anyhow::Result<ChildKind> {
         let mut sim = Simulator::new();
         let alice = sim.bls(1);
         let mut ctx = SpendContext::new();
@@ -442,14 +451,12 @@ mod tests {
         StandardLayer::new(alice.pk).spend(&mut ctx, alice.coin, conditions)?;
         ctx.take();
 
-        let p2_puzzle_hash = clawback.map_or(memo_receiver, |clawback| clawback.tree_hash().into());
         let new_info = DidInfo {
             p2_puzzle_hash,
             ..did.info
         };
 
-        // The memos always claim a clawback, whether or not the DID is actually sent to one.
-        let memos = ctx.memos(&(memo_receiver, ((Bytes32::new([7; 32]), (100_u64, ())), ())))?;
+        let memos = ctx.memos(&(hint, ((Bytes32::new([7; 32]), (100_u64, ())), ())))?;
         did.spend_with(
             &mut ctx,
             &StandardLayer::new(alice.pk),
@@ -471,19 +478,28 @@ mod tests {
     fn test_did_clawback_memos_must_match_puzzle() -> anyhow::Result<()> {
         let receiver = Bytes32::new([8; 32]);
 
-        let ChildKind::Did { info, clawback, .. } = transfer_did(None, receiver)? else {
+        let ChildKind::Did { info, clawback, .. } = transfer_did(receiver, receiver)? else {
             panic!("expected a DID");
         };
         assert_eq!(info.p2_puzzle_hash, receiver);
         assert_eq!(clawback, None);
 
         let real = ClawbackV2::new(Bytes32::new([7; 32]), receiver, 100, 1, true);
-        let ChildKind::Did { info, clawback, .. } = transfer_did(Some(real), receiver)? else {
+        let ChildKind::Did { info, clawback, .. } =
+            transfer_did(real.tree_hash().into(), receiver)?
+        else {
             panic!("expected a DID");
         };
         assert_eq!(info.p2_puzzle_hash, real.tree_hash().into());
         assert_eq!(clawback, Some(real));
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_did_hint_must_match_puzzle() -> anyhow::Result<()> {
+        let kind = transfer_did(Bytes32::new([8; 32]), Bytes32::new([9; 32]))?;
+        assert!(matches!(kind, ChildKind::Unknown));
         Ok(())
     }
 }
