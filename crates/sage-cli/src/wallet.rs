@@ -229,6 +229,7 @@ async fn send(client: &Client, args: SendArgs, json: bool) -> Result<()> {
             coin_spends: built.coin_spends,
             auto_submit: true,
             partial: false,
+            aggregated_signature: None,
         })
         .await)?;
 

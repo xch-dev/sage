@@ -23,7 +23,7 @@ use tokio::time::timeout;
 use crate::{
     ConfirmationInfo, Error, Result, Sage, json_bundle, json_spend, parse_amount, parse_asset_id,
     parse_coin_ids, parse_did_id, parse_hash, parse_memos, parse_nft_id, parse_option_id,
-    rust_bundle, rust_spend, selectable_coin_ids,
+    parse_signature, rust_bundle, rust_spend, selectable_coin_ids,
 };
 
 impl Sage {
@@ -519,7 +519,22 @@ impl Sage {
             .into_iter()
             .map(rust_spend)
             .collect::<Result<Vec<_>>>()?;
-        let spend_bundle = self.sign(coin_spends, req.partial).await?;
+        let mut spend_bundle = self.sign(coin_spends, req.partial).await?;
+
+        if let Some(signature) = req.aggregated_signature {
+            let existing = parse_signature(signature)?;
+            let signature = spend_bundle.aggregated_signature;
+
+            spend_bundle.aggregated_signature = if signature == Signature::default()
+                || existing == signature
+                || self.is_fully_signed(&spend_bundle.coin_spends, &existing)?
+            {
+                existing
+            } else {
+                existing + &signature
+            };
+        }
+
         let json_bundle = json_bundle(&spend_bundle);
 
         if req.auto_submit {

@@ -12,16 +12,21 @@ use chia_wallet_sdk::{
         bls::master_to_wallet_unhardened,
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
+    driver::TransferNftById,
     prelude::*,
     test::PeerSimulator,
+    types::puzzles::{ANY_METADATA_UPDATER_HASH, HandleNftMetadata},
+    utils::Address,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
-    Amount, GetKey, GetPeers, GetSyncStatus, GetVersion, ImportKey, Login, MakeOffer, OfferAmount,
-    ResolveHandle, SendXch,
+    Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CreateDid, CreateTransaction, GetDids,
+    GetKey, GetNft, GetNftMetadataUpdater, GetOffers, GetPeers, GetSyncStatus, GetVersion,
+    Id as ApiId, ImportKey, ImportOffer, Login, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind,
+    OfferAmount, OfferAsset, ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction, ViewOffer,
 };
 use sage_api_macro::impl_endpoints;
 use sage_wallet::{SyncCommand, SyncEvent};
@@ -419,6 +424,359 @@ async fn test_resolve_handle_rejects_unsupported_networks() -> Result<()> {
 
     assert!(error.contains("status 400"), "{error}");
     assert!(error.contains("not supported on this network"), "{error}");
+
+    Ok(())
+}
+
+fn find_nft<'a>(assets: &'a [OfferAsset], nft_id: &str) -> &'a OfferAsset {
+    assets
+        .iter()
+        .find(|asset| asset.asset.asset_id.as_deref() == Some(nft_id))
+        .expect("missing nft in offer summary")
+}
+
+/// Mints an NFT with the any metadata updater and `XCHandles` metadata, as a handle NFT would be.
+async fn mint_mutable_nft(app: &mut TestApp) -> Result<String> {
+    app.create_did(CreateDid {
+        name: "Alice".to_string(),
+        fee: Amount::u64(0),
+        auto_submit: true,
+    })
+    .await?;
+    app.wait_for_coins().await;
+
+    let did_id = app.get_dids(GetDids {}).await?.dids[0].launcher_id.clone();
+    let did_id = Address::decode(&did_id)?.puzzle_hash;
+
+    let (coin_spends, launcher_id) = {
+        let wallet = app.sage.lock().await.wallet()?;
+        let mut ctx = SpendContext::new();
+
+        let metadata = ctx.alloc_hashed(&HandleNftMetadata {
+            display_name: Some("@alice".to_string()),
+            image_uris: vec!["https://example.com/alice.png".to_string()],
+            image_hash: Some(Bytes32::new([1; 32])),
+            ..Default::default()
+        })?;
+
+        let actions = [
+            Action::fee(0),
+            Action::mint_nft_from_did(
+                Id::Existing(did_id),
+                metadata,
+                ANY_METADATA_UPDATER_HASH.into(),
+                Bytes32::default(),
+                0,
+                1,
+            ),
+            Action::update_nft(
+                Id::New(1),
+                vec![],
+                Some(TransferNftById::new(Some(Id::Existing(did_id)), vec![])),
+            ),
+        ];
+
+        let outputs = wallet.spend(&mut ctx, vec![], &actions).await?;
+        let launcher_id = outputs
+            .nfts
+            .values()
+            .next()
+            .expect("missing nft")
+            .info
+            .launcher_id;
+
+        (ctx.take(), launcher_id)
+    };
+
+    app.sign_coin_spends(SignCoinSpends {
+        coin_spends: serde_json::from_value(serde_json::to_value(&coin_spends)?)?,
+        auto_submit: true,
+        partial: false,
+        aggregated_signature: None,
+    })
+    .await?;
+    app.wait_for_coins().await;
+
+    Ok(Address::new(launcher_id, "nft".to_string()).encode()?)
+}
+
+#[tokio::test]
+async fn test_mutable_nft() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let nft_id = mint_mutable_nft(&mut app).await?;
+
+    let nft = app
+        .get_nft(GetNft {
+            nft_id: nft_id.clone(),
+        })
+        .await?
+        .nft
+        .expect("missing nft");
+    assert_eq!(nft.metadata_updater_kind, NftUpdaterKind::Any);
+    assert_eq!(nft.name.as_deref(), Some("@alice"));
+    assert_eq!(nft.data_uris, ["https://example.com/alice.png"]);
+    assert_eq!(nft.edition_number, None);
+
+    // Appending a URI is rejected before anything is signed, by both endpoints that can do it.
+    let error = app
+        .add_nft_uri(AddNftUri {
+            nft_id: nft_id.clone(),
+            uri: "https://example.com/other.png".to_string(),
+            fee: Amount::u64(0),
+            kind: NftUriKind::Data,
+            auto_submit: false,
+        })
+        .await
+        .expect_err("adding a URI to a mutable NFT must fail");
+    assert!(
+        error.to_string().contains("default metadata updater"),
+        "{error}"
+    );
+
+    let error = app
+        .create_transaction(CreateTransaction {
+            actions: vec![ApiAction::UpdateNft(UpdateNftAction {
+                id: ApiId::Existing {
+                    asset_id: nft_id.clone(),
+                },
+                new_uris: vec![NewNftUri {
+                    kind: NftUriKind::Data,
+                    uri: "https://example.com/other.png".to_string(),
+                }],
+                transfer: None,
+            })],
+            selected_coin_ids: vec![],
+            auto_submit: false,
+        })
+        .await
+        .expect_err("adding a URI to a mutable NFT must fail");
+    assert!(
+        error.to_string().contains("default metadata updater"),
+        "{error}"
+    );
+
+    // The NFT is flagged as mutable on the maker side of an offer.
+    let xch = OfferAmount {
+        asset_id: None,
+        hidden_puzzle_hash: None,
+        amount: Amount::u64(1),
+    };
+    let nft_amount = OfferAmount {
+        asset_id: Some(nft_id.clone()),
+        hidden_puzzle_hash: None,
+        amount: Amount::u64(1),
+    };
+
+    let offer = app
+        .make_offer(MakeOffer {
+            requested_assets: vec![xch.clone()],
+            offered_assets: vec![nft_amount.clone()],
+            fee: Amount::u64(0),
+            receive_address: None,
+            expires_at_second: None,
+            auto_import: true,
+            coin_ids: None,
+        })
+        .await?
+        .offer;
+
+    let summary = app.view_offer(ViewOffer { offer }).await?.offer;
+    let asset = find_nft(&summary.maker, &nft_id);
+    assert_eq!(asset.nft_metadata_updater_kind, Some(NftUpdaterKind::Any));
+    assert_eq!(asset.asset.name.as_deref(), Some("@alice"));
+    assert!(
+        summary
+            .taker
+            .iter()
+            .all(|asset| asset.nft_metadata_updater_kind.is_none())
+    );
+
+    // The same is true for offers imported into the wallet.
+    let offers = app.get_offers(GetOffers {}).await?.offers;
+    let asset = find_nft(&offers[0].summary.maker, &nft_id);
+    assert_eq!(asset.nft_metadata_updater_kind, Some(NftUpdaterKind::Any));
+    assert_eq!(asset.asset.name.as_deref(), Some("@alice"));
+
+    // And on the taker side, when the NFT is requested.
+    let offer = app
+        .make_offer(MakeOffer {
+            requested_assets: vec![nft_amount],
+            offered_assets: vec![xch],
+            fee: Amount::u64(0),
+            receive_address: None,
+            expires_at_second: None,
+            auto_import: false,
+            coin_ids: None,
+        })
+        .await?
+        .offer;
+
+    let summary = app.view_offer(ViewOffer { offer }).await?.offer;
+    let asset = find_nft(&summary.taker, &nft_id);
+    assert_eq!(asset.nft_metadata_updater_kind, Some(NftUpdaterKind::Any));
+    assert_eq!(asset.asset.name.as_deref(), Some("@alice"));
+
+    // NFTs minted by Sage use the default, append-only updater and aren't flagged.
+    let did_id = app.get_dids(GetDids {}).await?.dids[0].launcher_id.clone();
+    let default_nft_id = app
+        .bulk_mint_nfts(serde_json::from_value::<BulkMintNfts>(serde_json::json!({
+            "mints": [{}],
+            "did_id": did_id,
+            "fee": 0,
+            "auto_submit": true,
+        }))?)
+        .await?
+        .nft_ids
+        .remove(0);
+    app.wait_for_coins().await;
+
+    let nft = app
+        .get_nft(GetNft {
+            nft_id: default_nft_id,
+        })
+        .await?
+        .nft
+        .expect("missing nft");
+    assert_eq!(nft.metadata_updater_kind, NftUpdaterKind::Default);
+    assert_eq!(nft.edition_number, Some(1));
+
+    Ok(())
+}
+
+/// Removes an NFT's saved on-chain info from a wallet's database, as for offers imported
+/// before that info was saved.
+async fn forget_nft_info(app: &TestApp, fingerprint: u32, nft_id: &str) -> Result<()> {
+    let path = app.sage.lock().await.wallet_db_path(fingerprint)?;
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display())).await?;
+    let launcher_id = Address::decode(nft_id)?.puzzle_hash;
+
+    sqlx::query("DELETE FROM nfts WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)")
+        .bind(launcher_id.to_vec())
+        .execute(&pool)
+        .await?;
+
+    pool.close().await;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_requested_mutable_nft() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(1000).await?;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let nft_id = mint_mutable_nft(&mut app).await?;
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
+
+    // Bob doesn't own the NFT, so it's looked up from the network.
+    let updater = app
+        .get_nft_metadata_updater(GetNftMetadataUpdater {
+            nft_id: nft_id.clone(),
+        })
+        .await?;
+    assert_eq!(updater.metadata_updater_kind, Some(NftUpdaterKind::Any));
+    assert_eq!(updater.name.as_deref(), Some("@alice"));
+
+    let offer = app
+        .make_offer(MakeOffer {
+            requested_assets: vec![OfferAmount {
+                asset_id: Some(nft_id.clone()),
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(1),
+            }],
+            offered_assets: vec![OfferAmount {
+                asset_id: None,
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(1),
+            }],
+            fee: Amount::u64(0),
+            receive_address: None,
+            expires_at_second: None,
+            auto_import: false,
+            coin_ids: None,
+        })
+        .await?
+        .offer;
+
+    // Importing saves the requested NFT's info, even if it wasn't known beforehand.
+    forget_nft_info(&app, bob, &nft_id).await?;
+    app.import_offer(ImportOffer { offer }).await?;
+
+    let offers = app.get_offers(GetOffers {}).await?.offers;
+    let asset = find_nft(&offers[0].summary.taker, &nft_id);
+    assert_eq!(asset.nft_metadata_updater_kind, Some(NftUpdaterKind::Any));
+    assert_eq!(asset.asset.name.as_deref(), Some("@alice"));
+
+    // Without saved info, the NFT is reported as unknown rather than append-only.
+    forget_nft_info(&app, bob, &nft_id).await?;
+
+    let offers = app.get_offers(GetOffers {}).await?.offers;
+    let asset = find_nft(&offers[0].summary.taker, &nft_id);
+    assert_eq!(
+        asset.nft_metadata_updater_kind,
+        Some(NftUpdaterKind::Unknown)
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_nft_metadata_updater_of_unspent_singleton() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(0).await?;
+    let bob_address = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let coin_id = app
+        .sage
+        .lock()
+        .await
+        .wallet()?
+        .db
+        .selectable_xch_coins()
+        .await?[0]
+        .coin_id();
+
+    // The coin's only odd child is unspent, so it looks like a singleton that has never
+    // been spent since it was launched.
+    app.send_xch(SendXch {
+        address: bob_address,
+        amount: Amount::u64(1),
+        fee: Amount::u64(1),
+        memos: vec![],
+        clawback: None,
+        auto_submit: true,
+        coin_ids: None,
+    })
+    .await?;
+    app.wait_for_coins().await;
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
+
+    let updater = app
+        .get_nft_metadata_updater(GetNftMetadataUpdater {
+            nft_id: Address::new(coin_id, "nft".to_string()).encode()?,
+        })
+        .await?;
+    assert_eq!(updater.metadata_updater_kind, None);
+    assert_eq!(updater.name, None);
 
     Ok(())
 }

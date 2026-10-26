@@ -1,8 +1,8 @@
 use std::{collections::hash_map::Entry, time::Duration};
 
-use chia_wallet_sdk::{chia::puzzle_types::nft::NftMetadata, prelude::*};
+use chia_wallet_sdk::prelude::*;
 use sage_assets::{DexieCat, fetch_uris_with_hash};
-use sage_database::{Asset, AssetKind};
+use sage_database::{Asset, AssetKind, NftUpdaterKind, ParsedNftMetadata};
 use tokio::time::timeout;
 
 use crate::{ConfirmationInfo, Error, ExtractedNftData, Result, Sage, extract_nft_data};
@@ -70,15 +70,27 @@ impl Sage {
         allocator: &Allocator,
         launcher_id: Bytes32,
         nft_metadata: NodePtr,
+        metadata_updater_puzzle_hash: Bytes32,
         confirmation_info: &mut ConfirmationInfo,
     ) -> Result<Asset> {
         let wallet = self.wallet()?;
+        let kind = NftUpdaterKind::from_puzzle_hash(metadata_updater_puzzle_hash);
 
-        if let Some(asset) = wallet.db.asset(launcher_id).await? {
+        if let Some(mut asset) = wallet.db.asset(launcher_id).await? {
+            // A mutable NFT's saved name may be from earlier metadata, so the display name in
+            // the metadata given here, which is what's actually being spent or exchanged,
+            // takes precedence.
+            if !kind.is_append_only()
+                && let Some(display_name) = ParsedNftMetadata::parse(allocator, nft_metadata, kind)
+                    .and_then(|metadata| metadata.display_name)
+            {
+                asset.name = Some(display_name);
+            }
+
             return Ok(asset);
         }
 
-        let info = if let Ok(metadata) = NftMetadata::from_clvm(allocator, nft_metadata) {
+        let info = if let Some(metadata) = ParsedNftMetadata::parse(allocator, nft_metadata, kind) {
             let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
 
             if let Some(hash) = metadata.data_hash

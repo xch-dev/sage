@@ -1,7 +1,10 @@
 use chia_wallet_sdk::prelude::*;
 use sqlx::{Row, query};
 
-use crate::{Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, Result};
+use crate::{
+    Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, NftUpdaterKind,
+    ParsedNftMetadata, Result,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NftSortMode {
@@ -34,6 +37,13 @@ pub struct NftCoinInfo {
     pub license_hash: Option<Bytes32>,
     pub edition_number: Option<u64>,
     pub edition_total: Option<u64>,
+    pub display_name: Option<String>,
+}
+
+impl NftCoinInfo {
+    pub fn metadata_updater_kind(&self) -> NftUpdaterKind {
+        NftUpdaterKind::from_puzzle_hash(self.metadata_updater_puzzle_hash)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -59,6 +69,12 @@ pub struct NftOfferInfo {
     pub royalty_basis_points: u16,
 }
 
+impl NftOfferInfo {
+    pub fn metadata_updater_kind(&self) -> NftUpdaterKind {
+        NftUpdaterKind::from_puzzle_hash(self.metadata_updater_puzzle_hash)
+    }
+}
+
 impl Database {
     pub async fn wallet_nft(&self, hash: Bytes32) -> Result<Option<NftRow>> {
         let hash = hash.as_ref();
@@ -71,7 +87,7 @@ impl Database {
                 collections.hash AS 'collection_hash?', collections.name AS collection_name, 
                 wallet_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
                 royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,
-                edition_number, edition_total,
+                edition_number, edition_total, display_name,
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,
                 offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp,
                 clawback_expiration_seconds AS 'clawback_timestamp?', clawback_version AS 'clawback_version?',
@@ -112,6 +128,7 @@ impl Database {
                     license_hash: row.license_hash.convert()?,
                     edition_number: row.edition_number.convert()?,
                     edition_total: row.edition_total.convert()?,
+                    display_name: row.display_name,
                 },
                 coin_row: CoinRow {
                     coin: Coin::new(
@@ -156,7 +173,7 @@ impl Database {
                 owned_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
                 royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,                
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, edition_number, edition_total,
-                created_height, spent_height, offer_hash, created_timestamp, spent_timestamp,
+                display_name, created_height, spent_height, offer_hash, created_timestamp, spent_timestamp,
                 clawback_expiration_seconds AS clawback_timestamp, clawback_version,
                 COUNT(*) OVER() as total_count
             FROM owned_nfts
@@ -170,8 +187,9 @@ impl Database {
         }
 
         if let Some(name_search) = name_search {
+            let pattern = format!("%{name_search}%");
             query.push("AND asset_name LIKE ");
-            query.push_bind(format!("%{name_search}%"));
+            query.push_bind(pattern);
         }
 
         if let Some(group) = group_search {
@@ -263,6 +281,7 @@ impl Database {
                         license_hash: row.get::<Option<Vec<u8>>, _>("license_hash").convert()?,
                         edition_number: row.get::<Option<i64>, _>("edition_number").convert()?,
                         edition_total: row.get::<Option<i64>, _>("edition_total").convert()?,
+                        display_name: row.get::<Option<String>, _>("display_name"),
                     },
                     coin_row: CoinRow {
                         coin: Coin::new(
@@ -377,15 +396,17 @@ impl DatabaseTx<'_> {
             .transpose()?;
         let edition_total: Option<i64> =
             coin_info.edition_total.map(TryInto::try_into).transpose()?;
+        let metadata_updater_kind = coin_info.metadata_updater_kind() as i64;
 
         query!(
             "
             INSERT OR IGNORE INTO nfts (
                 asset_id, collection_id, minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
+                metadata_updater_kind, display_name,
                 royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,
                 edition_number, edition_total
             )
-            VALUES ((SELECT id FROM assets WHERE hash = ?), (SELECT id FROM collections WHERE hash = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES ((SELECT id FROM assets WHERE hash = ?), (SELECT id FROM collections WHERE hash = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ",
             hash,
             collection_id,
@@ -393,6 +414,8 @@ impl DatabaseTx<'_> {
             owner_hash,
             metadata,
             metadata_updater_puzzle_hash,
+            metadata_updater_kind,
+            coin_info.display_name,
             royalty_puzzle_hash,
             coin_info.royalty_basis_points,
             data_hash,
@@ -424,6 +447,7 @@ impl DatabaseTx<'_> {
             .transpose()?;
         let edition_total: Option<i64> =
             coin_info.edition_total.map(TryInto::try_into).transpose()?;
+        let metadata_updater_kind = coin_info.metadata_updater_kind() as i64;
 
         query!(
             "
@@ -434,6 +458,8 @@ impl DatabaseTx<'_> {
                 owner_hash = ?,
                 metadata = ?,
                 metadata_updater_puzzle_hash = ?,
+                metadata_updater_kind = ?,
+                display_name = ?,
                 royalty_puzzle_hash = ?,
                 royalty_basis_points = ?,
                 data_hash = ?,
@@ -448,6 +474,8 @@ impl DatabaseTx<'_> {
             owner_hash,
             metadata,
             metadata_updater_puzzle_hash,
+            metadata_updater_kind,
+            coin_info.display_name,
             royalty_puzzle_hash,
             coin_info.royalty_basis_points,
             data_hash,
@@ -455,6 +483,121 @@ impl DatabaseTx<'_> {
             license_hash,
             edition_number,
             edition_total,
+            hash
+        )
+        .execute(&mut *self.tx)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Reparses the metadata of NFTs using the any metadata updater, which was previously
+    /// always parsed as CHIP-7, to fill in their display names. The display name is also used
+    /// as the NFT's name, in place of the name from its metadata file.
+    pub async fn backfill_nft_display_names(&mut self) -> Result<()> {
+        let any_kind = NftUpdaterKind::Any as i64;
+
+        let rows = query!(
+            "SELECT id, metadata FROM nfts WHERE metadata_updater_kind = ?",
+            any_kind
+        )
+        .fetch_all(&mut *self.tx)
+        .await?;
+
+        for row in rows {
+            let metadata =
+                ParsedNftMetadata::parse_program(&row.metadata.into(), NftUpdaterKind::Any);
+
+            let display_name = metadata.as_ref().and_then(|m| m.display_name.clone());
+            let edition_number: Option<i64> = metadata
+                .as_ref()
+                .and_then(|m| m.edition_number)
+                .map(TryInto::try_into)
+                .transpose()?;
+            let edition_total: Option<i64> = metadata
+                .as_ref()
+                .and_then(|m| m.edition_total)
+                .map(TryInto::try_into)
+                .transpose()?;
+
+            query!(
+                "UPDATE nfts SET display_name = ?, edition_number = ?, edition_total = ? WHERE id = ?",
+                display_name,
+                edition_number,
+                edition_total,
+                row.id
+            )
+            .execute(&mut *self.tx)
+            .await?;
+
+            if let Some(display_name) = display_name {
+                query!(
+                    "UPDATE assets SET name = ? WHERE id = (SELECT asset_id FROM nfts WHERE id = ?)",
+                    display_name,
+                    row.id
+                )
+                .execute(&mut *self.tx)
+                .await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// The data and metadata file hashes and display name currently saved for an NFT,
+    /// if it's known. These are what its name and icon are derived from.
+    pub async fn nft_display_source(
+        &mut self,
+        hash: Bytes32,
+    ) -> Result<Option<(Option<Bytes32>, Option<Bytes32>, Option<String>)>> {
+        let hash = hash.as_ref();
+
+        query!(
+            "
+            SELECT data_hash, metadata_hash, display_name FROM nfts
+            INNER JOIN assets ON assets.id = nfts.asset_id
+            WHERE assets.hash = ?
+            ",
+            hash
+        )
+        .fetch_optional(&mut *self.tx)
+        .await?
+        .map(|row| {
+            Ok((
+                row.data_hash.convert()?,
+                row.metadata_hash.convert()?,
+                row.display_name,
+            ))
+        })
+        .transpose()
+    }
+
+    /// Overwrites the display fields of an NFT's asset, including clearing them. This is
+    /// for mutable NFTs, whose old name and icon may no longer apply after their metadata
+    /// is replaced. They're filled in again once the new metadata files are downloaded.
+    pub async fn reset_nft_asset_display(
+        &mut self,
+        hash: Bytes32,
+        name: Option<String>,
+        description: Option<String>,
+        icon_url: Option<String>,
+        is_sensitive_content: bool,
+    ) -> Result<()> {
+        let hash = hash.as_ref();
+
+        query!(
+            "
+            UPDATE assets SET
+                name = ?,
+                description = ?,
+                icon_url = ?,
+                is_sensitive_content = ?
+            WHERE hash = ?
+            ",
+            name,
+            description,
+            icon_url,
+            is_sensitive_content,
             hash
         )
         .execute(&mut *self.tx)
@@ -495,10 +638,12 @@ impl DatabaseTx<'_> {
         let hash = hash.as_ref();
         let collection_id = metadata_info.collection_id.as_ref();
 
+        // The display name from an NFT's on-chain metadata takes precedence over the name
+        // from its metadata file.
         query!(
             "
             UPDATE assets SET
-                name = ?,
+                name = COALESCE((SELECT display_name FROM nfts WHERE nfts.asset_id = assets.id), ?),
                 description = ?,
                 is_sensitive_content = ?
             WHERE hash = ?

@@ -75,6 +75,7 @@ pub fn generate_openapi() -> OpenApi {
         .schema_from::<sage_api::KeyKind>()
         .schema_from::<sage_api::NftData>()
         .schema_from::<sage_api::NftSpecialUseType>()
+        .schema_from::<sage_api::NftUpdaterKind>()
         .schema_from::<sage_api::Asset>()
         .schema_from::<sage_api::AssetKind>()
         .schema_from::<sage_api::AddressKind>()

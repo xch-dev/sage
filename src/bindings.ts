@@ -197,6 +197,9 @@ async getNftIcon(req: GetNftIcon) : Promise<GetNftIconResponse> {
 async getNftThumbnail(req: GetNftThumbnail) : Promise<GetNftThumbnailResponse> {
     return await TAURI_INVOKE("get_nft_thumbnail", { req });
 },
+async getNftMetadataUpdater(req: GetNftMetadataUpdater) : Promise<GetNftMetadataUpdaterResponse> {
+    return await TAURI_INVOKE("get_nft_metadata_updater", { req });
+},
 async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTransactionsResponse> {
     return await TAURI_INVOKE("get_pending_transactions", { req });
 },
@@ -1343,6 +1346,26 @@ export type GetNftIconResponse = {
  */
 icon: string | null }
 /**
+ * Get the metadata updater of any NFT, including ones not in the wallet
+ */
+export type GetNftMetadataUpdater = { 
+/**
+ * NFT launcher ID
+ */
+nft_id: string }
+/**
+ * Response with an NFT's metadata updater kind
+ */
+export type GetNftMetadataUpdaterResponse = { 
+/**
+ * The metadata updater kind, or null if the NFT couldn't be found
+ */
+metadata_updater_kind: NftUpdaterKind | null; 
+/**
+ * The NFT's name, if it's known
+ */
+name: string | null }
+/**
  * Response with NFT details
  */
 export type GetNftResponse = { 
@@ -2216,7 +2239,7 @@ royalty_address?: string | null;
  * Royalty percentage in ten-thousandths (e.g., 300 = 3%)
  */
 royalty_ten_thousandths?: number }
-export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null; special_use_type: NftSpecialUseType | null }
+export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; metadata_updater_kind: NftUpdaterKind; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null; special_use_type: NftSpecialUseType | null }
 export type NftRoyalty = { royalty_address: string; royalty_basis_points: number }
 export type NftSortMode = "name" | "recent"
 export type NftSpecialUseType = "none" | "theme"
@@ -2225,6 +2248,25 @@ export type NftTransfer = {
  * The DID to assign as the owner
  */
 did_id: Id | null }
+/**
+ * The kind of metadata updater puzzle an NFT uses, which determines how its
+ * on-chain metadata can change.
+ */
+export type NftUpdaterKind = 
+/**
+ * The standard CHIP-7 updater. Metadata is append-only: URIs can be added, but
+ * nothing else can change.
+ */
+"default" | 
+/**
+ * The any metadata updater, used by `XCHandles`. The owner can replace all metadata
+ * at any time.
+ */
+"any" | 
+/**
+ * An updater that isn't recognized. Its metadata should be treated as mutable.
+ */
+"unknown"
 /**
  * Type of NFT URI
  */
@@ -2261,7 +2303,12 @@ hidden_puzzle_hash?: string | null;
  * Amount of the asset
  */
 amount: Amount }
-export type OfferAsset = { asset: Asset; amount: Amount; royalty: Amount; nft_royalty: NftRoyalty | null; option_assets: OptionAssets | null }
+export type OfferAsset = { asset: Asset; amount: Amount; royalty: Amount; nft_royalty: NftRoyalty | null; option_assets: OptionAssets | null; 
+/**
+ * The metadata updater kind, if the asset is an NFT. Mutable NFTs can have all of
+ * their metadata replaced by the owner, including after the offer is accepted.
+ */
+nft_metadata_updater_kind: NftUpdaterKind | null }
 export type OfferRecord = { offer_id: string; offer: string; status: OfferRecordStatus; creation_timestamp: number; summary: OfferSummary }
 export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled" | "expired"
 export type OfferSummary = { fee: Amount; maker: OfferAsset[]; taker: OfferAsset[]; expiration_height: number | null; expiration_timestamp: number | null }
@@ -2715,7 +2762,12 @@ auto_submit?: boolean;
 /**
  * Whether to partially sign (for multi-signature)
  */
-partial?: boolean }
+partial?: boolean; 
+/**
+ * Existing aggregated signature to add this wallet's signatures to.
+ * It's returned unchanged if it already includes them.
+ */
+aggregated_signature?: string | null }
 /**
  * Response with signed spend bundle
  */
