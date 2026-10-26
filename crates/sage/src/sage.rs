@@ -14,8 +14,8 @@ use chia_wallet_sdk::{
 use indexmap::IndexMap;
 use sage_api::{Unit, XCH};
 use sage_config::{
-    Config, Network, NetworkList, OldConfig, OldNetwork, WalletConfig, migrate_config,
-    migrate_networks,
+    Config, Network, NetworkList, OldConfig, OldNetwork, WalletConfig, is_old_config,
+    migrate_config, migrate_networks,
 };
 use sage_database::Database;
 use sage_keychain::Keychain;
@@ -159,25 +159,24 @@ impl Sage {
         if config_path.try_exists()? {
             let config_text = fs::read_to_string(&config_path)?;
 
-            if let Some(old_config) = toml::from_str::<OldConfig>(&config_text)
-                .ok()
-                .filter(OldConfig::is_old)
-            {
+            if is_old_config(&config_text) {
+                let old_config: OldConfig = toml::from_str(&config_text)?;
                 let (config, wallet_config) = migrate_config(old_config)?;
                 self.config = config;
-                self.wallet_config = wallet_config;
                 fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
-                fs::write(
-                    &wallet_config_path,
-                    toml::to_string_pretty(&self.wallet_config)?,
-                )?;
+                fs::write(&wallet_config_path, toml::to_string_pretty(&wallet_config)?)?;
             } else {
                 self.config = toml::from_str(&config_text)?;
-                let wallet_config_text = fs::read_to_string(&wallet_config_path)?;
-                self.wallet_config = toml::from_str(&wallet_config_text)?;
             }
         } else {
             fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
+        }
+
+        // This is loaded separately, so that a missing main config doesn't overwrite the wallets.
+        if wallet_config_path.try_exists()? {
+            let wallet_config_text = fs::read_to_string(&wallet_config_path)?;
+            self.wallet_config = toml::from_str(&wallet_config_text)?;
+        } else {
             fs::write(
                 &wallet_config_path,
                 toml::to_string_pretty(&self.wallet_config)?,
@@ -187,7 +186,11 @@ impl Sage {
         if network_list_path.try_exists()? {
             let text = fs::read_to_string(&network_list_path)?;
 
-            if let Ok(old_network_list) = toml::from_str::<IndexMap<String, OldNetwork>>(&text) {
+            // An empty file isn't an old network list, since migrating it would remove every network.
+            if let Some(old_network_list) = toml::from_str::<IndexMap<String, OldNetwork>>(&text)
+                .ok()
+                .filter(|networks| !networks.is_empty())
+            {
                 self.network_list = migrate_networks(old_network_list);
                 fs::write(
                     &network_list_path,
@@ -549,5 +552,104 @@ async fn update_query_planner_stats(pool: &SqlitePool) {
         warn!("Failed to update query planner stats: {error}");
     } else {
         info!("Updated database query planner statistics");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sage_config::Wallet as WalletEntry;
+    use tempfile::TempDir;
+
+    use super::*;
+
+    fn load(path: &Path) -> Result<Sage> {
+        let mut sage = Sage::new(path, true);
+        sage.setup_keys()?;
+        sage.setup_config()?;
+        Ok(sage)
+    }
+
+    fn save_named_wallet(path: &Path) -> Result<()> {
+        let mut sage = load(path)?;
+        sage.wallet_config.wallets.push(WalletEntry {
+            name: "Named".to_string(),
+            fingerprint: 1_000_000,
+            ..Default::default()
+        });
+        sage.save_config()
+    }
+
+    #[test]
+    fn test_empty_config_is_not_migrated() -> Result<()> {
+        let dir = TempDir::new()?;
+        save_named_wallet(dir.path())?;
+
+        // An interrupted write can leave the config empty
+        fs::write(dir.path().join("config.toml"), "")?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.wallet_config.wallets.len(), 1);
+        assert_eq!(sage.wallet_config.wallets[0].name, "Named");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_missing_config_keeps_wallet_config() -> Result<()> {
+        let dir = TempDir::new()?;
+        save_named_wallet(dir.path())?;
+
+        fs::remove_file(dir.path().join("config.toml"))?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.wallet_config.wallets.len(), 1);
+        assert_eq!(sage.wallet_config.wallets[0].name, "Named");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_missing_wallet_config_is_created() -> Result<()> {
+        let dir = TempDir::new()?;
+        save_named_wallet(dir.path())?;
+
+        fs::remove_file(dir.path().join("wallets.toml"))?;
+
+        let sage = load(dir.path())?;
+        assert!(sage.wallet_config.wallets.is_empty());
+        assert!(dir.path().join("wallets.toml").try_exists()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_old_config_is_migrated() -> Result<()> {
+        let dir = TempDir::new()?;
+
+        fs::write(
+            dir.path().join("config.toml"),
+            "[app]\nlog_level = \"INFO\"\n\n[wallets.1000000]\nname = \"Old\"\n",
+        )?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.config.version, 2);
+        assert_eq!(sage.wallet_config.wallets.len(), 1);
+        assert_eq!(sage.wallet_config.wallets[0].name, "Old");
+        assert_eq!(sage.wallet_config.wallets[0].fingerprint, 1_000_000);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_empty_network_list_is_not_migrated() -> Result<()> {
+        let dir = TempDir::new()?;
+        drop(load(dir.path())?);
+
+        fs::write(dir.path().join("networks.toml"), "")?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.network().name, "mainnet");
+
+        Ok(())
     }
 }
