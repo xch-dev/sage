@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sage_api::{HandleConfirmation, RecipientErrorKind, SendXch};
+use sage_api::{HandleConfirmation, RecipientErrorKind, ResolveHandle, SendXch};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -7,7 +7,7 @@ use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeApprovalBody,
     RustBridgeApprovalRequest, RustBridgeApprovalResponse, RustBridgeRequest, UserBridgeCapability,
-    parse_required_params,
+    WalletSendXchHandle, parse_required_params,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -16,6 +16,11 @@ pub struct WalletSendXch;
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct WalletSendXchParams {
+    /// An address, or an XCHandles handle written as `@handle`. Sending to a handle always
+    /// asks the user for approval, so that they can review the verified address it resolves
+    /// to. It fails with `recipient_changed` if the handle changed since it was last sent to
+    /// and the user didn't confirm the new address, or `recipient_unresolved` if it can't be
+    /// verified.
     pub address: String,
     pub amount: String,
     pub fee: String,
@@ -36,7 +41,7 @@ fn approved_send_xch_params(
     approval: &RustBridgeApprovalRequest,
     response: Option<&RustBridgeApprovalResponse>,
 ) -> Result<(WalletSendXchParams, Option<String>), BridgeMethodHandleError> {
-    let RustBridgeApprovalBody::SendXch { summary } = &approval.body else {
+    let RustBridgeApprovalBody::SendXch { summary, .. } = &approval.body else {
         return Err(BridgeMethodHandleError::invalid_request(
             "The send XCH approval does not match its bridge request",
         ));
@@ -168,8 +173,48 @@ impl BridgeMethod for WalletSendXch {
         }
 
         Ok(Some(RustBridgeApprovalRequest {
-            body: RustBridgeApprovalBody::SendXch { summary: params },
+            body: RustBridgeApprovalBody::SendXch {
+                summary: params,
+                handle: None,
+            },
         }))
+    }
+
+    async fn prepare_approval(
+        &self,
+        ctx: BridgeContext<'_>,
+        tools: BridgeTools<'_>,
+        request: &RustBridgeRequest,
+    ) -> BridgeApprovalRequestResult {
+        let Some(mut approval) = self.approval_request(ctx, request)? else {
+            return Ok(None);
+        };
+
+        if let RustBridgeApprovalBody::SendXch { summary, handle } = &mut approval.body
+            && is_handle_recipient(summary)
+        {
+            let result = tools
+                .app_state
+                .lock()
+                .await
+                .resolve_handle(ResolveHandle {
+                    handle: summary.address.clone(),
+                })
+                .await;
+
+            *handle = Some(Box::new(match result {
+                Ok(response) => WalletSendXchHandle {
+                    record: Some(response.handle),
+                    error: None,
+                },
+                Err(error) => WalletSendXchHandle {
+                    record: None,
+                    error: Some(error.to_string()),
+                },
+            }));
+        }
+
+        Ok(Some(approval))
     }
 
     fn binds_approval_to_wallet(&self) -> bool {
@@ -215,6 +260,7 @@ mod tests {
     fn send_xch_approval() -> RustBridgeApprovalRequest {
         RustBridgeApprovalRequest {
             body: RustBridgeApprovalBody::SendXch {
+                handle: None,
                 summary: WalletSendXchParams {
                     address: "reviewed-address".to_string(),
                     amount: "123".to_string(),
@@ -267,7 +313,7 @@ mod tests {
         assert_eq!(confirmed, None);
 
         let mut approval = send_xch_approval();
-        let RustBridgeApprovalBody::SendXch { summary } = &mut approval.body else {
+        let RustBridgeApprovalBody::SendXch { summary, .. } = &mut approval.body else {
             unreachable!();
         };
         summary.address = "@alice".to_string();

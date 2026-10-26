@@ -1,3 +1,4 @@
+use sage_api::HandleRecord;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
@@ -84,6 +85,18 @@ pub struct WalletSendXchApprovalResponse {
     pub confirmed_address: Option<String>,
 }
 
+/// A handle recipient, resolved by Sage when the approval was requested so that the user
+/// can review the verified address before approving.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct WalletSendXchHandle {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub record: Option<HandleRecord>,
+    /// Why the handle couldn't be resolved, in which case the send can't be approved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RustBridgeApprovalRequest {
@@ -99,6 +112,9 @@ pub enum RustBridgeApprovalBody {
     },
     SendXch {
         summary: WalletSendXchParams,
+        /// What the handle recipient resolves to, if the recipient is a handle.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        handle: Option<Box<WalletSendXchHandle>>,
     },
     SignCoinSpends {
         summary: WalletSignCoinSpendsApprovalSummary,
