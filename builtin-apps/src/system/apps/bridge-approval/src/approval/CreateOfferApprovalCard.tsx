@@ -9,19 +9,45 @@ interface Props {
 
 type OfferAsset = Props['approval']['summary']['offered'][number];
 
-function assetLabel(asset: OfferAsset) {
-  if (!asset.assetId) return asset.ticker ?? 'XCH';
-  return asset.ticker ?? asset.name ?? 'Unknown asset';
+const KIND_LABELS: Record<OfferAsset['kind'], string> = {
+  xch: 'XCH',
+  cat: 'CAT',
+  nft: 'NFT',
+  option: 'Option',
+};
+
+function assetName(asset: OfferAsset) {
+  if (asset.kind === 'xch') return asset.ticker ?? 'XCH';
+  if (asset.kind === 'cat') return asset.ticker ?? asset.name ?? 'Unknown CAT';
+  return asset.name ?? `Unknown ${KIND_LABELS[asset.kind]}`;
 }
 
-function formatAmount(amount: string, precision: number | null) {
-  if (precision === null || precision === 0) return amount;
+function formatAmount(amount: string, precision: number) {
+  if (precision === 0) return amount;
 
   const digits = amount.padStart(precision + 1, '0');
   const whole = digits.slice(0, -precision);
   const fraction = digits.slice(-precision).replace(/0+$/, '');
 
   return fraction ? `${whole}.${fraction}` : whole;
+}
+
+function assetAmount(asset: OfferAsset) {
+  const amount = formatAmount(asset.amount, asset.precision);
+  if (asset.kind === 'nft' || asset.kind === 'option') return amount;
+
+  // An asset posing as XCH gets no unit, so its amount cannot read as "1 XCH".
+  const unit =
+    asset.kind === 'xch'
+      ? (asset.ticker ?? 'XCH')
+      : asset.impersonatesXch
+        ? null
+        : asset.ticker;
+  const formatted = unit ? `${amount} ${unit}` : amount;
+
+  return asset.precisionKnown
+    ? formatted
+    : `${formatted} (precision unknown, assuming ${asset.precision} decimals)`;
 }
 
 function formatExpiry(seconds: number) {
@@ -43,19 +69,38 @@ function AssetList({ title, assets }: { title: string; assets: OfferAsset[] }) {
             key={`${asset.assetId ?? 'xch'}-${index}`}
             className='space-y-1 rounded-md border px-2 py-2'
           >
-            <ApprovalDetailRow
-              label={assetLabel(asset)}
-              value={formatAmount(asset.amount, asset.precision)}
-            />
-            <ApprovalDetailRow
-              label='Raw amount'
-              value={asset.amount}
-              mono
-              breakAll
-            />
+            <div className='flex flex-wrap items-center gap-2'>
+              <ApprovalMetaPill>{KIND_LABELS[asset.kind]}</ApprovalMetaPill>
+              <div className='min-w-0 break-all text-sm font-medium'>
+                {assetName(asset)}
+              </div>
+            </div>
+            {asset.impersonatesXch ? (
+              <div className='rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive'>
+                This is not XCH. It is {asset.kind === 'option' ? 'an' : 'a'}{' '}
+                {KIND_LABELS[asset.kind]} whose name or ticker is XCH. Check the
+                {asset.kind === 'cat'
+                  ? ' asset'
+                  : ` ${KIND_LABELS[asset.kind]}`}{' '}
+                ID before approving.
+              </div>
+            ) : null}
+            <ApprovalDetailRow label='Amount' value={assetAmount(asset)} />
+            {asset.kind === 'xch' || asset.kind === 'cat' ? (
+              <ApprovalDetailRow
+                label='Mojos'
+                value={asset.amount}
+                mono
+                breakAll
+              />
+            ) : null}
             {asset.assetId ? (
               <ApprovalDetailRow
-                label='Asset ID'
+                label={
+                  asset.kind === 'cat'
+                    ? 'Asset ID'
+                    : `${KIND_LABELS[asset.kind]} ID`
+                }
                 value={asset.assetId}
                 mono
                 breakAll
@@ -100,12 +145,14 @@ export function CreateOfferApprovalCard({ approval, appName }: Props) {
           label='Fee'
           value={`${formatAmount(summary.fee, 12)} XCH`}
         />
-        {summary.expiresAtSecond !== null ? (
-          <ApprovalDetailRow
-            label='Expires'
-            value={formatExpiry(summary.expiresAtSecond)}
-          />
-        ) : null}
+        <ApprovalDetailRow
+          label='Expires'
+          value={
+            summary.expiresAtSecond !== null
+              ? formatExpiry(summary.expiresAtSecond)
+              : 'Never expires'
+          }
+        />
       </div>
     </div>
   );
