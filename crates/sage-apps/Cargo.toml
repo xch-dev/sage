@@ -37,3 +37,4 @@ futures = "0.3.32"
 
 [dev-dependencies]
 tempfile = { workspace = true }
+sage-wallet = { workspace = true }

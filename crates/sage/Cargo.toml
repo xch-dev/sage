@@ -27,11 +27,11 @@ tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing-appender = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
 tokio = { workspace = true }
+futures-util = { workspace = true }
 indexmap = { workspace = true, features = ["serde"] }
 toml = { workspace = true, features = ["preserve_order"] }
 chia-wallet-sdk = { workspace = true, features = ["rustls"] }
 hex = { workspace = true }
-futures-util = { workspace = true }
 thiserror = { workspace = true }
 log = { workspace = true }
 bip39 = { workspace = true }

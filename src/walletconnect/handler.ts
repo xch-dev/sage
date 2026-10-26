@@ -19,6 +19,11 @@ import {
   handleUpdateCat,
 } from './commands/high-level';
 import {
+  handleGetHandle,
+  handleGetOwnedHandles,
+  handleResolveHandle,
+} from './commands/xchandles';
+import {
   handleCancelOffer,
   handleCreateOffer,
   handleTakeOffer,
@@ -93,6 +98,12 @@ export const handleCommand = async (
       return await handleBulkMintNfts(parseCommand(command, params), context);
     case 'chia_updateCat':
       return await handleUpdateCat(parseCommand(command, params));
+    case 'chia_resolveHandle':
+      return await handleResolveHandle(parseCommand(command, params));
+    case 'chia_getHandle':
+      return await handleGetHandle(parseCommand(command, params));
+    case 'chia_getOwnedHandles':
+      return await handleGetOwnedHandles(parseCommand(command, params));
     default:
       throw new Error(`Unknown command: ${command}`);
   }

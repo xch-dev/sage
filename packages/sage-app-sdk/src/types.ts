@@ -79,6 +79,21 @@ export type SageWalletClient = {
     input: Generated.GetTransactions,
   ): Promise<Generated.GetTransactionsResponse>;
 
+  /** Requires `wallet.resolve_handle`. Sends the handle to the XCHandles API. */
+  resolveHandle(
+    input: Generated.ResolveHandle,
+  ): Promise<Generated.ResolveHandleResponse>;
+  /** Requires `wallet.resolve_handle`. Sends the handle to the XCHandles API. */
+  getHandle(input: Generated.GetHandle): Promise<Generated.GetHandleResponse>;
+  /** Requires `wallet.get_handles`. Reads known handles only; `refresh` is rejected. */
+  getHandles(
+    input: Generated.GetHandles,
+  ): Promise<Generated.GetHandlesResponse>;
+  /** Requires `wallet.get_handles`. Reads known handles only. */
+  lookupAddressHandles(
+    input: Generated.LookupAddressHandles,
+  ): Promise<Generated.LookupAddressHandlesResponse>;
+
   sendXch(
     input: Generated.WalletSendXchParams,
   ): Promise<Generated.TransactionResponse>;

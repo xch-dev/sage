@@ -1,5 +1,5 @@
 use chia_wallet_sdk::prelude::*;
-use sqlx::SqliteExecutor;
+use sqlx::{SqliteExecutor, SqlitePool};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 
@@ -75,6 +75,44 @@ impl Database {
         puzzle_hash: Bytes32,
     ) -> Result<Vec<XchandleRow>> {
         xchandles_by_puzzle_hash(&self.pool, registry_launcher_id, puzzle_hash).await
+    }
+
+    /// A page of stored handle mappings, sorted by handle, and the total number matching.
+    ///
+    /// Unless `include_unverified` is set, only verified mappings which haven't expired by
+    /// `now` or the peak they were verified at are included. If `owned_only` is set, only
+    /// mappings whose owner singleton is an NFT or DID owned by this wallet are included.
+    pub async fn xchandles_page(
+        &self,
+        registry_launcher_id: Bytes32,
+        owned_only: bool,
+        include_unverified: bool,
+        now: u64,
+        limit: u32,
+        offset: u32,
+    ) -> Result<(Vec<XchandleRow>, u32)> {
+        xchandles_page(
+            &self.pool,
+            registry_launcher_id,
+            owned_only,
+            include_unverified,
+            now,
+            limit,
+            offset,
+        )
+        .await
+    }
+
+    /// The display names of NFTs owned by this wallet which use the `XCHandles` metadata
+    /// updater. These are only hints about which handles the wallet may own.
+    pub async fn owned_handle_nft_display_names(&self) -> Result<Vec<String>> {
+        owned_handle_nft_display_names(&self.pool).await
+    }
+
+    /// The stored handles whose owner singleton is an NFT or DID owned by this wallet,
+    /// whatever their status.
+    pub async fn owned_xchandle_names(&self, registry_launcher_id: Bytes32) -> Result<Vec<String>> {
+        owned_xchandle_names(&self.pool, registry_launcher_id).await
     }
 
     pub async fn upsert_xchandle(&self, row: &XchandleRow) -> Result<()> {
@@ -225,6 +263,98 @@ async fn xchandles_by_puzzle_hash(
     .into_iter()
     .map(|row| xchandle_row!(row))
     .collect()
+}
+
+async fn xchandles_page(
+    pool: &SqlitePool,
+    registry_launcher_id: Bytes32,
+    owned_only: bool,
+    include_unverified: bool,
+    now: u64,
+    limit: u32,
+    offset: u32,
+) -> Result<(Vec<XchandleRow>, u32)> {
+    let registry_launcher_id = registry_launcher_id.as_ref();
+    let now: i64 = now.try_into()?;
+
+    // The total is counted separately, so that it's still correct for a page past the end.
+    let total = sqlx::query_scalar!(
+        "
+        SELECT COUNT(*) FROM xchandles
+        WHERE registry_launcher_id = ?
+            AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))
+            AND (
+                NOT ? OR owner_launcher_id IN (
+                    SELECT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)
+                )
+            )
+        ",
+        registry_launcher_id,
+        include_unverified,
+        now,
+        owned_only
+    )
+    .fetch_one(pool)
+    .await?;
+
+    let rows = sqlx::query!(
+        "
+        SELECT * FROM xchandles
+        WHERE registry_launcher_id = ?
+            AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))
+            AND (
+                NOT ? OR owner_launcher_id IN (
+                    SELECT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)
+                )
+            )
+        ORDER BY handle ASC
+        LIMIT ? OFFSET ?
+        ",
+        registry_launcher_id,
+        include_unverified,
+        now,
+        owned_only,
+        limit,
+        offset
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|row| xchandle_row!(row))
+    .collect::<Result<_>>()?;
+
+    Ok((rows, total.try_into()?))
+}
+
+async fn owned_xchandle_names(
+    conn: impl SqliteExecutor<'_>,
+    registry_launcher_id: Bytes32,
+) -> Result<Vec<String>> {
+    let registry_launcher_id = registry_launcher_id.as_ref();
+
+    Ok(sqlx::query_scalar!(
+        "
+        SELECT handle FROM xchandles
+        WHERE registry_launcher_id = ? AND owner_launcher_id IN (
+            SELECT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)
+        )
+        ",
+        registry_launcher_id
+    )
+    .fetch_all(conn)
+    .await?)
+}
+
+async fn owned_handle_nft_display_names(conn: impl SqliteExecutor<'_>) -> Result<Vec<String>> {
+    Ok(sqlx::query_scalar!(
+        "
+        SELECT DISTINCT display_name AS \"display_name!\" FROM owned_nfts
+        WHERE metadata_updater_kind = 1 AND display_name IS NOT NULL
+        ORDER BY display_name ASC
+        "
+    )
+    .fetch_all(conn)
+    .await?)
 }
 
 async fn upsert_xchandle(conn: impl SqliteExecutor<'_>, row: &XchandleRow) -> Result<()> {

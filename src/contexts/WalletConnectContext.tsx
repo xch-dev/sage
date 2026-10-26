@@ -35,6 +35,7 @@ import {
   WalletConnectCommand,
   walletConnectCommands,
 } from '@/walletconnect/commands';
+import { WalletConnectError } from '@/walletconnect/errors';
 import { handleCommand } from '@/walletconnect/handler';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -157,7 +158,11 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
             error: {
               code: 4001,
               message: errorMessage,
-              ...(recipients ? { data: JSON.stringify({ recipients }) } : {}),
+              ...(error instanceof WalletConnectError
+                ? { data: JSON.stringify({ code: error.code }) }
+                : recipients
+                  ? { data: JSON.stringify({ recipients }) }
+                  : {}),
             },
           },
         });

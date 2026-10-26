@@ -9,6 +9,7 @@ mod api;
 mod cache;
 mod error;
 mod handle;
+mod pending;
 mod resolve;
 mod verify;
 
@@ -19,5 +20,6 @@ pub use api::*;
 pub use cache::*;
 pub use error::*;
 pub use handle::*;
+pub use pending::*;
 pub use resolve::*;
 pub use verify::*;

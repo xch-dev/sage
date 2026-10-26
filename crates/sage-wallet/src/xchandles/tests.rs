@@ -9,7 +9,9 @@ use chia_wallet_sdk::{
     driver::Slot,
     prelude::*,
     test::{BlsPairWithCoin, PeerSimulator},
-    types::puzzles::{SlotInfo, XchandlesHandleSlotValue, XchandlesSlotNonce},
+    types::puzzles::{
+        SlotInfo, XchandlesHandleSlotValue, XchandlesSlotNonce, XchandlesUpdateSlotValue,
+    },
 };
 
 use crate::WalletPeer;
@@ -99,6 +101,45 @@ impl TestRegistry {
             created.push(slot);
         }
 
+        self.finish_spend(sim, ctx, conditions).await?;
+
+        Ok(created)
+    }
+
+    /// Spends the registry, creating an update slot as the initiate update action does.
+    async fn create_update_slot(
+        &mut self,
+        sim: &PeerSimulator,
+        info: SlotInfo<XchandlesUpdateSlotValue>,
+    ) -> anyhow::Result<Slot<XchandlesUpdateSlotValue>> {
+        let inner_puzzle_hash = Self::inner_puzzle_hash();
+
+        let slot = Slot::new(
+            LineageProof {
+                parent_parent_coin_info: self.coin.parent_coin_info,
+                parent_inner_puzzle_hash: inner_puzzle_hash,
+                parent_amount: 1,
+            },
+            info,
+        );
+
+        let conditions = Conditions::new()
+            .create_coin(inner_puzzle_hash, 1, Memos::None)
+            .create_coin(slot.coin.puzzle_hash, 0, Memos::None);
+
+        self.finish_spend(sim, SpendContext::new(), conditions)
+            .await?;
+
+        Ok(slot)
+    }
+
+    async fn finish_spend(
+        &mut self,
+        sim: &PeerSimulator,
+        mut ctx: SpendContext,
+        conditions: Conditions,
+    ) -> anyhow::Result<()> {
+        let inner_puzzle_hash = Self::inner_puzzle_hash();
         let inner_puzzle = ctx.alloc(&1)?;
         let puzzle = ctx.curry(SingletonArgs::new(self.launcher_id, inner_puzzle))?;
         let solution = ctx.alloc(&SingletonSolution {
@@ -117,7 +158,7 @@ impl TestRegistry {
         });
         self.coin = Coin::new(self.coin.coin_id(), self.coin.puzzle_hash, 1);
 
-        Ok(created)
+        Ok(())
     }
 }
 
@@ -678,6 +719,205 @@ async fn test_unspent_eve_singleton_is_not_verified() -> anyhow::Result<()> {
         XchandlesError::ResolvedSingletonUnspentEve(..)
     ));
     assert!(!error.is_unavailable() && error.is_rejection());
+
+    Ok(())
+}
+
+fn pending_transfer(setup: &Setup) -> PendingTransferResponse {
+    PendingTransferResponse {
+        new_owner_launcher_id: Bytes32::new([1; 32]),
+        new_resolved_launcher_id: Bytes32::new([2; 32]),
+        update_confirmation_height: 1,
+        minimum_execution_height: 100,
+        initiator_coin_id: setup.nft.coin.coin_id(),
+        executor_coin_id: Bytes32::new([4; 32]),
+    }
+}
+
+impl Setup {
+    async fn verify_pending(
+        &self,
+        transfer: &PendingTransferResponse,
+    ) -> Result<Option<Bytes32>, XchandlesError> {
+        verify_pending_transfer(
+            &self.peer,
+            genesis_challenge(),
+            self.registry.launcher_id,
+            &self.handle,
+            transfer,
+        )
+        .await
+    }
+}
+
+#[tokio::test]
+async fn test_pending_transfer_is_verified() -> anyhow::Result<()> {
+    let mut setup = Setup::new().await?;
+    let transfer = pending_transfer(&setup);
+
+    // Nothing on chain records the transfer yet.
+    assert_eq!(setup.verify_pending(&transfer).await?, None);
+
+    let info = update_slot_info(setup.registry.launcher_id, &setup.handle, &transfer);
+    let slot = setup.registry.create_update_slot(&setup.sim, info).await?;
+
+    assert_eq!(
+        setup.verify_pending(&transfer).await?,
+        Some(slot.coin.coin_id())
+    );
+
+    // Any change to the claimed transfer gives a different slot, which doesn't exist.
+    for tampered in [
+        PendingTransferResponse {
+            minimum_execution_height: 99,
+            ..transfer
+        },
+        PendingTransferResponse {
+            new_owner_launcher_id: Bytes32::new([9; 32]),
+            ..transfer
+        },
+        PendingTransferResponse {
+            new_resolved_launcher_id: Bytes32::new([9; 32]),
+            ..transfer
+        },
+        PendingTransferResponse {
+            initiator_coin_id: Bytes32::new([9; 32]),
+            ..transfer
+        },
+    ] {
+        assert_eq!(setup.verify_pending(&tampered).await?, None);
+    }
+
+    // The executor coin and confirmation height aren't part of the slot.
+    let reindexed = PendingTransferResponse {
+        update_confirmation_height: 7,
+        executor_coin_id: Bytes32::new([8; 32]),
+        ..transfer
+    };
+    assert_eq!(
+        setup.verify_pending(&reindexed).await?,
+        Some(slot.coin.coin_id())
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_forged_pending_transfer_is_not_verified() -> anyhow::Result<()> {
+    let setup = Setup::new().await?;
+    let transfer = pending_transfer(&setup);
+
+    // A coin with the update slot's puzzle hash, created by a standard coin rather than
+    // the registry.
+    let info = update_slot_info(setup.registry.launcher_id, &setup.handle, &transfer);
+    let puzzle_hash = Slot::puzzle_hash(&info).into();
+
+    let forger = setup.sim.lock().await.bls(1);
+    let mut ctx = SpendContext::new();
+    StandardLayer::new(forger.pk).spend(
+        &mut ctx,
+        forger.coin,
+        Conditions::new().create_coin(puzzle_hash, 0, Memos::None),
+    )?;
+    setup
+        .sim
+        .lock()
+        .await
+        .spend_coins(ctx.take(), std::slice::from_ref(&forger.sk))?;
+
+    assert_eq!(setup.verify_pending(&transfer).await?, None);
+
+    Ok(())
+}
+
+/// Creates coins with the update slot's puzzle hash from a standard coin, as anyone can.
+async fn forge_update_slots(
+    setup: &Setup,
+    transfer: &PendingTransferResponse,
+    count: u64,
+) -> anyhow::Result<()> {
+    let info = update_slot_info(setup.registry.launcher_id, &setup.handle, transfer);
+    let puzzle_hash: Bytes32 = Slot::puzzle_hash(&info).into();
+
+    let forger = setup.sim.lock().await.bls((0..count).sum::<u64>().max(1));
+    let mut ctx = SpendContext::new();
+    let mut conditions = Conditions::new();
+    for amount in 0..count {
+        conditions = conditions.create_coin(puzzle_hash, amount, Memos::None);
+    }
+    StandardLayer::new(forger.pk).spend(&mut ctx, forger.coin, conditions)?;
+    setup
+        .sim
+        .lock()
+        .await
+        .spend_coins(ctx.take(), std::slice::from_ref(&forger.sk))?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_forged_update_slots_cannot_hide_a_pending_transfer() -> anyhow::Result<()> {
+    let mut setup = Setup::new().await?;
+    let mut transfer = pending_transfer(&setup);
+
+    let info = update_slot_info(setup.registry.launcher_id, &setup.handle, &transfer);
+    let slot = setup.registry.create_update_slot(&setup.sim, info).await?;
+    forge_update_slots(&setup, &transfer, MAX_UPDATE_SLOT_CANDIDATES as u64 * 2).await?;
+
+    // The real slot is checked first when the API reports the height it was created at.
+    transfer.update_confirmation_height = setup
+        .sim
+        .lock()
+        .await
+        .coin_state(slot.coin.coin_id())
+        .and_then(|state| state.created_height)
+        .unwrap();
+
+    assert_eq!(
+        setup.verify_pending(&transfer).await?,
+        Some(slot.coin.coin_id())
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_too_many_forged_update_slots_are_not_called_unverified() -> anyhow::Result<()> {
+    let setup = Setup::new().await?;
+    let transfer = pending_transfer(&setup);
+
+    // With only a few forgeries, all of them are checked and the claim is unverified.
+    forge_update_slots(&setup, &transfer, 2).await?;
+    assert_eq!(setup.verify_pending(&transfer).await?, None);
+
+    // With more than can be checked, the transfer can't be ruled out.
+    forge_update_slots(&setup, &transfer, MAX_UPDATE_SLOT_CANDIDATES as u64).await?;
+    let error = setup.verify_pending(&transfer).await.unwrap_err();
+    assert!(matches!(error, XchandlesError::TooManyUpdateSlotCandidates));
+    assert!(error.is_unavailable());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_pending_transfer_for_another_registry_is_not_verified() -> anyhow::Result<()> {
+    let setup = Setup::new().await?;
+    let transfer = pending_transfer(&setup);
+
+    // Another registry records the same transfer under its own launcher ID.
+    let mut other = TestRegistry::launch(&setup.sim).await?;
+    let info = update_slot_info(other.launcher_id, &setup.handle, &transfer);
+    let slot = other.create_update_slot(&setup.sim, info).await?;
+    assert!(
+        setup
+            .sim
+            .lock()
+            .await
+            .coin_state(slot.coin.coin_id())
+            .is_some()
+    );
+
+    assert_eq!(setup.verify_pending(&transfer).await?, None);
 
     Ok(())
 }

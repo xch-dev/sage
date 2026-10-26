@@ -295,6 +295,34 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
         );
       },
 
+      async resolveHandle(input: Generated.ResolveHandle) {
+        return await callHost<Generated.ResolveHandleResponse>(
+          'wallet.resolveHandle',
+          input,
+        );
+      },
+
+      async getHandle(input: Generated.GetHandle) {
+        return await callHost<Generated.GetHandleResponse>(
+          'wallet.getHandle',
+          input,
+        );
+      },
+
+      async getHandles(input: Generated.GetHandles) {
+        return await callHost<Generated.GetHandlesResponse>(
+          'wallet.getHandles',
+          input,
+        );
+      },
+
+      async lookupAddressHandles(input: Generated.LookupAddressHandles) {
+        return await callHost<Generated.LookupAddressHandlesResponse>(
+          'wallet.lookupAddressHandles',
+          input,
+        );
+      },
+
       async sendXch(input: Generated.WalletSendXchParams) {
         return await callHost<Generated.TransactionResponse>(
           'wallet.sendXch',

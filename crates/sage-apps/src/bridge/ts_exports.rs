@@ -1,10 +1,12 @@
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
-    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKeyResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKeyResponse,
-    GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse,
-    GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
-    GetVersionResponse, GetXchUsdPriceResponse, TransactionResponse,
+    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetHandle, GetHandleResponse,
+    GetHandles, GetHandlesResponse, GetKeyResponse, GetPendingTransactions,
+    GetPendingTransactionsResponse, GetSecretKeyResponse, GetSpendableCoinCount,
+    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
+    GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
+    GetVersionResponse, GetXchUsdPriceResponse, LookupAddressHandles, LookupAddressHandlesResponse,
+    ResolveHandle, ResolveHandleResponse, TransactionResponse,
 };
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
@@ -86,6 +88,14 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<GetPendingTransactionsResponse>();
     types.register::<CheckAddress>();
     types.register::<CheckAddressResponse>();
+    types.register::<ResolveHandle>();
+    types.register::<ResolveHandleResponse>();
+    types.register::<GetHandle>();
+    types.register::<GetHandleResponse>();
+    types.register::<GetHandles>();
+    types.register::<GetHandlesResponse>();
+    types.register::<LookupAddressHandles>();
+    types.register::<LookupAddressHandlesResponse>();
     types.register::<GetDerivations>();
     types.register::<GetDerivationsResponse>();
     types.register::<GetSpendableCoinCount>();
