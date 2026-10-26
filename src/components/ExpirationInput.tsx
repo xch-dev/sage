@@ -77,11 +77,13 @@ export function ExpirationInput({
     if (newMode === mode) return;
 
     if (newMode === 'date') {
-      // Start from the current expiration, rounded up to the minute, or a day
-      // from now if the duration is empty or unusable.
+      // Start from the current expiration, or a day from now if the duration
+      // is empty or unusable. Rounding down to the minute keeps the remaining
+      // time just under the duration, so durationUntil (which rounds up) gives
+      // back the same duration when switching back.
       const start =
         problem === undefined ? expiresAtSeconds : now + 24 * 60 * 60;
-      onChange({ ...value, timestamp: Math.ceil(start / 60) * 60 });
+      onChange({ ...value, timestamp: Math.floor(start / 60) * 60 });
     } else {
       onChange({ ...value, ...remaining, timestamp: undefined });
     }

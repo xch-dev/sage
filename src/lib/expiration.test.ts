@@ -54,6 +54,15 @@ describe('durationUntil', () => {
     });
   });
 
+  it('round-trips a duration through a minute-aligned timestamp', () => {
+    // Mirrors switching to date mode and back with a clock mid-minute.
+    const midMinute = now + 17;
+    const duration = { days: '1', hours: '2', minutes: '3' };
+    const timestamp =
+      Math.floor(expirationTimestamp(duration, midMinute) / 60) * 60;
+    expect(durationUntil(timestamp, midMinute)).toEqual(duration);
+  });
+
   it('clamps past times to zero', () => {
     expect(durationUntil(now - 600, now)).toEqual({
       days: '0',
