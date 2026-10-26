@@ -25,7 +25,7 @@ use chia_wallet_sdk::prelude::*;
 use sage_database::{Database, XchandleRow, XchandleStatus};
 use tracing::warn;
 
-use super::{Handle, VerifiedHandle, XchandlesError};
+use crate::{Handle, VerifiedHandle, XchandlesError};
 
 /// How long a verified mapping may be used while the API or peers are unavailable.
 pub const OFFLINE_MAX_AGE_SECONDS: u64 = 24 * 60 * 60;

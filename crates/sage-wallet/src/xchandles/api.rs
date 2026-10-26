@@ -5,7 +5,7 @@ use reqwest::{Client, StatusCode, Url};
 use serde::{Deserialize, de::DeserializeOwned};
 use thiserror::Error;
 
-use super::Handle;
+use crate::Handle;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 

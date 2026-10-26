@@ -12,12 +12,12 @@ mod handle;
 mod resolve;
 mod verify;
 
+#[cfg(test)]
+mod tests;
+
 pub use api::*;
 pub use cache::*;
 pub use error::*;
 pub use handle::*;
 pub use resolve::*;
 pub use verify::*;
-
-#[cfg(test)]
-mod tests;

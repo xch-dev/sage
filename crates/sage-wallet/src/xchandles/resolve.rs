@@ -3,9 +3,10 @@ use std::{future::Future, time::Duration};
 use chia_wallet_sdk::prelude::*;
 use tracing::debug;
 
-use crate::{WalletError, WalletPeer};
-
-use super::{ChainTip, Handle, VerifiedHandle, XchandlesError, XchandlesIndex, verify_handle};
+use crate::{
+    ChainTip, Handle, VerifiedHandle, WalletError, WalletPeer, XchandlesError, XchandlesIndex,
+    verify_handle,
+};
 
 /// How many times to fetch a handle from the API when its slot has been spent in the
 /// meantime, which happens whenever a neighboring handle is registered or changed.

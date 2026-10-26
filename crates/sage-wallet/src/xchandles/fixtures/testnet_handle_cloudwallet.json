@@ -1,1 +1,39 @@
-{"registry_launcher_id":"c98d2ea5fbaa6507c2d56598b81833c6c643f1ead0062c4641ac1f9d94331c4a","handle":"cloudwallet","slot":{"counter":0,"handle_hash":"55c6b9c2305a380ba2c7fc2771a4e0d3c58f881c28d382759322dbf73f6fd4db","neighbors":{"left_value":"5597ea93a568d39e9605be9a208dd636830259a5b60539ddba357b112807dca5","right_value":"5963e22b03d6f7c66421a94cc589c94525771c3ac5e6bb6b8bfc262d1e11fe48"},"expiration":1821732979,"owner_launcher_id":"9dbd1f2be60c2614b24c7d51b373a4e896ce1acc6b479efa59ac20d625c9eacd","resolved_launcher_id":"9dbd1f2be60c2614b24c7d51b373a4e896ce1acc6b479efa59ac20d625c9eacd"},"slot_parent_id":"bf22e302ba1f311a72340f77edce8f79b4e085b740ef001844ead66c2fab2a27","slot_parent_parent_id":"549706e5548d2c728958e07816a8a1c024f24dc545bd3cf76c93c1c3878edf58","slot_parent_inner_puzzle_hash":"e9b2e9823a6bbd7434439c443416ff1329dfd1c4d3defd60bd5af62a71108e16","slot_confirmation_height":4726183,"resolved_singleton":{"launcher_id":"9dbd1f2be60c2614b24c7d51b373a4e896ce1acc6b479efa59ac20d625c9eacd","parent_coin_id":"6287a6971ccca94840d45c5d9bcfa5926490b9eb5ab2916532a937a59ffeca1f","amount":1,"inner_puzzle_hash":"88559d2c67def9facb5744cb7dc567535d81ac5735788b07578cbc5e6f2c7839","confirmation_height":4726183,"melted":false,"melt_height":null,"nft":{"metadata_treehash":"d98a5ddb43d61455b9dcfe68007569b291d74d00aa03adea5692fdf22f8d7a6f","metadata_updater_puzzle_hash":"9f28d55242a3bd2b3661c38ba8647392c26bb86594050ea6d33aad1725ca3eea","current_owner":null,"royalty_puzzle_hash":"36da8c738011bfdd51d457397543c8f710a28598f6cbecc0199529a359cebc81","royalty_basis_points":500,"p2_puzzle_hash":"2ada4ca5f12e5779f180a3f6bf76406a2d75dd8444fb6a921e10f7a957211a94"},"indexed_peak_height":4871936},"indexed_peak_height":4871936,"pending_transfer":null}
+{
+  "registry_launcher_id": "c98d2ea5fbaa6507c2d56598b81833c6c643f1ead0062c4641ac1f9d94331c4a",
+  "handle": "cloudwallet",
+  "slot": {
+    "counter": 0,
+    "handle_hash": "55c6b9c2305a380ba2c7fc2771a4e0d3c58f881c28d382759322dbf73f6fd4db",
+    "neighbors": {
+      "left_value": "5597ea93a568d39e9605be9a208dd636830259a5b60539ddba357b112807dca5",
+      "right_value": "5963e22b03d6f7c66421a94cc589c94525771c3ac5e6bb6b8bfc262d1e11fe48"
+    },
+    "expiration": 1821732979,
+    "owner_launcher_id": "9dbd1f2be60c2614b24c7d51b373a4e896ce1acc6b479efa59ac20d625c9eacd",
+    "resolved_launcher_id": "9dbd1f2be60c2614b24c7d51b373a4e896ce1acc6b479efa59ac20d625c9eacd"
+  },
+  "slot_parent_id": "bf22e302ba1f311a72340f77edce8f79b4e085b740ef001844ead66c2fab2a27",
+  "slot_parent_parent_id": "549706e5548d2c728958e07816a8a1c024f24dc545bd3cf76c93c1c3878edf58",
+  "slot_parent_inner_puzzle_hash": "e9b2e9823a6bbd7434439c443416ff1329dfd1c4d3defd60bd5af62a71108e16",
+  "slot_confirmation_height": 4726183,
+  "resolved_singleton": {
+    "launcher_id": "9dbd1f2be60c2614b24c7d51b373a4e896ce1acc6b479efa59ac20d625c9eacd",
+    "parent_coin_id": "6287a6971ccca94840d45c5d9bcfa5926490b9eb5ab2916532a937a59ffeca1f",
+    "amount": 1,
+    "inner_puzzle_hash": "88559d2c67def9facb5744cb7dc567535d81ac5735788b07578cbc5e6f2c7839",
+    "confirmation_height": 4726183,
+    "melted": false,
+    "melt_height": null,
+    "nft": {
+      "metadata_treehash": "d98a5ddb43d61455b9dcfe68007569b291d74d00aa03adea5692fdf22f8d7a6f",
+      "metadata_updater_puzzle_hash": "9f28d55242a3bd2b3661c38ba8647392c26bb86594050ea6d33aad1725ca3eea",
+      "current_owner": null,
+      "royalty_puzzle_hash": "36da8c738011bfdd51d457397543c8f710a28598f6cbecc0199529a359cebc81",
+      "royalty_basis_points": 500,
+      "p2_puzzle_hash": "2ada4ca5f12e5779f180a3f6bf76406a2d75dd8444fb6a921e10f7a957211a94"
+    },
+    "indexed_peak_height": 4871936
+  },
+  "indexed_peak_height": 4871936,
+  "pending_transfer": null
+}

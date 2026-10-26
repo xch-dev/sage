@@ -2,9 +2,7 @@ use chia_wallet_sdk::prelude::*;
 use sage_database::DatabaseError;
 use thiserror::Error;
 
-use crate::WalletError;
-
-use super::{HandleError, XchandlesApiError};
+use crate::{HandleError, WalletError, XchandlesApiError};
 
 #[derive(Debug, Error)]
 pub enum XchandlesError {

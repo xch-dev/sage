@@ -5,9 +5,7 @@ use chia_wallet_sdk::{
     types::puzzles::{SlotInfo, XchandlesHandleSlotValue, XchandlesSlotNonce},
 };
 
-use crate::{ChildKind, WalletPeer};
-
-use super::{Handle, HandleResponse, SingletonResponse, XchandlesError};
+use crate::{ChildKind, Handle, HandleResponse, SingletonResponse, WalletPeer, XchandlesError};
 
 /// The registry singleton always has an amount of 1, so neither does the parent of a slot.
 const REGISTRY_AMOUNT: u64 = 1;
