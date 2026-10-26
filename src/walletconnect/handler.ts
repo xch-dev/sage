@@ -18,6 +18,7 @@ import {
   handleSignMessageByAddress,
   handleUpdateCat,
 } from './commands/high-level';
+import { handleAddContact, handleGetContacts } from './commands/contacts';
 import {
   handleGetHandle,
   handleGetOwnedHandles,
@@ -104,6 +105,10 @@ export const handleCommand = async (
       return await handleGetHandle(parseCommand(command, params));
     case 'chia_getOwnedHandles':
       return await handleGetOwnedHandles(parseCommand(command, params));
+    case 'chia_getContacts':
+      return await handleGetContacts(parseCommand(command, params));
+    case 'chia_addContact':
+      return await handleAddContact(parseCommand(command, params));
     default:
       throw new Error(`Unknown command: ${command}`);
   }

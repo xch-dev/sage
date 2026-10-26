@@ -864,6 +864,75 @@ function UpdateCatDialog({ params }: CommandDialogProps<'chia_updateCat'>) {
   );
 }
 
+function GetContactsDialog({ params }: CommandDialogProps<'chia_getContacts'>) {
+  const search = params?.search;
+
+  return (
+    <div className='space-y-2 p-4'>
+      <p className='text-sm text-muted-foreground'>
+        {search ? (
+          <Trans>
+            The site wants to read the contacts in your address book matching{' '}
+            <span className='font-mono text-foreground'>{search}</span>,
+            including their names, notes, addresses and handles.
+          </Trans>
+        ) : (
+          <Trans>
+            The site wants to read the contacts in your address book, including
+            their names, notes, addresses and handles.
+          </Trans>
+        )}
+      </p>
+    </div>
+  );
+}
+
+function AddContactDialog({ params }: CommandDialogProps<'chia_addContact'>) {
+  return (
+    <div className='space-y-4 p-4'>
+      <div className='rounded-lg bg-amber-50 dark:bg-amber-950 p-4 border border-amber-200 dark:border-amber-800'>
+        <div className='flex items-start gap-3'>
+          <AlertTriangleIcon className='h-5 w-5 text-amber-500 mt-0.5' />
+          <p className='text-sm text-amber-700 dark:text-amber-300'>
+            <Trans>
+              The site chose this name. Only save it if you know this recipient
+              belongs to who the name says, since the contact will be offered
+              when you pick a recipient.
+            </Trans>
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className='font-medium'>
+          <Trans>Name</Trans>
+        </div>
+        <div className='text-sm text-muted-foreground break-words'>
+          {params.name}
+        </div>
+      </div>
+      <div>
+        <div className='font-medium'>
+          <Trans>Recipient</Trans>
+        </div>
+        <div className='text-sm text-muted-foreground font-mono break-all'>
+          {params.recipient}
+        </div>
+        <HandleResolution value={params.recipient ?? ''} />
+      </div>
+      {params.note && (
+        <div>
+          <div className='font-medium'>
+            <Trans>Note</Trans>
+          </div>
+          <div className='text-sm text-muted-foreground break-words'>
+            {params.note}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DefaultCommandDialog({ params }: { params: unknown }) {
   return (
     <div className='p-4'>
@@ -886,6 +955,8 @@ const COMMAND_COMPONENTS: {
   chia_send: SendDialog,
   chia_signMessageByAddress: SignMessageByAddressDialog,
   chia_updateCat: UpdateCatDialog,
+  chia_getContacts: GetContactsDialog,
+  chia_addContact: AddContactDialog,
 };
 
 const COMMANDS_WITH_FEE = new Set<string>([
@@ -932,6 +1003,14 @@ const COMMAND_METADATA: Partial<
   chia_updateCat: {
     title: 'Update Token',
     description: 'A site suggests how this token is shown in your wallet',
+  },
+  chia_getContacts: {
+    title: 'Share Address Book',
+    description: 'A site wants to read your contacts',
+  },
+  chia_addContact: {
+    title: 'Add Contact',
+    description: 'A site suggests a contact for your address book',
   },
 };
 

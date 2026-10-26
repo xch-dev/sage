@@ -91,6 +91,19 @@ const handleRecord = z.object({
   lastVerifiedAt: z.number(),
 });
 
+const contactRecord = z.object({
+  id: z.number(),
+  name: z.string(),
+  note: z.string().nullable(),
+  kind: z.enum(['address', 'handle']),
+  recipient: z.string(),
+  handle: z.string().nullable(),
+  address: z.string().nullable(),
+  resolution: handleRecord.nullable(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+
 const handleSlot = z.object({
   registryLauncherId: z.string(),
   counter: z.number(),
@@ -338,6 +351,35 @@ export const walletConnectCommands = {
       total: z.number(),
     }),
     confirm: false,
+  },
+  // The address book. Contacts are personal, so the user approves every read,
+  // and there is no reverse lookup for sites. A site can suggest a contact, which
+  // the user reviews before it's saved, but can't change or delete contacts.
+  // Handle contacts carry the mapping Sage last verified, with its verification
+  // state and any change warning; it's read from the local store, so resolve
+  // the handle before relying on its address.
+  chia_getContacts: {
+    paramsType: z
+      .object({
+        search: z.string().optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      })
+      .optional(),
+    returnType: z.object({
+      contacts: z.array(contactRecord),
+      total: z.number(),
+    }),
+    confirm: true,
+  },
+  chia_addContact: {
+    paramsType: z.object({
+      name: z.string().trim().min(1).max(64),
+      recipient: z.string().trim().min(1),
+      note: z.string().trim().max(1000).optional(),
+    }),
+    returnType: contactRecord,
+    confirm: true,
   },
   // Update the display name, ticker, icon and description of a CAT this wallet
   // already holds (the same record update_cat edits). Nothing is signed; the user

@@ -53,7 +53,7 @@ async function withHandleErrors<T>(request: () => Promise<T>): Promise<T> {
   }
 }
 
-function toRecord(record: HandleRecord): WalletConnectHandle {
+export function toRecord(record: HandleRecord): WalletConnectHandle {
   return {
     handle: record.handle,
     handleHash: record.handle_hash,
