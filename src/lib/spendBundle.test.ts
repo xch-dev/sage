@@ -1,7 +1,5 @@
-import { bls12_381 } from '@noble/curves/bls12-381.js';
 import { describe, expect, it } from 'vitest';
 import {
-  aggregateSignatures,
   IDENTITY_SIGNATURE,
   isUnsigned,
   parseSpendBundle,
@@ -21,13 +19,6 @@ const coinSpend = {
   puzzle_reveal: '0xff01',
   solution: '0x80',
 };
-
-function signature(seed: number) {
-  const { longSignatures } = bls12_381;
-  const sk = new Uint8Array(32).fill(seed);
-  const message = longSignatures.hash(new Uint8Array([seed]));
-  return `0x${longSignatures.Signature.toHex(longSignatures.sign(message, sk))}`;
-}
 
 describe('parseSpendBundle', () => {
   it('parses the Sage format', () => {
@@ -93,26 +84,28 @@ describe('parseSpendBundle', () => {
       parseSpendBundle(
         JSON.stringify({
           coin_spends: [coinSpend],
-          aggregated_signature: `0x${'ab'.repeat(96)}`,
+          aggregated_signature: `0x${'ab'.repeat(95)}`,
         }),
       ),
-    ).toThrow('not a valid BLS signature');
+    ).toThrow('aggregated_signature must be 96 bytes long');
+  });
+
+  it('rejects decimal and exponent amounts as amounts, not JSON', () => {
+    for (const value of ['1.0', '1e3', '-1']) {
+      const text = `{"coin_spends":[{"coin":{"parent_coin_info":"${parent}","puzzle_hash":"${puzzleHash}","amount":${value}},"puzzle_reveal":"ff01","solution":"80"}]}`;
+
+      expect(() => parseSpendBundle(text)).toThrow(
+        'coin_spends[0].coin.amount must be a non-negative integer',
+      );
+    }
   });
 });
 
-describe('aggregateSignatures', () => {
-  it('treats the identity signature as a no-op', () => {
-    const sig = signature(1);
-
-    expect(isUnsigned(sig)).toBe(false);
-    expect(aggregateSignatures([IDENTITY_SIGNATURE, sig])).toBe(sig);
-  });
-
-  it('is order independent', () => {
-    const a = signature(1);
-    const b = signature(2);
-
-    expect(aggregateSignatures([a, b])).toBe(aggregateSignatures([b, a]));
+describe('isUnsigned', () => {
+  it('detects the identity signature', () => {
+    expect(isUnsigned(IDENTITY_SIGNATURE)).toBe(true);
+    expect(isUnsigned(IDENTITY_SIGNATURE.slice(2).toUpperCase())).toBe(true);
+    expect(isUnsigned(`0x${'ab'.repeat(96)}`)).toBe(false);
   });
 });
 

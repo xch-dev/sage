@@ -2,7 +2,6 @@ import { commands, SpendBundleJson, TransactionSummary } from '@/bindings';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import {
-  aggregateSignatures,
   isUnsigned,
   parseSpendBundle,
   SpendBundleParseError,
@@ -17,7 +16,7 @@ import {
   CopyIcon,
   PenLineIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { AdvancedTransactionSummary } from '../AdvancedTransactionSummary';
 import { ReadOnlyButton } from '../ReadOnlyButton';
@@ -59,11 +58,16 @@ export function ImportSpendBundleDialog({
     null,
   );
 
+  // Bumped whenever the dialog is reset, so responses to requests started
+  // before that are ignored instead of overwriting the new state.
+  const requestId = useRef(0);
+
   const unsigned = spendBundle
     ? isUnsigned(spendBundle.aggregated_signature)
     : false;
 
   const reset = () => {
+    requestId.current += 1;
     setInput('');
     setParseError(null);
     setSpendBundle(null);
@@ -79,6 +83,8 @@ export function ImportSpendBundleDialog({
   };
 
   const back = () => {
+    requestId.current += 1;
+    setPending(null);
     setSpendBundle(null);
     setSummary(null);
     setSignedByWallet(false);
@@ -101,62 +107,75 @@ export function ImportSpendBundleDialog({
     setParseError(null);
     setPending('preview');
 
+    const id = requestId.current;
+
     try {
       const data = await commands
         .viewCoinSpends({ coin_spends: bundle.coin_spends })
         .catch(addError);
 
-      if (!data) return;
+      if (!data || id !== requestId.current) return;
 
       setSpendBundle(bundle);
       setSummary(data.summary);
     } finally {
-      setPending(null);
+      if (id === requestId.current) setPending(null);
     }
   };
 
   const sign = async () => {
-    if (!spendBundle || !(await promptIfEnabled())) return;
+    if (!spendBundle) return;
+
+    const id = requestId.current;
+
+    if (!(await promptIfEnabled()) || id !== requestId.current) return;
 
     setPending('sign');
 
     try {
+      // The backend adds this wallet's signatures to the existing one, and
+      // returns it unchanged if they are already included.
       const data = await commands
         .signCoinSpends({
           coin_spends: spendBundle.coin_spends,
           partial: true,
+          aggregated_signature: spendBundle.aggregated_signature,
         })
         .catch(addError);
 
-      if (!data) return;
+      if (!data || id !== requestId.current) return;
 
-      const walletSignature = data.spend_bundle.aggregated_signature;
+      const signature = data.spend_bundle.aggregated_signature;
 
-      if (isUnsigned(walletSignature)) {
+      if (
+        signature.toLowerCase() ===
+        spendBundle.aggregated_signature.toLowerCase()
+      ) {
         toast.info(t`This wallet has no signatures to add to this bundle`);
         return;
       }
 
-      setSpendBundle({
-        ...spendBundle,
-        aggregated_signature: aggregateSignatures([
-          spendBundle.aggregated_signature,
-          walletSignature,
-        ]),
-      });
+      setSpendBundle({ ...spendBundle, aggregated_signature: signature });
       setSignedByWallet(true);
       setConfirmUnsigned(false);
       toast.success(t`Spend bundle signed successfully`);
     } finally {
-      setPending(null);
+      if (id === requestId.current) setPending(null);
     }
   };
 
-  const copy = () => {
+  const copy = async () => {
     if (!spendBundle) return;
 
-    writeText(stringifySpendBundle(spendBundle));
-    toast.success(t`Spend bundle copied to clipboard`);
+    try {
+      await writeText(stringifySpendBundle(spendBundle));
+      toast.success(t`Spend bundle copied to clipboard`);
+    } catch (error) {
+      addError({
+        kind: 'internal',
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
   };
 
   const submit = async () => {
@@ -169,6 +188,8 @@ export function ImportSpendBundleDialog({
 
     setPending('submit');
 
+    const id = requestId.current;
+
     try {
       const data = await commands
         .submitTransaction({ spend_bundle: spendBundle })
@@ -178,9 +199,9 @@ export function ImportSpendBundleDialog({
 
       toast.success(t`Transaction submitted successfully`);
       onSubmitted?.();
-      close();
+      if (id === requestId.current) close();
     } finally {
-      setPending(null);
+      if (id === requestId.current) setPending(null);
     }
   };
 
@@ -287,6 +308,12 @@ export function ImportSpendBundleDialog({
               <ReadOnlyButton
                 variant='outline'
                 requiresSigning
+                disabledTooltip={
+                  <Trans>
+                    Cold wallets cannot sign transactions. Copy the JSON and
+                    sign externally.
+                  </Trans>
+                }
                 onClick={sign}
                 disabled={pending !== null || signedByWallet}
               >

@@ -1,4 +1,3 @@
-import { bls12_381 } from '@noble/curves/bls12-381.js';
 import { CoinSpendJson, SpendBundleJson } from '../bindings';
 
 /** The identity (point at infinity) G2 element, used as an empty signature. */
@@ -90,8 +89,13 @@ function parseCoinSpend(value: unknown, index: number): CoinSpendJson {
  * the identity signature.
  */
 export function parseSpendBundle(text: string): SpendBundleJson {
-  // Quote bare integer amounts so values above 2^53 keep their precision.
-  const quoted = text.replace(/("amount"\s*:\s*)(\d+)/g, '$1"$2"');
+  // Quote bare numeric amounts so values above 2^53 keep their precision.
+  // Decimals and exponents are quoted too, so they fail amount validation
+  // with a clear error instead of producing invalid JSON.
+  const quoted = text.replace(
+    /("amount"\s*:\s*)(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+    '$1"$2"',
+  );
 
   let json: unknown;
 
@@ -129,14 +133,6 @@ export function parseSpendBundle(text: string): SpendBundleJson {
       ? IDENTITY_SIGNATURE
       : hex(signature, 'aggregated_signature', 96);
 
-  try {
-    bls12_381.longSignatures.Signature.fromHex(aggregatedSignature.slice(2));
-  } catch {
-    throw new SpendBundleParseError(
-      'aggregated_signature is not a valid BLS signature',
-    );
-  }
-
   return {
     coin_spends: coinSpends.map(parseCoinSpend),
     aggregated_signature: aggregatedSignature,
@@ -144,21 +140,9 @@ export function parseSpendBundle(text: string): SpendBundleJson {
 }
 
 export function isUnsigned(signature: string): boolean {
-  return bls12_381.longSignatures.Signature.fromHex(
-    signature.replace(/^0x/i, ''),
-  ).is0();
-}
-
-export function aggregateSignatures(signatures: string[]): string {
-  const { Signature, aggregateSignatures } = bls12_381.longSignatures;
-
-  const aggregated = aggregateSignatures(
-    signatures.map((signature) =>
-      Signature.fromHex(signature.replace(/^0x/i, '')),
-    ),
+  return (
+    signature.toLowerCase().replace(/^0x/, '') === IDENTITY_SIGNATURE.slice(2)
   );
-
-  return `0x${Signature.toHex(aggregated)}`;
 }
 
 /** Serializes a spend bundle with numeric amounts, matching Chia tooling. */

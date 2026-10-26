@@ -2608,7 +2608,12 @@ auto_submit?: boolean;
 /**
  * Whether to partially sign (for multi-signature)
  */
-partial?: boolean }
+partial?: boolean; 
+/**
+ * Existing aggregated signature to add this wallet's signatures to.
+ * It's returned unchanged if it already includes them.
+ */
+aggregated_signature?: string | null }
 /**
  * Response with signed spend bundle
  */
