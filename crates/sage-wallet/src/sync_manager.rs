@@ -301,26 +301,32 @@ impl SyncManager {
             ProtocolMessageTypes::NewPeakWallet => {
                 let message =
                     NewPeakWallet::from_bytes(&message.data).map_err(ClientError::from)?;
-                self.state
-                    .lock()
-                    .await
-                    .update_peak(ip, message.height, message.header_hash);
+
+                let previous_peak = {
+                    let mut state = self.state.lock().await;
+                    let previous_peak = state.peak_of(ip).map(|(height, _)| height);
+                    state.update_peak(ip, message.height, message.header_hash);
+                    previous_peak
+                };
+
+                // When the chain is extended, the fork point is the previous peak. A fork point
+                // below it means blocks were rolled back, so handle mappings verified against
+                // them must be verified again.
+                if let Some(wallet) = self.wallet.as_ref()
+                    && let Some(previous_peak) = previous_peak
+                    && message.fork_point_with_previous_peak < previous_peak
+                    && let Err(error) = wallet
+                        .db
+                        .invalidate_xchandles_above(message.fork_point_with_previous_peak)
+                        .await
+                {
+                    warn!("Failed to invalidate handle mappings after a reorg: {error}");
+                }
             }
             ProtocolMessageTypes::CoinStateUpdate => {
                 let message =
                     CoinStateUpdate::from_bytes(&message.data).map_err(ClientError::from)?;
                 if let Some(wallet) = self.wallet.as_ref() {
-                    // Handle mappings verified against blocks above the fork point must be
-                    // verified again, since those blocks may no longer be in the chain.
-                    // This must not stop the coin states below from being processed.
-                    if let Err(error) = wallet
-                        .db
-                        .invalidate_xchandles_above(message.fork_height)
-                        .await
-                    {
-                        warn!("Failed to invalidate handle mappings after a reorg: {error}");
-                    }
-
                     let unspent_count = message
                         .items
                         .iter()
