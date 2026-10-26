@@ -1897,6 +1897,12 @@ previous_address: string | null;
  */
 last_sent_address: string | null; 
 /**
+ * The address a send to this handle has to confirm the new address against, if any.
+ * This is the previous address while a change is unacknowledged, or otherwise the
+ * address last sent to if the handle now resolves somewhere else.
+ */
+changed_from: string | null; 
+/**
  * Whether the mapping comes from an earlier verification, because the handle could
  * not be verified right now
  */

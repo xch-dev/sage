@@ -1,5 +1,4 @@
 import { OfferHandleNft } from '@/bindings';
-import { xchandlesEnabled } from '@/lib/features';
 import { Trans } from '@lingui/react/macro';
 import { ShieldAlert, TriangleAlert } from 'lucide-react';
 
@@ -8,9 +7,11 @@ import { ShieldAlert, TriangleAlert } from 'lucide-react';
  * checks this again right before the offer is taken.
  */
 export function isOfferHandleBlocked(handleNfts: OfferHandleNft[]): boolean {
-  return handleNfts.some(
-    (nft) => nft.status === 'pending_transfer' || nft.status === 'unavailable',
-  );
+  return handleNfts.some(isBlocking);
+}
+
+function isBlocking(nft: OfferHandleNft): boolean {
+  return nft.status === 'pending_transfer' || nft.status === 'unavailable';
 }
 
 /**
@@ -25,11 +26,9 @@ export function OfferHandleNftWarning({
   handleNfts: OfferHandleNft[];
   className?: string;
 }) {
-  if (!xchandlesEnabled) return null;
-
-  const blocking = handleNfts.filter(
-    (nft) => nft.status === 'pending_transfer' || nft.status === 'unavailable',
-  );
+  // This is shown even when XCHandles is hidden, since the backend still blocks
+  // taking the offer.
+  const blocking = handleNfts.filter(isBlocking);
   const unrelated = handleNfts.filter((nft) => nft.status === 'not_associated');
 
   return (

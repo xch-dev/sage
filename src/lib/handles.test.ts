@@ -2,9 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/bindings', () => ({ commands: {} }));
 
-import type { HandleRecord, RecipientError } from '@/bindings';
+import type { RecipientError } from '@/bindings';
 import {
-  handleChangedFrom,
   isValidHandle,
   useHandleChangeStore,
   withHandleConfirmation,
@@ -31,19 +30,6 @@ describe('handles', () => {
     expect(isValidHandle('@Alice')).toBe(false);
     expect(isValidHandle('@al')).toBe(false);
     expect(isValidHandle('alice')).toBe(false);
-  });
-
-  it('detects changes from the previous or last sent address', () => {
-    const record = {
-      address: 'b',
-      previous_address: null,
-      last_sent_address: null,
-    } as HandleRecord;
-
-    expect(handleChangedFrom(record)).toBe(null);
-    expect(handleChangedFrom({ ...record, last_sent_address: 'b' })).toBe(null);
-    expect(handleChangedFrom({ ...record, last_sent_address: 'a' })).toBe('a');
-    expect(handleChangedFrom({ ...record, previous_address: 'c' })).toBe('c');
   });
 
   it('retries with the new address once the change is confirmed', async () => {

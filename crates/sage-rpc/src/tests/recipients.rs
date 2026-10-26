@@ -10,7 +10,7 @@ use sage_api::{
 use sage_database::{XchandleRow, XchandleStatus};
 use serde_json::Value;
 
-use super::{TestApp, mint_mutable_nft};
+use super::{TestApp, mint_mutable_nft, mint_mutable_nft_named};
 
 fn puzzle_hash(byte: u8) -> Bytes32 {
     Bytes32::new([byte; 32])
@@ -174,6 +174,7 @@ async fn test_send_to_handle_records_last_sent_address() -> Result<()> {
     assert_eq!(handle.handle, "alice");
     assert_eq!(handle.address, address(1));
     assert!(handle.cached);
+    assert_eq!(handle.changed_from, None);
     assert!(pays(&response, &address(1)));
 
     // Nothing is recorded until the transaction is submitted.
@@ -196,8 +197,10 @@ async fn test_send_to_handle_records_last_sent_address() -> Result<()> {
         Some(puzzle_hash(1))
     );
 
-    // Sending to the same address again doesn't need to be confirmed.
+    // Sending to the same address again doesn't need to be confirmed, and surrounding
+    // whitespace is ignored.
     app.send_xch(send("@alice", vec![], false)).await?;
+    app.send_xch(send(" @alice ", vec![], false)).await?;
 
     Ok(())
 }
@@ -286,6 +289,8 @@ async fn test_handle_changed_before_submission_is_not_submitted() -> Result<()> 
     assert_eq!(recipient_kinds(&body), ["changed"]);
     assert_eq!(body["recipients"][0]["previous_address"], address(1));
     assert_eq!(body["recipients"][0]["address"], address(2));
+    let reason = body["recipients"][0]["reason"].as_str().unwrap_or_default();
+    assert!(reason.contains("Create the transaction again"), "{reason}");
 
     // Retrying is checked again, rather than submitting it the second time.
     let error = app.sign_coin_spends(sign()).await.unwrap_err();
@@ -505,6 +510,54 @@ async fn test_offer_with_pending_handle_transfer() -> Result<()> {
     let error = app.take_offer(take()).await.unwrap_err().to_string();
     assert!(error.contains("can't be taken"), "{error}");
     assert!(error.contains("pending"), "{error}");
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_offer_nft_named_like_a_handle_is_not_a_claim() -> Result<()> {
+    let mut app = funded_app().await?;
+
+    // Only names written as `@handle` claim to be a handle, so an NFT which happens to be
+    // named like one doesn't block the offer while handles can't be checked.
+    let nft_id = mint_mutable_nft_named(&mut app, "alice").await?;
+
+    let offer = app
+        .make_offer(MakeOffer {
+            requested_assets: vec![OfferAmount {
+                asset_id: None,
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(1),
+            }],
+            offered_assets: vec![OfferAmount {
+                asset_id: Some(nft_id),
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(1),
+            }],
+            fee: Amount::u64(0),
+            receive_address: None,
+            expires_at_second: None,
+            auto_import: false,
+            coin_ids: None,
+            confirmed_handles: vec![],
+        })
+        .await?
+        .offer;
+
+    let handle_nfts = app
+        .view_offer(ViewOffer {
+            offer: offer.clone(),
+        })
+        .await?
+        .handle_nfts;
+    assert!(handle_nfts.is_empty());
+
+    app.take_offer(TakeOffer {
+        offer,
+        fee: Amount::u64(0),
+        auto_submit: false,
+    })
+    .await?;
 
     Ok(())
 }

@@ -1,21 +1,15 @@
-import {
-  commands,
-  HandleConfirmation,
-  HandleRecord,
-  RecipientError,
-} from '@/bindings';
+import { commands, HandleConfirmation, RecipientError } from '@/bindings';
 import { create } from 'zustand';
-import { xchandlesEnabled } from './features';
 
 const HANDLE_PATTERN = /^@[a-z0-9]{3,63}$/;
 
 /**
- * Whether a recipient is written as an XCHandles handle. Handles are resolved
- * and verified by the backend, which also accepts them when this build hides
- * XCHandles from the UI.
+ * Whether a recipient is written as an XCHandles handle. The backend resolves
+ * these even when this build hides XCHandles, so they're always previewed and
+ * validated as handles, rather than only when XCHandles is shown.
  */
 export function isHandleInput(value: string): boolean {
-  return xchandlesEnabled && value.trim().startsWith('@');
+  return value.trim().startsWith('@');
 }
 
 /** Whether a handle is written as `@handle` with a valid name. */
@@ -36,20 +30,6 @@ export async function validateRecipient(value: string): Promise<boolean> {
   }
 
   return await commands.validateAddress(recipient);
-}
-
-/**
- * The address a handle resolved to before, if it now resolves somewhere else
- * than when it was last verified or last sent to.
- */
-export function handleChangedFrom(record: HandleRecord): string | null {
-  if (record.previous_address) return record.previous_address;
-
-  if (record.last_sent_address && record.last_sent_address !== record.address) {
-    return record.last_sent_address;
-  }
-
-  return null;
 }
 
 function recipientErrors(error: unknown): RecipientError[] | null {

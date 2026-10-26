@@ -509,6 +509,11 @@ fn find_nft<'a>(assets: &'a [OfferAsset], nft_id: &str) -> &'a OfferAsset {
 
 /// Mints an NFT with the any metadata updater and `XCHandles` metadata, as a handle NFT would be.
 async fn mint_mutable_nft(app: &mut TestApp) -> Result<String> {
+    mint_mutable_nft_named(app, "@alice").await
+}
+
+/// Mints an NFT like [`mint_mutable_nft`], with the given display name.
+async fn mint_mutable_nft_named(app: &mut TestApp, display_name: &str) -> Result<String> {
     app.create_did(CreateDid {
         name: "Alice".to_string(),
         fee: Amount::u64(0),
@@ -525,7 +530,7 @@ async fn mint_mutable_nft(app: &mut TestApp) -> Result<String> {
         let mut ctx = SpendContext::new();
 
         let metadata = ctx.alloc_hashed(&HandleNftMetadata {
-            display_name: Some("@alice".to_string()),
+            display_name: Some(display_name.to_string()),
             image_uris: vec!["https://example.com/alice.png".to_string()],
             image_hash: Some(Bytes32::new([1; 32])),
             ..Default::default()

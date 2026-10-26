@@ -21,6 +21,11 @@ pub struct HandleRecord {
     /// The address this handle last resolved to when it was sent to
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub last_sent_address: Option<String>,
+    /// The address a send to this handle has to confirm the new address against, if any.
+    /// This is the previous address while a change is unacknowledged, or otherwise the
+    /// address last sent to if the handle now resolves somewhere else.
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub changed_from: Option<String>,
     /// Whether the mapping comes from an earlier verification, because the handle could
     /// not be verified right now
     pub cached: bool,

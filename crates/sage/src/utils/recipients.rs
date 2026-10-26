@@ -93,7 +93,7 @@ pub fn pending_key(coin_spends: &[CoinSpend]) -> Bytes32 {
 /// A confirmed address must match exactly. Otherwise, the handle must resolve to the address
 /// it was last verified as, unless that change was acknowledged, and to the address it was
 /// last sent to.
-fn unconfirmed_change(
+pub(crate) fn unconfirmed_change(
     resolution: &HandleResolution,
     confirmed: Option<Bytes32>,
 ) -> Option<Bytes32> {
@@ -146,6 +146,10 @@ impl Sage {
         confirmations: &[HandleConfirmation],
         info: &mut ConfirmationInfo,
     ) -> Result<Vec<Bytes32>> {
+        // Surrounding whitespace is ignored, as it is when recipients are previewed.
+        let inputs: Vec<&str> = inputs.iter().map(|input| input.trim()).collect();
+        let inputs = inputs.as_slice();
+
         if !inputs.iter().any(|input| input.starts_with('@')) {
             return inputs
                 .iter()
@@ -250,7 +254,7 @@ impl Sage {
         let mut confirmed = HashMap::new();
 
         for confirmation in confirmations {
-            let handle = Handle::parse(&confirmation.handle).map_err(XchandlesError::from)?;
+            let handle = Handle::parse(confirmation.handle.trim()).map_err(XchandlesError::from)?;
             let puzzle_hash = self.parse_address(confirmation.address.clone())?;
 
             if confirmed
@@ -413,12 +417,25 @@ impl Sage {
                     let current = resolution.row.resolved_puzzle_hash;
 
                     if current != send.puzzle_hash {
-                        errors.push(self.changed_recipient_error(
+                        let mut error = self.changed_recipient_error(
                             &input,
                             &send.handle,
                             send.puzzle_hash,
                             current,
-                        )?);
+                        )?;
+
+                        // The transaction pays the old address, so the new one can only be
+                        // confirmed by creating it again.
+                        error.reason = format!(
+                            "{} changed after this transaction was created. It now resolves \
+                            to {}, but the transaction sends to {}. Create the transaction \
+                            again to send to the new address.",
+                            send.handle,
+                            error.address.as_deref().unwrap_or_default(),
+                            error.previous_address.as_deref().unwrap_or_default(),
+                        );
+
+                        errors.push(error);
                     }
                 }
                 Err(Error::Xchandles(error)) if !matches!(error, XchandlesError::Database(..)) => {

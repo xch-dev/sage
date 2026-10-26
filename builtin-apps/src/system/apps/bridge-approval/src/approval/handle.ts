@@ -25,18 +25,11 @@ export function sendXchHandleState(
 
   const record = approval.handle.record ?? null;
 
-  const previousAddress = record
-    ? (record.previous_address ??
-      (record.last_sent_address && record.last_sent_address !== record.address
-        ? record.last_sent_address
-        : null))
-    : null;
-
   return {
     handle: approval.summary.address,
     address: record?.address ?? null,
     cached: record?.cached ?? false,
-    previousAddress,
+    previousAddress: record?.changed_from ?? null,
     error:
       approval.handle.error ??
       (record ? null : 'The handle could not be resolved.'),

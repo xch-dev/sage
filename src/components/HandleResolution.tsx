@@ -1,6 +1,6 @@
 import { commands, Error as BackendError, HandleRecord } from '@/bindings';
 import { useDebounce } from '@/hooks/useDebounce';
-import { handleChangedFrom, isHandleInput, isValidHandle } from '@/lib/handles';
+import { isHandleInput, isValidHandle } from '@/lib/handles';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
@@ -90,7 +90,7 @@ export function HandleResolution({ value }: { value: string }) {
   }
 
   const { record } = resolution;
-  const changedFrom = handleChangedFrom(record);
+  const changedFrom = record.changed_from;
 
   return (
     <div className='space-y-1 text-xs'>

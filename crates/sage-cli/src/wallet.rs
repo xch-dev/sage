@@ -6,11 +6,11 @@ use std::io::{self, BufRead, IsTerminal, Write};
 use anyhow::{Context, Result, anyhow, bail};
 use clap::{Args, Subcommand};
 use sage_api::{
-    Amount, GetCats, GetKey, GetSyncStatus, GetToken, SendCat, SendXch, SignCoinSpends,
-    TransactionResponse, Unit,
+    Amount, GetCats, GetKey, GetSyncStatus, GetToken, HandleConfirmation, RecipientError,
+    RecipientErrorKind, SendCat, SendXch, SignCoinSpends, TransactionResponse, Unit,
 };
 use sage_client::{Client, SageRpcError};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Args)]
 pub struct WalletArgs {
@@ -33,7 +33,7 @@ enum WalletCommand {
     /// Send XCH, or a token with --asset. Shows the transaction the wallet built and asks
     /// before signing it
     Send {
-        /// The recipient's address
+        /// The recipient's address, or an XCHandles handle written as `@handle`
         address: String,
         /// Amount in whole units, such as 0.25 (XCH) or 12.5 (a token)
         amount: String,
@@ -49,6 +49,11 @@ enum WalletCommand {
         /// Sign and submit without asking
         #[clap(long)]
         yes: bool,
+        /// The new address of a handle recipient which resolves to a different address than
+        /// before, to confirm sending to it. Without this, sending to a changed handle fails
+        /// and shows both addresses.
+        #[clap(long, value_name = "ADDRESS")]
+        confirm_handle: Option<String>,
     },
 }
 
@@ -76,6 +81,7 @@ impl WalletArgs {
                 asset,
                 memo,
                 yes,
+                confirm_handle,
             } => {
                 send(
                     &client,
@@ -86,6 +92,7 @@ impl WalletArgs {
                         asset,
                         memos: memo,
                         yes,
+                        confirm_handle,
                     },
                     json,
                 )
@@ -165,12 +172,14 @@ struct SendArgs {
     asset: Option<String>,
     memos: Vec<String>,
     yes: bool,
+    confirm_handle: Option<String>,
 }
 
 async fn send(client: &Client, args: SendArgs, json: bool) -> Result<()> {
     let sync = rpc(client.get_sync_status(GetSyncStatus {}).await)?;
     let fee = parse_units(&args.fee, sync.unit.precision).context("invalid --fee")?;
     let memos = args.memos.iter().map(hex::encode).collect();
+    let confirmed_handles = confirmed_handles(&args)?;
 
     // Build the transaction without submitting it, so what is shown is what gets signed.
     let (built, ticker, precision) = if let Some(asset_id) = args.asset.clone() {
@@ -189,7 +198,7 @@ async fn send(client: &Client, args: SendArgs, json: bool) -> Result<()> {
 
         let built = rpc(client
             .send_cat(SendCat {
-                confirmed_handles: Vec::new(),
+                confirmed_handles: confirmed_handles.clone(),
                 asset_id,
                 address: args.address.clone(),
                 amount: Amount::u64(amount),
@@ -207,7 +216,7 @@ async fn send(client: &Client, args: SendArgs, json: bool) -> Result<()> {
 
         let built = rpc(client
             .send_xch(SendXch {
-                confirmed_handles: Vec::new(),
+                confirmed_handles,
                 address: args.address.clone(),
                 amount: Amount::u64(amount),
                 fee: Amount::u64(fee),
@@ -244,6 +253,24 @@ async fn send(client: &Client, args: SendArgs, json: bool) -> Result<()> {
     Ok(())
 }
 
+/// The handle confirmation for `--confirm-handle`, which only applies to a handle recipient.
+fn confirmed_handles(args: &SendArgs) -> Result<Vec<HandleConfirmation>> {
+    let Some(address) = &args.confirm_handle else {
+        return Ok(Vec::new());
+    };
+
+    let handle = args.address.trim();
+
+    if !handle.starts_with('@') {
+        bail!("--confirm-handle only applies when sending to a handle written as @handle");
+    }
+
+    Ok(vec![HandleConfirmation {
+        handle: handle.to_string(),
+        address: address.clone(),
+    }])
+}
+
 /// What leaves the wallet, read from the transaction the wallet built rather than from the
 /// arguments, so a wrong address or amount shows up before anything is signed.
 fn print_preview(
@@ -254,6 +281,15 @@ fn print_preview(
     unit: &Unit,
 ) -> Result<()> {
     println!("Send {} {ticker} to {}", args.amount, args.address);
+
+    for handle in &built.summary.handles {
+        let note = if handle.cached {
+            " (verified earlier; it can't be verified right now)"
+        } else {
+            ""
+        };
+        println!("@{} resolves to {}{note}", handle.handle, handle.address);
+    }
 
     let mut leaving = Vec::new();
     for input in &built.summary.inputs {
@@ -309,9 +345,37 @@ fn confirm() -> Result<bool> {
 
 fn rpc<T>(result: Result<T, SageRpcError>) -> Result<T> {
     result.map_err(|error| match error {
-        SageRpcError::Api(_, message) => anyhow!(message),
+        SageRpcError::Api(_, message) => {
+            anyhow!(recipient_error_message(&message).unwrap_or(message))
+        }
         error => anyhow!(error),
     })
+}
+
+/// The body of an RPC error caused by recipients which couldn't be used.
+#[derive(Deserialize)]
+struct RecipientErrorBody {
+    recipients: Vec<RecipientError>,
+}
+
+/// Lists each recipient which couldn't be used, and how to confirm a handle which changed.
+fn recipient_error_message(body: &str) -> Option<String> {
+    let body: RecipientErrorBody = serde_json::from_str(body).ok()?;
+    let mut lines = Vec::new();
+
+    for recipient in body.recipients {
+        lines.push(recipient.reason);
+
+        if recipient.kind == RecipientErrorKind::Changed
+            && let Some(address) = recipient.address
+        {
+            lines.push(format!(
+                "If you trust the new address, send again with --confirm-handle {address}"
+            ));
+        }
+    }
+
+    Some(lines.join("\n"))
 }
 
 fn amount(value: &Amount) -> Result<u128> {
@@ -381,6 +445,28 @@ pub fn format_units(value: u128, precision: u8) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn explains_how_to_confirm_a_changed_handle() {
+        let body = serde_json::json!({
+            "kind": "recipient",
+            "reason": "failed",
+            "recipients": [{
+                "recipient": "@alice",
+                "kind": "changed",
+                "reason": "@alice changed",
+                "handle": "alice",
+                "address": "xch1new",
+                "previous_address": "xch1old",
+            }],
+        });
+
+        assert_eq!(
+            recipient_error_message(&body.to_string()).unwrap(),
+            "@alice changed\nIf you trust the new address, send again with --confirm-handle xch1new"
+        );
+        assert_eq!(recipient_error_message("Wrong address prefix"), None);
+    }
 
     #[test]
     fn parses_whole_units_exactly() {

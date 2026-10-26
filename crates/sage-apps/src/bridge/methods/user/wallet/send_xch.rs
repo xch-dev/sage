@@ -32,7 +32,7 @@ pub struct WalletSendXchParams {
 
 /// Whether the recipient is an XCHandles handle, which is resolved by Sage.
 fn is_handle_recipient(params: &WalletSendXchParams) -> bool {
-    params.address.starts_with('@')
+    params.address.trim().starts_with('@')
 }
 
 /// The send XCH parameters the user approved, and the address they reviewed a handle
@@ -113,7 +113,7 @@ async fn execute_send_xch(
 
     if let Some(address) = confirmed_address {
         request.confirmed_handles.push(HandleConfirmation {
-            handle: request.address.clone(),
+            handle: request.address.trim().to_string(),
             address,
         });
     }
@@ -198,7 +198,7 @@ impl BridgeMethod for WalletSendXch {
                 .lock()
                 .await
                 .resolve_handle(ResolveHandle {
-                    handle: summary.address.clone(),
+                    handle: summary.address.trim().to_string(),
                 })
                 .await;
 

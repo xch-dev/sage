@@ -12,7 +12,6 @@ import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { useWallet } from '@/contexts/WalletContext';
 import { IDENTITY_SIGNATURE, stringifySpendBundle } from '@/lib/spendBundle';
-import { xchandlesEnabled } from '@/lib/features';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -282,7 +281,7 @@ export default function ConfirmationDialog({
                   </div>
                 )}
 
-                {xchandlesEnabled && handles.length > 0 && (
+                {handles.length > 0 && (
                   <div className='mb-4'>
                     <h3 className='text-sm font-medium mb-2 flex items-center'>
                       <AtSignIcon className='h-4 w-4 mr-1' aria-hidden='true' />
