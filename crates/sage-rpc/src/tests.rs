@@ -24,11 +24,14 @@ use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
     Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CreateDid, CreateTransaction, GetDids,
-    GetKey, GetNft, GetNftMetadataUpdater, GetOffers, GetPeers, GetSyncStatus, GetVersion,
-    Id as ApiId, ImportKey, ImportOffer, Login, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind,
-    OfferAmount, OfferAsset, ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction, ViewOffer,
+    GetHandle, GetHandles, GetKey, GetNft, GetNftMetadataUpdater, GetOffers, GetPeers,
+    GetSyncStatus, GetVersion, HandleFilterMode, HandleStatus, HandleVerification, Id as ApiId,
+    ImportKey, ImportOffer, Login, LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind,
+    NftUriKind, OfferAmount, OfferAsset, ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction,
+    ViewOffer,
 };
 use sage_api_macro::impl_endpoints;
+use sage_database::{XchandleRow, XchandleStatus};
 use sage_wallet::{SyncCommand, SyncEvent};
 use serde::{Serialize, de::DeserializeOwned};
 use tempfile::TempDir;
@@ -424,6 +427,318 @@ async fn test_resolve_handle_rejects_unsupported_networks() -> Result<()> {
 
     assert!(error.contains("status 400"), "{error}");
     assert!(error.contains("not supported on this network"), "{error}");
+
+    Ok(())
+}
+
+fn handles_request(filter: HandleFilterMode, include_unverified: bool) -> GetHandles {
+    GetHandles {
+        filter,
+        include_unverified,
+        refresh: false,
+        offset: 0,
+        limit: 50,
+    }
+}
+
+fn stored_handle(
+    registry_launcher_id: Bytes32,
+    handle: &str,
+    owner_launcher_id: Bytes32,
+    resolved_puzzle_hash: Bytes32,
+) -> XchandleRow {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    XchandleRow {
+        registry_launcher_id,
+        handle: handle.to_string(),
+        handle_hash: Bytes32::new([1; 32]),
+        owner_launcher_id,
+        resolved_launcher_id: owner_launcher_id,
+        resolved_puzzle_hash,
+        expiration: now + 365 * 24 * 60 * 60,
+        slot_coin_id: Bytes32::new([2; 32]),
+        slot_counter: 0,
+        slot_left_handle_hash: Bytes32::new([3; 32]),
+        slot_right_handle_hash: Bytes32::new([4; 32]),
+        slot_parent_id: Bytes32::new([5; 32]),
+        slot_parent_parent_id: Bytes32::new([6; 32]),
+        slot_parent_inner_puzzle_hash: Bytes32::new([7; 32]),
+        slot_confirmation_height: 1,
+        resolved_coin_id: Bytes32::new([8; 32]),
+        resolved_confirmation_height: 1,
+        indexed_height: 1,
+        verified_height: 1,
+        verified_timestamp: now - 60,
+        last_verified_at: now - 60,
+        status: XchandleStatus::Verified,
+        status_reason: None,
+        previous_resolved_launcher_id: None,
+        previous_resolved_puzzle_hash: None,
+        last_sent_puzzle_hash: None,
+    }
+}
+
+fn handle_names(handles: &[sage_api::HandleRecord]) -> Vec<&str> {
+    handles
+        .iter()
+        .map(|handle| handle.handle.as_str())
+        .collect()
+}
+
+#[tokio::test]
+async fn test_known_handles() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let nft_id = mint_mutable_nft(&mut app).await?;
+    let owned_nft = Address::decode(&nft_id)?.puzzle_hash;
+
+    let address = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
+    let wallet_puzzle_hash = Address::decode(&address)?.puzzle_hash;
+    let other_puzzle_hash = Bytes32::new([0xaa; 32]);
+    let other_nft = Bytes32::new([0xbb; 32]);
+
+    {
+        let sage = app.sage.lock().await;
+        let registry = sage
+            .network()
+            .xchandles()
+            .expect("testnet11 has a deployment")
+            .registry_launcher_id;
+        let db = &sage.wallet()?.db;
+
+        db.upsert_xchandle(&stored_handle(
+            registry,
+            "alice",
+            owned_nft,
+            wallet_puzzle_hash,
+        ))
+        .await?;
+
+        let mut bob = stored_handle(registry, "bob", other_nft, other_puzzle_hash);
+        bob.previous_resolved_puzzle_hash = Some(Bytes32::new([0xcc; 32]));
+        db.upsert_xchandle(&bob).await?;
+
+        // Mappings which can't be relied on are only listed on request, and never used to
+        // label an address.
+        let mut carol = stored_handle(registry, "carol", owned_nft, wallet_puzzle_hash);
+        carol.status = XchandleStatus::Unverified;
+        carol.status_reason = Some("Handle not found".to_string());
+        db.upsert_xchandle(&carol).await?;
+
+        let mut dave = stored_handle(registry, "dave", other_nft, wallet_puzzle_hash);
+        dave.expiration = 1;
+        db.upsert_xchandle(&dave).await?;
+
+        let mut erin = stored_handle(registry, "erin", other_nft, wallet_puzzle_hash);
+        erin.status = XchandleStatus::Stale;
+        db.upsert_xchandle(&erin).await?;
+
+        // A mapping from another registry is never used for this network's.
+        db.upsert_xchandle(&stored_handle(
+            Bytes32::new([0xdd; 32]),
+            "frank",
+            owned_nft,
+            wallet_puzzle_hash,
+        ))
+        .await?;
+    }
+
+    let all = app
+        .get_handles(handles_request(HandleFilterMode::All, false))
+        .await?;
+    assert_eq!(handle_names(&all.handles), ["alice", "bob"]);
+    assert_eq!(all.total, 2);
+    assert!(all.handles.iter().all(|handle| handle.cached));
+    assert_eq!(all.handles[0].address, address);
+    assert_eq!(all.handles[0].status, HandleStatus::Verified);
+    assert_eq!(all.handles[1].status, HandleStatus::Changed);
+    assert!(all.handles[1].previous_address.is_some());
+
+    let everything = app
+        .get_handles(handles_request(HandleFilterMode::All, true))
+        .await?;
+    assert_eq!(
+        handle_names(&everything.handles),
+        ["alice", "bob", "carol", "dave", "erin"]
+    );
+    assert_eq!(
+        everything
+            .handles
+            .iter()
+            .map(|handle| handle.verification)
+            .collect::<Vec<_>>(),
+        [
+            HandleVerification::Verified,
+            HandleVerification::Verified,
+            HandleVerification::Unverified,
+            HandleVerification::Expired,
+            HandleVerification::Stale,
+        ]
+    );
+    assert_eq!(
+        everything.handles[2].verification_reason.as_deref(),
+        Some("Handle not found")
+    );
+
+    // Ownership is decided by the owner launcher ID in the slot, not by the NFT's display name.
+    let owned = app
+        .get_handles(handles_request(HandleFilterMode::Owned, false))
+        .await?;
+    assert_eq!(handle_names(&owned.handles), ["alice"]);
+
+    let owned = app
+        .get_handles(handles_request(HandleFilterMode::Owned, true))
+        .await?;
+    assert_eq!(handle_names(&owned.handles), ["alice", "carol"]);
+
+    let page = app
+        .get_handles(GetHandles {
+            offset: 1,
+            limit: 1,
+            ..handles_request(HandleFilterMode::All, false)
+        })
+        .await?;
+    assert_eq!(handle_names(&page.handles), ["bob"]);
+    assert_eq!(page.total, 2);
+
+    let unknown = hex::encode([0xee; 32]);
+    let results = app
+        .lookup_address_handles(LookupAddressHandles {
+            addresses: vec![
+                address.clone(),
+                hex::encode(other_puzzle_hash),
+                format!("0x{unknown}"),
+                address.clone(),
+            ],
+        })
+        .await?
+        .results;
+
+    assert_eq!(results.len(), 4);
+    assert_eq!(results[0].address, address);
+    assert_eq!(handle_names(&results[0].handles), ["alice"]);
+    assert_eq!(handle_names(&results[1].handles), ["bob"]);
+    assert_eq!(results[2].address, format!("0x{unknown}"));
+    assert!(results[2].handles.is_empty());
+    assert_eq!(handle_names(&results[3].handles), ["alice"]);
+
+    let empty = app
+        .lookup_address_handles(LookupAddressHandles { addresses: vec![] })
+        .await?;
+    assert!(empty.results.is_empty());
+
+    // The wallet's handle NFT names `@alice`. If it can't be verified, refreshing leaves the
+    // store as it was rather than failing or trusting the name.
+    for network in &mut app.sage.lock().await.network_list.networks {
+        if let Some(mut config) = network.xchandles() {
+            config.api_url = "http://127.0.0.1:1".to_string();
+            network.xchandles = Some(config);
+        }
+    }
+
+    let refreshed = app
+        .get_handles(GetHandles {
+            refresh: true,
+            ..handles_request(HandleFilterMode::Owned, false)
+        })
+        .await?;
+    assert_eq!(handle_names(&refreshed.handles), ["alice"]);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_lookup_address_handles_rejects_invalid_addresses() -> Result<()> {
+    let mut app = TestApp::new().await?;
+    app.setup_bls(0).await?;
+
+    let mainnet = Address::new(Bytes32::new([1; 32]), "xch".to_string()).encode()?;
+
+    // Handles are rejected rather than resolved, since lookups never use the network.
+    for address in [mainnet.as_str(), "@alice", "alice", "abcd"] {
+        let error = app
+            .lookup_address_handles(LookupAddressHandles {
+                addresses: vec![address.to_string()],
+            })
+            .await
+            .unwrap_err()
+            .to_string();
+
+        assert!(error.contains("status 400"), "{address}: {error}");
+    }
+
+    let error = app
+        .lookup_address_handles(LookupAddressHandles {
+            addresses: vec![hex::encode([1; 32]); 1001],
+        })
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("status 400"), "{error}");
+    assert!(error.contains("At most 1000"), "{error}");
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_handle_endpoints_reject_invalid_handles() -> Result<()> {
+    let mut app = TestApp::new().await?;
+    app.setup_bls(0).await?;
+
+    for handle in ["@Alice", "al", "alice.xch"] {
+        let error = app
+            .get_handle(GetHandle {
+                handle: handle.to_string(),
+            })
+            .await
+            .unwrap_err()
+            .to_string();
+
+        assert!(error.contains("status 400"), "{handle}: {error}");
+        assert!(error.contains("Invalid handle"), "{handle}: {error}");
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_handle_endpoints_reject_unsupported_networks() -> Result<()> {
+    let mut app = TestApp::new().await?;
+    app.setup_bls(0).await?;
+
+    for network in &mut app.sage.lock().await.network_list.networks {
+        network.inherit = None;
+    }
+
+    let errors = [
+        app.get_handle(GetHandle {
+            handle: "alice".to_string(),
+        })
+        .await
+        .unwrap_err(),
+        app.get_handles(handles_request(HandleFilterMode::All, false))
+            .await
+            .unwrap_err(),
+        app.lookup_address_handles(LookupAddressHandles {
+            addresses: vec![hex::encode([1; 32])],
+        })
+        .await
+        .unwrap_err(),
+    ];
+
+    for error in errors {
+        let error = error.to_string();
+        assert!(error.contains("status 400"), "{error}");
+        assert!(error.contains("not supported on this network"), "{error}");
+    }
 
     Ok(())
 }
