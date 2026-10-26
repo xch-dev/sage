@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use anyhow::Context;
 use tauri::{AppHandle, Manager, State};
 
@@ -59,7 +57,6 @@ pub async fn update_app_permissions_for_app(
 pub async fn grant_capability(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
-    _base_path: &Path,
     app_id: &str,
     capability: UserBridgeCapability,
 ) -> anyhow::Result<GrantCapabilityOutcome> {
@@ -71,7 +68,6 @@ pub async fn grant_capability(
 pub async fn grant_network_whitelist_entry(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
-    _base_path: &Path,
     app_id: &str,
     network_id: Option<&str>,
     entry: &SageNetworkWhitelistEntry,
@@ -306,7 +302,7 @@ async fn network_change_affects_current_network(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use std::{collections::BTreeMap, path::Path};
 
     use tempfile::tempdir;
 

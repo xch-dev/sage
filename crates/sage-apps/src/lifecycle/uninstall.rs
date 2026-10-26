@@ -3,23 +3,16 @@ use std::{fs, io};
 use tauri::{AppHandle, Manager, State, command};
 
 use crate::{
-    AppState, AppsHostState, ResolveStoppedError, Result, apps_root, emit_listed_apps_changed,
+    AppsHostState, ResolveStoppedError, Result, apps_root, emit_listed_apps_changed,
     resolve_stopped_app,
 };
 
 #[command]
 #[specta::specta]
-pub async fn apps_uninstall_app(
-    app_handle: AppHandle,
-    state: State<'_, AppState>,
-    app_id: String,
-) -> Result<()> {
-    let base_path = {
-        let state = state.lock().await;
-        state.path.clone()
-    };
+pub async fn apps_uninstall_app(app_handle: AppHandle, app_id: String) -> Result<()> {
+    let host_state: State<'_, AppsHostState> = app_handle.state();
 
-    let dir = apps_root(&base_path).join(&app_id);
+    let dir = apps_root(&host_state.root).join(&app_id);
 
     match resolve_stopped_app(&app_handle, &app_id).await {
         Ok(_) | Err(ResolveStoppedError::AppDirMissing) => {}
@@ -32,8 +25,6 @@ pub async fn apps_uninstall_app(
             .into());
         }
     }
-
-    let host_state: State<'_, AppsHostState> = app_handle.state();
 
     let mut tx = host_state.db.begin_immediate().await.map_err(|err| {
         io::Error::other(format!(
