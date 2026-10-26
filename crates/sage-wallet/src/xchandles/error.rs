@@ -61,6 +61,12 @@ pub enum XchandlesError {
 
     #[error("The resolved singleton {0} is in a clawback and has no settled owner")]
     ResolvedSingletonInClawback(Bytes32),
+
+    #[error(
+        "The resolved singleton {0} hasn't been transferred since it was launched, so its \
+        owner can't be verified"
+    )]
+    ResolvedSingletonUnspentEve(Bytes32),
 }
 
 impl XchandlesError {
@@ -86,7 +92,8 @@ impl XchandlesError {
             | Self::Expired { .. }
             | Self::ResolvedSingletonMelted(..)
             | Self::InvalidResolvedSingleton(..)
-            | Self::ResolvedSingletonInClawback(..) => false,
+            | Self::ResolvedSingletonInClawback(..)
+            | Self::ResolvedSingletonUnspentEve(..) => false,
         }
     }
 
@@ -110,7 +117,8 @@ impl XchandlesError {
             | Self::SlotNotFound(..)
             | Self::SlotSpent(..)
             | Self::ResolutionUnavailable
-            | Self::ResolvedSingletonNotFound(..) => false,
+            | Self::ResolvedSingletonNotFound(..)
+            | Self::ResolvedSingletonUnspentEve(..) => false,
         }
     }
 

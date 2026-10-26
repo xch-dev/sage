@@ -162,8 +162,7 @@ pub async fn verify_handle(
         .ok_or(XchandlesError::ResolutionUnavailable)?;
 
     let resolved =
-        verify_resolved_singleton(peer, genesis_challenge, resolved_launcher_id, singleton)
-            .await?;
+        verify_resolved_singleton(peer, genesis_challenge, resolved_launcher_id, singleton).await?;
 
     Ok(VerifiedHandle {
         handle: handle.clone(),
@@ -201,9 +200,8 @@ async fn verify_resolved_singleton(
         return Err(XchandlesError::ResponseMismatch);
     }
 
-    if singleton.melted {
-        return Err(XchandlesError::ResolvedSingletonMelted(launcher_id));
-    }
+    // The API's melted flag isn't trusted. A melted singleton is detected below from its
+    // last coin being spent without creating a successor.
 
     let mut coin = Coin::new(
         singleton.parent_coin_id,
@@ -213,6 +211,26 @@ async fn verify_resolved_singleton(
 
     for _ in 0..MAX_SINGLETON_HOPS {
         let coin_id = coin.coin_id();
+
+        // The eve coin is created by the launcher, whose spend doesn't reveal the owner. If
+        // it's already been spent, its child can be parsed instead.
+        if coin.parent_coin_info == launcher_id {
+            let Some(coin_state) = peer.fetch_optional_coin(coin_id, genesis_challenge).await?
+            else {
+                return Err(XchandlesError::ResolvedSingletonNotFound(coin_id));
+            };
+
+            if coin_state.spent_height.is_none() {
+                return Err(XchandlesError::ResolvedSingletonUnspentEve(launcher_id));
+            }
+
+            let Some(child) = peer.try_fetch_singleton_child(coin_id).await? else {
+                return Err(XchandlesError::ResolvedSingletonMelted(launcher_id));
+            };
+
+            coin = child.coin;
+            continue;
+        }
 
         let Some(parent_state) = peer
             .fetch_optional_coin(coin.parent_coin_info, genesis_challenge)

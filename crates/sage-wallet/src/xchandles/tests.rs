@@ -156,7 +156,11 @@ async fn transfer_nft(
     Ok(nft)
 }
 
-fn slot_value(handle: &Handle, resolved_launcher_id: Bytes32, left: u8) -> XchandlesHandleSlotValue {
+fn slot_value(
+    handle: &Handle,
+    resolved_launcher_id: Bytes32,
+    left: u8,
+) -> XchandlesHandleSlotValue {
     XchandlesHandleSlotValue::new(
         0,
         handle.hash(),
@@ -470,7 +474,11 @@ async fn test_spent_slot_is_fetched_again() -> anyhow::Result<()> {
     let neighbor_value = slot_value(&setup.handle, setup.nft.info.launcher_id, 1);
     let recreated = setup
         .registry
-        .spend(&setup.sim, std::slice::from_ref(&setup.slot), &[neighbor_value])
+        .spend(
+            &setup.sim,
+            std::slice::from_ref(&setup.slot),
+            &[neighbor_value],
+        )
         .await?
         .remove(0);
     let old_slot = std::mem::replace(&mut setup.slot, recreated);
@@ -506,7 +514,11 @@ async fn test_resolve_gives_up_on_persistently_spent_slot() -> anyhow::Result<()
     let neighbor_value = slot_value(&setup.handle, setup.nft.info.launcher_id, 1);
     setup
         .registry
-        .spend(&setup.sim, std::slice::from_ref(&setup.slot), &[neighbor_value])
+        .spend(
+            &setup.sim,
+            std::slice::from_ref(&setup.slot),
+            &[neighbor_value],
+        )
         .await?;
 
     let index = MockIndex::new(std::iter::repeat_n(stale, MAX_RESOLVE_ATTEMPTS + 1));
@@ -562,16 +574,13 @@ async fn test_invalid_resolved_singleton_is_rejected() -> anyhow::Result<()> {
         Err(XchandlesError::ResponseMismatch)
     ));
 
-    let mut response = setup.response();
-    response.resolved_singleton.as_mut().unwrap().melted = true;
-    assert!(matches!(
-        setup.verify(&response).await,
-        Err(XchandlesError::ResolvedSingletonMelted(..))
-    ));
-
     // A coin which the parent never created.
     let mut response = setup.response();
-    response.resolved_singleton.as_mut().unwrap().inner_puzzle_hash = Bytes32::new([9; 32]);
+    response
+        .resolved_singleton
+        .as_mut()
+        .unwrap()
+        .inner_puzzle_hash = Bytes32::new([9; 32]);
     assert!(matches!(
         setup.verify(&response).await,
         Err(XchandlesError::InvalidResolvedSingleton(..))
@@ -584,6 +593,70 @@ async fn test_invalid_resolved_singleton_is_rejected() -> anyhow::Result<()> {
         setup.verify(&response).await,
         Err(XchandlesError::ResolvedSingletonNotFound(..))
     ));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_melted_flag_is_not_trusted() -> anyhow::Result<()> {
+    let setup = Setup::new().await?;
+
+    let mut response = setup.response();
+    response.resolved_singleton.as_mut().unwrap().melted = true;
+    let verified = setup.verify(&response).await?;
+    assert_eq!(verified.resolved_coin_id, setup.nft.coin.coin_id());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_spent_eve_singleton_is_followed() -> anyhow::Result<()> {
+    let setup = Setup::new().await?;
+
+    let Proof::Lineage(proof) = setup.nft.proof else {
+        panic!("expected the minted NFT to have spent its eve coin");
+    };
+
+    let mut response = setup.response();
+    let singleton = response.resolved_singleton.as_mut().unwrap();
+    singleton.parent_coin_id = setup.nft.info.launcher_id;
+    singleton.inner_puzzle_hash = proof.parent_inner_puzzle_hash;
+
+    let verified = setup.verify(&response).await?;
+    assert_eq!(verified.resolved_coin_id, setup.nft.coin.coin_id());
+    assert_eq!(verified.resolved_puzzle_hash, setup.owner.puzzle_hash);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_unspent_eve_singleton_is_not_verified() -> anyhow::Result<()> {
+    let mut setup = Setup::new().await?;
+
+    // A singleton which was launched but never spent, so nothing reveals its owner.
+    let unspent = TestRegistry::launch(&setup.sim).await?;
+    setup.slot = setup
+        .registry
+        .spend(
+            &setup.sim,
+            std::slice::from_ref(&setup.slot),
+            &[slot_value(&setup.handle, unspent.launcher_id, 1)],
+        )
+        .await?
+        .remove(0);
+
+    let mut response = setup.response();
+    let singleton = response.resolved_singleton.as_mut().unwrap();
+    singleton.launcher_id = unspent.launcher_id;
+    singleton.parent_coin_id = unspent.launcher_id;
+    singleton.inner_puzzle_hash = TestRegistry::inner_puzzle_hash();
+
+    let error = setup.verify(&response).await.unwrap_err();
+    assert!(matches!(
+        error,
+        XchandlesError::ResolvedSingletonUnspentEve(..)
+    ));
+    assert!(!error.is_unavailable() && !error.is_rejection());
 
     Ok(())
 }
@@ -784,7 +857,10 @@ mod store {
         let error = store(&db, NOW + OFFLINE_MAX_AGE_SECONDS + 1, Err(unavailable()))
             .await
             .unwrap_err();
-        assert!(matches!(error, XchandlesError::Api(XchandlesApiError::IndexStale)));
+        assert!(matches!(
+            error,
+            XchandlesError::Api(XchandlesApiError::IndexStale)
+        ));
 
         // Expired by the local clock, even though the mapping is recent.
         let mut expiring = verified(B);
@@ -874,7 +950,10 @@ mod store {
             .await
             .unwrap_err();
         assert!(matches!(error, XchandlesError::UnsupportedNetwork));
-        assert_eq!(db.xchandle(registry(), "alice").await?.unwrap(), verified_row);
+        assert_eq!(
+            db.xchandle(registry(), "alice").await?.unwrap(),
+            verified_row
+        );
 
         Ok(())
     }
@@ -896,7 +975,10 @@ mod store {
 
         assert_eq!(resolution.row.last_sent_puzzle_hash, Some(B));
         assert_eq!(resolution.changed_from(), None);
-        assert_eq!(db.xchandle(registry(), "alice").await?.unwrap(), resolution.row);
+        assert_eq!(
+            db.xchandle(registry(), "alice").await?.unwrap(),
+            resolution.row
+        );
 
         Ok(())
     }

@@ -239,7 +239,10 @@ impl XchandlesIndex for XchandlesClient {
 }
 
 /// Decodes an API response body, mapping documented error codes to typed errors.
-pub fn decode<T: DeserializeOwned>(status: StatusCode, body: &[u8]) -> Result<T, XchandlesApiError> {
+pub fn decode<T: DeserializeOwned>(
+    status: StatusCode,
+    body: &[u8],
+) -> Result<T, XchandlesApiError> {
     if status.is_success() {
         return Ok(serde_json::from_slice(body)?);
     }
@@ -362,14 +365,20 @@ mod tests {
         assert!(error.is_unavailable());
 
         let body = r#"{"code":"rate_limited","message":"Slow down","request_id":"x"}"#;
-        let error = decode::<HandleResponse>(StatusCode::TOO_MANY_REQUESTS, body.as_bytes())
-            .unwrap_err();
-        assert!(matches!(&error, XchandlesApiError::Status { status: 429, .. }));
+        let error =
+            decode::<HandleResponse>(StatusCode::TOO_MANY_REQUESTS, body.as_bytes()).unwrap_err();
+        assert!(matches!(
+            &error,
+            XchandlesApiError::Status { status: 429, .. }
+        ));
         assert!(error.is_unavailable());
 
         let error = decode::<HandleResponse>(StatusCode::BAD_GATEWAY, b"<html>bad gateway</html>")
             .unwrap_err();
-        assert!(matches!(&error, XchandlesApiError::Status { status: 502, .. }));
+        assert!(matches!(
+            &error,
+            XchandlesApiError::Status { status: 502, .. }
+        ));
         assert!(error.is_unavailable());
 
         // For example, a captive portal page.

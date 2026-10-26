@@ -127,9 +127,7 @@ pub async fn resolve_and_store(
     let error = match lookup.await {
         Ok(verified) => {
             let mut tx = db.tx().await?;
-            let previous = tx
-                .xchandle(registry_launcher_id, handle.as_str())
-                .await?;
+            let previous = tx.xchandle(registry_launcher_id, handle.as_str()).await?;
             let row = verified_row(previous.as_ref(), &verified, now);
             tx.upsert_xchandle(&row).await?;
             tx.commit().await?;
