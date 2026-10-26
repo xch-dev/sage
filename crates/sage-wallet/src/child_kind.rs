@@ -233,7 +233,9 @@ impl ChildKind {
 
                     let clawback = parse_clawback_unchecked(allocator, &create_coin, true);
 
-                    let did = if let Some(clawback) = clawback {
+                    // The clawback memos are only trusted if the DID's puzzle actually
+                    // commits to the clawback as its owner.
+                    let (did, clawback) = if let Some(clawback) = clawback {
                         let p2_puzzle_hash = clawback.tree_hash().into();
 
                         let clawback_did = Did::new(
@@ -249,12 +251,12 @@ impl ChildKind {
                         );
 
                         if clawback_did.info.puzzle_hash() == coin.puzzle_hash.into() {
-                            clawback_did
+                            (clawback_did, Some(clawback))
                         } else {
-                            did
+                            (did, None)
                         }
                     } else {
-                        did
+                        (did, None)
                     };
 
                     return Ok(Self::Did {
@@ -419,4 +421,69 @@ pub fn clawback_from_memo_unchecked(
     };
 
     Some(clawback)
+}
+
+#[cfg(test)]
+mod tests {
+    use chia_wallet_sdk::test::Simulator;
+
+    use super::*;
+
+    fn transfer_did(
+        clawback: Option<ClawbackV2>,
+        memo_receiver: Bytes32,
+    ) -> anyhow::Result<ChildKind> {
+        let mut sim = Simulator::new();
+        let alice = sim.bls(1);
+        let mut ctx = SpendContext::new();
+
+        let (conditions, did) = Launcher::new(alice.coin.coin_id(), 1)
+            .create_simple_did(&mut ctx, &StandardLayer::new(alice.pk))?;
+        StandardLayer::new(alice.pk).spend(&mut ctx, alice.coin, conditions)?;
+        ctx.take();
+
+        let p2_puzzle_hash = clawback.map_or(memo_receiver, |clawback| clawback.tree_hash().into());
+        let new_info = DidInfo {
+            p2_puzzle_hash,
+            ..did.info
+        };
+
+        // The memos always claim a clawback, whether or not the DID is actually sent to one.
+        let memos = ctx.memos(&(memo_receiver, ((Bytes32::new([7; 32]), (100_u64, ())), ())))?;
+        did.spend_with(
+            &mut ctx,
+            &StandardLayer::new(alice.pk),
+            Conditions::new().create_coin(new_info.inner_puzzle_hash().into(), 1, memos),
+        )?;
+        let child = did.child(p2_puzzle_hash, did.info.metadata, 1);
+
+        let spend = ctx.take().remove(0);
+
+        Ok(ChildKind::from_parent(
+            spend.coin,
+            &spend.puzzle_reveal,
+            &spend.solution,
+            child.coin,
+        )?)
+    }
+
+    #[test]
+    fn test_did_clawback_memos_must_match_puzzle() -> anyhow::Result<()> {
+        let receiver = Bytes32::new([8; 32]);
+
+        let ChildKind::Did { info, clawback, .. } = transfer_did(None, receiver)? else {
+            panic!("expected a DID");
+        };
+        assert_eq!(info.p2_puzzle_hash, receiver);
+        assert_eq!(clawback, None);
+
+        let real = ClawbackV2::new(Bytes32::new([7; 32]), receiver, 100, 1, true);
+        let ChildKind::Did { info, clawback, .. } = transfer_did(Some(real), receiver)? else {
+            panic!("expected a DID");
+        };
+        assert_eq!(info.p2_puzzle_hash, real.tree_hash().into());
+        assert_eq!(clawback, Some(real));
+
+        Ok(())
+    }
 }
