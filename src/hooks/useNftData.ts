@@ -185,7 +185,6 @@ export function useNftData(params: NftDataParams) {
     if (updateNftsRef.current) {
       updateNftsRef.current(params.page);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     params.collectionId,
     params.ownerDid,
@@ -217,7 +216,6 @@ export function useNftData(params: NftDataParams) {
     return () => {
       unlisten.then((u) => u());
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.page]); // Only depend on params.page, not updateNfts (stored in ref to avoid infinite loop)
 
   // Update when DIDs change if we're showing owner DIDs
