@@ -12,31 +12,35 @@ use serde_json::Value;
 
 use super::{TestApp, mint_mutable_nft, mint_mutable_nft_named};
 
-fn puzzle_hash(byte: u8) -> Bytes32 {
+pub(super) fn puzzle_hash(byte: u8) -> Bytes32 {
     Bytes32::new([byte; 32])
 }
 
-fn address(byte: u8) -> String {
+pub(super) fn address(byte: u8) -> String {
     Address::new(puzzle_hash(byte), "txch".to_string())
         .encode()
         .expect("valid address")
 }
 
-fn now() -> u64 {
+pub(super) fn now() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("system time before epoch")
         .as_secs()
 }
 
-fn confirm(handle: &str, address: String) -> HandleConfirmation {
+pub(super) fn confirm(handle: &str, address: String) -> HandleConfirmation {
     HandleConfirmation {
         handle: handle.to_string(),
         address,
     }
 }
 
-fn send(address: &str, confirmed_handles: Vec<HandleConfirmation>, auto_submit: bool) -> SendXch {
+pub(super) fn send(
+    address: &str,
+    confirmed_handles: Vec<HandleConfirmation>,
+    auto_submit: bool,
+) -> SendXch {
     SendXch {
         address: address.to_string(),
         amount: Amount::u64(100),
@@ -61,7 +65,7 @@ async fn registry_launcher_id(app: &TestApp) -> Bytes32 {
 
 /// Stores a mapping as if it had been verified a minute ago. The test API is unavailable
 /// unless a response is configured, so lookups fall back to it.
-async fn store_handle(
+pub(super) async fn store_handle(
     app: &TestApp,
     handle: &str,
     resolved_puzzle_hash: Bytes32,
@@ -106,7 +110,7 @@ async fn store_handle(
     Ok(())
 }
 
-async fn stored_handle(app: &TestApp, handle: &str) -> Result<XchandleRow> {
+pub(super) async fn stored_handle(app: &TestApp, handle: &str) -> Result<XchandleRow> {
     let registry_launcher_id = registry_launcher_id(app).await;
     let wallet = app.sage.lock().await.wallet()?;
 
@@ -118,7 +122,7 @@ async fn stored_handle(app: &TestApp, handle: &str) -> Result<XchandleRow> {
 }
 
 /// The status and JSON body of a failed request.
-fn error_body(error: &anyhow::Error) -> (StatusCode, Value) {
+pub(super) fn error_body(error: &anyhow::Error) -> (StatusCode, Value) {
     let message = error.to_string();
     let status = if message.contains("status 409") {
         StatusCode::CONFLICT
@@ -153,7 +157,7 @@ fn pays(response: &TransactionResponse, address: &str) -> bool {
         .any(|output| output.address == address)
 }
 
-async fn funded_app() -> Result<TestApp> {
+pub(super) async fn funded_app() -> Result<TestApp> {
     let mut app = TestApp::new().await?;
     let alice = app.setup_bls(1000).await?;
     app.login(Login { fingerprint: alice }).await?;

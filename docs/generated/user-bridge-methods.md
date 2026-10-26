@@ -112,6 +112,12 @@
 | ---------- | ------------------------- |
 | Capability | `wallet.get_coins_by_ids` |
 
+## `wallet.getContacts`
+
+| Field      | Value                 |
+| ---------- | --------------------- |
+| Capability | `wallet.get_contacts` |
+
 ## `wallet.getDerivations`
 
 | Field      | Value                    |
@@ -189,6 +195,12 @@
 | Field      | Value                      |
 | ---------- | -------------------------- |
 | Capability | `wallet.get_xch_usd_price` |
+
+## `wallet.lookupAddressContacts`
+
+| Field      | Value                 |
+| ---------- | --------------------- |
+| Capability | `wallet.get_contacts` |
 
 ## `wallet.lookupAddressHandles`
 

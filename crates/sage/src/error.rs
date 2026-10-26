@@ -258,6 +258,25 @@ pub enum Error {
     #[error("At most {0} addresses can be looked up at once")]
     TooManyAddresses(usize),
 
+    #[error("Contact {0} not found")]
+    MissingContact(u32),
+
+    #[error("Invalid contact: {0}")]
+    InvalidContact(String),
+
+    #[error("{recipient} is already saved as the contact {name}")]
+    DuplicateContactRecipient {
+        recipient: String,
+        name: String,
+        id: u32,
+    },
+
+    #[error("Another contact is already named {name}")]
+    DuplicateContactName { name: String, id: u32 },
+
+    #[error("These contacts are for the network {0}, not the current network")]
+    ContactNetworkMismatch(String),
+
     #[error("{}", recipient_errors_message(.0))]
     Recipients(Vec<RecipientError>),
 
@@ -336,7 +355,8 @@ impl Error {
             | Self::MissingDid(..)
             | Self::MissingNft(..)
             | Self::MissingOption(..)
-            | Self::MissingOffer(..) => ErrorKind::NotFound,
+            | Self::MissingOffer(..)
+            | Self::MissingContact(..) => ErrorKind::NotFound,
             Self::Bls(..)
             | Self::Hex(..)
             | Self::InvalidKey
@@ -371,6 +391,10 @@ impl Error {
             | Self::InvalidThemeJson
             | Self::MissingThemeData
             | Self::TooManyAddresses(..)
+            | Self::InvalidContact(..)
+            | Self::DuplicateContactRecipient { .. }
+            | Self::DuplicateContactName { .. }
+            | Self::ContactNetworkMismatch(..)
             | Self::OfferHandleNft(..) => ErrorKind::Api,
         }
     }

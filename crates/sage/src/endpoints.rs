@@ -1,5 +1,6 @@
 mod action_system;
 mod actions;
+mod contacts;
 mod data;
 mod keys;
 mod offers;

@@ -252,6 +252,20 @@ Allows the app to read the XCHandles handles this wallet has already verified, i
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.get_contacts`
+
+**Read address book**
+
+Allows the app to read the contacts in this wallet's address book, including their names, notes, addresses and handles.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.filter_unlocked_coins`
 
 **Filter unlocked wallet coins**

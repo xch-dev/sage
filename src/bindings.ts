@@ -155,6 +155,30 @@ async getHandles(req: GetHandles) : Promise<GetHandlesResponse> {
 async lookupAddressHandles(req: LookupAddressHandles) : Promise<LookupAddressHandlesResponse> {
     return await TAURI_INVOKE("lookup_address_handles", { req });
 },
+async getContacts(req: GetContacts) : Promise<GetContactsResponse> {
+    return await TAURI_INVOKE("get_contacts", { req });
+},
+async getContact(req: GetContact) : Promise<GetContactResponse> {
+    return await TAURI_INVOKE("get_contact", { req });
+},
+async addContact(req: AddContact) : Promise<AddContactResponse> {
+    return await TAURI_INVOKE("add_contact", { req });
+},
+async updateContact(req: UpdateContact) : Promise<UpdateContactResponse> {
+    return await TAURI_INVOKE("update_contact", { req });
+},
+async deleteContact(req: DeleteContact) : Promise<DeleteContactResponse> {
+    return await TAURI_INVOKE("delete_contact", { req });
+},
+async lookupAddressContacts(req: LookupAddressContacts) : Promise<LookupAddressContactsResponse> {
+    return await TAURI_INVOKE("lookup_address_contacts", { req });
+},
+async exportContacts(req: ExportContacts) : Promise<ExportContactsResponse> {
+    return await TAURI_INVOKE("export_contacts", { req });
+},
+async importContacts(req: ImportContacts) : Promise<ImportContactsResponse> {
+    return await TAURI_INVOKE("import_contacts", { req });
+},
 async getDerivations(req: GetDerivations) : Promise<GetDerivationsResponse> {
     return await TAURI_INVOKE("get_derivations", { req });
 },
@@ -486,6 +510,18 @@ syncEvent: "sync-event"
 
 export type Action = ({ type: "send" } & SendAction) | ({ type: "mint_nft" } & MintNftAction) | ({ type: "update_nft" } & UpdateNftAction) | ({ type: "fee" } & FeeAction)
 /**
+ * Add a contact to the address book
+ */
+export type AddContact = { name: string; 
+/**
+ * An address on the current network, or a handle written as `@handle`
+ */
+recipient: string; note?: string | null }
+/**
+ * Response with the new contact
+ */
+export type AddContactResponse = { contact: ContactRecord }
+/**
  * Add a URI to an NFT
  */
 export type AddNftUri = { 
@@ -517,6 +553,20 @@ export type AddPeer = {
  * IP address or hostname with port
  */
 ip: string }
+/**
+ * The contacts which name an address
+ */
+export type AddressContactsRecord = { 
+/**
+ * The address or puzzle hash, as it was given
+ */
+address: string; 
+/**
+ * Contacts for this address, sorted by name. These are address contacts for it, and
+ * handle contacts whose stored mapping is verified, unexpired and resolves to it. Handle
+ * contacts whose mapping is outdated should be resolved again before they're relied on
+ */
+contacts: ContactRecord[] }
 /**
  * The known handles which resolve to an address
  */
@@ -889,6 +939,91 @@ export type CombineOffersResponse = {
  * Combined offer string
  */
 offer: string }
+/**
+ * A contact in a portable form, for export and import
+ */
+export type ContactEntry = { name: string; 
+/**
+ * An address on the current network, or a handle written as `@handle`
+ */
+recipient: string; note?: string | null }
+/**
+ * What a contact names
+ */
+export type ContactKind = 
+/**
+ * A raw address
+ */
+"address" | 
+/**
+ * An XCHandles handle, which is resolved to an address when it's used
+ */
+"handle"
+/**
+ * A named entry in the address book
+ */
+export type ContactRecord = { 
+/**
+ * Stable identifier of the contact
+ */
+id: number; 
+/**
+ * The contact's name, unique in this wallet ignoring ASCII case
+ */
+name: string; 
+/**
+ * A private note about the contact
+ */
+note: string | null; 
+/**
+ * Whether the contact is a raw address or an XCHandles handle
+ */
+kind: ContactKind; 
+/**
+ * What to enter as a recipient to send to this contact: the address, or the handle
+ * written as `@handle`. Handles are resolved and checked for changes when they're used
+ */
+recipient: string; 
+/**
+ * The handle, without the leading `@`, for handle contacts
+ */
+handle: string | null; 
+/**
+ * The address for address contacts. For handle contacts, the address the handle was
+ * last verified as resolving to, if it has ever been resolved. Check `resolution` before
+ * relying on it, since it may be outdated, unverified or changed
+ */
+address: string | null; 
+/**
+ * The stored mapping for handle contacts which have been resolved, including its
+ * verification state, the address it changed from and the address last sent to. It is
+ * read from the local store, so it is always marked as cached
+ */
+resolution: HandleRecord | null; 
+/**
+ * Unix timestamp the contact was created at
+ */
+created_at: number; 
+/**
+ * Unix timestamp the contact's name or note was last changed at
+ */
+updated_at: number }
+/**
+ * Why an imported contact wasn't added
+ */
+export type ContactSkipReason = 
+/**
+ * The name or recipient isn't valid on this network
+ */
+"invalid" | 
+/**
+ * A contact for the same recipient already exists. It's kept unchanged
+ */
+"duplicate_recipient" | 
+/**
+ * A contact for a different recipient already has this name
+ */
+"duplicate_name"
 export type CorruptedInstalledSageApp = { id: string; icon?: SageAppIconView | null; appDir: string; error: string; manifestHeader?: SageAppManifestRecoveryHeaderV0 | null; source?: UserSageAppSource | null; compatibility?: SageAppCompatibility | null }
 /**
  * Create a new DID
@@ -926,6 +1061,14 @@ auto_submit?: boolean;
  * confirmed here before it can be used.
  */
 confirmed_handles?: HandleConfirmation[] }
+/**
+ * Delete a contact from the address book
+ */
+export type DeleteContact = { id: number }
+/**
+ * Response for contact deletion
+ */
+export type DeleteContactResponse = Record<string, never>
 /**
  * Delete a wallet database
  */
@@ -1009,6 +1152,22 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
+/**
+ * Export the address book
+ */
+export type ExportContacts = Record<string, never>
+/**
+ * Response with the exported address book
+ */
+export type ExportContactsResponse = { 
+/**
+ * The network the contacts are for
+ */
+network_id: string; 
+/**
+ * The contacts, sorted by name
+ */
+contacts: ContactEntry[] }
 export type FeeAction = { 
 /**
  * The fee amount, in mojos
@@ -1176,6 +1335,47 @@ export type GetCoinsResponse = {
 coins: CoinRecord[]; 
 /**
  * Total number of coins available
+ */
+total: number }
+/**
+ * Get a contact from the address book
+ */
+export type GetContact = { id: number }
+/**
+ * Response with a contact
+ */
+export type GetContactResponse = { contact: ContactRecord }
+/**
+ * List contacts in the address book
+ */
+export type GetContacts = { 
+/**
+ * Only list contacts whose name, note or handle contains this text, ignoring ASCII
+ * case. An address or puzzle hash also matches the contacts which name it
+ */
+search?: string | null; 
+/**
+ * Only list contacts of this kind
+ */
+kind?: ContactKind | null; 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of contacts to return
+ */
+limit: number }
+/**
+ * Response with contacts
+ */
+export type GetContactsResponse = { 
+/**
+ * The contacts, sorted by name
+ */
+contacts: ContactRecord[]; 
+/**
+ * Total number of contacts matching the search
  */
 total: number }
 /**
@@ -2000,7 +2200,11 @@ export type HandleFilterMode =
 /**
  * Handles whose owner NFT or DID is in this wallet
  */
-"owned"
+"owned" | 
+/**
+ * Handles saved in the address book
+ */
+"contacts"
 /**
  * A handle mapping which was verified against the chain
  */
@@ -2187,6 +2391,26 @@ export type Id =
  */
 { type: "new"; index: number }
 /**
+ * Import contacts into the address book
+ */
+export type ImportContacts = { 
+/**
+ * The network the contacts were exported from, which must be the current network
+ */
+network_id: string; contacts: ContactEntry[] }
+/**
+ * Response with the outcome of an import
+ */
+export type ImportContactsResponse = { 
+/**
+ * The contacts which were added
+ */
+added: ContactRecord[]; 
+/**
+ * The entries which weren't added, and why
+ */
+skipped: SkippedContact[] }
+/**
  * Import a wallet key
  */
 export type ImportKey = { 
@@ -2351,6 +2575,22 @@ export type Logout = Record<string, never>
  * Response from logging out of a wallet
  */
 export type LogoutResponse = Record<string, never>
+/**
+ * Look up the contacts for addresses
+ */
+export type LookupAddressContacts = { 
+/**
+ * Addresses on the current network, or hex encoded puzzle hashes
+ */
+addresses: string[] }
+/**
+ * Response with the contacts for each address
+ */
+export type LookupAddressContactsResponse = { 
+/**
+ * One entry per requested address, in the same order
+ */
+results: AddressContactsRecord[] }
 /**
  * Look up the known handles for addresses
  */
@@ -3316,6 +3556,18 @@ export type SignMessageWithPublicKeyResponse = {
  */
 signature: string }
 /**
+ * An imported contact which wasn't added
+ */
+export type SkippedContact = { 
+/**
+ * The entry as it was given
+ */
+entry: ContactEntry; reason: ContactSkipReason; 
+/**
+ * The existing contact it conflicts with, if any
+ */
+existing_id: number | null }
+/**
  * Spend bundle structure
  */
 export type SpendBundle = { 
@@ -3557,6 +3809,18 @@ record: TokenRecord }
  */
 export type UpdateCatResponse = Record<string, never>
 /**
+ * Rename a contact or change its note
+ */
+export type UpdateContact = { id: number; name: string; 
+/**
+ * The new note. Leave this out to clear it
+ */
+note?: string | null }
+/**
+ * Response with the updated contact
+ */
+export type UpdateContactResponse = { contact: ContactRecord }
+/**
  * Update a `DID`'s name and visibility settings
  */
 export type UpdateDid = { 
@@ -3637,7 +3901,7 @@ visible: boolean }
  * Response after updating an option
  */
 export type UpdateOptionResponse = Record<string, never>
-export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.resolve_handle" | "wallet.get_handles" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
+export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.resolve_handle" | "wallet.get_handles" | "wallet.get_contacts" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
 export type UserSageAppPendingUpdateDecisionReviewView = { requiredUserGrantableCapabilities: UserBridgeCapability[]; requiredNetworkWhitelist: SageNetworkWhitelistEntry[]; requiredNetworkWhitelistByNetwork: Partial<{ [key in string]: SageNetworkWhitelistEntry[] }> }
 export type UserSageAppPendingUpdateDecisionView = { kind: "apply" } | ({ kind: "review" } & UserSageAppPendingUpdateDecisionReviewView)
 export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest; decision: UserSageAppPendingUpdateDecisionView }

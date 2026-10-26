@@ -8,7 +8,9 @@
 
 use async_trait::async_trait;
 use sage::Error;
-use sage_api::{GetHandle, GetHandles, HandleErrorCode, LookupAddressHandles, ResolveHandle};
+use sage_api::{
+    GetHandle, GetHandles, HandleErrorCode, HandleFilterMode, LookupAddressHandles, ResolveHandle,
+};
 
 use crate::{
     BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability,
@@ -98,10 +100,18 @@ impl BridgeMethod for WalletGetHandle {
 pub struct WalletGetHandles;
 
 /// Refreshing looks up handles over the network, which `wallet.get_handles` doesn't allow.
+/// Listing the handles saved as contacts would reveal the address book, which needs
+/// `wallet.get_contacts`.
 fn validate_get_handles(params: &GetHandles) -> Result<(), BridgeMethodHandleError> {
     if params.refresh {
         return Err(BridgeMethodHandleError::invalid_request(
             "wallet.getHandles can't refresh handles; use wallet.resolveHandle instead",
+        ));
+    }
+
+    if params.filter == HandleFilterMode::Contacts {
+        return Err(BridgeMethodHandleError::invalid_request(
+            "wallet.getHandles can't list contacts; use wallet.getContacts instead",
         ));
     }
 
@@ -171,7 +181,6 @@ impl BridgeMethod for WalletLookupAddressHandles {
 
 #[cfg(test)]
 mod tests {
-    use sage_api::HandleFilterMode;
     use sage_wallet::{HandleError, XchandlesApiError, XchandlesError};
 
     use super::*;
@@ -208,6 +217,13 @@ mod tests {
         assert!(validate_get_handles(&params).is_ok());
 
         params.refresh = true;
+        assert_eq!(
+            validate_get_handles(&params).unwrap_err().code,
+            "invalid_request"
+        );
+
+        params.refresh = false;
+        params.filter = HandleFilterMode::Contacts;
         assert_eq!(
             validate_get_handles(&params).unwrap_err().code,
             "invalid_request"

@@ -1,3 +1,4 @@
+mod contacts;
 mod recipients;
 
 use std::{

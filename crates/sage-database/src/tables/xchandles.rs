@@ -28,6 +28,18 @@ impl TryFrom<i64> for XchandleStatus {
     }
 }
 
+/// Which stored handle mappings to list.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
+pub enum XchandleFilter {
+    #[default]
+    All = 0,
+    /// Handles whose owner singleton is an NFT or DID owned by this wallet.
+    Owned = 1,
+    /// Handles saved in the address book.
+    Contacts = 2,
+}
+
 /// A handle mapping, holding the values from its last successful verification.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct XchandleRow {
@@ -80,12 +92,11 @@ impl Database {
     /// A page of stored handle mappings, sorted by handle, and the total number matching.
     ///
     /// Unless `include_unverified` is set, only verified mappings which haven't expired by
-    /// `now` or the peak they were verified at are included. If `owned_only` is set, only
-    /// mappings whose owner singleton is an NFT or DID owned by this wallet are included.
+    /// `now` or the peak they were verified at are included.
     pub async fn xchandles_page(
         &self,
         registry_launcher_id: Bytes32,
-        owned_only: bool,
+        filter: XchandleFilter,
         include_unverified: bool,
         now: u64,
         limit: u32,
@@ -94,7 +105,7 @@ impl Database {
         xchandles_page(
             &self.pool,
             registry_launcher_id,
-            owned_only,
+            filter,
             include_unverified,
             now,
             limit,
@@ -268,7 +279,7 @@ async fn xchandles_by_puzzle_hash(
 async fn xchandles_page(
     pool: &SqlitePool,
     registry_launcher_id: Bytes32,
-    owned_only: bool,
+    filter: XchandleFilter,
     include_unverified: bool,
     now: u64,
     limit: u32,
@@ -276,6 +287,7 @@ async fn xchandles_page(
 ) -> Result<(Vec<XchandleRow>, u32)> {
     let registry_launcher_id = registry_launcher_id.as_ref();
     let now: i64 = now.try_into()?;
+    let filter = filter as u8;
 
     // The total is counted separately, so that it's still correct for a page past the end.
     let total = sqlx::query_scalar!(
@@ -284,15 +296,17 @@ async fn xchandles_page(
         WHERE registry_launcher_id = ?
             AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))
             AND (
-                NOT ? OR owner_launcher_id IN (
+                ? != 1 OR owner_launcher_id IN (
                     SELECT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)
                 )
             )
+            AND (? != 2 OR handle IN (SELECT handle FROM contacts WHERE kind = 1))
         ",
         registry_launcher_id,
         include_unverified,
         now,
-        owned_only
+        filter,
+        filter
     )
     .fetch_one(pool)
     .await?;
@@ -303,17 +317,19 @@ async fn xchandles_page(
         WHERE registry_launcher_id = ?
             AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))
             AND (
-                NOT ? OR owner_launcher_id IN (
+                ? != 1 OR owner_launcher_id IN (
                     SELECT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)
                 )
             )
+            AND (? != 2 OR handle IN (SELECT handle FROM contacts WHERE kind = 1))
         ORDER BY handle ASC
         LIMIT ? OFFSET ?
         ",
         registry_launcher_id,
         include_unverified,
         now,
-        owned_only,
+        filter,
+        filter,
         limit,
         offset
     )

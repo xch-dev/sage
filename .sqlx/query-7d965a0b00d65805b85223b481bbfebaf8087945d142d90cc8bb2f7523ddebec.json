@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT * FROM contacts\n        WHERE puzzle_hash = ? OR handle IN (\n            SELECT handle FROM xchandles\n            WHERE registry_launcher_id = ?\n                AND resolved_puzzle_hash = ?\n                AND status = 0\n                AND expiration > MAX(?, verified_timestamp)\n        )\n        ORDER BY name COLLATE NOCASE ASC, id ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "note",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "kind",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "puzzle_hash",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "handle",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "updated_at",
+        "ordinal": 7,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "7d965a0b00d65805b85223b481bbfebaf8087945d142d90cc8bb2f7523ddebec"
+}

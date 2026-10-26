@@ -128,6 +128,14 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to read the XCHandles handles this wallet has already verified, including which ones it owns and which handles point to an address.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
+        // Contacts come from the local store only, but are personal, so they need their own
+        // grant. Apps can only read them.
+        UserBridgeCapability::WalletGetContacts => CapabilityDefinition::new(
+            capability,
+            "Read address book",
+            "Allows the app to read the contacts in this wallet's address book, including their names, notes, addresses and handles.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
         UserBridgeCapability::WalletFilterUnlockedCoins => CapabilityDefinition::new(
             capability,
             "Filter unlocked wallet coins",
@@ -466,6 +474,17 @@ mod tests {
         assert!(read.requestable_by_app());
         assert!(read.user_grantable());
         assert!(read.shared_with_app());
+    }
+
+    #[test]
+    fn reading_contacts_is_not_external() {
+        let flags = get_user_capability_definition(UserBridgeCapability::WalletGetContacts).flags();
+
+        assert!(!flags.externally_observable());
+        assert!(!flags.accesses_sensitive_secret());
+        assert!(flags.requestable_by_app());
+        assert!(flags.user_grantable());
+        assert!(flags.shared_with_app());
     }
 
     #[test]

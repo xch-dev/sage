@@ -84,6 +84,10 @@ fn build_user_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, WalletGetHandles);
     insert_method(&mut methods, WalletLookupAddressHandles);
 
+    // Wallet address book
+    insert_method(&mut methods, WalletGetContacts);
+    insert_method(&mut methods, WalletLookupAddressContacts);
+
     // Environment
     insert_method(&mut methods, EnvironmentThemeGetCurrent);
     insert_method(&mut methods, EnvironmentGetNetwork);

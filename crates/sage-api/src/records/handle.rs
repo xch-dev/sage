@@ -171,6 +171,8 @@ pub enum HandleFilterMode {
     All,
     /// Handles whose owner NFT or DID is in this wallet
     Owned,
+    /// Handles saved in the address book
+    Contacts,
 }
 
 /// The known handles which resolve to an address

@@ -1,4 +1,5 @@
 mod coin;
+mod contact;
 mod derivation;
 mod did;
 mod handle;
@@ -14,6 +15,7 @@ mod transaction;
 mod transaction_summary;
 
 pub use coin::*;
+pub use contact::*;
 pub use derivation::*;
 pub use did::*;
 pub use handle::*;

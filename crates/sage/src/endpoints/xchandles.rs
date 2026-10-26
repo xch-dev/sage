@@ -13,7 +13,9 @@ use sage_api::{
     PendingTransferRecord, PendingTransferStatus, ResolveHandle, ResolveHandleResponse,
 };
 use sage_config::XchandlesConfig;
-use sage_database::{NftUpdaterKindExt, ParsedNftMetadata, XchandleRow, XchandleStatus};
+use sage_database::{
+    NftUpdaterKindExt, ParsedNftMetadata, XchandleFilter, XchandleRow, XchandleStatus,
+};
 use sage_wallet::{
     Handle, HandleResolution, OFFLINE_MAX_AGE_SECONDS, PendingTransferResponse, RESOLVE_TIMEOUT,
     WalletPeer, XchandlesClient, XchandlesError, chain_tip, resolve_and_store, resolve_handle,
@@ -141,7 +143,11 @@ impl Sage {
             .db
             .xchandles_page(
                 config.registry_launcher_id,
-                req.filter == HandleFilterMode::Owned,
+                match req.filter {
+                    HandleFilterMode::All => XchandleFilter::All,
+                    HandleFilterMode::Owned => XchandleFilter::Owned,
+                    HandleFilterMode::Contacts => XchandleFilter::Contacts,
+                },
                 req.include_unverified,
                 now,
                 req.limit,
@@ -215,7 +221,7 @@ impl Sage {
 
     /// Parses an address on the current network or a hex puzzle hash. This deliberately
     /// doesn't accept handles, since looking up a handle would make network requests.
-    fn parse_lookup_address(&self, input: &str) -> Result<Bytes32> {
+    pub(crate) fn parse_lookup_address(&self, input: &str) -> Result<Bytes32> {
         let hex = input.strip_prefix("0x").unwrap_or(input);
 
         if hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
@@ -383,7 +389,11 @@ impl Sage {
         self.handle_record_at(resolution, unix_now())
     }
 
-    fn handle_record_at(&self, resolution: &HandleResolution, now: u64) -> Result<HandleRecord> {
+    pub(crate) fn handle_record_at(
+        &self,
+        resolution: &HandleResolution,
+        now: u64,
+    ) -> Result<HandleRecord> {
         let row = &resolution.row;
         let prefix = self.network().prefix();
         let encode = |puzzle_hash| Address::new(puzzle_hash, prefix.clone()).encode();
