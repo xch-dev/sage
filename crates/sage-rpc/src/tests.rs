@@ -446,6 +446,7 @@ async fn mint_mutable_nft(app: &mut TestApp) -> Result<String> {
         coin_spends: serde_json::from_value(serde_json::to_value(&coin_spends)?)?,
         auto_submit: true,
         partial: false,
+        aggregated_signature: None,
     })
     .await?;
     app.wait_for_coins().await;
