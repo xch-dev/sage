@@ -4,8 +4,14 @@ import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import {
+  fromHexStrict,
+  isValidHexBytes,
+  toHex,
+  utf8ToBytes,
+} from '@/lib/utils';
 import { t } from '@lingui/core/macro';
-import { Plural, Trans } from '@lingui/react/macro';
+import { Trans } from '@lingui/react/macro';
 import { LoaderCircleIcon } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { ReadOnlyButton } from '../ReadOnlyButton';
@@ -20,6 +26,7 @@ import {
 } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
 import { Textarea } from '../ui/textarea';
 
 export interface SignMessageDialogProps {
@@ -28,21 +35,17 @@ export interface SignMessageDialogProps {
   address?: string;
 }
 
-type MessageEncoding =
-  | { kind: 'text' }
-  | { kind: 'hex'; bytes: number }
-  | { kind: 'oddHex' };
+type MessageMode = 'text' | 'hex';
 
-// Mirrors `parse_signature_message` in crates/sage/src/utils/parse.rs: a
-// non-empty string of hex digits, with or without a 0x prefix, is decoded and
-// signed as raw bytes. Anything else is signed as UTF-8 text.
-function messageEncoding(message: string): MessageEncoding {
-  const hex = message.startsWith('0x') ? message.slice(2) : message;
+// The backend signs any all-hex string as raw bytes and anything else as UTF-8
+// text, so always send hex. That way text which happens to look like hex (such
+// as "cafe") is still signed as the characters the user typed.
+function messageBytes(message: string, mode: MessageMode): Uint8Array | null {
+  if (mode === 'text') return utf8ToBytes(message);
+  if (!isValidHexBytes(message)) return null;
 
-  if (!/^[0-9a-fA-F]+$/.test(hex)) return { kind: 'text' };
-  if (hex.length % 2 !== 0) return { kind: 'oddHex' };
-
-  return { kind: 'hex', bytes: hex.length / 2 };
+  const bytes = fromHexStrict(message);
+  return bytes.length > 0 ? bytes : null;
 }
 
 export function SignMessageDialog({
@@ -56,21 +59,25 @@ export function SignMessageDialog({
 
   const addressId = useId();
   const messageId = useId();
+  const hexModeId = useId();
 
   const [address, setAddress] = useState(initialAddress);
   const [message, setMessage] = useState('');
+  const [mode, setMode] = useState<MessageMode>('text');
   const [addressError, setAddressError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<SignMessageByAddressResponse | null>(
     null,
   );
 
-  const encoding = messageEncoding(message);
+  const bytes = message ? messageBytes(message, mode) : null;
+  const hexError = mode === 'hex' && !!message && !bytes;
 
   useEffect(() => {
     if (open) {
       setAddress(initialAddress);
       setMessage('');
+      setMode('text');
       setAddressError(null);
       setResult(null);
     }
@@ -78,6 +85,8 @@ export function SignMessageDialog({
 
   const sign = async () => {
     const trimmed = address.trim();
+
+    if (!bytes) return;
 
     setPending(true);
 
@@ -90,7 +99,10 @@ export function SignMessageDialog({
       if (!(await promptIfEnabled())) return;
 
       setResult(
-        await commands.signMessageByAddress({ address: trimmed, message }),
+        await commands.signMessageByAddress({
+          address: trimmed,
+          message: `0x${toHex(bytes)}`,
+        }),
       );
     } catch (error) {
       addError(error as CustomError);
@@ -109,8 +121,6 @@ export function SignMessageDialog({
           <DialogDescription>
             <Trans>
               Prove that you own an address by signing a message with its key.
-              Messages made up only of hex digits, with or without a 0x prefix,
-              are signed as raw bytes. Anything else is signed as text.
             </Trans>
           </DialogDescription>
         </DialogHeader>
@@ -144,31 +154,46 @@ export function SignMessageDialog({
               )}
             </div>
             <div className='flex flex-col gap-2'>
-              <Label htmlFor={messageId}>
-                <Trans>Message</Trans>
-              </Label>
+              <div className='flex items-center justify-between'>
+                <Label htmlFor={messageId}>
+                  <Trans>Message</Trans>
+                </Label>
+                <div className='flex items-center gap-2'>
+                  <Label htmlFor={hexModeId}>
+                    <Trans>Hex</Trans>
+                  </Label>
+                  <Switch
+                    id={hexModeId}
+                    checked={mode === 'hex'}
+                    onCheckedChange={(checked) =>
+                      setMode(checked ? 'hex' : 'text')
+                    }
+                  />
+                </div>
+              </div>
               <Textarea
                 id={messageId}
                 value={message}
-                placeholder={t`Enter message to sign`}
+                placeholder={
+                  mode === 'hex' ? t`e.g. ff00ab` : t`Enter message to sign`
+                }
                 className='min-h-[100px] font-mono'
-                aria-invalid={encoding.kind === 'oddHex'}
+                aria-invalid={hexError}
                 onChange={(e) => setMessage(e.target.value)}
               />
-              {encoding.kind === 'hex' && (
-                <p className='text-sm text-muted-foreground'>
-                  <Plural
-                    value={encoding.bytes}
-                    one='This will be signed as # byte of hex data, not as text.'
-                    other='This will be signed as # bytes of hex data, not as text.'
-                  />
-                </p>
-              )}
-              {encoding.kind === 'oddHex' && (
+              {hexError ? (
                 <p className='text-sm text-destructive' role='alert'>
                   <Trans>
-                    Hex messages must have an even number of digits.
+                    Message must be valid hex bytes (even length, 0-9, a-f)
                   </Trans>
+                </p>
+              ) : (
+                <p className='text-sm text-muted-foreground'>
+                  {mode === 'hex' ? (
+                    <Trans>Signed as raw hex bytes</Trans>
+                  ) : (
+                    <Trans>Signed as UTF-8 text</Trans>
+                  )}
                 </p>
               )}
             </div>
@@ -200,12 +225,7 @@ export function SignMessageDialog({
               <ReadOnlyButton
                 requiresSigning
                 disabledTooltip={<Trans>Read-only wallets cannot sign</Trans>}
-                disabled={
-                  pending ||
-                  !address.trim() ||
-                  !message ||
-                  encoding.kind === 'oddHex'
-                }
+                disabled={pending || !address.trim() || !bytes}
                 aria-busy={pending}
                 onClick={sign}
               >
