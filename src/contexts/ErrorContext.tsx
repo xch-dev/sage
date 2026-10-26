@@ -99,6 +99,10 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       kind = 'Dexie';
       break;
 
+    case 'already_running':
+      kind = 'Already Running';
+      break;
+
     default:
       kind = null;
   }

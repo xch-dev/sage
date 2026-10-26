@@ -8,6 +8,12 @@ export const commands = {
 async initialize() : Promise<null> {
     return await TAURI_INVOKE("initialize");
 },
+/**
+ * Exits the app. This is used when initialization fails, since Sage can't continue safely.
+ */
+async quit() : Promise<void> {
+    await TAURI_INVOKE("quit");
+},
 async login(req: Login) : Promise<LoginResponse> {
     return await TAURI_INVOKE("login", { req });
 },
@@ -954,7 +960,7 @@ export type Error = { kind: ErrorKind; reason: string;
  * Why an XCHandles request failed, if it did
  */
 handle_error_code: HandleErrorCode | null }
-export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
+export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc" | "already_running"
 /**
  * Exercise options
  */

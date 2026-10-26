@@ -3,6 +3,7 @@ identifier = "main-host"
 description = "Allows the main Sage webview to call Sage host commands."
 commands.allow = [
     "initialize",
+    "quit",
     "login",
     "logout",
     "resync",
