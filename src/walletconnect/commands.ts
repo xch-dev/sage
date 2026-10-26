@@ -61,6 +61,49 @@ const nftMint = z.object({
   editionTotal: z.number().optional(),
 });
 
+const handleRecord = z.object({
+  handle: z.string(),
+  handleHash: z.string(),
+  address: z.string(),
+  status: z.enum(['verified', 'changed']),
+  previousAddress: z.string().nullable(),
+  lastSentAddress: z.string().nullable(),
+  cached: z.boolean(),
+  verification: z.enum(['verified', 'unverified', 'stale', 'expired']),
+  verificationReason: z.string().nullable(),
+  ownerLauncherId: z.string(),
+  resolvedLauncherId: z.string(),
+  expiration: z.number(),
+  slotCoinId: z.string(),
+  slotConfirmationHeight: z.number(),
+  resolvedCoinId: z.string(),
+  verifiedHeight: z.number(),
+  verifiedTimestamp: z.number(),
+  lastVerifiedAt: z.number(),
+});
+
+const handleSlot = z.object({
+  registryLauncherId: z.string(),
+  counter: z.number(),
+  leftHandleHash: z.string(),
+  rightHandleHash: z.string(),
+  parentId: z.string(),
+  parentParentId: z.string(),
+  parentInnerPuzzleHash: z.string(),
+  resolvedConfirmationHeight: z.number(),
+  indexedHeight: z.number(),
+});
+
+const pendingTransfer = z.object({
+  newOwnerLauncherId: z.string(),
+  newResolvedLauncherId: z.string(),
+  minimumExecutionHeight: z.number(),
+  initiatorCoinId: z.string(),
+  executorCoinId: z.string(),
+  updateConfirmationHeight: z.number(),
+  updateSlotCoinId: z.string().nullable(),
+});
+
 enum MempoolInclusionStatus {
   SUCCESS = 1, // Transaction added to mempool
   PENDING = 2, // Transaction not yet added to mempool
@@ -243,6 +286,58 @@ export const walletConnectCommands = {
       signature: z.string(),
     }),
     confirm: true,
+  },
+  // XCHandles reads. Every handle is verified against the blockchain, and the
+  // result carries its verification state and any change warning, so that a site
+  // never has to trust a bare address. XCHandles failures set the JSON-RPC
+  // error's data to a HandleErrorCode, such as 'expired' or 'unavailable'.
+  chia_resolveHandle: {
+    paramsType: z.object({ handle: z.string() }),
+    returnType: handleRecord,
+    confirm: false,
+  },
+  chia_getHandle: {
+    paramsType: z.object({ handle: z.string() }),
+    returnType: z.object({
+      handle: handleRecord,
+      slot: handleSlot,
+      pendingTransferStatus: z.enum([
+        'none',
+        'verified',
+        'unverified',
+        'unavailable',
+      ]),
+      pendingTransfer: pendingTransfer.nullable(),
+    }),
+    confirm: false,
+  },
+  // Only handles Sage has already verified; nothing is fetched to label them.
+  chia_lookupAddressHandles: {
+    paramsType: z.object({ addresses: z.array(z.string()).max(1000) }),
+    returnType: z.object({
+      results: z.array(
+        z.object({
+          address: z.string(),
+          handles: z.array(handleRecord),
+        }),
+      ),
+    }),
+    confirm: false,
+  },
+  // Verified handles whose owner NFT or DID is in this wallet. Other handles
+  // Sage knows about aren't shared with sites.
+  chia_getOwnedHandles: {
+    paramsType: z
+      .object({
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      })
+      .optional(),
+    returnType: z.object({
+      handles: z.array(handleRecord),
+      total: z.number(),
+    }),
+    confirm: false,
   },
   // Update the display name, ticker, icon and description of a CAT this wallet
   // already holds (the same record update_cat edits). Nothing is signed; the user

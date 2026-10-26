@@ -140,6 +140,15 @@ async checkAddress(req: CheckAddress) : Promise<CheckAddressResponse> {
 async resolveHandle(req: ResolveHandle) : Promise<ResolveHandleResponse> {
     return await TAURI_INVOKE("resolve_handle", { req });
 },
+async getHandle(req: GetHandle) : Promise<GetHandleResponse> {
+    return await TAURI_INVOKE("get_handle", { req });
+},
+async getHandles(req: GetHandles) : Promise<GetHandlesResponse> {
+    return await TAURI_INVOKE("get_handles", { req });
+},
+async lookupAddressHandles(req: LookupAddressHandles) : Promise<LookupAddressHandlesResponse> {
+    return await TAURI_INVOKE("lookup_address_handles", { req });
+},
 async getDerivations(req: GetDerivations) : Promise<GetDerivationsResponse> {
     return await TAURI_INVOKE("get_derivations", { req });
 },
@@ -502,6 +511,18 @@ export type AddPeer = {
  * IP address or hostname with port
  */
 ip: string }
+/**
+ * The known handles which resolve to an address
+ */
+export type AddressHandlesRecord = { 
+/**
+ * The address or puzzle hash, as it was given
+ */
+address: string; 
+/**
+ * Verified, unexpired handles which resolve to it, sorted by handle
+ */
+handles: HandleRecord[] }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
 export type Amount = string | number
 export type AppLaunchGateResult = { allowed: boolean; kind: string; capability: SandboxCapability | null; message: string | null }
@@ -926,7 +947,11 @@ export type DerivationRecord = { index: number; public_key: string; address: str
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
 export type EnvironmentThemeView = { name: string; displayName: string; mostLike?: string | null; inherits?: string | null; cssVars: Partial<{ [key in string]: string }> }
-export type Error = { kind: ErrorKind; reason: string }
+export type Error = { kind: ErrorKind; reason: string; 
+/**
+ * Why an XCHandles request failed, if it did
+ */
+handle_error: HandleErrorCode | null }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
 /**
  * Exercise options
@@ -1189,6 +1214,71 @@ export type GetDidsResponse = {
  * List of DIDs
  */
 dids: DidRecord[] }
+/**
+ * Get the full verified details of an XCHandles handle
+ */
+export type GetHandle = { 
+/**
+ * The handle, with or without a leading `@`
+ */
+handle: string }
+/**
+ * Response with the full verified details of a handle
+ */
+export type GetHandleResponse = { 
+/**
+ * The verified handle mapping
+ */
+handle: HandleRecord; 
+/**
+ * The registry slot the mapping was verified against
+ */
+slot: HandleSlotRecord; 
+/**
+ * Whether a transfer of the handle is pending
+ */
+pending_transfer_status: PendingTransferStatus; 
+/**
+ * The pending transfer reported by the API, unless the status is none or unavailable
+ */
+pending_transfer: PendingTransferRecord | null }
+/**
+ * List the handles Sage knows about
+ */
+export type GetHandles = { 
+/**
+ * Which handles to list
+ */
+filter?: HandleFilterMode; 
+/**
+ * Also list mappings which are unverified, stale or expired
+ */
+include_unverified?: boolean; 
+/**
+ * Verify the handles named by NFTs in this wallet before listing. This makes requests
+ * to the XCHandles API and peers
+ */
+refresh?: boolean; 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of handles to return
+ */
+limit: number }
+/**
+ * Response with known handles
+ */
+export type GetHandlesResponse = { 
+/**
+ * The handles, sorted by handle
+ */
+handles: HandleRecord[]; 
+/**
+ * Total number of handles matching the filter
+ */
+total: number }
 /**
  * Get a specific wallet key
  */
@@ -1782,6 +1872,47 @@ address: string }
 export type GetXchUsdPrice = Record<string, never>
 export type GetXchUsdPriceResponse = { usd: number }
 /**
+ * Why an XCHandles request failed
+ */
+export type HandleErrorCode = 
+/**
+ * The handle isn't syntactically valid
+ */
+"invalid_handle" | 
+/**
+ * XCHandles isn't deployed on the current network
+ */
+"unsupported_network" | 
+/**
+ * The handle isn't registered
+ */
+"not_found" | 
+/**
+ * The handle has expired
+ */
+"expired" | 
+/**
+ * The API or peers were unavailable or behind, so the handle couldn't be verified
+ * right now. Retrying later may succeed
+ */
+"unavailable" | 
+/**
+ * The API's answer failed verification against the chain
+ */
+"verification_failed"
+/**
+ * Which known handles to list
+ */
+export type HandleFilterMode = 
+/**
+ * Every handle Sage knows about
+ */
+"all" | 
+/**
+ * Handles whose owner NFT or DID is in this wallet
+ */
+"owned"
+/**
  * A handle mapping which was verified against the chain
  */
 export type HandleRecord = { 
@@ -1811,10 +1942,19 @@ previous_address: string | null;
  */
 last_sent_address: string | null; 
 /**
- * Whether the mapping comes from an earlier verification, because the handle could
- * not be verified right now
+ * Whether the mapping was verified against the chain before this request, rather
+ * than by it. Resolutions are only cached when the handle could not be verified right
+ * now, while mappings listed from the store are always cached
  */
 cached: boolean; 
+/**
+ * Whether the stored mapping can currently be relied on
+ */
+verification: HandleVerification; 
+/**
+ * Why the mapping is no longer verified, if it isn't
+ */
+verification_reason: string | null; 
 /**
  * Launcher ID of the singleton which owns the handle
  */
@@ -1852,6 +1992,46 @@ verified_timestamp: number;
  */
 last_verified_at: number }
 /**
+ * The registry slot a handle was verified against
+ */
+export type HandleSlotRecord = { 
+/**
+ * Launcher ID of the registry singleton the handle is registered in
+ */
+registry_launcher_id: string; 
+/**
+ * The slot's counter, which increases whenever the handle's slot is updated
+ */
+counter: number; 
+/**
+ * Hash of the neighboring handle before this one in the registry
+ */
+left_handle_hash: string; 
+/**
+ * Hash of the neighboring handle after this one in the registry
+ */
+right_handle_hash: string; 
+/**
+ * The registry coin which created the slot
+ */
+parent_id: string; 
+/**
+ * The parent of the registry coin which created the slot
+ */
+parent_parent_id: string; 
+/**
+ * Inner puzzle hash of the registry coin which created the slot
+ */
+parent_inner_puzzle_hash: string; 
+/**
+ * Height the resolved singleton coin was confirmed at
+ */
+resolved_confirmation_height: number; 
+/**
+ * The API's indexed peak height when the handle was last fetched
+ */
+indexed_height: number }
+/**
  * Whether a verified handle mapping has changed
  */
 export type HandleStatus = 
@@ -1864,6 +2044,27 @@ export type HandleStatus =
  * The handle now resolves to a different address than it did previously
  */
 "changed"
+/**
+ * Whether a stored handle mapping can currently be relied on
+ */
+export type HandleVerification = 
+/**
+ * The values were verified against the chain by the most recent lookup
+ */
+"verified" | 
+/**
+ * The most recent lookup was rejected, or showed the handle is no longer registered,
+ * so the values are only the last ones that were verified
+ */
+"unverified" | 
+/**
+ * The values must be verified again before they are used, for example after a reorg
+ */
+"stale" | 
+/**
+ * The handle has expired since it was last verified
+ */
+"expired"
 export type Id = 
 /**
  * The XCH asset
@@ -2042,6 +2243,22 @@ export type Logout = Record<string, never>
  * Response from logging out of a wallet
  */
 export type LogoutResponse = Record<string, never>
+/**
+ * Look up the known handles for addresses
+ */
+export type LookupAddressHandles = { 
+/**
+ * Addresses on the current network, or hex encoded puzzle hashes
+ */
+addresses: string[] }
+/**
+ * Response with the known handles for each address
+ */
+export type LookupAddressHandlesResponse = { 
+/**
+ * One entry per requested address, in the same order
+ */
+results: AddressHandlesRecord[] }
 /**
  * Create a new offer
  */
@@ -2342,6 +2559,61 @@ export type OptionRecord = { launcher_id: string; name: string | null; visible: 
 export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }
+/**
+ * A transfer of a handle to a new owner or resolved singleton, which has been initiated
+ * but not executed yet
+ */
+export type PendingTransferRecord = { 
+/**
+ * Launcher ID of the singleton which will own the handle
+ */
+new_owner_launcher_id: string; 
+/**
+ * Launcher ID of the singleton the handle will resolve to
+ */
+new_resolved_launcher_id: string; 
+/**
+ * Height from which the transfer can be executed
+ */
+minimum_execution_height: number; 
+/**
+ * The owner coin which initiated the transfer
+ */
+initiator_coin_id: string; 
+/**
+ * The coin the API expects to execute the transfer. Not verified
+ */
+executor_coin_id: string; 
+/**
+ * Height the API reports the transfer was initiated at. Not verified
+ */
+update_confirmation_height: number; 
+/**
+ * The registry's update slot coin which records the transfer, if it was verified
+ */
+update_slot_coin_id: string | null }
+/**
+ * Whether a handle has a pending transfer
+ */
+export type PendingTransferStatus = 
+/**
+ * The API reports no pending transfer. The API is the only source of pending
+ * transfers, so this can't be proven on chain
+ */
+"none" | 
+/**
+ * The API reports a pending transfer, and its update slot was found on chain
+ */
+"verified" | 
+/**
+ * The API reports a pending transfer, but no matching update slot from the registry
+ * was found on chain. It may already have been executed, or the claim may be false
+ */
+"unverified" | 
+/**
+ * Pending transfers couldn't be checked right now
+ */
+"unavailable"
 /**
  * Perform database maintenance operations
  */
@@ -3119,7 +3391,7 @@ visible: boolean }
  * Response after updating an option
  */
 export type UpdateOptionResponse = Record<string, never>
-export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
+export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.resolve_handle" | "wallet.get_handles" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
 export type UserSageAppPendingUpdateDecisionReviewView = { requiredUserGrantableCapabilities: UserBridgeCapability[]; requiredNetworkWhitelist: SageNetworkWhitelistEntry[]; requiredNetworkWhitelistByNetwork: Partial<{ [key in string]: SageNetworkWhitelistEntry[] }> }
 export type UserSageAppPendingUpdateDecisionView = { kind: "apply" } | ({ kind: "review" } & UserSageAppPendingUpdateDecisionReviewView)
 export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest; decision: UserSageAppPendingUpdateDecisionView }
