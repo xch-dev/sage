@@ -1,5 +1,6 @@
 use std::{
     fs,
+    io::Write,
     path::{Path, PathBuf},
     str::FromStr,
     sync::{Arc, Once},
@@ -146,7 +147,7 @@ impl Sage {
             let data = fs::read(&key_path)?;
             self.keychain = Keychain::from_bytes(&data)?;
         } else {
-            fs::write(&key_path, self.keychain.to_bytes()?)?;
+            write_atomic(&key_path, self.keychain.to_bytes()?)?;
         }
 
         Ok(())
@@ -197,13 +198,13 @@ impl Sage {
                 let old_config: OldConfig = toml::from_str(&config_text)?;
                 let (config, wallet_config) = migrate_config(old_config)?;
                 self.config = config;
-                fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
-                fs::write(&wallet_config_path, toml::to_string_pretty(&wallet_config)?)?;
+                write_atomic(&config_path, toml::to_string_pretty(&self.config)?)?;
+                write_atomic(&wallet_config_path, toml::to_string_pretty(&wallet_config)?)?;
             } else {
                 self.config = toml::from_str(&config_text)?;
             }
         } else {
-            fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
+            write_atomic(&config_path, toml::to_string_pretty(&self.config)?)?;
         }
 
         // This is loaded separately, so that a missing main config doesn't overwrite the wallets.
@@ -211,7 +212,7 @@ impl Sage {
             let wallet_config_text = fs::read_to_string(&wallet_config_path)?;
             self.wallet_config = toml::from_str(&wallet_config_text)?;
         } else {
-            fs::write(
+            write_atomic(
                 &wallet_config_path,
                 toml::to_string_pretty(&self.wallet_config)?,
             )?;
@@ -226,7 +227,7 @@ impl Sage {
                 .filter(|networks| !networks.is_empty())
             {
                 self.network_list = migrate_networks(old_network_list);
-                fs::write(
+                write_atomic(
                     &network_list_path,
                     toml::to_string_pretty(&self.network_list)?,
                 )?;
@@ -234,7 +235,7 @@ impl Sage {
                 self.network_list = toml::from_str(&text)?;
             }
         } else {
-            fs::write(
+            write_atomic(
                 &network_list_path,
                 toml::to_string_pretty(&self.network_list)?,
             )?;
@@ -566,16 +567,16 @@ impl Sage {
 
     pub fn save_config(&self) -> Result<()> {
         let config = toml::to_string_pretty(&self.config)?;
-        fs::write(self.path.join("config.toml"), config)?;
+        write_atomic(&self.path.join("config.toml"), config)?;
         let wallet_config = toml::to_string_pretty(&self.wallet_config)?;
-        fs::write(self.path.join("wallets.toml"), wallet_config)?;
+        write_atomic(&self.path.join("wallets.toml"), wallet_config)?;
         let network_list = toml::to_string_pretty(&self.network_list)?;
-        fs::write(self.path.join("networks.toml"), network_list)?;
+        write_atomic(&self.path.join("networks.toml"), network_list)?;
         Ok(())
     }
 
     pub fn save_keychain(&self) -> Result<()> {
-        fs::write(self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
+        write_atomic(&self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
         Ok(())
     }
 }
@@ -587,6 +588,25 @@ async fn update_query_planner_stats(pool: &SqlitePool) {
     } else {
         info!("Updated database query planner statistics");
     }
+}
+
+/// Writes to a temporary file in the same directory, then renames it over the destination, so
+/// that a crash or power loss can't leave the file truncated or empty.
+fn write_atomic(path: &Path, contents: impl AsRef<[u8]>) -> Result<()> {
+    let dir = path.parent().unwrap_or_else(|| Path::new("."));
+    let mut file = tempfile::NamedTempFile::new_in(dir)?;
+    file.write_all(contents.as_ref())?;
+    file.as_file().sync_all()?;
+    file.persist(path).map_err(|error| error.error)?;
+
+    // Sync the directory too, so that the rename itself survives a power loss. The file has
+    // already been replaced at this point, so a filesystem that doesn't support this is fine.
+    #[cfg(unix)]
+    if let Err(error) = fs::File::open(dir).and_then(|dir| dir.sync_all()) {
+        warn!("Failed to sync directory {}: {error}", dir.display());
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -734,6 +754,20 @@ mod tests {
         let sage = load(dir.path())?;
         assert_eq!(sage.wallet_config.wallets.len(), 1);
         assert_eq!(sage.wallet_config.wallets[0].fingerprint, fingerprint);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_atomic_replaces_file() -> Result<()> {
+        let dir = TempDir::new()?;
+        let path = dir.path().join("file.toml");
+
+        write_atomic(&path, "old")?;
+        write_atomic(&path, "new")?;
+
+        assert_eq!(fs::read_to_string(&path)?, "new");
+        assert_eq!(fs::read_dir(dir.path())?.count(), 1);
 
         Ok(())
     }
