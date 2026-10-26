@@ -263,7 +263,7 @@ mod tests {
         driver::{Clawback as ClawbackV1, SpendContext, StandardLayer},
         prelude::*,
     };
-    use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, P2Puzzle, TransactionCustody};
+    use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, P2Puzzle};
     use test_log::test;
     use tokio::time::sleep;
 
@@ -853,7 +853,7 @@ mod tests {
     }
 
     #[test(tokio::test)]
-    async fn test_clawback_transaction_shows_receiver_custody() -> anyhow::Result<()> {
+    async fn test_clawback_history_only_shows_own_custody() -> anyhow::Result<()> {
         let mut alice = TestWallet::new(1000).await?;
         let mut bob = alice.next(0).await?;
 
@@ -873,25 +873,44 @@ mod tests {
         alice.wait_for_coins().await;
         bob.wait_for_puzzles().await;
 
-        for (test, is_own) in [(&alice, false), (&bob, true)] {
-            let (transactions, _) = test.wallet.db.transactions(None, false, 10, 0).await?;
+        let (transactions, _) = alice.wallet.db.transactions(None, false, 10, 0).await?;
 
-            let clawback_coin = transactions
-                .iter()
-                .flat_map(|transaction| &transaction.created)
-                .find(|coin| coin.coin.amount == 1000 && coin.p2_puzzle_hash.is_some())
-                .expect("missing clawback coin");
+        let clawback_coin = transactions
+            .iter()
+            .flat_map(|transaction| &transaction.created)
+            .find(|coin| coin.coin.amount == 1000)
+            .expect("missing clawback coin")
+            .coin;
 
-            // The wrapper puzzle hash must never be shown as the address
-            assert_ne!(clawback_coin.p2_puzzle_hash, Some(bob.puzzle_hash));
-            assert_eq!(
-                clawback_coin.custody,
-                Some(TransactionCustody {
-                    p2_puzzle_hash: bob.puzzle_hash,
-                    is_own,
-                })
-            );
-        }
+        assert_ne!(clawback_coin.puzzle_hash, bob.puzzle_hash);
+
+        // The sender doesn't see the receiver's address, and nobody sees the wrapper
+        assert_eq!(alice.history_custody(clawback_coin.coin_id()).await?, None);
+        assert_eq!(
+            bob.history_custody(clawback_coin.coin_id()).await?,
+            Some(bob.puzzle_hash)
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_clawback_v1_history_only_shows_own_custody() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(0).await?;
+
+        alice.new_block_with_current_time().await?;
+
+        let (clawback_id, _, _) = create_v1_clawback(&alice, bob.puzzle_hash, 1000, 3600).await?;
+
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        assert_eq!(alice.history_custody(clawback_id).await?, None);
+        assert_eq!(
+            bob.history_custody(clawback_id).await?,
+            Some(bob.puzzle_hash)
+        );
 
         Ok(())
     }

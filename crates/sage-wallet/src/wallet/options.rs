@@ -349,6 +349,67 @@ mod tests {
         Ok(())
     }
 
+    #[test(tokio::test)]
+    async fn test_option_underlying_history_only_shows_own_creator() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1001).await?;
+        let mut bob = alice.next(0).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let timestamp = alice.new_block_with_current_time().await?;
+
+        let (coin_spends, option) = alice
+            .wallet
+            .mint_option(
+                WalletOptionMint {
+                    expiration_seconds: timestamp + 1000,
+                    underlying_type: OptionType::Cat {
+                        asset_id,
+                        amount: 1000,
+                    },
+                    strike_type: OptionType::Xch { amount: 2000 },
+                },
+                0,
+            )
+            .await?;
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let underlying_coin_id = option.info.underlying_coin_id;
+
+        // The creator sees their own custody address, rather than the underlying's wrapper
+        let creator_puzzle_hash = alice
+            .history_custody(underlying_coin_id)
+            .await?
+            .expect("creator should see their own address");
+
+        assert!(
+            alice
+                .wallet
+                .db
+                .is_custody_p2_puzzle_hash(creator_puzzle_hash)
+                .await?
+        );
+
+        let coin_spends = alice
+            .wallet
+            .transfer_options(vec![option.info.launcher_id], bob.puzzle_hash, 0, None)
+            .await?;
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        // The holder sees nothing, since the underlying coin belongs to someone else
+        assert_eq!(bob.history_custody(underlying_coin_id).await?, None);
+
+        Ok(())
+    }
+
     async fn list_options(
         test: &TestWallet,
         filter: OptionFilter,
