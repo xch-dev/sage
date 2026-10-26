@@ -7,6 +7,7 @@ import {
   KeyInfo,
 } from './bindings';
 import { CustomError } from './contexts/ErrorContext';
+import { Expiration } from './lib/expiration';
 
 export interface WalletState {
   sync: GetSyncStatusResponse;
@@ -41,11 +42,7 @@ export interface TokenAmount {
   amount: Amount;
 }
 
-export interface OfferExpiration {
-  days: string;
-  hours: string;
-  minutes: string;
-}
+export type OfferExpiration = Expiration;
 
 export interface ReturnValue {
   status: 'success' | 'completed' | 'cancelled';
