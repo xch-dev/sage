@@ -104,6 +104,10 @@ impl Sage {
             slot_coin_id: hex::encode(row.slot_coin_id),
             slot_confirmation_height: row.slot_confirmation_height,
             resolved_coin_id: hex::encode(row.resolved_coin_id),
+            resolved_confirmation_height: row.resolved_confirmation_height,
+            updated_height: row
+                .slot_confirmation_height
+                .max(row.resolved_confirmation_height),
             verified_height: row.verified_height,
             verified_timestamp: row.verified_timestamp,
             last_verified_at: row.last_verified_at,

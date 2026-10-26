@@ -91,6 +91,7 @@ export function HandleResolution({ value }: { value: string }) {
 
   const { record } = resolution;
   const changedFrom = record.changed_from;
+  const updatedHeight = record.updated_height.toLocaleString();
 
   return (
     <div className='space-y-1 text-xs'>
@@ -109,6 +110,9 @@ export function HandleResolution({ value }: { value: string }) {
             )}
           </span>{' '}
           <span className='font-mono break-all'>{record.address}</span>
+          <div className='text-muted-foreground'>
+            <Trans>Last updated at height {updatedHeight}</Trans>
+          </div>
         </div>
       </div>
 

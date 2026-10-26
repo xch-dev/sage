@@ -288,7 +288,10 @@ fn print_preview(
         } else {
             ""
         };
-        println!("@{} resolves to {}{note}", handle.handle, handle.address);
+        println!(
+            "@{} resolves to {}{note}, last updated at height {}",
+            handle.handle, handle.address, handle.updated_height
+        );
     }
 
     let mut leaving = Vec::new();

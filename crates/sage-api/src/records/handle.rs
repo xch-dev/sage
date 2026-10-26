@@ -41,6 +41,13 @@ pub struct HandleRecord {
     pub slot_confirmation_height: u32,
     /// The resolved singleton coin the address was derived from
     pub resolved_coin_id: String,
+    /// Height the resolved singleton coin was confirmed at
+    pub resolved_confirmation_height: u32,
+    /// The latest height at which the slot or the resolved singleton changed, so the
+    /// latest height at which the address this handle resolves to could have changed. The
+    /// slot is also recreated by activity on neighboring handles, so this can be later
+    /// than the last time the handle itself was updated.
+    pub updated_height: u32,
     /// Height of the peak transaction block the mapping was verified at
     pub verified_height: u32,
     /// Timestamp of the peak transaction block the mapping was verified at

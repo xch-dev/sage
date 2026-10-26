@@ -1932,6 +1932,17 @@ slot_confirmation_height: number;
  */
 resolved_coin_id: string; 
 /**
+ * Height the resolved singleton coin was confirmed at
+ */
+resolved_confirmation_height: number; 
+/**
+ * The latest height at which the slot or the resolved singleton changed, so the
+ * latest height at which the address this handle resolves to could have changed. The
+ * slot is also recreated by activity on neighboring handles, so this can be later
+ * than the last time the handle itself was updated.
+ */
+updated_height: number; 
+/**
  * Height of the peak transaction block the mapping was verified at
  */
 verified_height: number; 

@@ -99,6 +99,12 @@ export function SendXchApprovalCard({
             breakAll
           />
         ) : null}
+        {handle?.address && handle.updatedHeight !== null ? (
+          <ApprovalDetailRow
+            label='Last updated'
+            value={`Height ${handle.updatedHeight.toLocaleString()}`}
+          />
+        ) : null}
         {hasMemos ? (
           <ApprovalDetailRow label='Memos' value={`${memos.length} attached`} />
         ) : null}

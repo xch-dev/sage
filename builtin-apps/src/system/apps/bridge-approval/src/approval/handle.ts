@@ -10,6 +10,8 @@ export interface SendXchHandleState {
   cached: boolean;
   /** The address it resolved to before, if it changed since it was last used. */
   previousAddress: string | null;
+  /** The latest height at which the address it resolves to could have changed. */
+  updatedHeight: number | null;
   error: string | null;
 }
 
@@ -30,6 +32,7 @@ export function sendXchHandleState(
     address: record?.address ?? null,
     cached: record?.cached ?? false,
     previousAddress: record?.changed_from ?? null,
+    updatedHeight: record?.updated_height ?? null,
     error:
       approval.handle.error ??
       (record ? null : 'The handle could not be resolved.'),

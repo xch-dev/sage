@@ -84,9 +84,9 @@ async fn store_handle(
         slot_parent_id: Bytes32::default(),
         slot_parent_parent_id: Bytes32::default(),
         slot_parent_inner_puzzle_hash: Bytes32::default(),
-        slot_confirmation_height: 0,
+        slot_confirmation_height: 10,
         resolved_coin_id: Bytes32::default(),
-        resolved_confirmation_height: 0,
+        resolved_confirmation_height: 20,
         indexed_height: 0,
         verified_height: 0,
         verified_timestamp: now - 60,
@@ -175,6 +175,8 @@ async fn test_send_to_handle_records_last_sent_address() -> Result<()> {
     assert_eq!(handle.address, address(1));
     assert!(handle.cached);
     assert_eq!(handle.changed_from, None);
+    // The resolved singleton moved after the slot was last updated.
+    assert_eq!(handle.updated_height, 20);
     assert!(pays(&response, &address(1)));
 
     // Nothing is recorded until the transaction is submitted.

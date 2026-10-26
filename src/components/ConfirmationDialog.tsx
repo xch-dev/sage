@@ -310,6 +310,7 @@ export default function ConfirmationDialog({
                           <div className='font-mono text-xs break-all'>
                             {handle.address}
                           </div>
+                          <HandleUpdatedHeight height={handle.updated_height} />
                         </div>
                       ))}
                       <div className='text-xs text-muted-foreground'>
@@ -740,5 +741,15 @@ export default function ConfirmationDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function HandleUpdatedHeight({ height }: { height: number }) {
+  const updatedHeight = height.toLocaleString();
+
+  return (
+    <div className='text-xs text-muted-foreground'>
+      <Trans>Last updated at height {updatedHeight}</Trans>
+    </div>
   );
 }
