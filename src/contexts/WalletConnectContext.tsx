@@ -919,7 +919,11 @@ function RequestDialog({
   };
   const peerMetadata = signClient?.session.get(request.topic)?.peer.metadata;
 
-  const CommandComponent = COMMAND_COMPONENTS[method] ?? DefaultCommandDialog;
+  // The component is selected by `method`, so its params always match `parsedParams`.
+  const CommandComponent = (COMMAND_COMPONENTS[method] ??
+    DefaultCommandDialog) as (
+    props: CommandDialogProps<WalletConnectCommand>,
+  ) => JSX.Element;
 
   const parsedParams = useMemo(
     () => commandInfo.paramsType.parse(params),
