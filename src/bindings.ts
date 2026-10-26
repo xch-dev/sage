@@ -951,7 +951,7 @@ export type Error = { kind: ErrorKind; reason: string;
 /**
  * Why an XCHandles request failed, if it did
  */
-handle_error: HandleErrorCode | null }
+handle_error_code: HandleErrorCode | null }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
 /**
  * Exercise options

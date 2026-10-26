@@ -64,7 +64,7 @@ describe('XCHandles WalletConnect methods', () => {
     mocks.commands.resolveHandle.mockRejectedValue({
       kind: 'not_found',
       reason: 'Handle has expired',
-      handle_error: 'expired',
+      handle_error_code: 'expired',
     });
 
     const error = await handleResolveHandle({ handle: 'alice' }).catch(

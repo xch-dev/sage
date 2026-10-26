@@ -838,7 +838,15 @@ async fn test_pending_transfer_for_another_registry_is_not_verified() -> anyhow:
     // Another registry records the same transfer under its own launcher ID.
     let mut other = TestRegistry::launch(&setup.sim).await?;
     let info = update_slot_info(other.launcher_id, &setup.handle, &transfer);
-    other.create_update_slot(&setup.sim, info).await?;
+    let slot = other.create_update_slot(&setup.sim, info).await?;
+    assert!(
+        setup
+            .sim
+            .lock()
+            .await
+            .coin_state(slot.coin.coin_id())
+            .is_some()
+    );
 
     assert_eq!(setup.verify_pending(&transfer).await?, None);
 

@@ -220,7 +220,7 @@ pub async fn download_cni_offercode(code: String) -> Result<String> {
                 "Invalid offer code {code}: Server responded with code {}",
                 response.status()
             ),
-            handle_error: None,
+            handle_error_code: None,
         });
     }
 

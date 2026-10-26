@@ -9,7 +9,7 @@ pub struct Error {
     pub kind: ErrorKind,
     pub reason: String,
     /// Why an XCHandles request failed, if it did
-    pub handle_error: Option<HandleErrorCode>,
+    pub handle_error_code: Option<HandleErrorCode>,
 }
 
 impl From<sage::Error> for Error {
@@ -17,7 +17,7 @@ impl From<sage::Error> for Error {
         Self {
             kind: error.kind(),
             reason: error.to_string(),
-            handle_error: error.handle_error_code(),
+            handle_error_code: error.handle_error_code(),
         }
     }
 }
@@ -33,7 +33,7 @@ impl From<reqwest::Error> for Error {
         Self {
             kind: ErrorKind::Internal,
             reason: error.to_string(),
-            handle_error: None,
+            handle_error_code: None,
         }
     }
 }
@@ -43,7 +43,7 @@ impl From<std::io::Error> for Error {
         Self {
             kind: ErrorKind::Internal,
             reason: error.to_string(),
-            handle_error: None,
+            handle_error_code: None,
         }
     }
 }

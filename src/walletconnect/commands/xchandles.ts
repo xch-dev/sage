@@ -20,8 +20,8 @@ async function withHandleErrors<T>(request: () => Promise<T>): Promise<T> {
   try {
     return await request();
   } catch (error) {
-    if (isSageError(error) && error.handle_error) {
-      throw new WalletConnectError(error.reason, error.handle_error);
+    if (isSageError(error) && error.handle_error_code) {
+      throw new WalletConnectError(error.reason, error.handle_error_code);
     }
     throw error;
   }
