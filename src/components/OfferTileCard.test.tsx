@@ -38,6 +38,7 @@ function offered(assetValue: Asset, amount: number): OfferAsset {
     royalty: 0,
     nft_royalty: null,
     option_assets: null,
+    nft_metadata_updater_kind: null,
   };
 }
 
