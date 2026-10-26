@@ -1,4 +1,5 @@
 import { OptionRecord } from '@/bindings';
+import { AddressLabels } from '@/components/AddressLabels';
 import { CopyBox } from '@/components/CopyBox';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -77,11 +78,14 @@ export function OptionConfirmation({
       </ConfirmationAlert>
 
       {type === 'transfer' && address && (
-        <CopyBox
-          title={t`Recipient Address`}
-          value={address}
-          onCopy={() => toast.success(t`Address copied to clipboard`)}
-        />
+        <div className='space-y-1'>
+          <AddressLabels address={address} />
+          <CopyBox
+            title={t`Recipient Address`}
+            value={address}
+            onCopy={() => toast.success(t`Address copied to clipboard`)}
+          />
+        </div>
       )}
 
       {options.map((option) => (

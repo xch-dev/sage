@@ -5,6 +5,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { AlertCircleIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react';
+import { AddressLabels } from './AddressLabels';
 import { AssetCoin } from './AssetCoin';
 import { AssetIcon } from './AssetIcon';
 import { CopyButton } from './CopyButton';
@@ -124,6 +125,24 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
               )}
             </div>
 
+            {asset.revocation_address && (
+              <div className='flex gap-1.5 items-center text-sm text-muted-foreground min-w-0'>
+                <span className='truncate'>
+                  {t`Revocable by`}{' '}
+                  <span className='font-mono'>
+                    {asset.revocation_address.slice(0, 10) +
+                      '...' +
+                      asset.revocation_address.slice(-10)}
+                  </span>
+                </span>
+                <CopyButton
+                  value={asset.revocation_address}
+                  className='w-4 h-4'
+                />
+                <AddressLabels address={asset.revocation_address} compact />
+              </div>
+            )}
+
             {!nft_royalty && BigNumber(royalty).isGreaterThan(0) && (
               <div className='text-sm text-muted-foreground'>
                 <Trans>Amount includes</Trans>{' '}
@@ -156,6 +175,10 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                   <CopyButton
                     value={nft_royalty.royalty_address}
                     className='w-4 h-4'
+                  />
+                  <AddressLabels
+                    address={nft_royalty.royalty_address}
+                    compact
                   />
                 </div>
               </>

@@ -1,5 +1,6 @@
 import { KeyInfo, commands } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
+import { useAddressHandlesLifecycle } from '@/hooks/useAddressHandles';
 import { useErrors } from '@/hooks/useErrors';
 import { useColdWalletUnsigned } from '@/hooks/useColdWalletUnsigned';
 import { fetchState, initializeWalletState } from '@/state';
@@ -31,6 +32,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const isReadOnly = wallet !== null && wallet.has_secrets === false;
   const isTransactionDisabled = isReadOnly && !allowUnsigned;
+
+  useAddressHandlesLifecycle(wallet?.fingerprint ?? null);
 
   useEffect(() => {
     const init = async () => {
