@@ -878,9 +878,7 @@ impl Sage {
 /// Interprets a search string as an exact id: 64-char hex (offer or asset id,
 /// optional 0x prefix) or an nft / did:chia / option address.
 fn parse_find_id(value: String) -> Option<Bytes32> {
-    let hex = value.strip_prefix("0x").unwrap_or(&value).to_string();
-
-    parse_offer_id(hex)
+    parse_hash(value.clone())
         .ok()
         .or_else(|| parse_nft_id(value.clone()).ok())
         .or_else(|| parse_did_id(value.clone()).ok())

@@ -79,8 +79,6 @@ export function useOfferParams(): [OfferParams, SetOfferParams] {
 
   const setParams = useCallback(
     (newParams: Partial<OfferParams>) => {
-      const updated = { ...params, ...newParams };
-
       if (newParams.status !== undefined) setStatus(newParams.status);
       if (newParams.findSide !== undefined) setFindSide(newParams.findSide);
       if (newParams.sort !== undefined) setSort(newParams.sort);
@@ -88,16 +86,32 @@ export function useOfferParams(): [OfferParams, SetOfferParams] {
       if (newParams.pageSize !== undefined) setPageSize(newParams.pageSize);
       if (newParams.cardSize !== undefined) setCardSize(newParams.cardSize);
 
+      if (newParams.page === undefined && newParams.query === undefined) {
+        return;
+      }
+
+      // Update from the latest URL rather than a captured `params`, so
+      // back-to-back calls don't drop each other and unrelated params survive.
       setSearchParams(
-        {
-          ...(updated.page > 1 && { page: updated.page.toString() }),
-          ...(updated.query && { query: updated.query }),
+        (prev) => {
+          const next = new URLSearchParams(prev);
+
+          if (newParams.page !== undefined) {
+            if (newParams.page > 1) next.set('page', newParams.page.toString());
+            else next.delete('page');
+          }
+
+          if (newParams.query !== undefined) {
+            if (newParams.query) next.set('query', newParams.query);
+            else next.delete('query');
+          }
+
+          return next;
         },
         { replace: true },
       );
     },
     [
-      params,
       setSearchParams,
       setStatus,
       setFindSide,

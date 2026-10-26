@@ -18,7 +18,12 @@ export function useMultiSelect(resetDeps: readonly unknown[] = []) {
     });
   }, []);
 
-  const selectAll = useCallback((ids: string[]) => setSelected(ids), []);
+  // Adds to the selection rather than replacing it, so selections made on
+  // other pages survive selecting everything on the current one.
+  const selectAll = useCallback(
+    (ids: string[]) => setSelected((prev) => [...new Set([...prev, ...ids])]),
+    [],
+  );
   const clear = useCallback(() => setSelected([]), []);
 
   const selectionStateFor = useCallback(

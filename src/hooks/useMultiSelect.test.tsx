@@ -28,12 +28,13 @@ describe('useMultiSelect', () => {
     expect(result.current.selected).toEqual(['a']);
   });
 
-  it('select all replaces the selection', () => {
+  it('select all adds to the existing selection', () => {
     const { result } = renderHook(() => useMultiSelect());
     act(() => result.current.setMultiSelect(true));
     act(() => result.current.toggle('old', true));
+    act(() => result.current.toggle('a', true));
     act(() => result.current.selectAll(['a', 'b']));
-    expect(result.current.selected).toEqual(['a', 'b']);
+    expect(result.current.selected).toEqual(['old', 'a', 'b']);
   });
 
   it('toggling multi-select clears the selection', () => {

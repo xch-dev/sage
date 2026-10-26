@@ -175,14 +175,7 @@ async fn offers_for_asset(
                 expiration_height: row.expiration_height.map(|h| h as u32),
                 expiration_timestamp: row.expiration_timestamp.map(|t| t as u64),
                 fee: row.fee.convert()?,
-                status: match row.status {
-                    0 => OfferStatus::Pending,
-                    1 => OfferStatus::Active,
-                    2 => OfferStatus::Completed,
-                    3 => OfferStatus::Cancelled,
-                    4 => OfferStatus::Expired,
-                    _ => return Err(crate::DatabaseError::InvalidEnumVariant),
-                },
+                status: offer_status(row.status)?,
                 inserted_timestamp: row.inserted_timestamp as u64,
             })
         })
@@ -348,14 +341,7 @@ async fn offer(conn: impl SqliteExecutor<'_>, offer_id: Bytes32) -> Result<Optio
             expiration_height: row.expiration_height.map(|h| h as u32),
             expiration_timestamp: row.expiration_timestamp.map(|t| t as u64),
             fee: row.fee.convert()?,
-            status: match row.status {
-                0 => OfferStatus::Pending,
-                1 => OfferStatus::Active,
-                2 => OfferStatus::Completed,
-                3 => OfferStatus::Cancelled,
-                4 => OfferStatus::Expired,
-                _ => return Err(crate::DatabaseError::InvalidEnumVariant),
-            },
+            status: offer_status(row.status)?,
             inserted_timestamp: row.inserted_timestamp as u64,
         })
     })
@@ -393,14 +379,7 @@ async fn offers(
                 expiration_height: row.expiration_height.map(|h| h as u32),
                 expiration_timestamp: row.expiration_timestamp.map(|t| t as u64),
                 fee: row.fee.convert()?,
-                status: match row.status {
-                    0 => OfferStatus::Pending,
-                    1 => OfferStatus::Active,
-                    2 => OfferStatus::Completed,
-                    3 => OfferStatus::Cancelled,
-                    4 => OfferStatus::Expired,
-                    _ => return Err(crate::DatabaseError::InvalidEnumVariant),
-                },
+                status: offer_status(row.status)?,
                 inserted_timestamp: row.inserted_timestamp as u64,
             })
         })

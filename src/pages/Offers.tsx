@@ -45,6 +45,8 @@ export function Offers() {
   const [params, setParams] = useOfferParams();
   const { offers, total, isLoading, loaded, isPastEnd, isCurrent, refresh } =
     useOfferData(params);
+  // Reset when the filters change so bulk actions never apply to offers that
+  // are no longer visible. Paging is excluded so selections can span pages.
   const {
     multiSelect,
     setMultiSelect,
@@ -52,7 +54,7 @@ export function Offers() {
     selectionStateFor,
     selectAll,
     clear,
-  } = useMultiSelect();
+  } = useMultiSelect([params.query, params.status, params.findSide]);
 
   const optionsRef = useRef<HTMLDivElement>(null);
   const [isOptionsVisible, setIsOptionsVisible] = useState(true);
