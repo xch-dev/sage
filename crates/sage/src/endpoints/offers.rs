@@ -301,7 +301,11 @@ impl Sage {
         let peer = self.peer_state.lock().await.acquire_peer();
         let info = wallet.fetch_offer_nft_info(peer.as_ref(), nft_id).await?;
 
-        let name = wallet.db.asset(nft_id).await?.and_then(|asset| asset.name);
+        let name = if info.is_some() {
+            wallet.db.asset(nft_id).await?.and_then(|asset| asset.name)
+        } else {
+            None
+        };
 
         Ok(GetNftMetadataUpdaterResponse {
             metadata_updater_kind: info

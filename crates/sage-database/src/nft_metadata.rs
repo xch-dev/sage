@@ -150,12 +150,12 @@ impl From<HandleNftMetadata> for ParsedNftMetadata {
     }
 }
 
-/// Removes control and bidirectional formatting characters, which could be used to make
-/// a display name look like something it isn't, and caps its length.
+/// Removes control, bidirectional formatting, and invisible characters, which could be used
+/// to make a display name look like something it isn't, and caps its length.
 fn sanitize_display_name(display_name: &str) -> Option<String> {
     let sanitized: String = display_name
         .chars()
-        .filter(|&c| !c.is_control() && !is_bidi_control(c))
+        .filter(|&c| !c.is_control() && !is_bidi_control(c) && !is_invisible(c))
         .take(MAX_DISPLAY_NAME_CHARS)
         .collect();
 
@@ -172,6 +172,24 @@ fn is_bidi_control(c: char) -> bool {
     matches!(
         c,
         '\u{061C}' | '\u{200E}' | '\u{200F}' | '\u{202A}'..='\u{202E}' | '\u{2066}'..='\u{2069}'
+    )
+}
+
+fn is_invisible(c: char) -> bool {
+    matches!(
+        c,
+        '\u{00AD}'
+            | '\u{034F}'
+            | '\u{115F}'
+            | '\u{1160}'
+            | '\u{17B4}'
+            | '\u{17B5}'
+            | '\u{180B}'..='\u{180F}'
+            | '\u{200B}'..='\u{200D}'
+            | '\u{2060}'..='\u{2064}'
+            | '\u{3164}'
+            | '\u{FEFF}'
+            | '\u{FFA0}'
     )
 }
 
@@ -346,6 +364,10 @@ mod tests {
             Some("@alice")
         );
         assert_eq!(sanitize_display_name("  \u{200F} "), None);
+        assert_eq!(
+            sanitize_display_name("@ali\u{200B}c\u{FEFF}e\u{00AD}").as_deref(),
+            Some("@alice")
+        );
         assert_eq!(
             sanitize_display_name(&"a".repeat(500)).map(|name| name.chars().count()),
             Some(MAX_DISPLAY_NAME_CHARS)

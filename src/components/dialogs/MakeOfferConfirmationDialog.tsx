@@ -13,7 +13,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
-import { isMutableNft } from '@/lib/nftUpdater';
+import { isMutableNft, mutableNftLabel } from '@/lib/nftUpdater';
 import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
 import { Assets, OfferState, TokenAmount } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -49,7 +49,7 @@ function AssetDisplay({
 }) {
   const [nftDetailsList, setNftDetailsList] = useState<NftRecord[]>([]);
   // Includes NFTs whose updater couldn't be determined
-  const [mutableNftNames, setMutableNftNames] = useState<string[]>([]);
+  const [mutableNftLabels, setMutableNftLabels] = useState<string[]>([]);
   const [loadingNfts, setLoadingNfts] = useState(false);
   const [optionDetailsList, setOptionDetailsList] = useState<OptionRecord[]>(
     [],
@@ -146,7 +146,7 @@ function AssetDisplay({
   useEffect(() => {
     let cancelled = false;
 
-    // Returns the NFT's record, and its name if it may be mutable
+    // Returns the NFT's record, and its warning label if it may be mutable
     const fetchNftDetail = async (
       nftId: string,
     ): Promise<[NftRecord, string | null]> => {
@@ -156,7 +156,7 @@ function AssetDisplay({
           return [
             nft,
             isMutableNft(nft.metadata_updater_kind)
-              ? (nft.name ?? nftId)
+              ? mutableNftLabel(nft.name, nftId)
               : null,
           ];
         }
@@ -176,10 +176,10 @@ function AssetDisplay({
         const record = emptyNftRecord(nftId);
         return [
           { ...record, name: updater.name ?? record.name },
-          isMutable ? (updater.name ?? nftId) : null,
+          isMutable ? mutableNftLabel(updater.name, nftId) : null,
         ];
       } catch {
-        return [emptyNftRecord(nftId), nftId];
+        return [emptyNftRecord(nftId), mutableNftLabel(null, nftId)];
       }
     };
 
@@ -192,8 +192,8 @@ function AssetDisplay({
       if (cancelled) return;
 
       setNftDetailsList(details.map(([nft]) => nft));
-      setMutableNftNames(
-        details.flatMap(([, name]) => (name === null ? [] : [name])),
+      setMutableNftLabels(
+        details.flatMap(([, label]) => (label === null ? [] : [label])),
       );
       setLoadingNfts(false);
     };
@@ -323,7 +323,7 @@ function AssetDisplay({
             )}
           </ScrollArea>
           {!loadingNfts && (
-            <MutableNftWarning names={mutableNftNames} className='mt-2' />
+            <MutableNftWarning labels={mutableNftLabels} className='mt-2' />
           )}
         </div>
       )}

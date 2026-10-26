@@ -74,16 +74,23 @@ impl Sage {
         confirmation_info: &mut ConfirmationInfo,
     ) -> Result<Asset> {
         let wallet = self.wallet()?;
+        let kind = NftUpdaterKind::from_puzzle_hash(metadata_updater_puzzle_hash);
 
-        if let Some(asset) = wallet.db.asset(launcher_id).await? {
+        if let Some(mut asset) = wallet.db.asset(launcher_id).await? {
+            // A mutable NFT's saved name may be from earlier metadata, so the display name in
+            // the metadata given here, which is what's actually being spent or exchanged,
+            // takes precedence.
+            if !kind.is_append_only()
+                && let Some(display_name) = ParsedNftMetadata::parse(allocator, nft_metadata, kind)
+                    .and_then(|metadata| metadata.display_name)
+            {
+                asset.name = Some(display_name);
+            }
+
             return Ok(asset);
         }
 
-        let info = if let Some(metadata) = ParsedNftMetadata::parse(
-            allocator,
-            nft_metadata,
-            NftUpdaterKind::from_puzzle_hash(metadata_updater_puzzle_hash),
-        ) {
+        let info = if let Some(metadata) = ParsedNftMetadata::parse(allocator, nft_metadata, kind) {
             let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
 
             if let Some(hash) = metadata.data_hash

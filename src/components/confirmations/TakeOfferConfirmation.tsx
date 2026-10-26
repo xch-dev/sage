@@ -1,14 +1,9 @@
 import { commands, OfferRecord, OfferSummary } from '@/bindings';
 import { Assets, CatPresence } from '@/components/Assets';
-import { mutableOfferNftNames } from '@/lib/nftUpdater';
-import { t } from '@lingui/core/macro';
+import { MutableNftWarning } from '@/components/MutableNftWarning';
+import { mutableOfferNftLabels } from '@/lib/nftUpdater';
 import { Trans } from '@lingui/react/macro';
-import {
-  ArrowUpIcon,
-  ArrowDownIcon,
-  HandshakeIcon,
-  TriangleAlert,
-} from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, HandshakeIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
@@ -20,9 +15,9 @@ interface TakeOfferConfirmationProps {
 export function TakeOfferConfirmation({ offer }: TakeOfferConfirmationProps) {
   const summary = 'summary' in offer ? offer.summary : offer;
   const [catPresence, setCatPresence] = useState<CatPresence>({});
-  const mutableNftNames = [
-    ...mutableOfferNftNames(summary.taker),
-    ...mutableOfferNftNames(summary.maker),
+  const mutableNftLabels = [
+    ...mutableOfferNftLabels(summary.taker),
+    ...mutableOfferNftLabels(summary.maker),
   ];
 
   useEffect(() => {
@@ -48,22 +43,7 @@ export function TakeOfferConfirmation({ offer }: TakeOfferConfirmationProps) {
         </Trans>
       </ConfirmationAlert>
 
-      {mutableNftNames.length > 0 && (
-        <ConfirmationAlert
-          icon={TriangleAlert}
-          title={t`Mutable NFTs`}
-          variant='warning'
-        >
-          <Trans>
-            The owner of a mutable NFT can replace its metadata, including its
-            name and image, at any time. Don&apos;t rely on the name or image to
-            identify it; verify the NFT ID instead.
-          </Trans>{' '}
-          <span className='font-medium break-words'>
-            {mutableNftNames.join(', ')}
-          </span>
-        </ConfirmationAlert>
-      )}
+      <MutableNftWarning labels={mutableNftLabels} />
 
       <div className='grid grid-cols-1 gap-2'>
         <ConfirmationCard>

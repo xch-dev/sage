@@ -54,7 +54,10 @@ impl Wallet {
                 continue;
             }
 
-            let parent = parent.expect("parent not found");
+            // The singleton has never been spent since it was launched, or it isn't one
+            let Some(parent) = parent else {
+                return Ok(None);
+            };
 
             let (parent_puzzle_reveal, parent_solution) = peer
                 .fetch_puzzle_solution(
@@ -138,7 +141,10 @@ impl Wallet {
                 continue;
             }
 
-            let parent = parent.expect("parent not found");
+            // The singleton has never been spent since it was launched, or it isn't one
+            let Some(parent) = parent else {
+                return Ok(None);
+            };
 
             let (parent_puzzle_reveal, parent_solution) = peer
                 .fetch_puzzle_solution(

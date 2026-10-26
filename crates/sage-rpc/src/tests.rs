@@ -684,3 +684,52 @@ async fn test_requested_mutable_nft() -> Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_nft_metadata_updater_of_unspent_singleton() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(0).await?;
+    let bob_address = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let coin_id = app
+        .sage
+        .lock()
+        .await
+        .wallet()?
+        .db
+        .selectable_xch_coins()
+        .await?[0]
+        .coin_id();
+
+    // The coin's only odd child is unspent, so it looks like a singleton that has never
+    // been spent since it was launched.
+    app.send_xch(SendXch {
+        address: bob_address,
+        amount: Amount::u64(1),
+        fee: Amount::u64(1),
+        memos: vec![],
+        clawback: None,
+        auto_submit: true,
+        coin_ids: None,
+    })
+    .await?;
+    app.wait_for_coins().await;
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
+
+    let updater = app
+        .get_nft_metadata_updater(GetNftMetadataUpdater {
+            nft_id: Address::new(coin_id, "nft".to_string()).encode()?,
+        })
+        .await?;
+    assert_eq!(updater.metadata_updater_kind, None);
+    assert_eq!(updater.name, None);
+
+    Ok(())
+}

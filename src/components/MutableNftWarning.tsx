@@ -2,8 +2,8 @@ import { Trans } from '@lingui/react/macro';
 import { TriangleAlert } from 'lucide-react';
 
 interface MutableNftWarningProps {
-  /** Names of the mutable NFTs, from either side of an offer. */
-  names: string[];
+  /** Labels for the mutable NFTs, from either side of an offer, including their IDs. */
+  labels: string[];
   className?: string;
 }
 
@@ -12,10 +12,10 @@ interface MutableNftWarningProps {
  * NFT looks like now may not be what is received.
  */
 export function MutableNftWarning({
-  names,
+  labels,
   className,
 }: MutableNftWarningProps) {
-  if (names.length === 0) return null;
+  if (labels.length === 0) return null;
 
   return (
     <div
@@ -28,7 +28,7 @@ export function MutableNftWarning({
       />
       <div className='flex flex-col gap-1'>
         <span className='font-medium'>
-          {names.length === 1 ? (
+          {labels.length === 1 ? (
             <Trans>This offer contains a mutable NFT</Trans>
           ) : (
             <Trans>This offer contains mutable NFTs</Trans>
@@ -41,7 +41,7 @@ export function MutableNftWarning({
             identify it; verify the NFT ID instead.
           </Trans>
         </span>
-        <span className='break-words font-medium'>{names.join(', ')}</span>
+        <span className='break-words font-medium'>{labels.join(', ')}</span>
       </div>
     </div>
   );
