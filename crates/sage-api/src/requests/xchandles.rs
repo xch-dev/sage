@@ -81,7 +81,8 @@ pub struct GetHandles {
     /// Which handles to list
     #[serde(default)]
     pub filter: HandleFilterMode,
-    /// Also list mappings which are unverified, stale or expired
+    /// Also list mappings which are unverified, stale or expired. Outdated mappings are
+    /// always listed
     #[serde(default)]
     pub include_unverified: bool,
     /// Verify the handles named by NFTs in this wallet before listing. This makes requests
@@ -113,7 +114,7 @@ pub struct GetHandlesResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "XCHandles",
-        description = "Find the verified handles Sage already knows which resolve to each of the given addresses or puzzle hashes. The XCHandles API has no reverse lookup, so this only uses the local store and never makes network requests. Up to 1000 addresses can be looked up at once."
+        description = "Find the handles Sage has already verified which resolve to each of the given addresses or puzzle hashes. Mappings verified more than a day ago are included but marked outdated. The XCHandles API has no reverse lookup, so this only uses the local store and never makes network requests. Up to 1000 addresses can be looked up at once."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]

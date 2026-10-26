@@ -69,7 +69,13 @@ const handleRecord = z.object({
   previousAddress: z.string().nullable(),
   lastSentAddress: z.string().nullable(),
   cached: z.boolean(),
-  verification: z.enum(['verified', 'unverified', 'stale', 'expired']),
+  verification: z.enum([
+    'verified',
+    'outdated',
+    'unverified',
+    'stale',
+    'expired',
+  ]),
   verificationReason: z.string().nullable(),
   ownerLauncherId: z.string(),
   resolvedLauncherId: z.string(),
@@ -290,7 +296,11 @@ export const walletConnectCommands = {
   // XCHandles reads. Every handle is verified against the blockchain, and the
   // result carries its verification state and any change warning, so that a site
   // never has to trust a bare address. XCHandles failures set the JSON-RPC
-  // error's data to a HandleErrorCode, such as 'expired' or 'unavailable'.
+  // error's data to a HandleErrorCode, such as 'expired' or 'unavailable', or to
+  // 'rate_limited' when sites resolve too many handles in a short time.
+  //
+  // There's no reverse lookup for sites: which handles this wallet has looked up
+  // for other addresses is private.
   chia_resolveHandle: {
     paramsType: z.object({ handle: z.string() }),
     returnType: handleRecord,
@@ -308,19 +318,6 @@ export const walletConnectCommands = {
         'unavailable',
       ]),
       pendingTransfer: pendingTransfer.nullable(),
-    }),
-    confirm: false,
-  },
-  // Only handles Sage has already verified; nothing is fetched to label them.
-  chia_lookupAddressHandles: {
-    paramsType: z.object({ addresses: z.array(z.string()).max(1000) }),
-    returnType: z.object({
-      results: z.array(
-        z.object({
-          address: z.string(),
-          handles: z.array(handleRecord),
-        }),
-      ),
     }),
     confirm: false,
   },

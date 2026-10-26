@@ -520,7 +520,9 @@ export type AddressHandlesRecord = {
  */
 address: string; 
 /**
- * Verified, unexpired handles which resolve to it, sorted by handle
+ * Unexpired handles which resolve to it, sorted by handle. Only mappings which are
+ * verified or outdated are included, and outdated ones should be resolved again before
+ * they're relied on
  */
 handles: HandleRecord[] }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
@@ -1251,7 +1253,8 @@ export type GetHandles = {
  */
 filter?: HandleFilterMode; 
 /**
- * Also list mappings which are unverified, stale or expired
+ * Also list mappings which are unverified, stale or expired. Outdated mappings are
+ * always listed
  */
 include_unverified?: boolean; 
 /**
@@ -2049,9 +2052,15 @@ export type HandleStatus =
  */
 export type HandleVerification = 
 /**
- * The values were verified against the chain by the most recent lookup
+ * The values were verified against the chain by the most recent lookup, within the
+ * last day
  */
 "verified" | 
+/**
+ * The values were verified by the most recent lookup, but more than a day ago, so the
+ * handle may have changed since. Resolve it again before relying on it
+ */
+"outdated" | 
 /**
  * The most recent lookup was rejected, or showed the handle is no longer registered,
  * so the values are only the last ones that were verified

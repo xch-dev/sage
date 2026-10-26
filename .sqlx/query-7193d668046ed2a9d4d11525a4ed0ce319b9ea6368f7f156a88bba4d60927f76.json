@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT *, COUNT(*) OVER () AS \"total_count!: i64\" FROM xchandles\n        WHERE registry_launcher_id = ?\n            AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))\n            AND (\n                NOT ? OR owner_launcher_id IN (\n                    SELECT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)\n                )\n            )\n        ORDER BY handle ASC\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT * FROM xchandles\n        WHERE registry_launcher_id = ?\n            AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))\n            AND (\n                NOT ? OR owner_launcher_id IN (\n                    SELECT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)\n                )\n            )\n        ORDER BY handle ASC\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -137,11 +137,6 @@
         "name": "last_sent_puzzle_hash",
         "ordinal": 26,
         "type_info": "Blob"
-      },
-      {
-        "name": "total_count!: i64",
-        "ordinal": 27,
-        "type_info": "Null"
       }
     ],
     "parameters": {
@@ -174,9 +169,8 @@
       true,
       true,
       true,
-      true,
-      null
+      true
     ]
   },
-  "hash": "1f20b35f6019bb2848928601747860136d60c68949a681865aae66c3d1c39064"
+  "hash": "7193d668046ed2a9d4d11525a4ed0ce319b9ea6368f7f156a88bba4d60927f76"
 }

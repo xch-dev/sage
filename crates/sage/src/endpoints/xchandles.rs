@@ -1,10 +1,11 @@
 use std::{
-    collections::{BTreeSet, HashMap},
+    collections::{BTreeSet, HashMap, HashSet},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use chia_wallet_sdk::{prelude::*, utils::Address};
 use futures_util::{StreamExt, stream};
+use rand::seq::SliceRandom;
 use sage_api::{
     AddressHandlesRecord, GetHandle, GetHandleResponse, GetHandles, GetHandlesResponse,
     HandleFilterMode, HandleRecord, HandleSlotRecord, HandleStatus, HandleVerification,
@@ -14,8 +15,8 @@ use sage_api::{
 use sage_config::XchandlesConfig;
 use sage_database::{XchandleRow, XchandleStatus};
 use sage_wallet::{
-    Handle, HandleResolution, PendingTransferResponse, RESOLVE_TIMEOUT, WalletPeer,
-    XchandlesClient, XchandlesError, chain_tip, resolve_and_store, resolve_handle,
+    Handle, HandleResolution, OFFLINE_MAX_AGE_SECONDS, PendingTransferResponse, RESOLVE_TIMEOUT,
+    WalletPeer, XchandlesClient, XchandlesError, chain_tip, resolve_and_store, resolve_handle,
     verify_pending_transfer,
 };
 use tokio::time::timeout;
@@ -180,7 +181,12 @@ impl Sage {
                 .xchandles_by_puzzle_hash(config.registry_launcher_id, puzzle_hash)
                 .await?
                 .iter()
-                .filter(|row| verification(row, now) == HandleVerification::Verified)
+                .filter(|row| {
+                    matches!(
+                        verification(row, now),
+                        HandleVerification::Verified | HandleVerification::Outdated
+                    )
+                })
                 .map(|row| self.handle_record(row, true, now))
                 .collect::<Result<Vec<_>>>()?;
 
@@ -317,13 +323,29 @@ impl Sage {
     async fn refresh_owned_handles(&self, config: &XchandlesConfig) -> Result<()> {
         let wallet = self.wallet()?;
 
-        let handles: BTreeSet<Handle> = wallet
+        let names: BTreeSet<Handle> = wallet
             .db
             .owned_handle_nft_display_names()
             .await?
             .iter()
             .filter_map(|name| Handle::parse(name).ok())
             .collect();
+
+        let owned: HashSet<String> = wallet
+            .db
+            .owned_xchandle_names(config.registry_launcher_id)
+            .await?
+            .into_iter()
+            .collect();
+
+        // Anyone can send NFTs to a wallet, and pick their names. Handles already verified as
+        // owned by this wallet are refreshed first, and the rest are picked at random, so that
+        // NFTs with names which sort first can't crowd out the wallet's real handles.
+        let (mut handles, mut others): (Vec<Handle>, Vec<Handle>) = names
+            .into_iter()
+            .partition(|handle| owned.contains(handle.as_str()));
+        others.shuffle(&mut rand::thread_rng());
+        handles.extend(others);
 
         if handles.len() > MAX_REFRESH_HANDLES {
             warn!(
@@ -382,11 +404,17 @@ impl Sage {
 }
 
 /// Whether a stored mapping can be relied on. A handle counts as expired once either the
-/// local clock or the peak it was verified at reaches its expiration.
+/// local clock or the peak it was verified at reaches its expiration, and as outdated once
+/// it's too old to be used in place of a lookup.
 fn verification(row: &XchandleRow, now: u64) -> HandleVerification {
     match row.status {
         XchandleStatus::Verified if row.expiration <= now.max(row.verified_timestamp) => {
             HandleVerification::Expired
+        }
+        XchandleStatus::Verified
+            if now.saturating_sub(row.last_verified_at) > OFFLINE_MAX_AGE_SECONDS =>
+        {
+            HandleVerification::Outdated
         }
         XchandleStatus::Verified => HandleVerification::Verified,
         XchandleStatus::Unverified => HandleVerification::Unverified,

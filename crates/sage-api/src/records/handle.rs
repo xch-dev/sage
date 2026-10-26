@@ -69,8 +69,12 @@ pub enum HandleStatus {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum HandleVerification {
-    /// The values were verified against the chain by the most recent lookup
+    /// The values were verified against the chain by the most recent lookup, within the
+    /// last day
     Verified,
+    /// The values were verified by the most recent lookup, but more than a day ago, so the
+    /// handle may have changed since. Resolve it again before relying on it
+    Outdated,
     /// The most recent lookup was rejected, or showed the handle is no longer registered,
     /// so the values are only the last ones that were verified
     Unverified,
@@ -166,7 +170,9 @@ pub enum HandleFilterMode {
 pub struct AddressHandlesRecord {
     /// The address or puzzle hash, as it was given
     pub address: String,
-    /// Verified, unexpired handles which resolve to it, sorted by handle
+    /// Unexpired handles which resolve to it, sorted by handle. Only mappings which are
+    /// verified or outdated are included, and outdated ones should be resolved again before
+    /// they're relied on
     pub handles: Vec<HandleRecord>,
 }
 

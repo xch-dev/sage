@@ -7,6 +7,10 @@ use chia_wallet_sdk::{
 
 use crate::{Handle, PendingTransferResponse, WalletPeer, XchandlesError};
 
+/// The most coins with an update slot's puzzle hash which are checked. Anyone can create coins
+/// with that puzzle hash, and each one takes two requests to check.
+pub const MAX_UPDATE_SLOT_CANDIDATES: usize = 8;
+
 /// The registry slot a pending transfer is recorded in, if the API's description of it is
 /// accurate.
 pub fn update_slot_info(
@@ -39,6 +43,11 @@ pub fn update_slot_info(
 ///
 /// The API is the only source of pending transfers, so a transfer it doesn't report can't be
 /// detected.
+///
+/// Coins confirmed at the height the API reports are checked first. If there are too many
+/// coins to check them all and none of the ones checked is the update slot, the transfer
+/// can't be verified either way, and [`XchandlesError::TooManyUpdateSlotCandidates`] is
+/// returned rather than calling it unverified.
 pub async fn verify_pending_transfer(
     peer: &WalletPeer,
     genesis_challenge: Bytes32,
@@ -49,14 +58,17 @@ pub async fn verify_pending_transfer(
     let info = update_slot_info(registry_launcher_id, handle, transfer);
     let puzzle_hash = Slot::puzzle_hash(&info).into();
 
-    for state in peer
+    let (mut candidates, complete) = peer
         .fetch_unspent_coins_by_puzzle_hash(puzzle_hash, genesis_challenge)
-        .await?
-    {
-        if state.created_height.is_none() {
-            continue;
-        }
+        .await?;
 
+    candidates.retain(|state| state.created_height.is_some());
+    candidates
+        .sort_by_key(|state| state.created_height != Some(transfer.update_confirmation_height));
+
+    let truncated = !complete || candidates.len() > MAX_UPDATE_SLOT_CANDIDATES;
+
+    for state in candidates.into_iter().take(MAX_UPDATE_SLOT_CANDIDATES) {
         let Some(parent) = peer
             .fetch_optional_coin(state.coin.parent_coin_info, genesis_challenge)
             .await?
@@ -92,6 +104,10 @@ pub async fn verify_pending_transfer(
         if slot.coin == state.coin {
             return Ok(Some(slot.coin.coin_id()));
         }
+    }
+
+    if truncated {
+        return Err(XchandlesError::TooManyUpdateSlotCandidates);
     }
 
     Ok(None)

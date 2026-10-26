@@ -541,6 +541,11 @@ async fn test_known_handles() -> Result<()> {
         erin.status = XchandleStatus::Stale;
         db.upsert_xchandle(&erin).await?;
 
+        // Too old to rely on, but still listed and looked up, marked as outdated.
+        let mut gina = stored_handle(registry, "gina", other_nft, other_puzzle_hash);
+        gina.last_verified_at -= 2 * 24 * 60 * 60;
+        db.upsert_xchandle(&gina).await?;
+
         // A mapping from another registry is never used for this network's.
         db.upsert_xchandle(&stored_handle(
             Bytes32::new([0xdd; 32]),
@@ -554,20 +559,22 @@ async fn test_known_handles() -> Result<()> {
     let all = app
         .get_handles(handles_request(HandleFilterMode::All, false))
         .await?;
-    assert_eq!(handle_names(&all.handles), ["alice", "bob"]);
-    assert_eq!(all.total, 2);
+    assert_eq!(handle_names(&all.handles), ["alice", "bob", "gina"]);
+    assert_eq!(all.total, 3);
     assert!(all.handles.iter().all(|handle| handle.cached));
     assert_eq!(all.handles[0].address, address);
     assert_eq!(all.handles[0].status, HandleStatus::Verified);
     assert_eq!(all.handles[1].status, HandleStatus::Changed);
     assert!(all.handles[1].previous_address.is_some());
+    assert_eq!(all.handles[0].verification, HandleVerification::Verified);
+    assert_eq!(all.handles[2].verification, HandleVerification::Outdated);
 
     let everything = app
         .get_handles(handles_request(HandleFilterMode::All, true))
         .await?;
     assert_eq!(
         handle_names(&everything.handles),
-        ["alice", "bob", "carol", "dave", "erin"]
+        ["alice", "bob", "carol", "dave", "erin", "gina"]
     );
     assert_eq!(
         everything
@@ -581,6 +588,7 @@ async fn test_known_handles() -> Result<()> {
             HandleVerification::Unverified,
             HandleVerification::Expired,
             HandleVerification::Stale,
+            HandleVerification::Outdated,
         ]
     );
     assert_eq!(
@@ -607,7 +615,17 @@ async fn test_known_handles() -> Result<()> {
         })
         .await?;
     assert_eq!(handle_names(&page.handles), ["bob"]);
-    assert_eq!(page.total, 2);
+    assert_eq!(page.total, 3);
+
+    // A page past the end still reports the total.
+    let past_end = app
+        .get_handles(GetHandles {
+            offset: 10,
+            ..handles_request(HandleFilterMode::All, false)
+        })
+        .await?;
+    assert!(past_end.handles.is_empty());
+    assert_eq!(past_end.total, 3);
 
     let unknown = hex::encode([0xee; 32]);
     let results = app
@@ -625,7 +643,11 @@ async fn test_known_handles() -> Result<()> {
     assert_eq!(results.len(), 4);
     assert_eq!(results[0].address, address);
     assert_eq!(handle_names(&results[0].handles), ["alice"]);
-    assert_eq!(handle_names(&results[1].handles), ["bob"]);
+    assert_eq!(handle_names(&results[1].handles), ["bob", "gina"]);
+    assert_eq!(
+        results[1].handles[1].verification,
+        HandleVerification::Outdated
+    );
     assert_eq!(results[2].address, format!("0x{unknown}"));
     assert!(results[2].handles.is_empty());
     assert_eq!(handle_names(&results[3].handles), ["alice"]);

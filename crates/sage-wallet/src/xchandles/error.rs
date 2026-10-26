@@ -68,6 +68,9 @@ pub enum XchandlesError {
         indexed it"
     )]
     ResolvedSingletonMovedTooOften(Bytes32),
+
+    #[error("Too many coins claim to be the pending transfer's update slot to check them all")]
+    TooManyUpdateSlotCandidates,
 }
 
 impl XchandlesError {
@@ -84,7 +87,8 @@ impl XchandlesError {
             | Self::SlotNotFound(..)
             | Self::SlotSpent(..)
             | Self::ResolutionUnavailable
-            | Self::ResolvedSingletonNotFound(..) => true,
+            | Self::ResolvedSingletonNotFound(..)
+            | Self::TooManyUpdateSlotCandidates => true,
             Self::InvalidHandle(..)
             | Self::Database(..)
             | Self::UnsupportedNetwork
@@ -123,7 +127,8 @@ impl XchandlesError {
             | Self::SlotNotFound(..)
             | Self::SlotSpent(..)
             | Self::ResolutionUnavailable
-            | Self::ResolvedSingletonNotFound(..) => false,
+            | Self::ResolvedSingletonNotFound(..)
+            | Self::TooManyUpdateSlotCandidates => false,
         }
     }
 

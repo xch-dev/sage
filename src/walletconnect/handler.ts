@@ -21,7 +21,6 @@ import {
 import {
   handleGetHandle,
   handleGetOwnedHandles,
-  handleLookupAddressHandles,
   handleResolveHandle,
 } from './commands/xchandles';
 import {
@@ -103,8 +102,6 @@ export const handleCommand = async (
       return await handleResolveHandle(parseCommand(command, params));
     case 'chia_getHandle':
       return await handleGetHandle(parseCommand(command, params));
-    case 'chia_lookupAddressHandles':
-      return await handleLookupAddressHandles(parseCommand(command, params));
     case 'chia_getOwnedHandles':
       return await handleGetOwnedHandles(parseCommand(command, params));
     default:

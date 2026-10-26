@@ -1,3 +1,4 @@
+import { i18n } from '@lingui/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HandleRecord } from '@/bindings';
 import { WalletConnectError } from '../errors';
@@ -13,8 +14,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/bindings', () => ({ commands: mocks.commands }));
 vi.mock('@/lib/features', () => mocks.features);
 
-const { handleGetOwnedHandles, handleResolveHandle } =
+const { handleGetOwnedHandles, handleResolveHandle, RESOLVE_LIMIT } =
   await import('./xchandles');
+
+i18n.loadAndActivate({ locale: 'en', messages: {} });
 
 const record: HandleRecord = {
   handle: 'alice',
@@ -41,6 +44,8 @@ describe('XCHandles WalletConnect methods', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.features.xchandlesEnabled = true;
+    // Each test starts outside the previous test's rate limit window.
+    vi.setSystemTime(Date.now() + 120_000);
   });
 
   it('returns the change warning along with the address', async () => {
@@ -100,5 +105,25 @@ describe('XCHandles WalletConnect methods', () => {
 
     await expect(handleResolveHandle({ handle: 'alice' })).rejects.toThrow();
     expect(mocks.commands.resolveHandle).not.toHaveBeenCalled();
+  });
+
+  it('rate limits resolution', async () => {
+    mocks.commands.resolveHandle.mockResolvedValue({ handle: record });
+
+    for (let i = 0; i < RESOLVE_LIMIT; i++) {
+      await handleResolveHandle({ handle: 'alice' });
+    }
+
+    const error = await handleResolveHandle({ handle: 'alice' }).catch(
+      (error) => error,
+    );
+    expect(error).toBeInstanceOf(WalletConnectError);
+    expect(error.data).toBe('rate_limited');
+    expect(mocks.commands.resolveHandle).toHaveBeenCalledTimes(RESOLVE_LIMIT);
+
+    vi.setSystemTime(Date.now() + 61_000);
+    await expect(
+      handleResolveHandle({ handle: 'alice' }),
+    ).resolves.toBeTruthy();
   });
 });

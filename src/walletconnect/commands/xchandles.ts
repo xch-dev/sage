@@ -6,6 +6,32 @@ import { WalletConnectError } from '../errors';
 
 type WalletConnectHandle = Return<'chia_resolveHandle'>;
 
+// Resolving a handle contacts the XCHandles API and peers while holding the
+// wallet, so sites may only resolve a limited number of handles per minute.
+export const RESOLVE_LIMIT = 20;
+const RESOLVE_WINDOW_MS = 60_000;
+const recentResolutions: number[] = [];
+
+function checkResolveRateLimit() {
+  const now = Date.now();
+
+  while (
+    recentResolutions.length > 0 &&
+    recentResolutions[0] <= now - RESOLVE_WINDOW_MS
+  ) {
+    recentResolutions.shift();
+  }
+
+  if (recentResolutions.length >= RESOLVE_LIMIT) {
+    throw new WalletConnectError(
+      t`Too many handle lookups, try again in a minute`,
+      'rate_limited',
+    );
+  }
+
+  recentResolutions.push(now);
+}
+
 function isSageError(error: unknown): error is SageError {
   return typeof error === 'object' && error !== null && 'reason' in error;
 }
@@ -54,6 +80,7 @@ export async function handleResolveHandle(
   params: Params<'chia_resolveHandle'>,
 ): Promise<Return<'chia_resolveHandle'>> {
   return await withHandleErrors(async () => {
+    checkResolveRateLimit();
     const data = await commands.resolveHandle({ handle: params.handle });
     return toRecord(data.handle);
   });
@@ -63,6 +90,7 @@ export async function handleGetHandle(
   params: Params<'chia_getHandle'>,
 ): Promise<Return<'chia_getHandle'>> {
   return await withHandleErrors(async () => {
+    checkResolveRateLimit();
     const data = await commands.getHandle({ handle: params.handle });
     const transfer = data.pending_transfer;
 
@@ -91,23 +119,6 @@ export async function handleGetHandle(
             updateSlotCoinId: transfer.update_slot_coin_id,
           }
         : null,
-    };
-  });
-}
-
-export async function handleLookupAddressHandles(
-  params: Params<'chia_lookupAddressHandles'>,
-): Promise<Return<'chia_lookupAddressHandles'>> {
-  return await withHandleErrors(async () => {
-    const data = await commands.lookupAddressHandles({
-      addresses: params.addresses,
-    });
-
-    return {
-      results: data.results.map((result) => ({
-        address: result.address,
-        handles: result.handles.map(toRecord),
-      })),
     };
   });
 }

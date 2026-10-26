@@ -830,6 +830,75 @@ async fn test_forged_pending_transfer_is_not_verified() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Creates coins with the update slot's puzzle hash from a standard coin, as anyone can.
+async fn forge_update_slots(
+    setup: &Setup,
+    transfer: &PendingTransferResponse,
+    count: u64,
+) -> anyhow::Result<()> {
+    let info = update_slot_info(setup.registry.launcher_id, &setup.handle, transfer);
+    let puzzle_hash: Bytes32 = Slot::puzzle_hash(&info).into();
+
+    let forger = setup.sim.lock().await.bls((0..count).sum::<u64>().max(1));
+    let mut ctx = SpendContext::new();
+    let mut conditions = Conditions::new();
+    for amount in 0..count {
+        conditions = conditions.create_coin(puzzle_hash, amount, Memos::None);
+    }
+    StandardLayer::new(forger.pk).spend(&mut ctx, forger.coin, conditions)?;
+    setup
+        .sim
+        .lock()
+        .await
+        .spend_coins(ctx.take(), std::slice::from_ref(&forger.sk))?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_forged_update_slots_cannot_hide_a_pending_transfer() -> anyhow::Result<()> {
+    let mut setup = Setup::new().await?;
+    let mut transfer = pending_transfer(&setup);
+
+    let info = update_slot_info(setup.registry.launcher_id, &setup.handle, &transfer);
+    let slot = setup.registry.create_update_slot(&setup.sim, info).await?;
+    forge_update_slots(&setup, &transfer, MAX_UPDATE_SLOT_CANDIDATES as u64 * 2).await?;
+
+    // The real slot is checked first when the API reports the height it was created at.
+    transfer.update_confirmation_height = setup
+        .sim
+        .lock()
+        .await
+        .coin_state(slot.coin.coin_id())
+        .and_then(|state| state.created_height)
+        .unwrap();
+
+    assert_eq!(
+        setup.verify_pending(&transfer).await?,
+        Some(slot.coin.coin_id())
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_too_many_forged_update_slots_are_not_called_unverified() -> anyhow::Result<()> {
+    let setup = Setup::new().await?;
+    let transfer = pending_transfer(&setup);
+
+    // With only a few forgeries, all of them are checked and the claim is unverified.
+    forge_update_slots(&setup, &transfer, 2).await?;
+    assert_eq!(setup.verify_pending(&transfer).await?, None);
+
+    // With more than can be checked, the transfer can't be ruled out.
+    forge_update_slots(&setup, &transfer, MAX_UPDATE_SLOT_CANDIDATES as u64).await?;
+    let error = setup.verify_pending(&transfer).await.unwrap_err();
+    assert!(matches!(error, XchandlesError::TooManyUpdateSlotCandidates));
+    assert!(error.is_unavailable());
+
+    Ok(())
+}
+
 #[tokio::test]
 async fn test_pending_transfer_for_another_registry_is_not_verified() -> anyhow::Result<()> {
     let setup = Setup::new().await?;
