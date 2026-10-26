@@ -24,6 +24,7 @@ export interface StartupErrorProps {
 // can't be used safely without its keychain and config being loaded.
 export function StartupError({ error }: StartupErrorProps) {
   const { addError } = useErrors();
+  const alreadyRunning = error.kind === 'already_running';
 
   // Mobile apps are expected to be closed by the user rather than exit themselves
   const currentPlatform = platform();
@@ -36,20 +37,33 @@ export function StartupError({ error }: StartupErrorProps) {
           <CardHeader>
             <CardTitle className='flex items-center gap-2'>
               <AlertTriangleIcon className='h-5 w-5 text-destructive' />
-              <Trans>Sage could not start</Trans>
+              {alreadyRunning ? (
+                <Trans>Sage is already running</Trans>
+              ) : (
+                <Trans>Sage could not start</Trans>
+              )}
             </CardTitle>
             <CardDescription>
-              <Trans>
-                An error occurred while loading your wallet data. Resolve the
-                problem below, then reopen Sage.
-              </Trans>
+              {alreadyRunning ? (
+                <Trans>
+                  Another instance of Sage is already using this wallet data.
+                  Close this one and use the other instance instead.
+                </Trans>
+              ) : (
+                <Trans>
+                  An error occurred while loading your wallet data. Resolve the
+                  problem below, then reopen Sage.
+                </Trans>
+              )}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className='text-sm whitespace-pre-wrap break-words hyphens-auto'>
-              {error.reason}
-            </p>
-          </CardContent>
+          {!alreadyRunning && (
+            <CardContent>
+              <p className='text-sm whitespace-pre-wrap break-words hyphens-auto'>
+                {error.reason}
+              </p>
+            </CardContent>
+          )}
           {!isMobile && (
             <CardFooter className='justify-end'>
               <Button

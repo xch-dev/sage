@@ -241,6 +241,9 @@ pub enum Error {
     #[error("Sage did not initialize successfully, so changes cannot be saved")]
     NotInitialized,
 
+    #[error("Another instance of Sage is already running with this data directory")]
+    AlreadyRunning,
+
     #[error(
         "The config file at {path} is invalid: {error}\nFix or delete this file, then restart Sage. Deleting it resets the settings it contains, but doesn't affect your keys."
     )]
@@ -296,6 +299,7 @@ impl Error {
             | Self::Timeout(..)
             | Self::NotInitialized
             | Self::InvalidConfig { .. } => ErrorKind::Internal,
+            Self::AlreadyRunning => ErrorKind::AlreadyRunning,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
             | Self::MissingCoin(..)

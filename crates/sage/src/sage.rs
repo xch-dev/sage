@@ -36,7 +36,7 @@ use tracing_subscriber::{
     EnvFilter, Layer, Registry, filter::filter_fn, fmt, layer::SubscriberExt,
 };
 
-use crate::{Error, Result, peers::Peers};
+use crate::{DataDirLock, Error, Result, peers::Peers};
 
 static LOGGING_SETUP: Once = Once::new();
 
@@ -57,6 +57,7 @@ pub struct Sage {
     /// Whether the config and keychain can be saved. This is only the case once initialization
     /// has started, and stops if it fails, since the state in memory may then be incomplete.
     writable: bool,
+    data_dir_lock: Option<DataDirLock>,
 }
 
 impl Sage {
@@ -74,6 +75,7 @@ impl Sage {
             test,
             http_client: reqwest::Client::new(),
             writable: false,
+            data_dir_lock: None,
         }
     }
 
@@ -93,9 +95,16 @@ impl Sage {
     async fn try_initialize(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
         fs::create_dir_all(&self.path)?;
 
+        // This must happen before anything is read, so that the state can't be stale.
+        self.data_dir_lock = Some(DataDirLock::acquire(&self.path)?);
+
         self.setup_keys()?;
         self.setup_config()?;
         self.setup_logging()?;
+
+        if let Some(DataDirLock::Unsupported(error)) = &self.data_dir_lock {
+            warn!("File locking is not supported for the data directory: {error}");
+        }
         self.recover_missing_wallets()?;
 
         let (receiver, sync_task) = self.setup_sync_manager()?;
