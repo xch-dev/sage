@@ -220,11 +220,13 @@ pub(crate) async fn resolve_app_with_extra(
         )));
     }
 
-    if let Some(app) = build_builtin_test_app(app_id).map_err(|err| {
-        ResolveError::BuildFailed(format!(
-            "failed to resolve builtin sandbox app {app_id}: {err}"
-        ))
-    })? {
+    if let Some(app) = build_builtin_test_app(app_id, state.builtin_storage_namespace.as_deref())
+        .map_err(|err| {
+            ResolveError::BuildFailed(format!(
+                "failed to resolve builtin sandbox app {app_id}: {err}"
+            ))
+        })?
+    {
         return Ok(ResolvedApp::Stopped(ResolvedStoppedApp::new(
             SharedSageApp::new(app),
             guard,
