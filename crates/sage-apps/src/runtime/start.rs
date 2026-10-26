@@ -208,7 +208,7 @@ async fn create_runtime_for_app(
     let builder = build_initialization_script(builder);
 
     #[cfg(any(target_os = "macos", target_os = "ios"))]
-    let builder = build_storage(builder, &app)?;
+    let builder = build_storage(builder, &app, apps_state.in_memory_webview_storage)?;
 
     #[cfg(not(any(target_os = "macos", target_os = "ios")))]
     let builder = build_storage(builder, &app, &apps_state.webview_root);
@@ -320,8 +320,9 @@ async fn rotate_incognito_app_storage_and_origin_if_needed(
 fn build_storage(
     builder: WebviewBuilder<Wry>,
     app: &SharedSageApp,
+    in_memory: bool,
 ) -> Result<WebviewBuilder<Wry>, String> {
-    if !app.with(|app| app.common().has_persistent_webview_storage()) {
+    if in_memory || !app.with(|app| app.common().has_persistent_webview_storage()) {
         return Ok(builder.incognito(true));
     }
 

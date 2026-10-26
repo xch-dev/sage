@@ -94,7 +94,8 @@ A few things to keep in mind:
 - When running multiple RPC servers, configure a different RPC port in each
   root's `config.toml`.
 - On macOS, webview storage for a custom root requires macOS 14 or later. On
-  older versions it is kept in memory and cleared when the app closes.
+  older versions it is kept in memory and cleared when the app closes, so apps
+  that require persistent storage can't be launched.
 - Window size and position are shared between roots.
 - `SAGE_ROOT` is ignored on mobile.
 

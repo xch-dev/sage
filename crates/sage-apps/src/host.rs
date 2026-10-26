@@ -27,6 +27,9 @@ pub struct AppsHostState {
     /// Distinguishes the deterministic data stores of builtin apps on macOS between Sage roots.
     /// It's `None` for the default root.
     pub(crate) builtin_storage_namespace: Option<String>,
+    /// Whether app webviews must keep their storage in memory, because their persistent storage
+    /// couldn't be isolated from other Sage roots.
+    pub in_memory_webview_storage: bool,
     pub app_operation_locks: RwLock<HashMap<String, Arc<Mutex<()>>>>,
     pub app_update_locks: RwLock<HashSet<String>>,
     pub runtime: AppRuntimeState,
@@ -42,6 +45,7 @@ impl AppsHostState {
             root,
             webview_root,
             builtin_storage_namespace: None,
+            in_memory_webview_storage: false,
             app_operation_locks: RwLock::default(),
             app_update_locks: RwLock::default(),
             runtime: AppRuntimeState::default(),
@@ -55,6 +59,12 @@ impl AppsHostState {
     #[must_use]
     pub fn with_builtin_storage_namespace(mut self, namespace: Option<String>) -> Self {
         self.builtin_storage_namespace = namespace;
+        self
+    }
+
+    #[must_use]
+    pub fn with_in_memory_webview_storage(mut self, in_memory: bool) -> Self {
+        self.in_memory_webview_storage = in_memory;
         self
     }
 

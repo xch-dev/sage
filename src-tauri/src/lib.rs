@@ -298,7 +298,27 @@ pub fn run() {
                 None
             };
 
-            create_main_window(app, &webview_root, data_store_identifier)?;
+            // Without data store identifiers, WebKit silently falls back to the default data
+            // store, which is shared with the default root. Keep webview storage in memory instead.
+            #[cfg(target_os = "macos")]
+            let in_memory_webview_storage =
+                data_store_identifier.is_some() && !supports_data_store_identifiers();
+            #[cfg(not(target_os = "macos"))]
+            let in_memory_webview_storage = false;
+
+            if in_memory_webview_storage {
+                tracing::warn!(
+                    "macOS 14 or later is required to persist webview storage with {}",
+                    sage_config::SAGE_ROOT_ENV
+                );
+            }
+
+            create_main_window(
+                app,
+                &webview_root,
+                data_store_identifier,
+                in_memory_webview_storage,
+            )?;
 
             let path = root_override.unwrap_or(default_root);
             let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
@@ -333,7 +353,8 @@ pub fn run() {
                         .with_builtin_storage_namespace(
                             data_store_identifier
                                 .map(|identifier| uuid::Uuid::from_bytes(identifier).to_string()),
-                        ),
+                        )
+                        .with_in_memory_webview_storage(in_memory_webview_storage),
                 );
 
                 apps::start_background_app_update_checker(app.handle().clone());
@@ -398,6 +419,7 @@ fn create_main_window(
     app: &tauri::App,
     webview_root: &Path,
     data_store_identifier: Option<[u8; 16]>,
+    in_memory_storage: bool,
 ) -> anyhow::Result<()> {
     let config = app
         .config()
@@ -418,23 +440,17 @@ fn create_main_window(
     #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     let _ = webview_root;
 
-    #[cfg(target_os = "macos")]
-    if let Some(identifier) = data_store_identifier {
-        if supports_data_store_identifiers() {
+    if in_memory_storage {
+        builder = builder.incognito(true);
+    } else {
+        #[cfg(target_os = "macos")]
+        if let Some(identifier) = data_store_identifier {
             builder = builder.data_store_identifier(identifier);
-        } else {
-            // WebKit would silently fall back to the default data store, which is shared with the
-            // default root. Keep the storage in memory instead.
-            tracing::warn!(
-                "macOS 14 or later is required to persist webview storage with {}",
-                sage_config::SAGE_ROOT_ENV
-            );
-            builder = builder.incognito(true);
         }
-    }
 
-    #[cfg(not(target_os = "macos"))]
-    let _ = data_store_identifier;
+        #[cfg(not(target_os = "macos"))]
+        let _ = data_store_identifier;
+    }
 
     builder.build()?;
 
