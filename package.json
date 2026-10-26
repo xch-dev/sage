@@ -22,7 +22,7 @@
     "tauri:dev": "node scripts/tauri-dev.mjs",
     "tauri:build": "pnpm build && tauri build",
     "lint": "eslint .",
-    "test:unit": "vitest run src",
+    "test:unit": "vitest run src packages/sage-app-ui/src",
     "preview": "vite preview",
     "prettier": "prettier --write .",
     "prettier:check": "prettier --check .",
