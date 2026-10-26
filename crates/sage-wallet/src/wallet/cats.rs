@@ -118,6 +118,7 @@ impl Wallet {
 mod tests {
     use std::time::Duration;
 
+    use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode};
     use test_log::test;
     use tokio::time::sleep;
 
@@ -281,6 +282,62 @@ mod tests {
             test.wallet.db.selectable_cat_coins(asset_id).await?.len(),
             1
         );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_finalize_cat_clawback() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(0).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let timestamp = alice.new_block_with_current_time().await?;
+
+        let coin_spends = alice
+            .wallet
+            .send_cat(
+                asset_id,
+                vec![(bob.puzzle_hash, 1000)],
+                0,
+                true,
+                vec![],
+                Some(timestamp + 2),
+            )
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        let coin_id = alice
+            .wallet
+            .db
+            .coin_records(
+                AssetFilter::Id(asset_id),
+                10,
+                0,
+                CoinSortMode::CreatedHeight,
+                false,
+                CoinFilterMode::Clawback,
+            )
+            .await?
+            .0[0]
+            .coin
+            .coin_id();
+
+        sleep(Duration::from_secs(3)).await;
+        alice.new_block_with_current_time().await?;
+
+        let coin_spends = alice.wallet.finalize_clawback(vec![coin_id], 0).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        assert_eq!(bob.wallet.db.selectable_cat_balance(asset_id).await?, 1000);
+        assert_eq!(alice.wallet.db.selectable_cat_balance(asset_id).await?, 0);
 
         Ok(())
     }

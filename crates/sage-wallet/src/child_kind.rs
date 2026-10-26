@@ -1,5 +1,6 @@
 use chia_wallet_sdk::{
     chia::puzzle_types::{LineageProof, Proof, nft::NftMetadata},
+    driver::{Clawback as ClawbackV1, ClawbackV2},
     prelude::*,
     puzzles::SINGLETON_LAUNCHER_HASH,
 };
@@ -15,6 +16,9 @@ pub enum ChildKind {
     Launcher,
     Clawback {
         info: ClawbackV2,
+    },
+    ClawbackV1 {
+        info: ClawbackV1,
     },
     Cat {
         info: CatInfo,
@@ -77,6 +81,7 @@ impl ChildKind {
             parent_puzzle,
             parent_solution,
             create_coin,
+            &mut None,
         )
     }
 
@@ -94,6 +99,8 @@ impl ChildKind {
         let output = run_puzzle(&mut allocator, parent_puzzle.ptr(), parent_solution)?;
         let conditions = Vec::<Condition>::from_clvm(&allocator, output)?;
 
+        let mut clawbacks_v1 = None;
+
         Ok(conditions
             .into_iter()
             .filter_map(Condition::into_create_coin)
@@ -104,6 +111,7 @@ impl ChildKind {
                     parent_puzzle,
                     parent_solution,
                     create_coin,
+                    &mut clawbacks_v1,
                 )
                 .ok()
                 .map(|kind| {
@@ -126,6 +134,7 @@ impl ChildKind {
         parent_puzzle: Puzzle,
         parent_solution: NodePtr,
         create_coin: CreateCoin<NodePtr>,
+        clawbacks_v1: &mut Option<Vec<ClawbackV1>>,
     ) -> Result<Self, WalletError> {
         let coin = Coin::new(
             parent_coin.coin_id(),
@@ -329,6 +338,27 @@ impl ChildKind {
             return Ok(Self::Clawback { info: clawback });
         }
 
+        // V1 structure lives in parent REMARK conditions (not CREATE_COIN memos). Parsing them
+        // requires running the parent puzzle, so do it at most once for all of its children.
+        let clawbacks_v1 = clawbacks_v1.get_or_insert_with(|| {
+            ClawbackV1::parse_children(allocator, parent_puzzle, parent_solution)
+                .unwrap_or_else(|error| {
+                    warn!("Failed to parse clawback v1 from parent: {error}");
+                    None
+                })
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|clawback| i64::try_from(clawback.timelock).is_ok())
+                .collect()
+        });
+
+        if let Some(&info) = clawbacks_v1
+            .iter()
+            .find(|clawback| clawback.tree_hash() == coin.puzzle_hash.into())
+        {
+            return Ok(Self::ClawbackV1 { info });
+        }
+
         Ok(Self::Unknown)
     }
 
@@ -337,6 +367,7 @@ impl ChildKind {
             // TODO: Should we add the puzzle hash of the coin as a candidate?
             Self::Launcher | Self::Unknown => vec![],
             Self::Clawback { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
+            Self::ClawbackV1 { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
             Self::Cat {
                 info: CatInfo { p2_puzzle_hash, .. },
                 clawback,
@@ -366,6 +397,7 @@ impl ChildKind {
         match self {
             Self::Launcher | Self::Unknown => None,
             Self::Clawback { info } => Some(info.receiver_puzzle_hash),
+            Self::ClawbackV1 { info } => Some(info.receiver_puzzle_hash),
             Self::Cat { info, clawback, .. } => clawback
                 .map_or(Some(info.p2_puzzle_hash), |clawback| {
                     Some(clawback.receiver_puzzle_hash)
@@ -389,6 +421,7 @@ impl ChildKind {
         matches!(
             self,
             Self::Clawback { .. }
+                | Self::ClawbackV1 { .. }
                 | Self::Cat { .. }
                 | Self::Did { .. }
                 | Self::Nft { .. }
@@ -421,6 +454,9 @@ pub fn clawback_from_memo_unchecked(
 ) -> Option<ClawbackV2> {
     let (sender_puzzle_hash, (seconds, ())) =
         <(Bytes32, (u64, ()))>::from_clvm(allocator, memo).ok()?;
+
+    // The database stores seconds as an i64, and Sage never creates clawbacks this far out.
+    i64::try_from(seconds).ok()?;
 
     let clawback = ClawbackV2 {
         sender_puzzle_hash,

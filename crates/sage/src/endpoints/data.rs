@@ -196,6 +196,9 @@ impl Sage {
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
                 clawback_timestamp: row.clawback_timestamp,
+                clawback_version: row.clawback_version,
+                clawback_is_sender: row.clawback_version.map(|_| row.clawback_is_sender),
+                clawback_is_receiver: row.clawback_version.map(|_| row.clawback_is_receiver),
                 created_height: row.created_height,
                 spent_height: row.spent_height,
                 created_timestamp: row.created_timestamp,
@@ -213,6 +216,7 @@ impl Sage {
             ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
             ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
             ApiCoinSortMode::ClawbackTimestamp => CoinSortMode::ClawbackTimestamp,
+            ApiCoinSortMode::ClawbackVersion => CoinSortMode::ClawbackVersion,
         };
         let filter_mode = match req.filter_mode {
             ApiCoinFilterMode::All => CoinFilterMode::All,
@@ -247,6 +251,9 @@ impl Sage {
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
                 clawback_timestamp: row.clawback_timestamp,
+                clawback_version: row.clawback_version,
+                clawback_is_sender: row.clawback_version.map(|_| row.clawback_is_sender),
+                clawback_is_receiver: row.clawback_version.map(|_| row.clawback_is_receiver),
                 created_height: row.created_height,
                 spent_height: row.spent_height,
                 created_timestamp: row.created_timestamp,
@@ -889,12 +896,12 @@ impl Sage {
         Ok(TransactionCoinRecord {
             coin_id: hex::encode(transaction_coin.coin.coin_id()),
             address: transaction_coin
-                .p2_puzzle_hash
+                .custody_p2_puzzle_hash
                 .map(|p2_puzzle_hash| {
                     Address::new(p2_puzzle_hash, self.network().prefix()).encode()
                 })
                 .transpose()?,
-            address_kind: address_kind(transaction_coin.p2_puzzle_hash),
+            address_kind: address_kind(transaction_coin.custody_p2_puzzle_hash),
             amount: Amount::u64(transaction_coin.coin.amount),
             asset: self.encode_asset(transaction_coin.asset)?,
         })

@@ -1,8 +1,4 @@
-use chia_wallet_sdk::{
-    driver::BURN_PUZZLE_HASH,
-    prelude::*,
-    puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH},
-};
+use chia_wallet_sdk::prelude::*;
 use sage_api::AddressKind;
 use sage_database::{Asset, AssetKind};
 
@@ -28,22 +24,14 @@ impl Sage {
     }
 }
 
-pub fn address_kind(p2_puzzle_hash: Option<Bytes32>) -> AddressKind {
-    let Some(p2_puzzle_hash) = p2_puzzle_hash else {
-        return AddressKind::External;
-    };
-
-    if p2_puzzle_hash == BURN_PUZZLE_HASH {
-        return AddressKind::Burn;
+/// Transaction history only ever resolves coins to the wallet's own custody puzzle hashes,
+/// so any coin with an address is ours and any coin without one is external.
+pub fn address_kind(custody_p2_puzzle_hash: Option<Bytes32>) -> AddressKind {
+    if custody_p2_puzzle_hash.is_some() {
+        AddressKind::Own
+    } else {
+        AddressKind::External
     }
-    if p2_puzzle_hash == SINGLETON_LAUNCHER_HASH.into() {
-        return AddressKind::Launcher;
-    }
-    if p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
-        return AddressKind::Offer;
-    }
-
-    AddressKind::Own
 }
 
 pub fn encode_asset_id(hash: Bytes32, kind: AssetKind) -> Result<Option<String>> {

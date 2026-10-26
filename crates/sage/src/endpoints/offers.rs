@@ -19,7 +19,6 @@ use sage_wallet::{
     aggregate_offers, insert_transaction, sort_offer,
 };
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tokio::time::timeout;
 use tracing::debug;
 
 use crate::{
@@ -328,9 +327,11 @@ impl Sage {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash
-                    && let Ok(Some(data)) = timeout(
+                    && let Some(data) = fetch_uris_with_hash(
+                        metadata.data_uris.clone(),
+                        hash,
+                        testnet,
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.data_uris.clone(), hash, testnet),
                     )
                     .await
                 {
@@ -338,9 +339,11 @@ impl Sage {
                 }
 
                 if let Some(hash) = metadata.metadata_hash
-                    && let Ok(Some(data)) = timeout(
+                    && let Some(data) = fetch_uris_with_hash(
+                        metadata.metadata_uris.clone(),
+                        hash,
+                        testnet,
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash, testnet),
                     )
                     .await
                 {
@@ -412,9 +415,11 @@ impl Sage {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash
-                    && let Ok(Some(data)) = timeout(
+                    && let Some(data) = fetch_uris_with_hash(
+                        metadata.data_uris.clone(),
+                        hash,
+                        testnet,
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.data_uris.clone(), hash, testnet),
                     )
                     .await
                 {
@@ -422,9 +427,11 @@ impl Sage {
                 }
 
                 if let Some(hash) = metadata.metadata_hash
-                    && let Ok(Some(data)) = timeout(
+                    && let Some(data) = fetch_uris_with_hash(
+                        metadata.metadata_uris.clone(),
+                        hash,
+                        testnet,
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash, testnet),
                     )
                     .await
                 {

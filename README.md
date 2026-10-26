@@ -76,6 +76,29 @@ pnpm tauri:dev
 pnpm tauri:dev --release
 ```
 
+Set `SAGE_ROOT` to an absolute path to keep an instance's configuration,
+certificates, wallets, installed apps, and webview storage (such as settings and
+WalletConnect sessions) in a custom directory:
+
+```bash
+SAGE_ROOT="$HOME/sage-profiles/a" pnpm tauri:dev
+SAGE_ROOT="$HOME/sage-profiles/b" pnpm tauri:dev
+```
+
+The installed desktop binary and the `sage rpc` commands use the same variable.
+A few things to keep in mind:
+
+- Avoid relative paths. They are resolved against each process's working
+  directory, and `pnpm tauri:dev` starts the app from `src-tauri`.
+- Don't run two instances with the same root at the same time.
+- When running multiple RPC servers, configure a different RPC port in each
+  root's `config.toml`.
+- On macOS, webview storage for a custom root requires macOS 14 or later. On
+  older versions it is kept in memory and cleared when the app closes, so apps
+  that require persistent storage can't be launched.
+- Window size and position are shared between roots.
+- `SAGE_ROOT` is ignored on mobile.
+
 And build the application with:
 
 ```bash
