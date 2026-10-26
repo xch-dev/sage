@@ -12,7 +12,7 @@ const REGISTRY_AMOUNT: u64 = 1;
 
 /// How many spends of the resolved singleton to follow past the coin the API reported,
 /// in case the API hasn't indexed its latest transfers yet.
-const MAX_SINGLETON_HOPS: usize = 8;
+pub const MAX_SINGLETON_HOPS: usize = 8;
 
 /// The peak transaction block, which on-chain time locks are evaluated against.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -292,5 +292,7 @@ async fn verify_resolved_singleton(
         coin = child.coin;
     }
 
-    Err(XchandlesError::ResolvedSingletonNotFound(coin.coin_id()))
+    // The singleton is known to have moved past the coin the API reported, so a previously
+    // verified owner can't be relied on either.
+    Err(XchandlesError::ResolvedSingletonMovedTooOften(launcher_id))
 }

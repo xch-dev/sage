@@ -557,6 +557,27 @@ async fn test_resolved_singleton_transfers_are_followed() -> anyhow::Result<()> 
 }
 
 #[tokio::test]
+async fn test_too_many_transfers_are_not_verified() -> anyhow::Result<()> {
+    let setup = Setup::new().await?;
+    let response = setup.response();
+
+    // The NFT moves as many times as can be followed past the coin the API reported.
+    let mut nft = setup.nft;
+    for _ in 0..MAX_SINGLETON_HOPS {
+        nft = transfer_nft(&setup.sim, &nft, &setup.owner, setup.owner.puzzle_hash).await?;
+    }
+
+    let error = setup.verify(&response).await.unwrap_err();
+    assert!(matches!(
+        error,
+        XchandlesError::ResolvedSingletonMovedTooOften(..)
+    ));
+    assert!(!error.is_unavailable() && !error.is_rejection());
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_invalid_resolved_singleton_is_rejected() -> anyhow::Result<()> {
     let setup = Setup::new().await?;
 
@@ -1027,12 +1048,18 @@ mod store {
         store(&db, NOW, Ok(verified(A))).await?;
 
         // A reorg above everything the mapping was verified against changes nothing.
-        db.invalidate_xchandles_above(110).await?;
+        db.invalidate_xchandles_between(110, 120).await?;
         let row = db.xchandle(registry(), "alice").await?.unwrap();
         assert_eq!(row.status, XchandleStatus::Verified);
 
-        // A reorg below the slot's confirmation does.
-        db.invalidate_xchandles_above(99).await?;
+        // Neither does a reorg on a peer which is behind everything it was verified against.
+        db.invalidate_xchandles_between(80, 89).await?;
+        let row = db.xchandle(registry(), "alice").await?.unwrap();
+        assert_eq!(row.status, XchandleStatus::Verified);
+
+        // A reorg of the block the slot was confirmed in does, even if the peer is behind
+        // the peak it was verified at.
+        db.invalidate_xchandles_between(99, 100).await?;
         let row = db.xchandle(registry(), "alice").await?.unwrap();
         assert_eq!(row.status, XchandleStatus::Stale);
         assert!(store(&db, NOW, Err(unavailable())).await.is_err());

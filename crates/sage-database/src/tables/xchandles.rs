@@ -91,10 +91,15 @@ impl Database {
         set_xchandle_status(&self.pool, registry_launcher_id, handle, status, reason).await
     }
 
-    /// Marks verified handles as stale if anything they were verified against is above
-    /// the given height, which a reorg back to that height may have undone.
-    pub async fn invalidate_xchandles_above(&self, height: u32) -> Result<()> {
-        invalidate_xchandles_above(&self.pool, height).await
+    /// Marks verified handles as stale if anything they were verified against is in a block
+    /// above the fork height, up to the peak height, which a reorg from that peak back to the
+    /// fork height may have undone. Blocks above the peak weren't part of the reorged chain.
+    pub async fn invalidate_xchandles_between(
+        &self,
+        fork_height: u32,
+        peak_height: u32,
+    ) -> Result<()> {
+        invalidate_xchandles_between(&self.pool, fork_height, peak_height).await
     }
 
     pub async fn acknowledge_xchandle_change(
@@ -324,19 +329,26 @@ async fn set_xchandle_status(
     Ok(())
 }
 
-async fn invalidate_xchandles_above(conn: impl SqliteExecutor<'_>, height: u32) -> Result<()> {
+async fn invalidate_xchandles_between(
+    conn: impl SqliteExecutor<'_>,
+    fork_height: u32,
+    peak_height: u32,
+) -> Result<()> {
     sqlx::query!(
         "
         UPDATE xchandles SET status = 2, status_reason = 'reorg'
         WHERE status = 0 AND (
-            slot_confirmation_height > ?
-            OR resolved_confirmation_height > ?
-            OR verified_height > ?
+            slot_confirmation_height BETWEEN ? + 1 AND ?
+            OR resolved_confirmation_height BETWEEN ? + 1 AND ?
+            OR verified_height BETWEEN ? + 1 AND ?
         )
         ",
-        height,
-        height,
-        height
+        fork_height,
+        peak_height,
+        fork_height,
+        peak_height,
+        fork_height,
+        peak_height
     )
     .execute(conn)
     .await?;

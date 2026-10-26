@@ -62,6 +62,12 @@ pub enum XchandlesError {
         owner can't be verified"
     )]
     ResolvedSingletonUnspentEve(Bytes32),
+
+    #[error(
+        "The resolved singleton {0} has been transferred too many times since the API last \
+        indexed it"
+    )]
+    ResolvedSingletonMovedTooOften(Bytes32),
 }
 
 impl XchandlesError {
@@ -88,7 +94,8 @@ impl XchandlesError {
             | Self::ResolvedSingletonMelted(..)
             | Self::InvalidResolvedSingleton(..)
             | Self::ResolvedSingletonInClawback(..)
-            | Self::ResolvedSingletonUnspentEve(..) => false,
+            | Self::ResolvedSingletonUnspentEve(..)
+            | Self::ResolvedSingletonMovedTooOften(..) => false,
         }
     }
 
@@ -113,7 +120,8 @@ impl XchandlesError {
             | Self::SlotSpent(..)
             | Self::ResolutionUnavailable
             | Self::ResolvedSingletonNotFound(..)
-            | Self::ResolvedSingletonUnspentEve(..) => false,
+            | Self::ResolvedSingletonUnspentEve(..)
+            | Self::ResolvedSingletonMovedTooOften(..) => false,
         }
     }
 

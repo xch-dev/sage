@@ -311,13 +311,17 @@ impl SyncManager {
 
                 // When the chain is extended, the fork point is the previous peak. A fork point
                 // below it means blocks were rolled back, so handle mappings verified against
-                // them must be verified again.
+                // them must be verified again. The peer can only have rolled back blocks up to
+                // its previous peak, so a lagging peer doesn't affect anything verified above.
                 if let Some(wallet) = self.wallet.as_ref()
                     && let Some(previous_peak) = previous_peak
                     && message.fork_point_with_previous_peak < previous_peak
                     && let Err(error) = wallet
                         .db
-                        .invalidate_xchandles_above(message.fork_point_with_previous_peak)
+                        .invalidate_xchandles_between(
+                            message.fork_point_with_previous_peak,
+                            previous_peak,
+                        )
                         .await
                 {
                     warn!("Failed to invalidate handle mappings after a reorg: {error}");
