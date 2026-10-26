@@ -46,17 +46,13 @@ fn run() -> Result<()> {
 
     let args = Args::parse();
 
-    let path = dirs::data_dir()
-        .expect("could not get data directory")
-        .join("com.rigidnetwork.sage");
-
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .thread_stack_size(STACK_SIZE)
         .build()?
         .block_on(async move {
             match args.command {
-                Command::Rpc { command } => command.handle(path).await,
+                Command::Rpc { command } => command.handle().await,
                 Command::Wallet(args) => args.handle().await,
             }
         })

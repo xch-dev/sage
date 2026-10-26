@@ -23,9 +23,7 @@ pub struct Client {
 
 impl Client {
     pub fn new() -> Result<Self, SageRpcError> {
-        let path = dirs::data_dir()
-            .ok_or(SageRpcError::MissingDataDir)?
-            .join("com.rigidnetwork.sage");
+        let path = sage_config::sage_root().ok_or(SageRpcError::MissingDataDir)?;
         Self::from_dir(&path)
     }
 
