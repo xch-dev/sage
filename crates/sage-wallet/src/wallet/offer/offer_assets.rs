@@ -1,7 +1,9 @@
 use std::time::Duration;
 
-use chia_wallet_sdk::{chia::puzzle_types::nft::NftMetadata, prelude::*};
-use sage_database::{NftOfferInfo, OptionOfferInfo, SerializePrimitive};
+use chia_wallet_sdk::prelude::*;
+use sage_database::{
+    NftOfferInfo, NftUpdaterKindExt, OptionOfferInfo, ParsedNftMetadata, SerializePrimitive,
+};
 use tokio::time::sleep;
 
 use crate::{
@@ -52,7 +54,10 @@ impl Wallet {
                 continue;
             }
 
-            let parent = parent.expect("parent not found");
+            // The singleton has never been spent since it was launched, or it isn't one
+            let Some(parent) = parent else {
+                return Ok(None);
+            };
 
             let (parent_puzzle_reveal, parent_solution) = peer
                 .fetch_puzzle_solution(
@@ -77,7 +82,11 @@ impl Wallet {
         };
 
         let metadata = Program::from_clvm(&allocator, nft.info.metadata.ptr())?;
-        let parsed_metadata = NftMetadata::from_clvm(&allocator, nft.info.metadata.ptr()).ok();
+        let parsed_metadata = ParsedNftMetadata::parse(
+            &allocator,
+            nft.info.metadata.ptr(),
+            nft.info.metadata_updater_kind(),
+        );
 
         let mut tx = self.db.tx().await?;
 
@@ -132,7 +141,10 @@ impl Wallet {
                 continue;
             }
 
-            let parent = parent.expect("parent not found");
+            // The singleton has never been spent since it was launched, or it isn't one
+            let Some(parent) = parent else {
+                return Ok(None);
+            };
 
             let (parent_puzzle_reveal, parent_solution) = peer
                 .fetch_puzzle_solution(

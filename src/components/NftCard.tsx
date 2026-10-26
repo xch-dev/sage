@@ -41,6 +41,7 @@ import ConfirmationDialog from './ConfirmationDialog';
 import { AddUrlConfirmation } from './confirmations/AddUrlConfirmation';
 import { NftConfirmation } from './confirmations/NftConfirmation';
 import { FeeOnlyDialog } from './FeeOnlyDialog';
+import { MutableNftBadge } from './MutableNftBadge';
 import { SelectableCard, SelectionState } from './SelectableCard';
 import { TransferDialog } from './TransferDialog';
 import { Button } from './ui/button';
@@ -286,6 +287,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   };
 
   const nftName = nft.name ?? t`Unnamed NFT`;
+  // Appending URIs is only valid for the default, append-only metadata updater.
+  const canAddUrl = nft.metadata_updater_kind === 'default';
   const editionNumber = nft.edition_number;
   // 0 means an open/unlimited edition
   const editionTotal = nft.edition_total === 0 ? '∞' : nft.edition_total;
@@ -344,27 +347,33 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
             />
           )}
 
-          {offersEnabled &&
-            activeOfferCount !== null &&
-            activeOfferCount > 0 && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className='absolute top-2 left-2 flex items-center gap-1 rounded-full bg-amber-500/90 px-1.5 py-0.5 text-xs font-medium text-white shadow-sm'>
-                      <Tag className='h-3 w-3' aria-hidden='true' />
-                      {activeOfferCount > 1 && <span>{activeOfferCount}</span>}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side='bottom'>
-                    <p>
-                      {activeOfferCount === 1
-                        ? t`1 active offer`
-                        : t`${activeOfferCount} active offers`}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
+          <div className='absolute top-2 left-2 flex flex-col items-start gap-1'>
+            {offersEnabled &&
+              activeOfferCount !== null &&
+              activeOfferCount > 0 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className='flex items-center gap-1 rounded-full bg-amber-500/90 px-1.5 py-0.5 text-xs font-medium text-white shadow-sm'>
+                        <Tag className='h-3 w-3' aria-hidden='true' />
+                        {activeOfferCount > 1 && (
+                          <span>{activeOfferCount}</span>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side='bottom'>
+                      <p>
+                        {activeOfferCount === 1
+                          ? t`1 active offer`
+                          : t`${activeOfferCount} active offers`}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+
+            <MutableNftBadge kind={nft.metadata_updater_kind} />
+          </div>
 
           {nft.special_use_type === 'theme' && (
             <div className='absolute bottom-0 left-0 right-0 bg-primary/70 text-primary-foreground text-xs font-medium py-1 px-2 text-center border-t border-border'>
@@ -454,21 +463,23 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                   </span>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addUrlForm.reset();
-                    setAddUrlOpen(true);
-                  }}
-                  disabled={isTransactionDisabled || !nft.created_height}
-                  aria-label={t`Add URL to ${nftName}`}
-                >
-                  <LinkIcon className='mr-2 h-4 w-4' aria-hidden='true' />
-                  <span>
-                    <Trans>Add URL</Trans>
-                  </span>
-                </DropdownMenuItem>
+                {canAddUrl && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addUrlForm.reset();
+                      setAddUrlOpen(true);
+                    }}
+                    disabled={isTransactionDisabled || !nft.created_height}
+                    aria-label={t`Add URL to ${nftName}`}
+                  >
+                    <LinkIcon className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>Add URL</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                )}
 
                 <DropdownMenuItem
                   className='cursor-pointer'
@@ -602,7 +613,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
         <Trans>This will assign the NFT to the selected profile.</Trans>
       </AssignNftDialog>
 
-      <Dialog open={addUrlOpen} onOpenChange={setAddUrlOpen}>
+      <Dialog open={canAddUrl && addUrlOpen} onOpenChange={setAddUrlOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>

@@ -1,9 +1,14 @@
 mod maintenance;
+mod nft_metadata;
 mod serialized_primitives;
 mod tables;
 mod utils;
 
+#[cfg(test)]
+mod tests;
+
 pub use maintenance::*;
+pub use nft_metadata::*;
 pub use serialized_primitives::*;
 pub use tables::*;
 
@@ -52,6 +57,12 @@ impl Database {
                 .execute(&mut *tx.tx)
                 .await?;
             tx.set_rust_migration_version(1).await?;
+        }
+
+        if version < 2 {
+            info!("Migrating to version 2 - parsing display names of mutable NFTs");
+            tx.backfill_nft_display_names().await?;
+            tx.set_rust_migration_version(2).await?;
         }
 
         tx.commit().await?;

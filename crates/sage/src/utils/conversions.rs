@@ -1,6 +1,6 @@
 use chia_wallet_sdk::prelude::*;
 use sage_api::AddressKind;
-use sage_database::{Asset, AssetKind};
+use sage_database::{Asset, AssetKind, NftUpdaterKind};
 
 use crate::{Result, Sage};
 
@@ -53,5 +53,13 @@ pub fn encode_asset_kind(kind: AssetKind) -> sage_api::AssetKind {
         AssetKind::Nft => sage_api::AssetKind::Nft,
         AssetKind::Did => sage_api::AssetKind::Did,
         AssetKind::Option => sage_api::AssetKind::Option,
+    }
+}
+
+pub fn encode_nft_updater_kind(kind: NftUpdaterKind) -> sage_api::NftUpdaterKind {
+    match kind {
+        NftUpdaterKind::Default => sage_api::NftUpdaterKind::Default,
+        NftUpdaterKind::Any => sage_api::NftUpdaterKind::Any,
+        NftUpdaterKind::Unknown => sage_api::NftUpdaterKind::Unknown,
     }
 }

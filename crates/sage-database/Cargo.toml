@@ -23,5 +23,6 @@ hex = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }
-sqlx = { workspace = true, features = ["runtime-tokio", "migrate"] }
+hex-literal = { workspace = true }
+sqlx = { workspace = true, features = ["sqlite", "runtime-tokio", "migrate"] }
 tokio = { workspace = true, features = ["macros", "rt"] }

@@ -1,7 +1,7 @@
 use chia_wallet_sdk::{
     chia::{
         bls::master_to_wallet_hardened_intermediate,
-        puzzle_types::{DeriveSynthetic, nft::NftMetadata, standard::StandardArgs},
+        puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
     prelude::*,
 };
@@ -147,13 +147,7 @@ impl Sage {
             return Err(Error::MissingNft(nft_id));
         };
 
-        let mut allocator = Allocator::new();
-        let metadata = nft
-            .info
-            .metadata
-            .to_clvm(&mut allocator)
-            .ok()
-            .and_then(|ptr| NftMetadata::from_clvm(&allocator, ptr).ok());
+        let metadata = nft.info.parsed_metadata();
 
         if let Some(metadata) = metadata {
             let mut tx = wallet.db.tx().await?;

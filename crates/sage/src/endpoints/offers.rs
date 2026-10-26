@@ -1,30 +1,32 @@
 use chia_wallet_sdk::{
-    chia::puzzle_types::nft::NftMetadata,
     driver::{coin_amount, decode_offer, encode_offer},
     prelude::*,
 };
 use itertools::Itertools;
 use sage_api::{
     Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CombineOffers,
-    CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
-    GetOffersForAsset, GetOffersForAssetResponse, GetOffersResponse, ImportOffer,
-    ImportOfferResponse, MakeOffer, MakeOfferResponse, NftRoyalty, OfferAmount, OfferAsset,
-    OfferRecord, OfferRecordStatus, OfferSummary, OptionAssets, TakeOffer, TakeOfferResponse,
-    ViewOffer, ViewOfferResponse,
+    CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetNftMetadataUpdater,
+    GetNftMetadataUpdaterResponse, GetOffer, GetOfferResponse, GetOffers, GetOffersForAsset,
+    GetOffersForAssetResponse, GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer,
+    MakeOfferResponse, NftRoyalty, OfferAmount, OfferAsset, OfferRecord, OfferRecordStatus,
+    OfferSummary, OptionAssets, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
-use sage_database::{AssetKind, OfferRow, OfferStatus, OfferedAsset};
+use sage_database::{
+    AssetKind, NftOfferInfo, NftUpdaterKind, NftUpdaterKindExt, OfferRow, OfferStatus,
+    OfferedAsset, ParsedNftMetadata,
+};
 use sage_wallet::{
     Offered, Requested, RequestedCat, SyncCommand, TakenOffer, Transaction, Wallet, WalletError,
     aggregate_offers, insert_transaction, sort_offer,
 };
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{
-    ConfirmationInfo, Error, ExtractedNftData, Result, Sage, extract_nft_data, json_bundle,
-    offer_expiration, parse_amount, parse_asset_id, parse_coin_ids, parse_hash, parse_nft_id,
-    parse_offer_id, parse_option_id, selectable_coin_ids,
+    ConfirmationInfo, Error, ExtractedNftData, Result, Sage, encode_nft_updater_kind,
+    extract_nft_data, json_bundle, offer_expiration, parse_amount, parse_asset_id, parse_coin_ids,
+    parse_hash, parse_nft_id, parse_offer_id, parse_option_id, selectable_coin_ids,
 };
 
 #[derive(Debug, Clone)]
@@ -265,6 +267,53 @@ impl Sage {
         })
     }
 
+    /// Makes sure an NFT in an offer has its on-chain info saved, so the offer summary can
+    /// show whether it's mutable. The info is fetched from the network rather than taken
+    /// from the offer, since whoever made the offer controls what it claims about NFTs
+    /// they request. If it can't be fetched, the NFT is reported as unknown.
+    async fn ensure_offer_nft_info(&self, wallet: &Wallet, launcher_id: Bytes32) -> Result<()> {
+        if wallet.db.offer_nft_info(launcher_id).await?.is_some() {
+            return Ok(());
+        }
+
+        let Some(peer) = self.peer_state.lock().await.acquire_peer() else {
+            return Ok(());
+        };
+
+        if let Err(error) = wallet.fetch_offer_nft_info(Some(&peer), launcher_id).await {
+            warn!("Failed to fetch info for NFT {launcher_id} in offer: {error}");
+        }
+
+        Ok(())
+    }
+
+    /// Looks up an NFT's metadata updater, fetching it from the network. Like requesting an
+    /// NFT in an offer, this saves the NFT's on-chain info to the wallet database.
+    pub async fn get_nft_metadata_updater(
+        &self,
+        req: GetNftMetadataUpdater,
+    ) -> Result<GetNftMetadataUpdaterResponse> {
+        let wallet = self.wallet()?;
+        let nft_id = parse_nft_id(req.nft_id)?;
+
+        // This is the same lookup used when requesting an NFT in an offer, which also
+        // saves the NFT's info. Without a peer, it falls back to what's already saved.
+        let peer = self.peer_state.lock().await.acquire_peer();
+        let info = wallet.fetch_offer_nft_info(peer.as_ref(), nft_id).await?;
+
+        let name = if info.is_some() {
+            wallet.db.asset(nft_id).await?.and_then(|asset| asset.name)
+        } else {
+            None
+        };
+
+        Ok(GetNftMetadataUpdaterResponse {
+            metadata_updater_kind: info
+                .map(|info| encode_nft_updater_kind(info.metadata_updater_kind())),
+            name,
+        })
+    }
+
     pub async fn view_offer(&self, req: ViewOffer) -> Result<ViewOfferResponse> {
         let (offer, status) = self.summarize_offer(decode_offer(&req.offer)?).await?;
 
@@ -323,7 +372,14 @@ impl Sage {
         let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
 
         for nft in offer.offered_coins().nfts.values() {
-            let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
+            self.ensure_offer_nft_info(&wallet, nft.info.launcher_id)
+                .await?;
+
+            let _info = if let Some(metadata) = ParsedNftMetadata::parse(
+                &ctx,
+                nft.info.metadata.ptr(),
+                nft.info.metadata_updater_kind(),
+            ) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash
@@ -407,11 +463,16 @@ impl Sage {
                 &ctx,
                 launcher_id,
                 nft.metadata.ptr(),
+                nft.metadata_updater_puzzle_hash,
                 &mut ConfirmationInfo::default(),
             )
             .await?;
 
-            let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.metadata.ptr()) {
+            self.ensure_offer_nft_info(&wallet, launcher_id).await?;
+
+            let _info = if let Some(metadata) =
+                ParsedNftMetadata::parse(&ctx, nft.metadata.ptr(), nft.metadata_updater_kind())
+            {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash
@@ -642,10 +703,15 @@ impl Sage {
             ..
         } in assets
         {
-            let nft_royalty = if asset.kind == AssetKind::Nft {
-                let info = wallet.db.offer_nft_info(asset.hash).await?;
+            let nft_info = if asset.kind == AssetKind::Nft {
+                wallet.db.offer_nft_info(asset.hash).await?
+            } else {
+                None
+            };
 
-                info.map(|info| {
+            let nft_royalty = nft_info
+                .as_ref()
+                .map(|info| {
                     Result::Ok(NftRoyalty {
                         royalty_address: Address::new(
                             info.royalty_puzzle_hash,
@@ -655,10 +721,16 @@ impl Sage {
                         royalty_basis_points: info.royalty_basis_points,
                     })
                 })
-                .transpose()?
-            } else {
-                None
-            };
+                .transpose()?;
+
+            // An NFT whose updater isn't known is never assumed to be append-only.
+            let nft_metadata_updater_kind = (asset.kind == AssetKind::Nft).then(|| {
+                encode_nft_updater_kind(
+                    nft_info
+                        .as_ref()
+                        .map_or(NftUpdaterKind::Unknown, NftOfferInfo::metadata_updater_kind),
+                )
+            });
 
             let option_assets = if asset.kind == AssetKind::Option {
                 let Some(row) = wallet.db.option_assets(asset.hash).await? else {
@@ -682,6 +754,7 @@ impl Sage {
                 asset: self.encode_asset(asset)?,
                 nft_royalty,
                 option_assets,
+                nft_metadata_updater_kind,
             };
 
             if is_requested {

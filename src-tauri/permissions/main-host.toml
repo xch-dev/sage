@@ -65,6 +65,7 @@ commands.allow = [
     "get_nft_data",
     "get_nft_icon",
     "get_nft_thumbnail",
+    "get_nft_metadata_updater",
     "get_pending_transactions",
     "get_transaction",
     "get_transactions",

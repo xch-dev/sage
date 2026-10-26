@@ -4,11 +4,12 @@ use std::time::UNIX_EPOCH;
 use chia_wallet_sdk::prelude::*;
 use sage_api::OptionAssets;
 use sage_api::{Amount, NftRoyalty, OfferAsset, OfferSummary};
-use sage_database::OfferStatus;
+use sage_database::{NftUpdaterKindExt, OfferStatus};
 use sage_wallet::WalletError;
 
 use crate::ConfirmationInfo;
 use crate::StatusCoinType;
+use crate::encode_nft_updater_kind;
 use crate::utils::offer_status::offer_expiration;
 use crate::{Error, Result, Sage};
 
@@ -44,6 +45,7 @@ impl Sage {
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
                 option_assets: None,
+                nft_metadata_updater_kind: None,
             });
         }
 
@@ -59,6 +61,7 @@ impl Sage {
                 asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
                 option_assets: None,
+                nft_metadata_updater_kind: None,
             });
         }
 
@@ -68,9 +71,12 @@ impl Sage {
                     &ctx,
                     launcher_id,
                     nft.info.metadata.ptr(),
+                    nft.info.metadata_updater_puzzle_hash,
                     &mut ConfirmationInfo::default(),
                 )
                 .await?;
+
+            let kind = nft.info.metadata_updater_kind();
 
             maker.push(OfferAsset {
                 amount: Amount::u64(nft.coin.amount),
@@ -85,6 +91,7 @@ impl Sage {
                     royalty_basis_points: nft.info.royalty_basis_points,
                 }),
                 option_assets: None,
+                nft_metadata_updater_kind: Some(encode_nft_updater_kind(kind)),
             });
         }
 
@@ -107,6 +114,7 @@ impl Sage {
                     strike_amount: Amount::u64(row.strike_amount),
                     expiration_seconds: row.expiration_seconds,
                 }),
+                nft_metadata_updater_kind: None,
             });
         }
 
@@ -123,6 +131,7 @@ impl Sage {
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
                 option_assets: None,
+                nft_metadata_updater_kind: None,
             });
         }
 
@@ -138,6 +147,7 @@ impl Sage {
                 asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
                 option_assets: None,
+                nft_metadata_updater_kind: None,
             });
         }
 
@@ -162,9 +172,12 @@ impl Sage {
                     &ctx,
                     launcher_id,
                     nft.metadata.ptr(),
+                    nft.metadata_updater_puzzle_hash,
                     &mut ConfirmationInfo::default(),
                 )
                 .await?;
+
+            let kind = nft.metadata_updater_kind();
 
             taker.push(OfferAsset {
                 amount: Amount::u128(amount),
@@ -176,6 +189,7 @@ impl Sage {
                     royalty_basis_points: nft.royalty_basis_points,
                 }),
                 option_assets: None,
+                nft_metadata_updater_kind: Some(encode_nft_updater_kind(kind)),
             });
         }
 
@@ -208,6 +222,7 @@ impl Sage {
                     strike_amount: Amount::u64(row.strike_amount),
                     expiration_seconds: row.expiration_seconds,
                 }),
+                nft_metadata_updater_kind: None,
             });
         }
 

@@ -4,6 +4,7 @@ import { formatTimestamp, fromMojos, getOfferStatus } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import BigNumber from 'bignumber.js';
 import { AssetIcon } from './AssetIcon';
+import { MutableNftBadge } from './MutableNftBadge';
 import { SelectionState } from './SelectableCard';
 import { Checkbox } from './ui/checkbox';
 
@@ -73,7 +74,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
   return (
     <div className='flex flex-col gap-1 w-[125px] lg:w-[200px] xl:w-[300px]'>
       <div>{label}</div>
-      {assets.map(({ amount, royalty, asset }) => (
+      {assets.map(({ amount, royalty, asset, nft_metadata_updater_kind }) => (
         <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
           <AssetIcon asset={asset} size='md' />
           <div className='text-sm text-muted-foreground truncate'>
@@ -89,6 +90,10 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
             )}{' '}
             {asset.name ?? asset.ticker ?? t`Unknown`}
           </div>
+          <MutableNftBadge
+            kind={nft_metadata_updater_kind}
+            className='flex-shrink-0'
+          />
         </div>
       ))}
     </div>

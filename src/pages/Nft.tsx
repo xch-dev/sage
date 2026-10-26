@@ -2,6 +2,7 @@ import { AddressItem } from '@/components/AddressItem';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { LabeledItem } from '@/components/LabeledItem';
+import { MutableNftBadge } from '@/components/MutableNftBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useErrors } from '@/hooks/useErrors';
@@ -10,6 +11,7 @@ import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { offersEnabled } from '@/lib/features';
 import { getMintGardenProfile } from '@/lib/marketplaces';
 import { isAudio, isImage, isJson, isText, nftUri } from '@/lib/nftUri';
+import { isMutableNft, mutableNftExplanation } from '@/lib/nftUpdater';
 import {
   DexieAsset,
   DexieOffer,
@@ -264,6 +266,17 @@ export default function Nft() {
                   label={t`Launcher ID`}
                   address={nft?.launcher_id ?? ''}
                 />
+
+                {nft && isMutableNft(nft.metadata_updater_kind) && (
+                  <LabeledItem label={t`Metadata`} content={null}>
+                    <div className='flex flex-col items-start gap-1'>
+                      <MutableNftBadge kind={nft.metadata_updater_kind} />
+                      <p className='text-sm text-muted-foreground'>
+                        {mutableNftExplanation(nft.metadata_updater_kind)}
+                      </p>
+                    </div>
+                  </LabeledItem>
+                )}
 
                 {nft?.edition_total != null &&
                   (nft?.edition_total === 0 || nft?.edition_total > 1) && (
