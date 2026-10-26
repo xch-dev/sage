@@ -73,7 +73,11 @@ export default function MintNft() {
     editionTotal: z.number().min(0).optional(),
   });
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<
+    z.input<typeof formSchema>,
+    unknown,
+    z.output<typeof formSchema>
+  >({
     resolver: zodResolver(formSchema),
     defaultValues: {
       editionCount: 1,
@@ -451,7 +455,7 @@ export default function MintNft() {
                         {form.getValues('royaltyAddress')}
                       </div>
                     )}
-                    {form.getValues('editionCount') > 1 && (
+                    {(form.getValues('editionCount') ?? 1) > 1 && (
                       <div>
                         <strong>Edition Count:</strong>{' '}
                         {form.getValues('editionCount')}

@@ -671,7 +671,7 @@ async fn test_mutable_nft() -> Result<()> {
     );
 
     // The same is true for offers imported into the wallet.
-    let offers = app.get_offers(GetOffers {}).await?.offers;
+    let offers = app.get_offers(GetOffers::default()).await?.offers;
     let asset = find_nft(&offers[0].summary.maker, &nft_id);
     assert_eq!(asset.nft_metadata_updater_kind, Some(NftUpdaterKind::Any));
     assert_eq!(asset.asset.name.as_deref(), Some("@alice"));
@@ -790,7 +790,7 @@ async fn test_requested_mutable_nft() -> Result<()> {
     forget_nft_info(&app, bob, &nft_id).await?;
     app.import_offer(ImportOffer { offer }).await?;
 
-    let offers = app.get_offers(GetOffers {}).await?.offers;
+    let offers = app.get_offers(GetOffers::default()).await?.offers;
     let asset = find_nft(&offers[0].summary.taker, &nft_id);
     assert_eq!(asset.nft_metadata_updater_kind, Some(NftUpdaterKind::Any));
     assert_eq!(asset.asset.name.as_deref(), Some("@alice"));
@@ -798,7 +798,7 @@ async fn test_requested_mutable_nft() -> Result<()> {
     // Without saved info, the NFT is reported as unknown rather than append-only.
     forget_nft_info(&app, bob, &nft_id).await?;
 
-    let offers = app.get_offers(GetOffers {}).await?.offers;
+    let offers = app.get_offers(GetOffers::default()).await?.offers;
     let asset = find_nft(&offers[0].summary.taker, &nft_id);
     assert_eq!(
         asset.nft_metadata_updater_kind,
