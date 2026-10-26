@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
 import { useLongPress } from '@/hooks/useLongPress';
-import { getReadableSurfaceColor } from '@/lib/themeSurface';
+import { useReadableSurfaceColor } from '@/hooks/useReadableSurfaceColor';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
@@ -54,7 +54,6 @@ import {
   UserIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTheme } from 'theme-o-rama';
 import { commands, PeerRecord } from '../bindings';
 
 const SelectAllHeader = ({ table }: { table: Table<PeerRecord> }) => (
@@ -156,24 +155,19 @@ const MobileRow = ({
   selected,
   onSelect,
   selectionMode,
+  surfaceColor,
 }: {
   peer: PeerRecord;
   onDelete: () => void;
   selected: boolean;
   onSelect: (peer: PeerRecord, forceModeOn?: boolean) => void;
   selectionMode: boolean;
+  surfaceColor: string;
 }) => {
   const [{ x }, api] = useSpring(() => ({
     x: 0,
     config: { tension: 400, friction: 30 },
   }));
-  const { currentTheme } = useTheme();
-  // Re-read when the theme changes: the helper reads the applied CSS variables.
-  const surfaceColor = useMemo(
-    () => getReadableSurfaceColor(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentTheme],
-  );
 
   const handleDelete = () => {
     api.start({
@@ -304,6 +298,8 @@ export default function PeerList() {
   const peersToDeleteCount = peerToDelete?.length ?? 0;
 
   const isMobile = platform() === 'ios' || platform() === 'android';
+  // Mobile rows sit over their delete button, so they need a solid surface.
+  const surfaceColor = useReadableSurfaceColor();
 
   const columns: ColumnDef<PeerRecord>[] = useMemo(() => {
     const actionsCellWithSetPeerToDelete = (props: {
@@ -548,6 +544,7 @@ export default function PeerList() {
                     selected={selectedPeers.has(peer.ip_addr)}
                     onSelect={handleSelect}
                     selectionMode={selectionMode}
+                    surfaceColor={surfaceColor}
                   />
                 ))}
               </div>
