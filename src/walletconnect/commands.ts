@@ -289,5 +289,5 @@ export const parseCommand = <C extends WalletConnectCommand>(
   params: unknown,
 ): z.infer<Config<C>['paramsType']> => {
   const commandInfo = walletConnectCommands[command];
-  return commandInfo.paramsType.parse(params);
+  return commandInfo.paramsType.parse(params) as Params<C>;
 };
