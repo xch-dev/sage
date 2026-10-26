@@ -263,7 +263,7 @@ mod tests {
         driver::{Clawback as ClawbackV1, SpendContext, StandardLayer},
         prelude::*,
     };
-    use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, P2Puzzle};
+    use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, P2Puzzle, TransactionCustody};
     use test_log::test;
     use tokio::time::sleep;
 
@@ -848,6 +848,50 @@ mod tests {
 
         assert_eq!(bob.wallet.db.selectable_xch_balance().await?, 1000);
         assert_eq!(alice.wallet.db.selectable_xch_balance().await?, 0);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_clawback_transaction_shows_receiver_custody() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(0).await?;
+
+        let timestamp = alice.new_block_with_current_time().await?;
+
+        let coin_spends = alice
+            .wallet
+            .send_xch(
+                vec![(bob.puzzle_hash, 1000)],
+                0,
+                vec![],
+                Some(timestamp + 5),
+            )
+            .await?;
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        for (test, is_own) in [(&alice, false), (&bob, true)] {
+            let (transactions, _) = test.wallet.db.transactions(None, false, 10, 0).await?;
+
+            let clawback_coin = transactions
+                .iter()
+                .flat_map(|transaction| &transaction.created)
+                .find(|coin| coin.coin.amount == 1000 && coin.p2_puzzle_hash.is_some())
+                .expect("missing clawback coin");
+
+            // The wrapper puzzle hash must never be shown as the address
+            assert_ne!(clawback_coin.p2_puzzle_hash, Some(bob.puzzle_hash));
+            assert_eq!(
+                clawback_coin.custody,
+                Some(TransactionCustody {
+                    p2_puzzle_hash: bob.puzzle_hash,
+                    is_own,
+                })
+            );
+        }
 
         Ok(())
     }

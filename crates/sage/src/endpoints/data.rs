@@ -896,12 +896,12 @@ impl Sage {
         Ok(TransactionCoinRecord {
             coin_id: hex::encode(transaction_coin.coin.coin_id()),
             address: transaction_coin
-                .p2_puzzle_hash
-                .map(|p2_puzzle_hash| {
-                    Address::new(p2_puzzle_hash, self.network().prefix()).encode()
+                .custody
+                .map(|custody| {
+                    Address::new(custody.p2_puzzle_hash, self.network().prefix()).encode()
                 })
                 .transpose()?,
-            address_kind: address_kind(transaction_coin.p2_puzzle_hash),
+            address_kind: address_kind(transaction_coin.custody),
             amount: Amount::u64(transaction_coin.coin.amount),
             asset: self.encode_asset(transaction_coin.asset)?,
         })

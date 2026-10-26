@@ -1,7 +1,26 @@
 use chia_wallet_sdk::prelude::*;
 use sqlx::{Row, SqliteExecutor};
 
-use crate::{Asset, AssetKind, Convert, Database, Result};
+use crate::{Asset, AssetKind, Convert, Database, DatabaseError, Result};
+
+/// Columns needed to resolve a coin's p2 puzzle to its custody puzzle hash.
+/// Requires `p2_puzzles` to be joined for the coin, followed by [`CUSTODY_JOINS`].
+pub(crate) const CUSTODY_COLUMNS: &str = "
+    p2_puzzles.kind AS p2_puzzle_kind,
+    clawbacks.receiver_puzzle_hash AS clawback_receiver_puzzle_hash,
+    clawback_receiver.id IS NOT NULL AS clawback_receiver_is_own,
+    p2_options.creator_puzzle_hash AS option_creator_puzzle_hash,
+    option_creator.id IS NOT NULL AS option_creator_is_own";
+
+pub(crate) const CUSTODY_JOINS: &str = "
+    LEFT JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id
+    LEFT JOIN p2_puzzles AS clawback_receiver
+        ON clawback_receiver.hash = clawbacks.receiver_puzzle_hash
+        AND clawback_receiver.kind IN (0, 3)
+    LEFT JOIN p2_options ON p2_options.p2_puzzle_id = p2_puzzles.id
+    LEFT JOIN p2_puzzles AS option_creator
+        ON option_creator.hash = p2_options.creator_puzzle_hash
+        AND option_creator.kind IN (0, 3)";
 
 #[derive(Debug, Clone)]
 pub struct Transaction {
@@ -15,7 +34,17 @@ pub struct Transaction {
 pub struct TransactionCoin {
     pub coin: Coin,
     pub asset: Asset,
+    /// The coin's p2 puzzle hash, which may be a wrapper such as a clawback or option.
     pub p2_puzzle_hash: Option<Bytes32>,
+    /// The custody puzzle hash to display for the coin, if it's known.
+    pub custody: Option<TransactionCustody>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TransactionCustody {
+    pub p2_puzzle_hash: Bytes32,
+    /// Whether this custody puzzle hash belongs to the wallet.
+    pub is_own: bool,
 }
 
 impl Database {
@@ -61,28 +90,60 @@ pub(crate) fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<T
             .convert()?,
     };
 
-    let p2_puzzle_hash = row.get::<Option<Vec<u8>>, _>("p2_puzzle_hash").convert()?;
+    let p2_puzzle_hash: Option<Bytes32> =
+        row.get::<Option<Vec<u8>>, _>("p2_puzzle_hash").convert()?;
+
+    // Wrapper puzzle hashes are not addresses anyone should send to, so resolve
+    // them to the custody puzzle hash of the party the coin is ultimately for.
+    let custody = match row.get::<Option<i64>, _>("p2_puzzle_kind") {
+        None => None,
+        // Public key and arbor puzzles are the wallet's own custody puzzles.
+        Some(0 | 3) => p2_puzzle_hash.map(|p2_puzzle_hash| TransactionCustody {
+            p2_puzzle_hash,
+            is_own: true,
+        }),
+        // A clawback is a payment to the receiver, whether this wallet sent or received it.
+        Some(1) => row
+            .get::<Option<Vec<u8>>, _>("clawback_receiver_puzzle_hash")
+            .convert()?
+            .map(|p2_puzzle_hash| TransactionCustody {
+                p2_puzzle_hash,
+                is_own: row.get::<bool, _>("clawback_receiver_is_own"),
+            }),
+        // The underlying coin of an option is held for its creator.
+        Some(2) => row
+            .get::<Option<Vec<u8>>, _>("option_creator_puzzle_hash")
+            .convert()?
+            .map(|p2_puzzle_hash| TransactionCustody {
+                p2_puzzle_hash,
+                is_own: row.get::<bool, _>("option_creator_is_own"),
+            }),
+        Some(_) => return Err(DatabaseError::InvalidEnumVariant),
+    };
 
     Ok(TransactionCoin {
         coin,
         asset,
         p2_puzzle_hash,
+        custody,
     })
 }
 
 async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Option<Transaction>> {
-    let rows = sqlx::query!(
-        "SELECT 	
+    let sql = format!(
+        "SELECT
             height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
             is_created_in_block, is_spent_in_block, asset_hash, asset_description,
             asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
-            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash
-        FROM transaction_coins 
-        WHERE height = ?",
-        height
-    )
-    .fetch_all(conn)
-    .await?;
+            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash,
+            {CUSTODY_COLUMNS}
+        FROM transaction_coins
+        LEFT JOIN p2_puzzles ON p2_puzzles.hash = transaction_coins.p2_puzzle_hash
+        {CUSTODY_JOINS}
+        WHERE height = ?"
+    );
+
+    let rows = sqlx::query(&sql).bind(height).fetch_all(conn).await?;
 
     if rows.is_empty() {
         return Ok(None);
@@ -94,40 +155,17 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
 
     for row in rows {
         if timestamp.is_none() {
-            timestamp = row.timestamp.map(|ts| ts as u64);
+            timestamp = row.get::<Option<i64>, _>("timestamp").map(|ts| ts as u64);
         }
 
-        let coin = Coin::new(
-            row.parent_coin_hash.convert()?,
-            row.puzzle_hash.convert()?,
-            row.amount.convert()?,
-        );
-
-        let asset = Asset {
-            hash: row.asset_hash.convert()?,
-            name: row.asset_name,
-            ticker: row.asset_ticker,
-            precision: row.asset_precision.convert()?,
-            icon_url: row.asset_icon_url,
-            description: row.asset_description,
-            is_sensitive_content: row.asset_is_sensitive_content,
-            is_visible: row.asset_is_visible,
-            kind: row.asset_kind.convert()?,
-            hidden_puzzle_hash: row.asset_hidden_puzzle_hash.convert()?,
-        };
-
-        let transaction_coin = TransactionCoin {
-            coin,
-            asset,
-            p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
-        };
+        let transaction_coin = create_transaction_coin(&row)?;
 
         // these represent whether the coins was spent and/or created in this block
-        if row.is_spent_in_block == 1 {
+        if row.get::<i64, _>("is_spent_in_block") == 1 {
             spent_coins.push(transaction_coin.clone());
         }
 
-        if row.is_created_in_block == 1 {
+        if row.get::<i64, _>("is_created_in_block") == 1 {
             created_coins.push(transaction_coin);
         }
     }
@@ -147,16 +185,19 @@ async fn transactions(
     limit: u32,
     offset: u32,
 ) -> Result<(Vec<Transaction>, u32)> {
-    let mut query = sqlx::QueryBuilder::new(
-        "SELECT 	
+    let mut query = sqlx::QueryBuilder::new(format!(
+        "SELECT
             height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
             is_created_in_block, is_spent_in_block, asset_hash, asset_description,
             asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
             asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash,
+            {CUSTODY_COLUMNS},
             COUNT(*) OVER() as total_count
         FROM transaction_coins
-        WHERE 1=1",
-    );
+        LEFT JOIN p2_puzzles ON p2_puzzles.hash = transaction_coins.p2_puzzle_hash
+        {CUSTODY_JOINS}
+        WHERE 1=1"
+    ));
 
     if let Some(find_value) = find_value {
         query.push(" AND (asset_name LIKE ");
