@@ -10,7 +10,6 @@ import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { offersEnabled } from '@/lib/features';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
-import { nftDisplayName } from '@/lib/nftUpdater';
 import { cn, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { useWallet } from '@/contexts/WalletContext';
@@ -287,7 +286,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
       .finally(() => setBurnOpen(false));
   };
 
-  const nftName = nftDisplayName(nft) ?? t`Unnamed NFT`;
+  const nftName = nft.name ?? t`Unnamed NFT`;
   // Appending URIs is only valid for the default, append-only metadata updater.
   const canAddUrl = nft.metadata_updater_kind === 'default';
   const editionNumber = nft.edition_number;

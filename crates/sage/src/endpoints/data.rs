@@ -852,7 +852,6 @@ impl Sage {
                 .transpose()?,
             visible: row.asset.is_visible,
             name: row.asset.name,
-            display_name: row.nft_info.display_name,
             metadata_updater_kind: encode_nft_updater_kind(metadata_updater_kind),
             sensitive_content: row.asset.is_sensitive_content,
             coin_id: hex::encode(row.coin_row.coin.coin_id()),

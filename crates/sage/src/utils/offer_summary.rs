@@ -4,7 +4,7 @@ use std::time::UNIX_EPOCH;
 use chia_wallet_sdk::prelude::*;
 use sage_api::OptionAssets;
 use sage_api::{Amount, NftRoyalty, OfferAsset, OfferSummary};
-use sage_database::{NftUpdaterKindExt, OfferStatus, ParsedNftMetadata};
+use sage_database::{NftUpdaterKindExt, OfferStatus};
 use sage_wallet::WalletError;
 
 use crate::ConfirmationInfo;
@@ -46,7 +46,6 @@ impl Sage {
                 nft_royalty: None,
                 option_assets: None,
                 nft_metadata_updater_kind: None,
-                nft_display_name: None,
             });
         }
 
@@ -63,7 +62,6 @@ impl Sage {
                 nft_royalty: None,
                 option_assets: None,
                 nft_metadata_updater_kind: None,
-                nft_display_name: None,
             });
         }
 
@@ -79,8 +77,6 @@ impl Sage {
                 .await?;
 
             let kind = nft.info.metadata_updater_kind();
-            let display_name = ParsedNftMetadata::parse(&ctx, nft.info.metadata.ptr(), kind)
-                .and_then(|metadata| metadata.display_name);
 
             maker.push(OfferAsset {
                 amount: Amount::u64(nft.coin.amount),
@@ -96,7 +92,6 @@ impl Sage {
                 }),
                 option_assets: None,
                 nft_metadata_updater_kind: Some(encode_nft_updater_kind(kind)),
-                nft_display_name: display_name,
             });
         }
 
@@ -120,7 +115,6 @@ impl Sage {
                     expiration_seconds: row.expiration_seconds,
                 }),
                 nft_metadata_updater_kind: None,
-                nft_display_name: None,
             });
         }
 
@@ -138,7 +132,6 @@ impl Sage {
                 nft_royalty: None,
                 option_assets: None,
                 nft_metadata_updater_kind: None,
-                nft_display_name: None,
             });
         }
 
@@ -155,7 +148,6 @@ impl Sage {
                 nft_royalty: None,
                 option_assets: None,
                 nft_metadata_updater_kind: None,
-                nft_display_name: None,
             });
         }
 
@@ -186,8 +178,6 @@ impl Sage {
                 .await?;
 
             let kind = nft.metadata_updater_kind();
-            let display_name = ParsedNftMetadata::parse(&ctx, nft.metadata.ptr(), kind)
-                .and_then(|metadata| metadata.display_name);
 
             taker.push(OfferAsset {
                 amount: Amount::u128(amount),
@@ -200,7 +190,6 @@ impl Sage {
                 }),
                 option_assets: None,
                 nft_metadata_updater_kind: Some(encode_nft_updater_kind(kind)),
-                nft_display_name: display_name,
             });
         }
 
@@ -234,7 +223,6 @@ impl Sage {
                     expiration_seconds: row.expiration_seconds,
                 }),
                 nft_metadata_updater_kind: None,
-                nft_display_name: None,
             });
         }
 

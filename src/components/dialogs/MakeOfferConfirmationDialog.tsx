@@ -13,7 +13,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
-import { isMutableNft, nftDisplayName } from '@/lib/nftUpdater';
+import { isMutableNft } from '@/lib/nftUpdater';
 import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
 import { Assets, OfferState, TokenAmount } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -156,7 +156,7 @@ function AssetDisplay({
           return [
             nft,
             isMutableNft(nft.metadata_updater_kind)
-              ? (nftDisplayName(nft) ?? nftId)
+              ? (nft.name ?? nftId)
               : null,
           ];
         }
@@ -175,7 +175,7 @@ function AssetDisplay({
           isMutableNft(updater.metadata_updater_kind);
         return [
           emptyNftRecord(nftId),
-          isMutable ? (updater.display_name ?? nftId) : null,
+          isMutable ? (updater.name ?? nftId) : null,
         ];
       } catch {
         return [emptyNftRecord(nftId), nftId];
@@ -291,7 +291,7 @@ function AssetDisplay({
                     <div
                       key={nft.launcher_id}
                       className='flex flex-col items-center text-center'
-                      title={`${nftDisplayName(nft)}\nID: ${nft.launcher_id}`}
+                      title={`${nft.name}\nID: ${nft.launcher_id}`}
                     >
                       <AssetIcon
                         asset={{
@@ -304,7 +304,7 @@ function AssetDisplay({
                       />
                       {!nft.icon_url && (
                         <span className='text-xs truncate w-full'>
-                          {nftDisplayName(nft)}
+                          {nft.name}
                         </span>
                       )}
                     </div>

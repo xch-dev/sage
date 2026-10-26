@@ -39,9 +39,6 @@ pub struct NftRecord {
     pub visible: bool,
     pub sensitive_content: bool,
     pub name: Option<String>,
-    /// The owner-editable display name (`dn`) from `XCHandles` metadata. This is a display
-    /// value and lookup hint only, and doesn't prove ownership of a handle.
-    pub display_name: Option<String>,
     pub metadata_updater_kind: NftUpdaterKind,
     pub created_height: Option<u32>,
     pub coin_id: String,

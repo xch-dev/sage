@@ -188,11 +188,8 @@ impl Database {
 
         if let Some(name_search) = name_search {
             let pattern = format!("%{name_search}%");
-            query.push("AND (asset_name LIKE ");
-            query.push_bind(pattern.clone());
-            query.push(" OR display_name LIKE ");
+            query.push("AND asset_name LIKE ");
             query.push_bind(pattern);
-            query.push(")");
         }
 
         if let Some(group) = group_search {
@@ -228,7 +225,7 @@ impl Database {
                 query.push("(created_height IS NULL) DESC, created_height DESC");
             }
             NftSortMode::Name => {
-                query.push("(COALESCE(display_name, asset_name) IS NULL) ASC, COALESCE(display_name, asset_name) ASC, edition_number ASC");
+                query.push("(asset_name IS NULL) ASC, asset_name ASC, edition_number ASC");
             }
         }
 
@@ -352,22 +349,6 @@ impl Database {
             .collect::<Result<Vec<_>>>()?;
 
         Ok((dids, total_count))
-    }
-
-    pub async fn nft_display_name(&self, hash: Bytes32) -> Result<Option<String>> {
-        let hash = hash.as_ref();
-
-        Ok(query!(
-            "
-            SELECT display_name FROM nfts
-            INNER JOIN assets ON assets.id = nfts.asset_id
-            WHERE hash = ?
-            ",
-            hash
-        )
-        .fetch_optional(&self.pool)
-        .await?
-        .and_then(|row| row.display_name))
     }
 
     pub async fn offer_nft_info(&self, hash: Bytes32) -> Result<Option<NftOfferInfo>> {
@@ -511,7 +492,8 @@ impl DatabaseTx<'_> {
     }
 
     /// Reparses the metadata of NFTs using the any metadata updater, which was previously
-    /// always parsed as CHIP-7, to fill in their display names.
+    /// always parsed as CHIP-7, to fill in their display names. The display name is also used
+    /// as the NFT's name, in place of the name from its metadata file.
     pub async fn backfill_nft_display_names(&mut self) -> Result<()> {
         let any_kind = NftUpdaterKind::Any as i64;
 
@@ -547,21 +529,32 @@ impl DatabaseTx<'_> {
             )
             .execute(&mut *self.tx)
             .await?;
+
+            if let Some(display_name) = display_name {
+                query!(
+                    "UPDATE assets SET name = ? WHERE id = (SELECT asset_id FROM nfts WHERE id = ?)",
+                    display_name,
+                    row.id
+                )
+                .execute(&mut *self.tx)
+                .await?;
+            }
         }
 
         Ok(())
     }
 
-    /// The data and metadata file hashes currently saved for an NFT, if it's known.
-    pub async fn nft_file_hashes(
+    /// The data and metadata file hashes and display name currently saved for an NFT,
+    /// if it's known. These are what its name and icon are derived from.
+    pub async fn nft_display_source(
         &mut self,
         hash: Bytes32,
-    ) -> Result<Option<(Option<Bytes32>, Option<Bytes32>)>> {
+    ) -> Result<Option<(Option<Bytes32>, Option<Bytes32>, Option<String>)>> {
         let hash = hash.as_ref();
 
         query!(
             "
-            SELECT data_hash, metadata_hash FROM nfts
+            SELECT data_hash, metadata_hash, display_name FROM nfts
             INNER JOIN assets ON assets.id = nfts.asset_id
             WHERE assets.hash = ?
             ",
@@ -569,7 +562,13 @@ impl DatabaseTx<'_> {
         )
         .fetch_optional(&mut *self.tx)
         .await?
-        .map(|row| Ok((row.data_hash.convert()?, row.metadata_hash.convert()?)))
+        .map(|row| {
+            Ok((
+                row.data_hash.convert()?,
+                row.metadata_hash.convert()?,
+                row.display_name,
+            ))
+        })
         .transpose()
     }
 
@@ -639,10 +638,12 @@ impl DatabaseTx<'_> {
         let hash = hash.as_ref();
         let collection_id = metadata_info.collection_id.as_ref();
 
+        // The display name from an NFT's on-chain metadata takes precedence over the name
+        // from its metadata file.
         query!(
             "
             UPDATE assets SET
-                name = ?,
+                name = COALESCE((SELECT display_name FROM nfts WHERE nfts.asset_id = assets.id), ?),
                 description = ?,
                 is_sensitive_content = ?
             WHERE hash = ?

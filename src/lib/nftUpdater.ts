@@ -1,4 +1,4 @@
-import { NftRecord, NftUpdaterKind, OfferAsset } from '@/bindings';
+import { NftUpdaterKind, OfferAsset } from '@/bindings';
 import { t } from '@lingui/core/macro';
 
 /**
@@ -7,16 +7,6 @@ import { t } from '@lingui/core/macro';
  */
 export function isMutableNft(kind: NftUpdaterKind | null | undefined): boolean {
   return kind === 'any' || kind === 'unknown';
-}
-
-/**
- * The name to show for an NFT. This prefers the XCHandles display name (`dn`), which is
- * owner-editable display data only and never proof of handle ownership.
- */
-export function nftDisplayName(
-  nft: Pick<NftRecord, 'name' | 'display_name'>,
-): string | null {
-  return nft.display_name ?? nft.name;
 }
 
 export function mutableNftExplanation(kind: NftUpdaterKind): string {
@@ -29,11 +19,5 @@ export function mutableNftExplanation(kind: NftUpdaterKind): string {
 export function mutableOfferNftNames(assets: OfferAsset[]): string[] {
   return assets
     .filter((asset) => isMutableNft(asset.nft_metadata_updater_kind))
-    .map(
-      (asset) =>
-        asset.nft_display_name ??
-        asset.asset.name ??
-        asset.asset.asset_id ??
-        t`Unknown NFT`,
-    );
+    .map((asset) => asset.asset.name ?? asset.asset.asset_id ?? t`Unknown NFT`);
 }

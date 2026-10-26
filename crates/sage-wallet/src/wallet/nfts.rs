@@ -273,6 +273,7 @@ mod tests {
             .expect("missing nft");
         assert_eq!(row.nft_info.metadata_updater_kind(), NftUpdaterKind::Any);
         assert_eq!(row.nft_info.display_name.as_deref(), Some("@alice"));
+        assert_eq!(row.asset.name.as_deref(), Some("@alice"));
         assert_eq!(row.nft_info.data_hash, Some(Bytes32::new([1; 32])));
         assert_eq!(row.nft_info.edition_number, None);
 
@@ -305,9 +306,10 @@ mod tests {
             .wallet_nft(launcher_id)
             .await?
             .expect("missing nft");
-        assert_eq!(row.nft_info.display_name.as_deref(), Some("@alice"));
+        assert_eq!(row.asset.name.as_deref(), Some("@alice"));
 
-        // Give the NFT a name, as if its off-chain metadata had been downloaded.
+        // Download the NFT's off-chain metadata. The display name takes precedence over
+        // the name in the file.
         let mut tx = test.wallet.db.tx().await?;
         tx.update_nft_metadata(
             launcher_id,
@@ -321,7 +323,7 @@ mod tests {
         .await?;
         tx.commit().await?;
 
-        // A transfer doesn't change the metadata, so the name is kept.
+        // A transfer doesn't change the metadata, so the description is kept.
         let coin_spends = test
             .wallet
             .transfer_nfts(vec![launcher_id], puzzle_hash, 0, None)
@@ -335,44 +337,53 @@ mod tests {
             .wallet_nft(launcher_id)
             .await?
             .expect("missing nft");
-        assert_eq!(row.asset.name.as_deref(), Some("Alice"));
+        assert_eq!(row.asset.name.as_deref(), Some("@alice"));
+        assert_eq!(row.asset.description.as_deref(), Some("Old description"));
 
-        // The owner replaces all of the metadata, which drops the off-chain metadata file.
-        let mut ctx = SpendContext::new();
+        // The owner replaces all of the metadata, first with a new display name and without
+        // the off-chain metadata file, then dropping only the display name.
+        let replacements = [
+            (Some("@bob"), Some("@bob"), "the new display name is used"),
+            (None, None, "the old display name no longer applies"),
+        ];
 
-        let new_metadata = ctx.alloc(&HandleNftMetadata {
-            display_name: Some("@bob".to_string()),
-            image_uris: vec!["https://example.com/bob.png".to_string()],
-            image_hash: Some(Bytes32::new([2; 32])),
-            ..Default::default()
-        })?;
+        for (display_name, expected_name, message) in replacements {
+            let mut ctx = SpendContext::new();
 
-        let metadata_update = Spend::new(ctx.alloc_mod::<AnyMetadataUpdater>()?, new_metadata);
+            let new_metadata = ctx.alloc(&HandleNftMetadata {
+                display_name: display_name.map(str::to_string),
+                image_uris: vec!["https://example.com/bob.png".to_string()],
+                image_hash: Some(Bytes32::new([2; 32])),
+                ..Default::default()
+            })?;
 
-        test.wallet
-            .spend(
-                &mut ctx,
-                vec![],
-                &[
-                    Action::fee(0),
-                    Action::update_nft(Id::Existing(launcher_id), vec![metadata_update], None),
-                ],
-            )
-            .await?;
-        test.transact(ctx.take()).await?;
-        test.wait_for_coins().await;
+            let metadata_update = Spend::new(ctx.alloc_mod::<AnyMetadataUpdater>()?, new_metadata);
 
-        let row = test
-            .wallet
-            .db
-            .wallet_nft(launcher_id)
-            .await?
-            .expect("missing nft");
-        assert_eq!(row.nft_info.display_name.as_deref(), Some("@bob"));
-        assert_eq!(row.nft_info.data_hash, Some(Bytes32::new([2; 32])));
-        assert_eq!(row.nft_info.metadata_hash, None);
-        assert_eq!(row.asset.name, None, "the old name no longer applies");
-        assert_eq!(row.asset.description, None);
+            test.wallet
+                .spend(
+                    &mut ctx,
+                    vec![],
+                    &[
+                        Action::fee(0),
+                        Action::update_nft(Id::Existing(launcher_id), vec![metadata_update], None),
+                    ],
+                )
+                .await?;
+            test.transact(ctx.take()).await?;
+            test.wait_for_coins().await;
+
+            let row = test
+                .wallet
+                .db
+                .wallet_nft(launcher_id)
+                .await?
+                .expect("missing nft");
+            assert_eq!(row.nft_info.display_name.as_deref(), display_name);
+            assert_eq!(row.nft_info.data_hash, Some(Bytes32::new([2; 32])));
+            assert_eq!(row.nft_info.metadata_hash, None);
+            assert_eq!(row.asset.name.as_deref(), expected_name, "{message}");
+            assert_eq!(row.asset.description, None);
+        }
 
         Ok(())
     }

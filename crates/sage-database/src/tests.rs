@@ -51,11 +51,12 @@ async fn insert_legacy_nft(
 async fn nft_columns(
     pool: &SqlitePool,
     launcher_id: Bytes32,
-) -> anyhow::Result<(i64, Option<String>, Option<i64>)> {
+) -> anyhow::Result<(i64, Option<String>, Option<String>, Option<i64>)> {
     Ok(sqlx::query_as(
         "
-        SELECT metadata_updater_kind, display_name, edition_number FROM nfts
-        WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)
+        SELECT metadata_updater_kind, display_name, name, edition_number FROM nfts
+        INNER JOIN assets ON assets.id = nfts.asset_id
+        WHERE hash = ?
         ",
     )
     .bind(launcher_id.to_vec())
@@ -116,20 +117,25 @@ async fn backfills_nft_metadata_updater_kinds() -> anyhow::Result<()> {
 
     assert_eq!(
         nft_columns(&pool, default_nft).await?,
-        (NftUpdaterKind::Default as i64, None, Some(1))
+        (NftUpdaterKind::Default as i64, None, None, Some(1))
     );
     assert_eq!(
         nft_columns(&pool, any_nft).await?,
-        (NftUpdaterKind::Any as i64, Some("@alice".to_string()), None)
+        (
+            NftUpdaterKind::Any as i64,
+            Some("@alice".to_string()),
+            Some("@alice".to_string()),
+            None
+        )
     );
     assert_eq!(
         nft_columns(&pool, malformed_any_nft).await?,
-        (NftUpdaterKind::Any as i64, None, Some(1))
+        (NftUpdaterKind::Any as i64, None, None, Some(1))
     );
-    // Unknown updaters keep CHIP-7 parsing and never get a display name.
+    // Unknown updaters keep CHIP-7 parsing and never get a display name or name from it.
     assert_eq!(
         nft_columns(&pool, unknown_nft).await?,
-        (NftUpdaterKind::Unknown as i64, None, Some(1))
+        (NftUpdaterKind::Unknown as i64, None, None, Some(1))
     );
 
     Ok(())

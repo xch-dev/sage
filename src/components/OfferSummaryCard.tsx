@@ -74,39 +74,28 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
   return (
     <div className='flex flex-col gap-1 w-[125px] lg:w-[200px] xl:w-[300px]'>
       <div>{label}</div>
-      {assets.map(
-        ({
-          amount,
-          royalty,
-          asset,
-          nft_metadata_updater_kind,
-          nft_display_name,
-        }) => (
-          <div
-            className='flex items-center gap-2'
-            key={asset.asset_id ?? 'xch'}
-          >
-            <AssetIcon asset={asset} size='md' />
-            <div className='text-sm text-muted-foreground truncate'>
-              {asset.kind !== 'nft' && asset.kind !== 'option' && (
-                <NumberFormat
-                  value={fromMojos(
-                    BigNumber(amount).plus(royalty),
-                    asset.precision,
-                  )}
-                  minimumFractionDigits={0}
-                  maximumFractionDigits={asset.precision}
-                />
-              )}{' '}
-              {nft_display_name ?? asset.name ?? asset.ticker ?? t`Unknown`}
-            </div>
-            <MutableNftBadge
-              kind={nft_metadata_updater_kind}
-              className='flex-shrink-0'
-            />
+      {assets.map(({ amount, royalty, asset, nft_metadata_updater_kind }) => (
+        <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
+          <AssetIcon asset={asset} size='md' />
+          <div className='text-sm text-muted-foreground truncate'>
+            {asset.kind !== 'nft' && asset.kind !== 'option' && (
+              <NumberFormat
+                value={fromMojos(
+                  BigNumber(amount).plus(royalty),
+                  asset.precision,
+                )}
+                minimumFractionDigits={0}
+                maximumFractionDigits={asset.precision}
+              />
+            )}{' '}
+            {asset.name ?? asset.ticker ?? t`Unknown`}
           </div>
-        ),
-      )}
+          <MutableNftBadge
+            kind={nft_metadata_updater_kind}
+            className='flex-shrink-0'
+          />
+        </div>
+      ))}
     </div>
   );
 }

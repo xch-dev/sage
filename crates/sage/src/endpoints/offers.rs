@@ -301,16 +301,12 @@ impl Sage {
         let peer = self.peer_state.lock().await.acquire_peer();
         let info = wallet.fetch_offer_nft_info(peer.as_ref(), nft_id).await?;
 
-        let display_name = if info.is_some() {
-            wallet.db.nft_display_name(nft_id).await?
-        } else {
-            None
-        };
+        let name = wallet.db.asset(nft_id).await?.and_then(|asset| asset.name);
 
         Ok(GetNftMetadataUpdaterResponse {
             metadata_updater_kind: info
                 .map(|info| encode_nft_updater_kind(info.metadata_updater_kind())),
-            display_name,
+            name,
         })
     }
 
@@ -732,12 +728,6 @@ impl Sage {
                 )
             });
 
-            let nft_display_name = if nft_info.is_some() {
-                wallet.db.nft_display_name(asset.hash).await?
-            } else {
-                None
-            };
-
             let option_assets = if asset.kind == AssetKind::Option {
                 let Some(row) = wallet.db.option_assets(asset.hash).await? else {
                     return Err(Error::MissingOption(asset.hash));
@@ -761,7 +751,6 @@ impl Sage {
                 nft_royalty,
                 option_assets,
                 nft_metadata_updater_kind,
-                nft_display_name,
             };
 
             if is_requested {

@@ -23,11 +23,10 @@ use rand_chacha::ChaCha8Rng;
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
-    Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CreateDid,
-    CreateTransaction, GetDids, GetKey, GetNft, GetNftMetadataUpdater, GetOffers, GetPeers,
-    GetSyncStatus, GetVersion, Id as ApiId, ImportKey, ImportOffer, Login, MakeOffer, NewNftUri,
-    NftUpdaterKind, NftUriKind, OfferAmount, OfferAsset, SendXch, SignCoinSpends, UpdateNftAction,
-    ViewOffer,
+    Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CreateDid, CreateTransaction, GetDids,
+    GetKey, GetNft, GetNftMetadataUpdater, GetOffers, GetPeers, GetSyncStatus, GetVersion,
+    Id as ApiId, ImportKey, ImportOffer, Login, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind,
+    OfferAmount, OfferAsset, SendXch, SignCoinSpends, UpdateNftAction, ViewOffer,
 };
 use sage_api_macro::impl_endpoints;
 use sage_wallet::{SyncCommand, SyncEvent};
@@ -472,7 +471,7 @@ async fn test_mutable_nft() -> Result<()> {
         .nft
         .expect("missing nft");
     assert_eq!(nft.metadata_updater_kind, NftUpdaterKind::Any);
-    assert_eq!(nft.display_name.as_deref(), Some("@alice"));
+    assert_eq!(nft.name.as_deref(), Some("@alice"));
     assert_eq!(nft.data_uris, ["https://example.com/alice.png"]);
     assert_eq!(nft.edition_number, None);
 
@@ -542,7 +541,7 @@ async fn test_mutable_nft() -> Result<()> {
     let summary = app.view_offer(ViewOffer { offer }).await?.offer;
     let asset = find_nft(&summary.maker, &nft_id);
     assert_eq!(asset.nft_metadata_updater_kind, Some(NftUpdaterKind::Any));
-    assert_eq!(asset.nft_display_name.as_deref(), Some("@alice"));
+    assert_eq!(asset.asset.name.as_deref(), Some("@alice"));
     assert!(
         summary
             .taker
@@ -554,7 +553,7 @@ async fn test_mutable_nft() -> Result<()> {
     let offers = app.get_offers(GetOffers {}).await?.offers;
     let asset = find_nft(&offers[0].summary.maker, &nft_id);
     assert_eq!(asset.nft_metadata_updater_kind, Some(NftUpdaterKind::Any));
-    assert_eq!(asset.nft_display_name.as_deref(), Some("@alice"));
+    assert_eq!(asset.asset.name.as_deref(), Some("@alice"));
 
     // And on the taker side, when the NFT is requested.
     let offer = app
@@ -573,7 +572,7 @@ async fn test_mutable_nft() -> Result<()> {
     let summary = app.view_offer(ViewOffer { offer }).await?.offer;
     let asset = find_nft(&summary.taker, &nft_id);
     assert_eq!(asset.nft_metadata_updater_kind, Some(NftUpdaterKind::Any));
-    assert_eq!(asset.nft_display_name.as_deref(), Some("@alice"));
+    assert_eq!(asset.asset.name.as_deref(), Some("@alice"));
 
     // NFTs minted by Sage use the default, append-only updater and aren't flagged.
     let did_id = app.get_dids(GetDids {}).await?.dids[0].launcher_id.clone();
@@ -597,7 +596,6 @@ async fn test_mutable_nft() -> Result<()> {
         .nft
         .expect("missing nft");
     assert_eq!(nft.metadata_updater_kind, NftUpdaterKind::Default);
-    assert_eq!(nft.display_name, None);
     assert_eq!(nft.edition_number, Some(1));
 
     Ok(())
@@ -642,7 +640,7 @@ async fn test_requested_mutable_nft() -> Result<()> {
         })
         .await?;
     assert_eq!(updater.metadata_updater_kind, Some(NftUpdaterKind::Any));
-    assert_eq!(updater.display_name.as_deref(), Some("@alice"));
+    assert_eq!(updater.name.as_deref(), Some("@alice"));
 
     let offer = app
         .make_offer(MakeOffer {
@@ -672,7 +670,7 @@ async fn test_requested_mutable_nft() -> Result<()> {
     let offers = app.get_offers(GetOffers {}).await?.offers;
     let asset = find_nft(&offers[0].summary.taker, &nft_id);
     assert_eq!(asset.nft_metadata_updater_kind, Some(NftUpdaterKind::Any));
-    assert_eq!(asset.nft_display_name.as_deref(), Some("@alice"));
+    assert_eq!(asset.asset.name.as_deref(), Some("@alice"));
 
     // Without saved info, the NFT is reported as unknown rather than append-only.
     forget_nft_info(&app, bob, &nft_id).await?;
@@ -683,7 +681,6 @@ async fn test_requested_mutable_nft() -> Result<()> {
         asset.nft_metadata_updater_kind,
         Some(NftUpdaterKind::Unknown)
     );
-    assert_eq!(asset.nft_display_name, None);
 
     Ok(())
 }

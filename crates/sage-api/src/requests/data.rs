@@ -906,9 +906,9 @@ pub struct GetNftMetadataUpdaterResponse {
     /// The metadata updater kind, or null if the NFT couldn't be found
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub metadata_updater_kind: Option<NftUpdaterKind>,
-    /// The owner-editable display name (`dn`) from `XCHandles` metadata, if any
+    /// The NFT's name, if it's known
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
-    pub display_name: Option<String>,
+    pub name: Option<String>,
 }
 
 /// Get NFT data file

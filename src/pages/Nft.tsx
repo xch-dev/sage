@@ -11,11 +11,7 @@ import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { offersEnabled } from '@/lib/features';
 import { getMintGardenProfile } from '@/lib/marketplaces';
 import { isAudio, isImage, isJson, isText, nftUri } from '@/lib/nftUri';
-import {
-  isMutableNft,
-  mutableNftExplanation,
-  nftDisplayName,
-} from '@/lib/nftUpdater';
+import { isMutableNft, mutableNftExplanation } from '@/lib/nftUpdater';
 import {
   DexieAsset,
   DexieOffer,
@@ -179,7 +175,7 @@ export default function Nft() {
 
   return (
     <>
-      <Header title={(nft && nftDisplayName(nft)) ?? t`Unknown NFT`} />
+      <Header title={nft?.name ?? t`Unknown NFT`} />
       <Container>
         <Card className='mb-4'>
           <CardHeader>
@@ -280,10 +276,6 @@ export default function Nft() {
                       </p>
                     </div>
                   </LabeledItem>
-                )}
-
-                {nft?.display_name && nft.display_name !== nft.name && (
-                  <LabeledItem label={t`Name`} content={nft.name} />
                 )}
 
                 {nft?.edition_total != null &&

@@ -37,7 +37,6 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
           nft_royalty,
           option_assets,
           nft_metadata_updater_kind,
-          nft_display_name,
         }) => (
           <div
             key={asset.asset_id ?? 'xch'}
@@ -63,7 +62,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                   />
                 )}{' '}
                 <span className='text-sm font-medium break-words'>
-                  {nft_display_name ?? asset.name ?? asset.ticker ?? t`Unknown`}
+                  {asset.name ?? asset.ticker ?? t`Unknown`}
                 </span>
               </div>
 

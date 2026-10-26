@@ -182,6 +182,11 @@ pub async fn extract_nft_data(
         }
     }
 
+    // The display name from on-chain metadata takes precedence over the file's name
+    if onchain_metadata.display_name.is_some() {
+        result.name = onchain_metadata.display_name;
+    }
+
     Ok(result)
 }
 

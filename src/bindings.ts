@@ -1359,9 +1359,9 @@ export type GetNftMetadataUpdaterResponse = {
  */
 metadata_updater_kind: NftUpdaterKind | null; 
 /**
- * The owner-editable display name (`dn`) from `XCHandles` metadata, if any
+ * The NFT's name, if it's known
  */
-display_name: string | null }
+name: string | null }
 /**
  * Response with NFT details
  */
@@ -2148,12 +2148,7 @@ royalty_address?: string | null;
  * Royalty percentage in ten-thousandths (e.g., 300 = 3%)
  */
 royalty_ten_thousandths?: number }
-export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; 
-/**
- * The owner-editable display name (`dn`) from `XCHandles` metadata. This is a display
- * value and lookup hint only, and doesn't prove ownership of a handle.
- */
-display_name: string | null; metadata_updater_kind: NftUpdaterKind; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null; special_use_type: NftSpecialUseType | null }
+export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; metadata_updater_kind: NftUpdaterKind; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null; special_use_type: NftSpecialUseType | null }
 export type NftRoyalty = { royalty_address: string; royalty_basis_points: number }
 export type NftSortMode = "name" | "recent"
 export type NftSpecialUseType = "none" | "theme"
@@ -2222,12 +2217,7 @@ export type OfferAsset = { asset: Asset; amount: Amount; royalty: Amount; nft_ro
  * The metadata updater kind, if the asset is an NFT. Mutable NFTs can have all of
  * their metadata replaced by the owner, including after the offer is accepted.
  */
-nft_metadata_updater_kind: NftUpdaterKind | null; 
-/**
- * The owner-editable display name (`dn`) from `XCHandles` metadata, if the asset is
- * an NFT that has one.
- */
-nft_display_name: string | null }
+nft_metadata_updater_kind: NftUpdaterKind | null }
 export type OfferRecord = { offer_id: string; offer: string; status: OfferRecordStatus; creation_timestamp: number; summary: OfferSummary }
 export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled" | "expired"
 export type OfferSummary = { fee: Amount; maker: OfferAsset[]; taker: OfferAsset[]; expiration_height: number | null; expiration_timestamp: number | null }

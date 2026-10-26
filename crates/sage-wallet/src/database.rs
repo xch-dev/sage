@@ -327,15 +327,24 @@ pub async fn insert_nft(
         }
     }
 
+    // The display name from on-chain metadata takes precedence over the metadata file's name
+    if let Some(display_name) = &coin_info.display_name {
+        asset.name = Some(display_name.clone());
+    }
+
     let is_current = coin_state.spent_height.is_none() || lineage_proof.is_none();
 
-    // Mutable NFTs can replace their metadata, so when their files change, the name and
-    // icon from the previous metadata are cleared rather than kept. They're filled in
-    // again once the new files are downloaded.
+    // Mutable NFTs can replace their metadata, so when their files or display name change,
+    // the name and icon from the previous metadata are cleared rather than kept. They're
+    // filled in again once the new files are downloaded.
     if is_current
         && !coin_info.metadata_updater_kind().is_append_only()
-        && tx.nft_file_hashes(info.launcher_id).await?
-            != Some((coin_info.data_hash, coin_info.metadata_hash))
+        && tx.nft_display_source(info.launcher_id).await?
+            != Some((
+                coin_info.data_hash,
+                coin_info.metadata_hash,
+                coin_info.display_name.clone(),
+            ))
     {
         tx.reset_nft_asset_display(
             asset.hash,

@@ -25,9 +25,6 @@ pub struct OfferAsset {
     /// The metadata updater kind, if the asset is an NFT. Mutable NFTs can have all of
     /// their metadata replaced by the owner, including after the offer is accepted.
     pub nft_metadata_updater_kind: Option<NftUpdaterKind>,
-    /// The owner-editable display name (`dn`) from `XCHandles` metadata, if the asset is
-    /// an NFT that has one.
-    pub nft_display_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
