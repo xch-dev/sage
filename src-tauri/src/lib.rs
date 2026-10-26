@@ -75,6 +75,7 @@ macro_rules! sage_commands {
             commands::get_database_stats,
             commands::perform_database_maintenance,
             commands::check_address,
+            commands::resolve_handle,
             commands::get_derivations,
             commands::get_are_coins_spendable,
             commands::get_spendable_coin_count,

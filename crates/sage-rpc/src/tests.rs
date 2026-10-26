@@ -26,7 +26,7 @@ use sage_api::{
     Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CreateDid, CreateTransaction, GetDids,
     GetKey, GetNft, GetNftMetadataUpdater, GetOffers, GetPeers, GetSyncStatus, GetVersion,
     Id as ApiId, ImportKey, ImportOffer, Login, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind,
-    OfferAmount, OfferAsset, SendXch, SignCoinSpends, UpdateNftAction, ViewOffer,
+    OfferAmount, OfferAsset, ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction, ViewOffer,
 };
 use sage_api_macro::impl_endpoints;
 use sage_wallet::{SyncCommand, SyncEvent};
@@ -382,6 +382,52 @@ async fn test_send_xch_with_coin_ids() -> Result<()> {
     Ok(())
 }
 
+#[tokio::test]
+async fn test_resolve_handle_rejects_invalid_handles() -> Result<()> {
+    let mut app = TestApp::new().await?;
+    app.setup_bls(0).await?;
+
+    for handle in ["@Alice", "al", "alice.xch", "@@alice"] {
+        let error = app
+            .resolve_handle(ResolveHandle {
+                handle: handle.to_string(),
+            })
+            .await
+            .unwrap_err()
+            .to_string();
+
+        assert!(error.contains("status 400"), "{handle}: {error}");
+        assert!(error.contains("Invalid handle"), "{handle}: {error}");
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_resolve_handle_rejects_unsupported_networks() -> Result<()> {
+    let mut app = TestApp::new().await?;
+    app.setup_bls(0).await?;
+
+    // A network which doesn't inherit from a built-in network has no XCHandles deployment,
+    // and must not fall back to another network's.
+    for network in &mut app.sage.lock().await.network_list.networks {
+        network.inherit = None;
+    }
+
+    let error = app
+        .resolve_handle(ResolveHandle {
+            handle: "alice".to_string(),
+        })
+        .await
+        .unwrap_err()
+        .to_string();
+
+    assert!(error.contains("status 400"), "{error}");
+    assert!(error.contains("not supported on this network"), "{error}");
+
+    Ok(())
+}
+
 fn find_nft<'a>(assets: &'a [OfferAsset], nft_id: &str) -> &'a OfferAsset {
     assets
         .iter()
@@ -446,6 +492,7 @@ async fn mint_mutable_nft(app: &mut TestApp) -> Result<String> {
         coin_spends: serde_json::from_value(serde_json::to_value(&coin_spends)?)?,
         auto_submit: true,
         partial: false,
+        aggregated_signature: None,
     })
     .await?;
     app.wait_for_coins().await;

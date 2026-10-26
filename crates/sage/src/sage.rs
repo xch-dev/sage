@@ -47,6 +47,8 @@ pub struct Sage {
     pub command_sender: mpsc::Sender<SyncCommand>,
     pub unit: Unit,
     pub test: bool,
+    /// Shared between requests so that connections are reused.
+    pub http_client: reqwest::Client,
 }
 
 impl Sage {
@@ -62,6 +64,7 @@ impl Sage {
             command_sender: mpsc::channel(1).0,
             unit: XCH.clone(),
             test,
+            http_client: reqwest::Client::new(),
         }
     }
 
@@ -268,7 +271,7 @@ impl Sage {
 
     pub async fn switch_network(&mut self) -> Result<()> {
         self.command_sender
-            .send(SyncCommand::SwitchNetwork(self.network().clone()))
+            .send(SyncCommand::SwitchNetwork(Box::new(self.network().clone())))
             .await?;
 
         Ok(())

@@ -17,7 +17,7 @@ use sage_api::ErrorKind;
 use sage_assets::UriError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::{SyncCommand, WalletError};
+use sage_wallet::{SyncCommand, WalletError, XchandlesError};
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
 use tokio::{sync::mpsc::error::SendError, time::error::Elapsed};
@@ -46,6 +46,9 @@ pub enum Error {
 
     #[error("Driver error: {0}")]
     Driver(#[from] DriverError),
+
+    #[error("XCHandles error: {0}")]
+    Xchandles(#[from] XchandlesError),
 
     #[error("URI error: {0}")]
     Uri(#[from] UriError),
@@ -243,6 +246,13 @@ impl Error {
     pub fn kind(&self) -> ErrorKind {
         match self {
             Self::Wallet(..) | Self::NoSigningKey => ErrorKind::Wallet,
+            Self::Xchandles(error) => match error {
+                XchandlesError::Database(..) => ErrorKind::Internal,
+                error if error.is_not_registered() => ErrorKind::NotFound,
+                // Failures that may succeed if retried, rather than a problem with the request.
+                error if error.is_unavailable() => ErrorKind::Internal,
+                _ => ErrorKind::Api,
+            },
             Self::NotLoggedIn => ErrorKind::Unauthorized,
             Self::Keychain(error) => match error {
                 KeychainError::Decrypt => ErrorKind::Unauthorized,
@@ -318,5 +328,33 @@ impl Error {
             | Self::InvalidThemeJson
             | Self::MissingThemeData => ErrorKind::Api,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_xchandles_error_kinds() {
+        let kind = |error: XchandlesError| Error::from(error).kind();
+
+        assert!(matches!(kind(XchandlesError::NoPeers), ErrorKind::Internal));
+        assert!(matches!(kind(XchandlesError::Timeout), ErrorKind::Internal));
+        assert!(matches!(
+            kind(XchandlesError::InvalidLineage),
+            ErrorKind::Api
+        ));
+        assert!(matches!(
+            kind(XchandlesError::UnsupportedNetwork),
+            ErrorKind::Api
+        ));
+        assert!(matches!(
+            kind(XchandlesError::Expired {
+                expiration: 0,
+                timestamp: 0
+            }),
+            ErrorKind::NotFound
+        ));
     }
 }

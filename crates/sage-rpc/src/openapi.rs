@@ -67,6 +67,8 @@ pub fn generate_openapi() -> OpenApi {
         .schema_from::<sage_api::TransactionRecord>()
         .schema_from::<sage_api::PendingTransactionRecord>()
         .schema_from::<sage_api::DerivationRecord>()
+        .schema_from::<sage_api::HandleRecord>()
+        .schema_from::<sage_api::HandleStatus>()
         .schema_from::<sage_api::PeerRecord>()
         .schema_from::<sage_api::KeyInfo>()
         .schema_from::<sage_api::SecretKeyInfo>()
