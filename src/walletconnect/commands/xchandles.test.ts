@@ -26,6 +26,7 @@ const record: HandleRecord = {
   status: 'changed',
   previous_address: 'txch1old',
   last_sent_address: null,
+  changed_from: 'txch1old',
   cached: false,
   verification: 'verified',
   verification_reason: null,
@@ -35,6 +36,8 @@ const record: HandleRecord = {
   slot_coin_id: 'dd',
   slot_confirmation_height: 1,
   resolved_coin_id: 'ee',
+  resolved_confirmation_height: 1,
+  updated_height: 1,
   verified_height: 2,
   verified_timestamp: 3,
   last_verified_at: 4,
@@ -77,7 +80,7 @@ describe('XCHandles WalletConnect methods', () => {
     );
 
     expect(error).toBeInstanceOf(WalletConnectError);
-    expect(error.data).toBe('expired');
+    expect(error.code).toBe('expired');
     expect(error.message).toBe('Handle has expired');
   });
 
@@ -118,7 +121,7 @@ describe('XCHandles WalletConnect methods', () => {
       (error) => error,
     );
     expect(error).toBeInstanceOf(WalletConnectError);
-    expect(error.data).toBe('rate_limited');
+    expect(error.code).toBe('rate_limited');
     expect(mocks.commands.resolveHandle).toHaveBeenCalledTimes(RESOLVE_LIMIT);
 
     vi.setSystemTime(Date.now() + 61_000);

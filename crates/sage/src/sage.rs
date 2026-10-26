@@ -36,7 +36,7 @@ use tracing_subscriber::{
     EnvFilter, Layer, Registry, filter::filter_fn, fmt, layer::SubscriberExt,
 };
 
-use crate::{DataDirLock, Error, Result, peers::Peers};
+use crate::{DataDirLock, Error, PendingHandleSends, Result, peers::Peers};
 
 static LOGGING_SETUP: Once = Once::new();
 
@@ -54,6 +54,8 @@ pub struct Sage {
     pub test: bool,
     /// Shared between requests so that connections are reused.
     pub http_client: reqwest::Client,
+    /// The handle recipients of transactions which haven't been submitted yet.
+    pub pending_handle_sends: Arc<std::sync::Mutex<PendingHandleSends>>,
     /// Whether the config and keychain can be saved. This is only the case once initialization
     /// has started, and stops if it fails, since the state in memory may then be incomplete.
     writable: bool,
@@ -74,6 +76,7 @@ impl Sage {
             unit: XCH.clone(),
             test,
             http_client: reqwest::Client::new(),
+            pending_handle_sends: Arc::default(),
             writable: false,
             data_dir_lock: None,
         }
@@ -353,6 +356,11 @@ impl Sage {
 
     pub async fn switch_wallet(&mut self) -> Result<()> {
         self.switch_network().await?;
+
+        self.pending_handle_sends
+            .lock()
+            .expect("pending handle sends lock poisoned")
+            .clear();
 
         let Some(fingerprint) = self.config.global.fingerprint else {
             self.wallet = None;

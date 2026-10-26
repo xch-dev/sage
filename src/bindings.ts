@@ -657,7 +657,13 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Response for bulk NFT minting
  */
@@ -705,7 +711,13 @@ memos?: string[];
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Send XCH to multiple addresses
  */
@@ -729,7 +741,13 @@ memos?: string[];
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Cancel an offer on-chain
  */
@@ -901,7 +919,13 @@ actions: Action[];
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Delete a wallet database
  */
@@ -957,10 +981,18 @@ export type EmptyResponse = Record<string, never>
 export type EnvironmentThemeView = { name: string; displayName: string; mostLike?: string | null; inherits?: string | null; cssVars: Partial<{ [key in string]: string }> }
 export type Error = { kind: ErrorKind; reason: string; 
 /**
- * Why an XCHandles request failed, if it did
+ * Why an XCHandles request failed, if it did.
  */
-handle_error_code: HandleErrorCode | null }
-export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc" | "already_running"
+handle_error_code?: HandleErrorCode | null; 
+/**
+ * The recipients which couldn't be used, if that's why the request failed.
+ */
+recipients?: RecipientError[] | null }
+export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc" | 
+/**
+ * One or more recipients couldn't be used. See the attached recipient errors.
+ */
+"recipient" | "already_running"
 /**
  * Exercise options
  */
@@ -1913,6 +1945,22 @@ address: string }
 export type GetXchUsdPrice = Record<string, never>
 export type GetXchUsdPriceResponse = { usd: number }
 /**
+ * Confirms that a handle recipient was reviewed while it resolved to an address.
+ * 
+ * A transaction to a handle is rejected if the handle no longer resolves to the confirmed
+ * address. Confirming the address the handle resolves to now also acknowledges a change
+ * from the address it resolved to before, or from the address last sent to.
+ */
+export type HandleConfirmation = { 
+/**
+ * The handle, with or without a leading `@`
+ */
+handle: string; 
+/**
+ * The address the handle was reviewed as resolving to
+ */
+address: string }
+/**
  * Why an XCHandles request failed
  */
 export type HandleErrorCode = 
@@ -1983,6 +2031,12 @@ previous_address: string | null;
  */
 last_sent_address: string | null; 
 /**
+ * The address a send to this handle has to confirm the new address against, if any.
+ * This is the previous address while a change is unacknowledged, or otherwise the
+ * address last sent to if the handle now resolves somewhere else.
+ */
+changed_from: string | null; 
+/**
  * Whether the mapping was verified against the chain before this request, rather
  * than by it. Resolutions are only cached when the handle could not be verified right
  * now, while mappings listed from the store are always cached
@@ -2020,6 +2074,17 @@ slot_confirmation_height: number;
  * The resolved singleton coin the address was derived from
  */
 resolved_coin_id: string; 
+/**
+ * Height the resolved singleton coin was confirmed at
+ */
+resolved_confirmation_height: number; 
+/**
+ * The latest height at which the slot or the resolved singleton changed, so the
+ * latest height at which the address this handle resolves to could have changed. The
+ * slot is also recreated by activity on neighboring handles, so this can be later
+ * than the last time the handle itself was updated.
+ */
+updated_height: number; 
 /**
  * Height of the peak transaction block the mapping was verified at
  */
@@ -2064,10 +2129,6 @@ parent_parent_id: string;
  * Inner puzzle hash of the registry coin which created the slot
  */
 parent_inner_puzzle_hash: string; 
-/**
- * Height the resolved singleton coin was confirmed at
- */
-resolved_confirmation_height: number; 
 /**
  * The API's indexed peak height when the handle was last fetched
  */
@@ -2337,7 +2398,13 @@ auto_import?: boolean;
 /**
  * Optional specific coin IDs to use for the offer instead of auto-selecting
  */
-coin_ids?: string[] | null }
+coin_ids?: string[] | null; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Response with created offer
  */
@@ -2577,6 +2644,45 @@ nft_metadata_updater_kind: NftUpdaterKind | null }
  * Which side of an offer a search matches
  */
 export type OfferFindSide = "any" | "offered" | "requested"
+/**
+ * An NFT offered in an offer whose metadata names an XCHandles handle
+ */
+export type OfferHandleNft = { 
+/**
+ * The offered NFT
+ */
+nft_id: string; 
+/**
+ * The handle named by the NFT's metadata, without the leading `@`. The owner can set
+ * this to anything, so it only says which handle to check.
+ */
+handle: string; status: OfferHandleStatus; 
+/**
+ * Why the handle couldn't be checked, or what is pending
+ */
+reason: string | null }
+/**
+ * What the registry says about a handle NFT in an offer
+ */
+export type OfferHandleStatus = 
+/**
+ * The registry confirms the handle belongs to the NFT, and no update is pending
+ */
+"verified" | 
+/**
+ * An update to the handle's owner or resolved singleton is pending, so the seller
+ * could take the handle back after the trade. The offer can't be taken.
+ */
+"pending_transfer" | 
+/**
+ * The registry doesn't associate the handle with this NFT, or the handle isn't
+ * registered, so the NFT isn't the handle it claims to be
+ */
+"not_associated" | 
+/**
+ * The handle couldn't be checked right now. The offer can't be taken until it is.
+ */
+"unavailable"
 export type OfferRecord = { offer_id: string; offer: string; status: OfferRecordStatus; creation_timestamp: number; summary: OfferSummary }
 export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled" | "expired"
 /**
@@ -2705,6 +2811,56 @@ pages_vacuumed: number;
  * Number of WAL pages checkpointed
  */
 wal_pages_checkpointed: number }
+/**
+ * A recipient which couldn't be used, so the transaction wasn't created
+ */
+export type RecipientError = { 
+/**
+ * The recipient as it was given
+ */
+recipient: string; kind: RecipientErrorKind; reason: string; 
+/**
+ * The handle, without the leading `@`, if the recipient is a handle
+ */
+handle: string | null; 
+/**
+ * The verified address the handle resolves to now
+ */
+address: string | null; 
+/**
+ * The address the handle resolved to before it changed. Confirm `address` with a
+ * [`HandleConfirmation`] to use the new address.
+ */
+previous_address: string | null }
+/**
+ * Why a recipient couldn't be used
+ */
+export type RecipientErrorKind = 
+/**
+ * The recipient isn't a valid address or handle for this network
+ */
+"invalid" | 
+/**
+ * XCHandles isn't supported on this network
+ */
+"unsupported_network" | 
+/**
+ * The handle isn't registered, or has expired
+ */
+"not_registered" | 
+/**
+ * The handle's registration couldn't be verified against the chain
+ */
+"unverified" | 
+/**
+ * The handle couldn't be verified right now, and there is no recent verified mapping
+ */
+"unavailable" | 
+/**
+ * The handle resolves to a different address than the one last sent to or confirmed,
+ * and the new address must be confirmed before it can be used
+ */
+"changed"
 /**
  * Re-download an `NFT`'s data and metadata from its URIs
  */
@@ -2929,7 +3085,13 @@ auto_submit?: boolean;
 /**
  * Optional coin IDs to spend first: coins of this CAT for the amount, XCH coins for the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
  */
-coin_ids?: string[] | null }
+coin_ids?: string[] | null; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Send a transaction immediately
  */
@@ -2981,7 +3143,13 @@ auto_submit?: boolean;
 /**
  * Optional XCH coin IDs to spend first, for the amount and the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
  */
-coin_ids?: string[] | null }
+coin_ids?: string[] | null; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Set the change address for transactions
  */
@@ -3279,7 +3447,12 @@ summary: TransactionSummary;
  * Coin spends in the transaction
  */
 coin_spends: CoinSpendJson[] }
-export type TransactionSummary = { fee: Amount; inputs: TransactionInput[] }
+export type TransactionSummary = { fee: Amount; inputs: TransactionInput[]; 
+/**
+ * The handle recipients of the transaction, and the verified addresses they were
+ * resolved to
+ */
+handles?: HandleRecord[] }
 /**
  * Transfer DIDs to a new address
  */
@@ -3303,7 +3476,13 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Transfer NFTs to a new owner
  */
@@ -3327,7 +3506,13 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Transfer options to another address
  */
@@ -3351,7 +3536,13 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 export type Unit = { ticker: string; precision: number }
 /**
  * Update a `CAT` token's metadata and visibility
@@ -3487,7 +3678,13 @@ offer: OfferSummary;
 /**
  * Offer status
  */
-status: OfferRecordStatus }
+status: OfferRecordStatus; 
+/**
+ * Offered NFTs which claim to be XCHandles handles, checked against the registry.
+ * An offer with a pending handle transfer, or a handle which couldn't be checked,
+ * can't be taken.
+ */
+handle_nfts?: OfferHandleNft[] }
 export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
 export type WindowTargetParams = { windowLabel: string }

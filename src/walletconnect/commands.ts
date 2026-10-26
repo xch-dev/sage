@@ -68,6 +68,7 @@ const handleRecord = z.object({
   status: z.enum(['verified', 'changed']),
   previousAddress: z.string().nullable(),
   lastSentAddress: z.string().nullable(),
+  changedFrom: z.string().nullable(),
   cached: z.boolean(),
   verification: z.enum([
     'verified',
@@ -83,6 +84,8 @@ const handleRecord = z.object({
   slotCoinId: z.string(),
   slotConfirmationHeight: z.number(),
   resolvedCoinId: z.string(),
+  resolvedConfirmationHeight: z.number(),
+  updatedHeight: z.number(),
   verifiedHeight: z.number(),
   verifiedTimestamp: z.number(),
   lastVerifiedAt: z.number(),
@@ -96,7 +99,6 @@ const handleSlot = z.object({
   parentId: z.string(),
   parentParentId: z.string(),
   parentInnerPuzzleHash: z.string(),
-  resolvedConfirmationHeight: z.number(),
   indexedHeight: z.number(),
 });
 
@@ -296,8 +298,9 @@ export const walletConnectCommands = {
   // XCHandles reads. Every handle is verified against the blockchain, and the
   // result carries its verification state and any change warning, so that a site
   // never has to trust a bare address. XCHandles failures set the JSON-RPC
-  // error's data to a HandleErrorCode, such as 'expired' or 'unavailable', or to
-  // 'rate_limited' when sites resolve too many handles in a short time.
+  // error's data to JSON with a `code`, which is a HandleErrorCode such as
+  // 'expired' or 'unavailable', or 'rate_limited' when sites resolve too many
+  // handles in a short time.
   //
   // There's no reverse lookup for sites: which handles this wallet has looked up
   // for other addresses is private.

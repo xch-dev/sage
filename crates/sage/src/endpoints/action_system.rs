@@ -24,10 +24,23 @@ impl Sage {
         let mut actions = vec![];
         let mut info = ConfirmationInfo::default();
 
+        let addresses = req
+            .actions
+            .iter()
+            .filter_map(|action| match action {
+                sage_api::Action::Send(action) => Some(action.address.as_str()),
+                sage_api::Action::MintNft(action) => action.royalty_address.as_deref(),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let recipients = self
+            .resolve_recipient_map(&addresses, &req.confirmed_handles, &mut info)
+            .await?;
+
         for action in req.actions {
             match action {
                 sage_api::Action::Send(action) => {
-                    let receiver_puzzle_hash = self.parse_address(action.address)?;
+                    let receiver_puzzle_hash = recipients.get(&action.address)?;
                     let amount = parse_amount(action.amount)?;
                     let id = parse_id(action.id)?;
                     let hinted = id != Id::Xch;
@@ -86,6 +99,7 @@ impl Sage {
                                 royalty_address: action.royalty_address,
                                 royalty_ten_thousandths: action.royalty_ten_thousandths,
                             },
+                            &recipients,
                             &mut info,
                         )
                         .await?;

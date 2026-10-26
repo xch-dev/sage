@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Amount, NftUriKind, TransactionResponse};
+use crate::{Amount, HandleConfirmation, NftUriKind, TransactionResponse};
 
 #[cfg_attr(
     feature = "openapi",
@@ -23,6 +23,11 @@ pub struct CreateTransaction {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

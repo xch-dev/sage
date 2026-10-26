@@ -234,6 +234,7 @@ pub async fn download_cni_offercode(code: String) -> Result<String> {
                 response.status()
             ),
             handle_error_code: None,
+            recipients: None,
         });
     }
 

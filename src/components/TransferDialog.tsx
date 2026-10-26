@@ -1,5 +1,7 @@
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { xchandlesEnabled } from '@/lib/features';
 import { amount } from '@/lib/formTypes';
+import { isHandleInput, isValidHandle } from '@/lib/handles';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -8,6 +10,7 @@ import BigNumber from 'bignumber.js';
 import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { HandleResolution } from './HandleResolution';
 import { PasteInput } from './PasteInput';
 import { WalletAddressPicker } from './WalletAddressPicker';
 import { Button } from './ui/button';
@@ -46,7 +49,13 @@ export function TransferDialog({
   const walletState = useWalletState();
 
   const schema = z.object({
-    address: z.string().min(1, t`Address is required`),
+    address: z
+      .string()
+      .min(1, t`Address is required`)
+      .refine(
+        (address) => !isHandleInput(address) || isValidHandle(address),
+        t`Invalid handle`,
+      ),
     fee: amount(walletState.sync.unit.precision).refine(
       (amount) =>
         BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
@@ -68,7 +77,7 @@ export function TransferDialog({
   );
 
   const handler = (values: z.infer<typeof schema>) => {
-    onSubmit(values.address, values.fee);
+    onSubmit(values.address.trim(), values.fee);
   };
 
   return (
@@ -96,11 +105,16 @@ export function TransferDialog({
                   <FormControl>
                     <PasteInput
                       {...field}
-                      placeholder={t`Enter address`}
+                      placeholder={
+                        xchandlesEnabled
+                          ? t`Enter address or @handle`
+                          : t`Enter address`
+                      }
                       onEndIconClick={handleScanOrPaste}
                       onScanImage={handleScanImage}
                     />
                   </FormControl>
+                  <HandleResolution value={field.value} />
                   <FormMessage />
                 </FormItem>
               )}

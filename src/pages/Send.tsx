@@ -1,4 +1,8 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import {
+  HandleResolution,
+  HandleResolutionList,
+} from '@/components/HandleResolution';
 import { WalletAddressPicker } from '@/components/WalletAddressPicker';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import Container from '@/components/Container';
@@ -26,7 +30,9 @@ import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { expirationError, futureExpirationTimestamp } from '@/lib/expiration';
+import { xchandlesEnabled } from '@/lib/features';
 import { amount, positiveAmount } from '@/lib/formTypes';
+import { validateRecipient, withHandleConfirmation } from '@/lib/handles';
 import {
   fromHexStrict,
   fromMojos,
@@ -122,10 +128,16 @@ export default function Send() {
           (address) =>
             Promise.all(
               addressList(address).map((address) =>
-                commands.validateAddress(address).catch(addError),
+                validateRecipient(address).catch(addError),
               ),
             ).then((values) => values.every(Boolean)),
-          bulk ? t`Invalid addresses` : t`Invalid address`,
+          xchandlesEnabled
+            ? bulk
+              ? t`Invalid addresses or handles`
+              : t`Invalid address or handle`
+            : bulk
+              ? t`Invalid addresses`
+              : t`Invalid address`,
         ),
       amount: positiveAmount(asset?.precision || 12).refine(
         (amount) =>
@@ -216,6 +228,7 @@ export default function Send() {
     }
 
     let result: Promise<TransactionResponse>;
+    const address = values.address.trim();
 
     const amount = toMojos(values.amount.toString(), asset?.precision || 12);
     const fee = toMojos(
@@ -225,39 +238,51 @@ export default function Send() {
 
     if (!assetId) {
       if (bulk) {
-        result = commands.bulkSendXch({
-          addresses: [...new Set(addressList(values.address))],
-          amount,
-          fee,
-          memos,
-        });
+        result = withHandleConfirmation((confirmed_handles) =>
+          commands.bulkSendXch({
+            addresses: [...new Set(addressList(values.address))],
+            amount,
+            fee,
+            memos,
+            confirmed_handles,
+          }),
+        );
       } else {
-        result = commands.sendXch({
-          address: values.address,
-          amount,
-          fee,
-          memos,
-          clawback,
-        });
+        result = withHandleConfirmation((confirmed_handles) =>
+          commands.sendXch({
+            address,
+            amount,
+            fee,
+            memos,
+            clawback,
+            confirmed_handles,
+          }),
+        );
       }
     } else {
       if (bulk) {
-        result = commands.bulkSendCat({
-          asset_id: assetId ?? '',
-          addresses: [...new Set(addressList(values.address))],
-          amount,
-          fee,
-          memos,
-        });
+        result = withHandleConfirmation((confirmed_handles) =>
+          commands.bulkSendCat({
+            asset_id: assetId ?? '',
+            addresses: [...new Set(addressList(values.address))],
+            amount,
+            fee,
+            memos,
+            confirmed_handles,
+          }),
+        );
       } else {
-        result = commands.sendCat({
-          asset_id: assetId ?? '',
-          address: values.address,
-          amount,
-          fee,
-          memos,
-          clawback,
-        });
+        result = withHandleConfirmation((confirmed_handles) =>
+          commands.sendCat({
+            asset_id: assetId ?? '',
+            address,
+            amount,
+            fee,
+            memos,
+            clawback,
+            confirmed_handles,
+          }),
+        );
       }
     }
 
@@ -319,7 +344,11 @@ export default function Send() {
                         autoCorrect='off'
                         autoCapitalize='off'
                         autoComplete='off'
-                        placeholder={t`Enter multiple distinct addresses`}
+                        placeholder={
+                          xchandlesEnabled
+                            ? t`Enter multiple distinct addresses or handles`
+                            : t`Enter multiple distinct addresses`
+                        }
                         {...field}
                       />
                     ) : (
@@ -327,13 +356,24 @@ export default function Send() {
                         autoCorrect='off'
                         autoCapitalize='off'
                         autoComplete='off'
-                        placeholder={t`Enter address`}
+                        placeholder={
+                          xchandlesEnabled
+                            ? t`Enter address or @handle`
+                            : t`Enter address`
+                        }
                         onEndIconClick={handleScanOrPaste}
                         onScanImage={handleScanImage}
                         {...field}
                       />
                     )}
                   </FormControl>
+                  {bulk ? (
+                    <HandleResolutionList
+                      values={addressList(field.value ?? '')}
+                    />
+                  ) : (
+                    <HandleResolution value={field.value ?? ''} />
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

@@ -8,11 +8,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { createContext, ReactNode, useCallback, useState } from 'react';
-import { ErrorKind } from '../bindings';
+import { ErrorKind, RecipientError } from '../bindings';
 
 export interface CustomError {
-  kind: ErrorKind | 'walletconnect' | 'upload' | 'invalid' | 'dexie';
+  kind:
+    | ErrorKind
+    | 'walletconnect'
+    | 'upload'
+    | 'invalid'
+    | 'dexie'
+    | 'cancelled';
   reason: string;
+  recipients?: RecipientError[] | null;
 }
 
 export interface ErrorContextType {
@@ -31,6 +38,10 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
     // Skip unauthorized errors - they're expected during wallet transitions
     // and redundant when not logged in (user already knows they need to log in)
     if (error.kind === 'unauthorized') {
+      return;
+    }
+    // The user chose not to continue, so there's nothing to report.
+    if (error.kind === 'cancelled') {
       return;
     }
     setErrors((prevErrors) => [...prevErrors, error]);
@@ -99,6 +110,10 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       kind = 'Dexie';
       break;
 
+    case 'recipient':
+      kind = 'Recipient';
+      break;
+
     case 'already_running':
       kind = 'Already Running';
       break;
@@ -113,9 +128,26 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
         <DialogHeader>
           <DialogTitle>{kind ? `${kind} ` : ''}Error</DialogTitle>
           <DialogDescription className='break-words hyphens-auto'>
-            {error?.reason}
+            {error?.recipients?.length ? null : error?.reason}
           </DialogDescription>
         </DialogHeader>
+        {error?.recipients?.length ? (
+          <div className='space-y-2 max-h-[50vh] overflow-auto text-sm'>
+            {error.recipients.map((recipient) => (
+              <div
+                key={recipient.recipient}
+                className='rounded-md border p-2 space-y-1'
+              >
+                <div className='font-medium break-all'>
+                  {recipient.recipient}
+                </div>
+                <div className='text-muted-foreground break-words'>
+                  {recipient.reason}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
         <DialogFooter>
           <Button onClick={() => setError(null)} autoFocus>
             Ok
