@@ -11,11 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { useErrors } from '@/hooks/useErrors';
+import { useNowSeconds } from '@/hooks/useNowSeconds';
 import {
   Expiration,
-  expirationTimestamp,
+  expirationError,
   futureExpirationTimestamp,
-  nowSeconds,
 } from '@/lib/expiration';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -31,6 +31,7 @@ export function MintOption() {
   const navigate = useNavigate();
 
   const { addError } = useErrors();
+  const now = useNowSeconds();
 
   const [fee, setFee] = useState('');
   const [expiration, setExpiration] = useState<Expiration>({
@@ -277,7 +278,7 @@ export function MintOption() {
               underlyingAssetId === undefined ||
               !strikeAmount ||
               !underlyingAmount ||
-              expirationTimestamp(expiration) <= nowSeconds()
+              expirationError(expiration, now) !== undefined
             }
             onClick={mint}
           >

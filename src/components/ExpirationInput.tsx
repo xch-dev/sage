@@ -8,11 +8,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNowSeconds } from '@/hooks/useNowSeconds';
 import {
   durationUntil,
   Expiration,
+  expirationError,
   expirationTimestamp,
-  nowSeconds,
 } from '@/lib/expiration';
 import { formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
@@ -45,13 +46,22 @@ export function ExpirationInput({
   // read over the form. Give it a solid base and layer the theme's popover
   // color on top so themed tints still apply.
   const popoverStyle = {
-    backgroundColor: currentTheme?.inherits === 'dark' ? '#0a0a0a' : '#ffffff',
+    backgroundColor:
+      (currentTheme?.inherits ?? currentTheme?.mostLike) === 'dark'
+        ? '#0a0a0a'
+        : '#ffffff',
     backgroundImage: 'linear-gradient(var(--popover), var(--popover))',
   };
-  const now = nowSeconds();
+  const now = useNowSeconds();
   const expiresAtSeconds = expirationTimestamp(value, now);
-  const expiresAt = new Date(expiresAtSeconds * 1000);
-  const expiresAtLabel = formatTimestamp(expiresAtSeconds, 'medium', 'short');
+  const problem = expirationError(value, now);
+  // A huge duration can't be represented as a date, so only format it once it
+  // is known to be in range.
+  const tooFar = problem !== undefined && expiresAtSeconds > now;
+  const expiresAt = new Date(tooFar ? now * 1000 : expiresAtSeconds * 1000);
+  const expiresAtLabel = tooFar
+    ? ''
+    : formatTimestamp(expiresAtSeconds, 'medium', 'short');
 
   // A picked timestamp means the user chose an absolute date and time;
   // otherwise the expiration is a duration counted from now.
@@ -60,20 +70,18 @@ export function ExpirationInput({
   const { days, hours, minutes } = remaining;
 
   // An empty duration is obviously incomplete, but a picked time that has
-  // already passed needs explaining.
-  const message =
-    error ??
-    (mode === 'date' && expiresAtSeconds <= now
-      ? t`Expiration must be in the future`
-      : undefined);
+  // already passed, or anything too far out, needs explaining.
+  const message = error ?? (mode === 'date' || tooFar ? problem : undefined);
 
   const setMode = (newMode: string) => {
     if (newMode === mode) return;
 
     if (newMode === 'date') {
-      // Start from the current expiration, rounded up to the minute.
-      const timestamp = Math.ceil(expiresAtSeconds / 60) * 60;
-      onChange({ ...value, ...durationUntil(timestamp, now), timestamp });
+      // Start from the current expiration, rounded up to the minute, or a day
+      // from now if the duration is empty or unusable.
+      const start =
+        problem === undefined ? expiresAtSeconds : now + 24 * 60 * 60;
+      onChange({ ...value, timestamp: Math.ceil(start / 60) * 60 });
     } else {
       onChange({ ...value, ...remaining, timestamp: undefined });
     }
@@ -87,8 +95,7 @@ export function ExpirationInput({
   };
 
   const setDate = (date: Date) => {
-    const timestamp = Math.floor(date.getTime() / 1000);
-    onChange({ ...value, ...durationUntil(timestamp), timestamp });
+    onChange({ ...value, timestamp: Math.floor(date.getTime() / 1000) });
   };
 
   const today = new Date();
@@ -135,9 +142,11 @@ export function ExpirationInput({
             {durationField('hours', <Trans>Hours</Trans>)}
             {durationField('minutes', <Trans>Minutes</Trans>)}
           </div>
-          <span className='text-muted-foreground text-sm'>
-            {formatLabel(expiresAtLabel)}
-          </span>
+          {!tooFar && (
+            <span className='text-muted-foreground text-sm'>
+              {formatLabel(expiresAtLabel)}
+            </span>
+          )}
         </>
       ) : (
         <>

@@ -25,11 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
-import {
-  expirationTimestamp,
-  futureExpirationTimestamp,
-  nowSeconds,
-} from '@/lib/expiration';
+import { expirationError, futureExpirationTimestamp } from '@/lib/expiration';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import {
   fromHexStrict,
@@ -151,6 +147,15 @@ export default function Send() {
           minutes: z.string(),
           timestamp: z.number().optional(),
         })
+        // Checked on the field rather than the whole form so the error updates
+        // even while other fields are invalid. The value is cleared when
+        // clawback is disabled, so it is only checked while enabled.
+        .superRefine((value, ctx) => {
+          const error = expirationError(value);
+          if (error !== undefined) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: error });
+          }
+        })
         .optional(),
     })
     .superRefine((values, ctx) => {
@@ -163,18 +168,6 @@ export default function Send() {
           code: z.ZodIssueCode.custom,
           path: ['memo'],
           message: t`Memo must be valid hex bytes (even length, 0-9, a-f)`,
-        });
-      }
-
-      if (
-        values.clawbackEnabled &&
-        values.clawback &&
-        expirationTimestamp(values.clawback) <= nowSeconds()
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['clawback'],
-          message: t`Clawback must end in the future`,
         });
       }
     });
@@ -469,6 +462,7 @@ export default function Send() {
                         checked={form.watch('clawbackEnabled')}
                         onCheckedChange={(checked) => {
                           form.setValue('clawbackEnabled', checked);
+                          form.clearErrors('clawback');
                           if (checked) {
                             form.setValue('clawback', {
                               days: clawback?.days?.toString() ?? '0',

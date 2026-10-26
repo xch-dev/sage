@@ -44,6 +44,38 @@ export function durationUntil(
   };
 }
 
+// Far enough out for any real offer, option or clawback, while keeping the
+// timestamp well within the range a Date can represent and format.
+export const MAX_EXPIRATION_SECONDS = 100 * 365 * 24 * 60 * 60;
+
+// Why an expiration can't be used, or undefined if it is valid.
+export function expirationError(
+  expiration: Expiration,
+  now = nowSeconds(),
+): string | undefined {
+  if (
+    expiration.timestamp === undefined &&
+    [expiration.days, expiration.hours, expiration.minutes].some(
+      (value) => (parseInt(value) || 0) < 0,
+    )
+  ) {
+    return t`Expiration duration cannot be negative`;
+  }
+
+  const timestamp = expirationTimestamp(expiration, now);
+  if (
+    !Number.isSafeInteger(timestamp) ||
+    timestamp - now > MAX_EXPIRATION_SECONDS
+  ) {
+    return t`Expiration is too far in the future`;
+  }
+  if (timestamp <= now) {
+    return t`Expiration must be in the future`;
+  }
+
+  return undefined;
+}
+
 // The expiration to send when creating an offer, option or clawback. Unlike
 // expirationTimestamp, which also drives display, this throws if the
 // expiration is malformed or not in the future, as a backstop for callers.
@@ -51,19 +83,7 @@ export function futureExpirationTimestamp(
   expiration: Expiration,
   now = nowSeconds(),
 ): number {
-  if (
-    expiration.timestamp === undefined &&
-    [expiration.days, expiration.hours, expiration.minutes].some(
-      (value) => (parseInt(value) || 0) < 0,
-    )
-  ) {
-    throw new Error(t`Expiration duration cannot be negative`);
-  }
-
-  const timestamp = expirationTimestamp(expiration, now);
-  if (!Number.isSafeInteger(timestamp) || timestamp <= now) {
-    throw new Error(t`Expiration must be in the future`);
-  }
-
-  return timestamp;
+  const error = expirationError(expiration, now);
+  if (error !== undefined) throw new Error(error);
+  return expirationTimestamp(expiration, now);
 }

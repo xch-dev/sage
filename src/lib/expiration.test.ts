@@ -1,12 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { i18n } from '@lingui/core';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   durationUntil,
   expirationDurationSeconds,
   expirationTimestamp,
   futureExpirationTimestamp,
+  MAX_EXPIRATION_SECONDS,
 } from './expiration';
 
 const now = 1_800_000_000;
+
+beforeAll(() => {
+  i18n.loadAndActivate({ locale: 'en', messages: {} });
+});
 
 describe('expirationTimestamp', () => {
   it('counts a duration from now', () => {
@@ -89,5 +95,25 @@ describe('futureExpirationTimestamp', () => {
         now,
       ),
     ).toThrow();
+  });
+
+  it('throws for a duration that is too far in the future', () => {
+    expect(() =>
+      futureExpirationTimestamp(
+        { days: '999999999999', hours: '0', minutes: '0' },
+        now,
+      ),
+    ).toThrow('too far');
+    expect(() =>
+      futureExpirationTimestamp(
+        {
+          days: '0',
+          hours: '0',
+          minutes: '0',
+          timestamp: now + MAX_EXPIRATION_SECONDS + 1,
+        },
+        now,
+      ),
+    ).toThrow('too far');
   });
 });

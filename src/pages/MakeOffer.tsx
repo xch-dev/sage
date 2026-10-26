@@ -12,12 +12,9 @@ import { FeeAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
+import { useNowSeconds } from '@/hooks/useNowSeconds';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
-import {
-  expirationTimestamp,
-  futureExpirationTimestamp,
-  nowSeconds,
-} from '@/lib/expiration';
+import { expirationError, futureExpirationTimestamp } from '@/lib/expiration';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -32,6 +29,7 @@ export function MakeOffer() {
   const walletState = useWalletState();
   const navigate = useNavigate();
   const { addError } = useErrors();
+  const now = useNowSeconds();
   const [splitNftOffers, setSplitNftOffers] = useState(
     location.state?.splitNftOffers || false,
   );
@@ -116,7 +114,7 @@ export function MakeOffer() {
 
   const invalid =
     state.expiration !== null &&
-    expirationTimestamp(state.expiration) <= nowSeconds();
+    expirationError(state.expiration, now) !== undefined;
 
   return (
     <>
