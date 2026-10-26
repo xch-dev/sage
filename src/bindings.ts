@@ -335,6 +335,12 @@ async signMessageByAddress(req: SignMessageByAddress) : Promise<SignMessageByAdd
 async sendTransactionImmediately(req: SendTransactionImmediately) : Promise<SendTransactionImmediatelyResponse> {
     return await TAURI_INVOKE("send_transaction_immediately", { req });
 },
+async getSelectedTheme(req: GetSelectedTheme) : Promise<GetSelectedThemeResponse> {
+    return await TAURI_INVOKE("get_selected_theme", { req });
+},
+async setSelectedTheme(req: SetSelectedTheme) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_selected_theme", { req });
+},
 async isRpcRunning() : Promise<boolean> {
     return await TAURI_INVOKE("is_rpc_running");
 },
@@ -1550,6 +1556,18 @@ export type GetSecretKeyResponse = {
  */
 secrets: SecretKeyInfo | null }
 /**
+ * Get the UI theme the user last selected
+ */
+export type GetSelectedTheme = Record<string, never>
+/**
+ * Response with the selected UI theme
+ */
+export type GetSelectedThemeResponse = { 
+/**
+ * Theme name, if one has been selected
+ */
+theme: string | null }
+/**
  * Get the count of spendable coins
  */
 export type GetSpendableCoinCount = { 
@@ -2544,6 +2562,14 @@ fingerprint: number;
  */
 name: string | null }
 /**
+ * Remember the UI theme the user selected
+ */
+export type SetSelectedTheme = { 
+/**
+ * Theme name (null to clear)
+ */
+theme: string | null }
+/**
  * Set target number of peers to maintain
  */
 export type SetTargetPeers = { 
@@ -2582,7 +2608,12 @@ auto_submit?: boolean;
 /**
  * Whether to partially sign (for multi-signature)
  */
-partial?: boolean }
+partial?: boolean; 
+/**
+ * Existing aggregated signature to add this wallet's signatures to.
+ * It's returned unchanged if it already includes them.
+ */
+aggregated_signature?: string | null }
 /**
  * Response with signed spend bundle
  */

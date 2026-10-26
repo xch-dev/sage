@@ -25,6 +25,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "create": false,
         "title": "Sage",
         "width": 1150,
         "height": 750,

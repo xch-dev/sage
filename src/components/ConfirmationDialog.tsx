@@ -11,6 +11,7 @@ import { LoadingButton } from '@/components/ui/loading-button';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { useWallet } from '@/contexts/WalletContext';
+import { IDENTITY_SIGNATURE, stringifySpendBundle } from '@/lib/spendBundle';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -101,20 +102,17 @@ export default function ConfirmationDialog({
   const fee = BigNumber(response?.summary.fee || 0);
   const isHighFee = fee.isGreaterThan(1000_000_000); // Adjust threshold as needed
 
-  const json = JSON.stringify(
+  const json =
     response === null
-      ? null
-      : 'coin_spends' in response
-        ? {
-            coin_spends: response.coin_spends,
-            aggregated_signature:
-              signature ||
-              '0xc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-          }
-        : response.spend_bundle,
-    null,
-    2,
-  ).replace(/"amount": "(.*?)"/g, '"amount": $1');
+      ? 'null'
+      : stringifySpendBundle(
+          'coin_spends' in response
+            ? {
+                coin_spends: response.coin_spends,
+                aggregated_signature: signature || IDENTITY_SIGNATURE,
+              }
+            : response.spend_bundle,
+        );
 
   const copyJson = () => {
     writeText(json);

@@ -3,6 +3,10 @@ import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useWallet } from '@/contexts/WalletContext';
+import {
+  COIN_PAGE_SIZE_OPTIONS,
+  useCoinPageSize,
+} from '@/hooks/useCoinPageSize';
 import { useErrors } from '@/hooks/useErrors';
 import { useNetwork } from '@/hooks/useNetwork';
 import { toMojos } from '@/lib/utils';
@@ -14,6 +18,7 @@ import { CheckIcon, HandCoins, UndoIcon, XIcon } from 'lucide-react';
 import {
   Dispatch,
   SetStateAction,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -106,7 +111,15 @@ export function ClawbackCoinsCard({
   const [canClaim, setCanClaim] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
 
-  const pageSize = 10;
+  const { pageSize, setPageSize } = useCoinPageSize();
+
+  const handlePageSizeChange = useCallback(
+    (size: number) => {
+      setPageSize(size);
+      setCurrentPage(0);
+    },
+    [setPageSize],
+  );
 
   // Use ref to track current page to avoid dependency issues
   const currentPageRef = useRef(currentPage);
@@ -329,6 +342,9 @@ export function ClawbackCoinsCard({
           totalPages={pageCount}
           setCurrentPage={setCurrentPage}
           maxRows={totalCoins}
+          pageSize={pageSize}
+          onPageSizeChange={handlePageSizeChange}
+          pageSizeOptions={COIN_PAGE_SIZE_OPTIONS}
           sortMode={sortMode}
           sortDirection={sortDirection}
           includeSpentCoins={includeSpentCoins}

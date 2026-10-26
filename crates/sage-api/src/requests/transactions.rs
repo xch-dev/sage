@@ -776,6 +776,11 @@ pub struct SignCoinSpends {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub partial: bool,
+    /// Existing aggregated signature to add this wallet's signatures to.
+    /// It's returned unchanged if it already includes them.
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub aggregated_signature: Option<String>,
 }
 
 /// Response with signed spend bundle

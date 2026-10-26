@@ -9,6 +9,7 @@ import {
   ArrowDownAz,
   ArrowUpAz,
   Download,
+  FileInput,
   List,
   ListFilter,
   SearchIcon,
@@ -37,6 +38,7 @@ interface TransactionOptionsProps {
   className?: string;
   renderPagination: () => React.ReactNode;
   onExport?: () => void;
+  onImportSpendBundle?: () => void;
 }
 
 export function TransactionOptions({
@@ -45,6 +47,7 @@ export function TransactionOptions({
   className,
   renderPagination,
   onExport,
+  onImportSpendBundle,
 }: TransactionOptionsProps) {
   const { search, ascending, summarized } = params;
   const [searchValue, setSearchValue] = useState(search);
@@ -151,6 +154,18 @@ export function TransactionOptions({
                 )}
                 {summarized ? t`Detailed View` : t`Summarized View`}
               </DropdownMenuItem>
+              {onImportSpendBundle && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={onImportSpendBundle}
+                  >
+                    <FileInput className='mr-2 h-4 w-4' aria-hidden='true' />
+                    {t`Import Spend Bundle`}
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

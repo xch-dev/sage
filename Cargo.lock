@@ -6852,6 +6852,7 @@ dependencies = [
  "image",
  "mime-sniffer",
  "num-bigint",
+ "percent-encoding",
  "reqwest 0.12.24",
  "serde",
  "serde_json",
@@ -6867,12 +6868,13 @@ version = "0.13.1"
 dependencies = [
  "anyhow",
  "clap",
- "dirs 5.0.1",
+ "hex",
  "rustls",
  "sage",
  "sage-api",
  "sage-api-macro",
  "sage-client",
+ "sage-config",
  "sage-rpc",
  "serde",
  "serde_json",
@@ -6883,7 +6885,6 @@ dependencies = [
 name = "sage-client"
 version = "0.13.1"
 dependencies = [
- "dirs 5.0.1",
  "reqwest 0.12.24",
  "sage-api",
  "sage-api-macro",
@@ -6899,6 +6900,7 @@ name = "sage-config"
 version = "0.13.1"
 dependencies = [
  "chia-wallet-sdk",
+ "dirs 5.0.1",
  "expect-test",
  "hex",
  "indexmap 2.12.1",
@@ -6913,10 +6915,12 @@ dependencies = [
 name = "sage-database"
 version = "0.13.1"
 dependencies = [
+ "anyhow",
  "chia-wallet-sdk",
  "hex",
  "sqlx",
  "thiserror 1.0.69",
+ "tokio",
  "tracing",
 ]
 
@@ -7003,6 +7007,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]

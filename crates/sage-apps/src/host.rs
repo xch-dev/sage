@@ -1,6 +1,9 @@
-use std::collections::{HashMap, HashSet};
-use std::fmt;
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+    path::PathBuf,
+    sync::Arc,
+};
 
 use parking_lot::RwLock;
 use sage::Sage;
@@ -15,6 +18,18 @@ pub type AppState = Arc<Mutex<Sage>>;
 
 #[derive(Debug)]
 pub struct AppsHostState {
+    /// The Sage root, which holds the apps database and installed app files.
+    pub(crate) root: PathBuf,
+    /// The webview data directory of the main window. On Windows, app profiles are created inside
+    /// it, and on Linux, app webviews share it. It's kept out of the Sage root by default, because
+    /// on Windows that is in roaming app data, where webview data shouldn't be stored.
+    pub webview_root: PathBuf,
+    /// Distinguishes the deterministic data stores of builtin apps on macOS between Sage roots.
+    /// It's `None` for the default root.
+    pub(crate) builtin_storage_namespace: Option<String>,
+    /// Whether app webviews must keep their storage in memory, because their persistent storage
+    /// couldn't be isolated from other Sage roots.
+    pub in_memory_webview_storage: bool,
     pub app_operation_locks: RwLock<HashMap<String, Arc<Mutex<()>>>>,
     pub app_update_locks: RwLock<HashSet<String>>,
     pub runtime: AppRuntimeState,
@@ -25,8 +40,12 @@ pub struct AppsHostState {
 }
 
 impl AppsHostState {
-    pub fn new(db: AppsDb) -> Self {
+    pub fn new(root: PathBuf, webview_root: PathBuf, db: AppsDb) -> Self {
         Self {
+            root,
+            webview_root,
+            builtin_storage_namespace: None,
+            in_memory_webview_storage: false,
             app_operation_locks: RwLock::default(),
             app_update_locks: RwLock::default(),
             runtime: AppRuntimeState::default(),
@@ -35,6 +54,18 @@ impl AppsHostState {
             environment: AppsEnvironmentState::default(),
             db,
         }
+    }
+
+    #[must_use]
+    pub fn with_builtin_storage_namespace(mut self, namespace: Option<String>) -> Self {
+        self.builtin_storage_namespace = namespace;
+        self
+    }
+
+    #[must_use]
+    pub fn with_in_memory_webview_storage(mut self, in_memory: bool) -> Self {
+        self.in_memory_webview_storage = in_memory;
+        self
     }
 
     pub fn operation_lock_for_app(&self, app_id: &str) -> Arc<Mutex<()>> {

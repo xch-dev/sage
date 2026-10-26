@@ -853,6 +853,69 @@ mod tests {
     }
 
     #[test(tokio::test)]
+    async fn test_clawback_history_only_shows_own_custody() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(0).await?;
+
+        let timestamp = alice.new_block_with_current_time().await?;
+
+        let coin_spends = alice
+            .wallet
+            .send_xch(
+                vec![(bob.puzzle_hash, 1000)],
+                0,
+                vec![],
+                Some(timestamp + 5),
+            )
+            .await?;
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        let (transactions, _) = alice.wallet.db.transactions(None, false, 10, 0).await?;
+
+        let clawback_coin = transactions
+            .iter()
+            .flat_map(|transaction| &transaction.created)
+            .find(|coin| coin.coin.amount == 1000)
+            .expect("missing clawback coin")
+            .coin;
+
+        assert_ne!(clawback_coin.puzzle_hash, bob.puzzle_hash);
+
+        // The sender doesn't see the receiver's address, and nobody sees the wrapper
+        assert_eq!(alice.history_custody(clawback_coin.coin_id()).await?, None);
+        assert_eq!(
+            bob.history_custody(clawback_coin.coin_id()).await?,
+            Some(bob.puzzle_hash)
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_clawback_v1_history_only_shows_own_custody() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(0).await?;
+
+        alice.new_block_with_current_time().await?;
+
+        let (clawback_id, _, _) = create_v1_clawback(&alice, bob.puzzle_hash, 1000, 3600).await?;
+
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        assert_eq!(alice.history_custody(clawback_id).await?, None);
+        assert_eq!(
+            bob.history_custody(clawback_id).await?,
+            Some(bob.puzzle_hash)
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
     async fn test_finalize_clawback_with_fee_excludes_clawback_coin() -> anyhow::Result<()> {
         let mut test = TestWallet::new(3000).await?;
         let timestamp = test.new_block_with_current_time().await?;

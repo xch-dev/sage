@@ -1,8 +1,3 @@
----
-description: Required validation after code changes
-alwaysApply: true
----
-
 # Validation
 
 Before completing substantive code changes, run the applicable checks for every language changed:

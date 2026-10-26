@@ -336,14 +336,14 @@ describe('parseDeepLinkUrl', () => {
 
 describe('link builders', () => {
   it('builds a send link the parser accepts', () => {
-    expect(parseDeepLinkUrl(buildSendLink(XCH)!)).toEqual({
+    expect(parseDeepLinkUrl(buildSendLink(XCH) ?? '')).toEqual({
       ok: true,
       link: { action: 'send', address: XCH },
     });
   });
 
   it('includes the asset id for a CAT', () => {
-    expect(parseDeepLinkUrl(buildSendLink(XCH, ASSET_ID)!)).toEqual({
+    expect(parseDeepLinkUrl(buildSendLink(XCH, ASSET_ID) ?? '')).toEqual({
       ok: true,
       link: { action: 'send', address: XCH, assetId: ASSET_ID.toLowerCase() },
     });
@@ -365,7 +365,7 @@ describe('link builders', () => {
   });
 
   it('builds a take_offer link the parser accepts', () => {
-    expect(parseDeepLinkUrl(buildTakeOfferLink(OFFER)!)).toEqual({
+    expect(parseDeepLinkUrl(buildTakeOfferLink(OFFER) ?? '')).toEqual({
       ok: true,
       link: { action: 'take_offer', offer: OFFER },
     });
