@@ -333,12 +333,25 @@ pub async fn insert_nft(
     }
 
     let is_current = coin_state.spent_height.is_none() || lineage_proof.is_none();
+    let is_mutable = !coin_info.metadata_updater_kind().is_append_only();
+
+    // A mutable NFT's earlier versions may have had different metadata, so only its current
+    // version sets its name, description, and icon.
+    if !is_current && is_mutable {
+        asset.name = None;
+        asset.description = None;
+        asset.icon_url = None;
+        asset.is_sensitive_content = false;
+    }
 
     // Mutable NFTs can replace their metadata, so when their files or display name change,
     // the name and icon from the previous metadata are cleared rather than kept. They're
     // filled in again once the new files are downloaded.
+    //
+    // This includes the first time the NFT is synced, since any name and icon saved before
+    // then came from an offer's claimed metadata rather than the NFT itself.
     if is_current
-        && !coin_info.metadata_updater_kind().is_append_only()
+        && is_mutable
         && tx.nft_display_source(info.launcher_id).await?
             != Some((
                 coin_info.data_hash,

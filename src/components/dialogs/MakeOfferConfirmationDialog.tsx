@@ -173,8 +173,9 @@ function AssetDisplay({
         const isMutable =
           updater.metadata_updater_kind === null ||
           isMutableNft(updater.metadata_updater_kind);
+        const record = emptyNftRecord(nftId);
         return [
-          emptyNftRecord(nftId),
+          { ...record, name: updater.name ?? record.name },
           isMutable ? (updater.name ?? nftId) : null,
         ];
       } catch {

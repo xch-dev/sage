@@ -205,6 +205,7 @@ mod tests {
     use std::time::Duration;
 
     use chia_wallet_sdk::{
+        chia::puzzle_types::LineageProof,
         driver::UriKind,
         types::puzzles::{ANY_METADATA_UPDATER_HASH, AnyMetadataUpdater, HandleNftMetadata},
     };
@@ -212,7 +213,7 @@ mod tests {
     use test_log::test;
     use tokio::time::sleep;
 
-    use crate::TestWallet;
+    use crate::{PuzzleContext, TestWallet, insert_nft};
 
     use super::*;
 
@@ -347,6 +348,8 @@ mod tests {
             (None, None, "the old display name no longer applies"),
         ];
 
+        let mut bob_nft = None;
+
         for (display_name, expected_name, message) in replacements {
             let mut ctx = SpendContext::new();
 
@@ -383,7 +386,39 @@ mod tests {
             assert_eq!(row.nft_info.metadata_hash, None);
             assert_eq!(row.asset.name.as_deref(), expected_name, "{message}");
             assert_eq!(row.asset.description, None);
+
+            if bob_nft.is_none() {
+                bob_nft = test.wallet.db.nft(launcher_id).await?;
+            }
         }
+
+        // Syncing an earlier version of the NFT, which is now spent, doesn't bring back its
+        // old display name.
+        let bob_nft = bob_nft.expect("missing nft");
+        let mut tx = test.wallet.db.tx().await?;
+        insert_nft(
+            &mut tx,
+            CoinState::new(bob_nft.coin, Some(1), Some(2)),
+            Some(LineageProof {
+                parent_parent_coin_info: Bytes32::default(),
+                parent_inner_puzzle_hash: Bytes32::default(),
+                parent_amount: 1,
+            }),
+            bob_nft.info.clone(),
+            bob_nft.info.parsed_metadata(),
+            PuzzleContext::Nft { minter_hash: None },
+        )
+        .await?;
+        tx.commit().await?;
+
+        let row = test
+            .wallet
+            .db
+            .wallet_nft(launcher_id)
+            .await?
+            .expect("missing nft");
+        assert_eq!(row.nft_info.display_name, None);
+        assert_eq!(row.asset.name, None, "an earlier display name is ignored");
 
         Ok(())
     }
