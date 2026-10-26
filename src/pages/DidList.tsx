@@ -29,6 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useDids } from '@/hooks/useDids';
+import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
 import { toMojos } from '@/lib/utils';
 import { useWallet } from '@/contexts/WalletContext';
@@ -165,12 +166,14 @@ function Profile({ did, updateDids }: ProfileProps) {
   const onTransferSubmit = (address: string, fee: string) => {
     setIsTransferring(true);
     setTransferAddress(address);
-    commands
-      .transferDids({
+    withHandleConfirmation((confirmed_handles) =>
+      commands.transferDids({
         did_ids: [did.launcher_id],
         address,
         fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+        confirmed_handles,
+      }),
+    )
       .then(setResponse)
       .catch((err) => {
         setIsTransferring(false);

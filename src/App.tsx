@@ -60,6 +60,7 @@ import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
 import { AppsProvider } from '@/contexts/AppsContext.tsx';
+import { HandleChangeDialog } from '@/components/HandleChangeDialog';
 import { RustThemeSync } from '@/components/RustThemeSync.tsx';
 import { Apps } from '@/pages/Apps.tsx';
 import { platform } from '@tauri-apps/plugin-os';
@@ -178,6 +179,7 @@ export default function App() {
           <ErrorProvider>
             <BiometricProvider>
               <AppInner />
+              <HandleChangeDialog />
               <ThemeAwareToastContainer />
             </BiometricProvider>
           </ErrorProvider>

@@ -2,14 +2,14 @@ use std::collections::HashMap;
 
 use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, prelude::*};
 use sage_api::{
-    Amount, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput, TransactionOutput,
-    TransactionSummary,
+    Amount, CoinJson, CoinSpendJson, HandleRecord, SpendBundleJson, TransactionInput,
+    TransactionOutput, TransactionSummary,
 };
 use sage_assets::{Data, base64_data_uri};
 use sage_database::{Asset, AssetKind, Database, ParsedNftMetadata};
 use sage_wallet::{CoinKind, Transaction, compute_nft_info};
 
-use crate::{Error, Result, Sage};
+use crate::{Error, HandleSend, Result, Sage};
 
 use super::{parse_coin_id, parse_hash, parse_program, parse_signature};
 
@@ -17,6 +17,11 @@ use super::{parse_coin_id, parse_hash, parse_program, parse_signature};
 pub struct ConfirmationInfo {
     pub nft_data: HashMap<Bytes32, Data>,
     pub uri_hashes: HashMap<Vec<String>, Bytes32>,
+    /// The verified handle recipients, shown in the summary.
+    pub handles: Vec<HandleRecord>,
+    /// The handle recipients to check again before the transaction is submitted, and to
+    /// record once it is.
+    pub handle_sends: Vec<HandleSend>,
 }
 
 impl Sage {
@@ -131,6 +136,7 @@ impl Sage {
         Ok(TransactionSummary {
             fee: Amount::u64(transaction.fee),
             inputs,
+            handles: cache.handles,
         })
     }
 }
