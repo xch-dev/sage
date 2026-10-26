@@ -23,7 +23,7 @@ use rand_chacha::ChaCha8Rng;
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
-    Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CoinJson, CoinSpendJson, CreateDid,
+    Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CreateDid,
     CreateTransaction, GetDids, GetKey, GetNft, GetNftMetadataUpdater, GetOffers, GetPeers,
     GetSyncStatus, GetVersion, Id as ApiId, ImportKey, ImportOffer, Login, MakeOffer, NewNftUri,
     NftUpdaterKind, NftUriKind, OfferAmount, OfferAsset, SendXch, SignCoinSpends, UpdateNftAction,
@@ -383,18 +383,6 @@ async fn test_send_xch_with_coin_ids() -> Result<()> {
     Ok(())
 }
 
-fn json_coin_spend(coin_spend: &CoinSpend) -> CoinSpendJson {
-    CoinSpendJson {
-        coin: CoinJson {
-            parent_coin_info: format!("0x{}", hex::encode(coin_spend.coin.parent_coin_info)),
-            puzzle_hash: format!("0x{}", hex::encode(coin_spend.coin.puzzle_hash)),
-            amount: Amount::u64(coin_spend.coin.amount),
-        },
-        puzzle_reveal: hex::encode(&coin_spend.puzzle_reveal),
-        solution: hex::encode(&coin_spend.solution),
-    }
-}
-
 fn find_nft<'a>(assets: &'a [OfferAsset], nft_id: &str) -> &'a OfferAsset {
     assets
         .iter()
@@ -456,7 +444,7 @@ async fn mint_mutable_nft(app: &mut TestApp) -> Result<String> {
     };
 
     app.sign_coin_spends(SignCoinSpends {
-        coin_spends: coin_spends.iter().map(json_coin_spend).collect(),
+        coin_spends: serde_json::from_value(serde_json::to_value(&coin_spends)?)?,
         auto_submit: true,
         partial: false,
     })

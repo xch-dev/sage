@@ -38,5 +38,4 @@ rand_chacha = { workspace = true }
 bip39 = { workspace = true }
 chia-wallet-sdk = { workspace = true, features = ["peer-simulator"] }
 sage-wallet = { workspace = true }
-hex = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
