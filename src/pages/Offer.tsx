@@ -7,6 +7,7 @@ import {
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { TakeOfferConfirmation } from '@/components/confirmations/TakeOfferConfirmation';
 import Container from '@/components/Container';
+import { DeepLinkNotice } from '@/components/DeepLinkNotice';
 import Header from '@/components/Header';
 import { Loading } from '@/components/Loading';
 import { OfferCard } from '@/components/OfferCard';
@@ -16,29 +17,38 @@ import { Label } from '@/components/ui/label';
 import { FeeAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
+import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { resolveOfferData } from '@/lib/offerData';
-import { toMojos } from '@/lib/utils';
+import { fromMojos, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useNetwork } from '@/hooks/useNetwork';
 
 export function Offer() {
   const { offer } = useParams();
   const { addError } = useErrors();
   const { isReadOnly } = useWallet();
+  const { promptIfEnabled } = useBiometric();
   const walletState = useWalletState();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState(t`Initializing...`);
   const [summary, setSummary] = useState<OfferSummary | null>(null);
   const [status, setStatus] = useState<OfferRecordStatus | null>(null);
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
-  const [fee, setFee] = useState('');
+  // Prefilled from the URL (e.g. deep links); the route remounts per URL
+  const [fee, setFee] = useState(() => {
+    const feeMojos = searchParams.get('fee');
+    return feeMojos
+      ? fromMojos(feeMojos, walletState.sync.unit.precision).toString()
+      : '';
+  });
   const [resolvedOffer, setResolvedOffer] = useState<string | null>(null);
   const { isTestnet } = useNetwork();
 
@@ -105,6 +115,10 @@ export function Offer() {
       return;
     }
 
+    // takeOffer signs before the confirmation dialog, which only prompts when
+    // it does the signing itself, so ask here
+    if (!(await promptIfEnabled())) return;
+
     try {
       const result = await commands.takeOffer({
         offer: resolvedOffer,
@@ -121,6 +135,7 @@ export function Offer() {
       <Header title='View Offer' />
 
       <Container>
+        <DeepLinkNotice className='mb-4' />
         {isLoading ? (
           <Loading className='my-8' text={loadingStatus} />
         ) : (
@@ -137,6 +152,7 @@ export function Offer() {
                     <FeeAmountInput
                       id='fee'
                       className='pr-12'
+                      value={fee}
                       onValueChange={(values) => setFee(values.value)}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {

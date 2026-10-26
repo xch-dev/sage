@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { DeepLinkNotice } from '@/components/DeepLinkNotice';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import {
   fromHexStrict,
@@ -45,9 +46,9 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { AlertCircleIcon } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import * as z from 'zod';
 import {
   commands,
@@ -65,6 +66,7 @@ export default function Send() {
 
   const navigate = useNavigate();
   const walletState = useWalletState();
+  const [searchParams] = useSearchParams();
 
   const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
@@ -170,6 +172,40 @@ export default function Send() {
   });
   const memoMode = form.watch('memoMode') || MemoMode.Text;
 
+  // Prefill from the URL (e.g. deep links) once the asset is known, since the
+  // amount's precision comes from it. Only once: the asset refreshes on every
+  // sync event and must not overwrite the user's edits. The route remounts per
+  // URL, so each link starts from a fresh form.
+  const prefilled = useRef(false);
+  useEffect(() => {
+    const amountMojos = searchParams.get('amount');
+    if (prefilled.current || (amountMojos && !asset)) return;
+    prefilled.current = true;
+
+    const address = searchParams.get('address');
+    const feeMojos = searchParams.get('fee');
+    const memos = searchParams.get('memos');
+
+    // The page mounts empty, so an address already here was just scanned in
+    // (on mobile the scanner returns before the asset loads) and wins
+    if (address && !form.getValues('address')) {
+      form.setValue('address', address);
+    }
+    if (amountMojos && asset) {
+      form.setValue(
+        'amount',
+        fromMojos(amountMojos, asset.precision).toString(),
+      );
+    }
+    if (feeMojos) {
+      form.setValue(
+        'fee',
+        fromMojos(feeMojos, walletState.sync.unit.precision).toString(),
+      );
+    }
+    if (memos) form.setValue('memo', memos);
+  }, [searchParams, asset, walletState.sync.unit.precision, form]);
+
   const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
     (scanResValue) => {
       form.setValue('address', scanResValue);
@@ -259,6 +295,7 @@ export default function Send() {
       <Header title={t`Send ${ticker}`} back={() => navigate(-1)} />
 
       <Container className='max-w-xl'>
+        <DeepLinkNotice className='mb-4' />
         {asset && (
           <Card className='mb-6'>
             <CardContent className='pt-6'>

@@ -220,10 +220,24 @@ pub fn run() {
         .commands(sage_commands![])
         .events(collect_events![SyncEvent]);
 
-    let mut tauri_builder = tauri::Builder::default()
+    let mut tauri_builder = tauri::Builder::default();
+
+    // The single instance plugin has to be registered before every other plugin
+    #[cfg(not(mobile))]
+    {
+        tauri_builder =
+            tauri_builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_focus();
+                }
+            }));
+    }
+
+    tauri_builder = tauri_builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_os::init());
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_deep_link::init());
 
     #[cfg(not(mobile))]
     {
@@ -282,6 +296,19 @@ pub fn run() {
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
+
+            // Register deep link schemes at runtime for Linux and Windows dev mode
+            // Linux: Always needed since schemes aren't registered via installer during dev
+            // Windows: Only in debug mode, requires running as Administrator first time
+            #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                // Always re-register: on Linux `is_registered` only matches the handler's
+                // file name, so it can't tell a dev build from an installed binary
+                if let Err(e) = app.deep_link().register_all() {
+                    eprintln!("Failed to register deep link: {e}");
+                }
+            }
 
             let default_root = app.path().app_data_dir()?;
             let root_override = resolve_root_override(&default_root)?;

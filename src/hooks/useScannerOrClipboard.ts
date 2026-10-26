@@ -10,8 +10,18 @@ import { useCallback, useEffect } from 'react';
 import { t } from '@lingui/core/macro';
 import { useErrors } from '@/hooks/useErrors';
 import { ScanImageError, scanQrFromImage } from '@/lib/scanImage';
+import { openInAppDeepLink } from '@/hooks/useDeepLink';
 
-export function useScannerOrClipboard(onScanResult: (text: string) => void) {
+export function useScannerOrClipboard(onFieldResult: (text: string) => void) {
+  // A scanned or pasted `sage:` link opens like any other link instead of
+  // landing in the field
+  const onScanResult = useCallback(
+    (text: string) => {
+      if (!openInAppDeepLink(text)) onFieldResult(text);
+    },
+    [onFieldResult],
+  );
+
   const navigate = useNavigate();
   const location = useLocation();
   const { returnValues, setReturnValue } = useNavigationStore();

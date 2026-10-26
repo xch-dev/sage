@@ -31,8 +31,14 @@ pub struct StartAppInstallArgs {
 #[derive(Debug, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum StartAppInstallSource {
-    SelectSource,
-    Url { app_url: String },
+    /// `app_url` prefills the URL field without previewing it.
+    SelectSource {
+        #[serde(default)]
+        app_url: Option<String>,
+    },
+    Url {
+        app_url: String,
+    },
 }
 
 #[derive(Debug, Deserialize, Type)]
@@ -122,8 +128,11 @@ pub async fn apps_start_system_app(
             let mut query = BTreeMap::new();
 
             match args.source {
-                StartAppInstallSource::SelectSource => {
+                StartAppInstallSource::SelectSource { app_url } => {
                     query.insert("mode".to_string(), "select-source".to_string());
+                    if let Some(app_url) = app_url {
+                        query.insert("appUrl".to_string(), app_url);
+                    }
                 }
                 StartAppInstallSource::Url { app_url } => {
                     query.insert("mode".to_string(), "url".to_string());

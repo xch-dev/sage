@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sage Deep Link Tests</title>
+    <style>
+      :root {
+        --bg: #fafafa;
+        --fg: #1d1d1f;
+        --muted: #6b6b70;
+        --card: #fff;
+        --border: #dcdce0;
+        --code: #f0f0f3;
+        --btn: #2b2b30;
+        --btn-fg: #fff;
+        --ok: #1f7a3d;
+        --err: #b3261e;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #141416;
+          --fg: #ececf0;
+          --muted: #9a9aa2;
+          --card: #1d1d21;
+          --border: #34343a;
+          --code: #26262b;
+          --btn: #e6e6ea;
+          --btn-fg: #141416;
+          --ok: #6fd08c;
+          --err: #ff8a80;
+        }
+      }
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: -apple-system, system-ui, sans-serif;
+        max-width: 900px;
+        margin: 32px auto;
+        padding: 0 16px;
+        line-height: 1.5;
+      }
+      h1 {
+        font-size: 1.4rem;
+        margin-bottom: 0.25rem;
+      }
+      h2 {
+        font-size: 1.1rem;
+        margin: 0 0 0.5rem;
+      }
+      h3 {
+        font-size: 0.95rem;
+        margin: 1.25rem 0 0.25rem;
+      }
+      section {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 20px;
+      }
+      code {
+        background: var(--code);
+        padding: 2px 5px;
+        border-radius: 4px;
+        word-break: break-all;
+        font-size: 0.8rem;
+      }
+      .note {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .globals {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 24px;
+        align-items: end;
+      }
+      .globals label,
+      .builder label {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 0.5rem;
+      }
+      input,
+      select {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 5px 7px;
+        background: var(--bg);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        font: inherit;
+        font-size: 0.85rem;
+      }
+      .globals > div {
+        flex: 1 1 260px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+      }
+      td {
+        border-top: 1px solid var(--border);
+        padding: 8px 6px;
+        vertical-align: top;
+      }
+      td.case {
+        width: 28%;
+      }
+      td.expect {
+        width: 24%;
+      }
+      td.go {
+        width: 1%;
+        white-space: nowrap;
+      }
+      .expect.ok {
+        color: var(--ok);
+      }
+      .expect.err {
+        color: var(--err);
+      }
+      a.btn,
+      button {
+        display: inline-block;
+        padding: 6px 12px;
+        background: var(--btn);
+        color: var(--btn-fg);
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        font: inherit;
+        font-size: 0.8rem;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--border);
+        margin-left: 4px;
+      }
+      .builder {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0 16px;
+      }
+      .builder-out {
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sage deep link tests</h1>
+    <p class="note">
+      Each link asks the OS to hand a <code>sage:</code> URL to Sage. Parser:
+      <code>src/lib/deepLink.ts</code>. On macOS only the bundled
+      <code>/Applications</code> build receives links. The offer defaults are a
+      real dexie.space offer (it may since have been taken, but still opens for
+      viewing); set the asset id to a CAT your wallet holds. The "Expected"
+      column describes what Sage should do.
+    </p>
+
+    <section>
+      <h2>Test inputs</h2>
+      <div class="globals">
+        <div>
+          <label for="g-address">Address (xch1… or txch1…)</label>
+          <input
+            id="g-address"
+            value="xch1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs3fazuv"
+          />
+        </div>
+        <div>
+          <label for="g-offer">Offer string (offer1…)</label>
+          <input
+            id="g-offer"
+            value="offer1qqr83wcuu2rykcmqvpsxygqqhqh7hu0l08gxt4gkk8ua3sl7h2hcrh66r69vezh0a6glrctp39vzvrznqah60rkkl63mtlmga5l447u06ml28d0ll7q64lwpshas9umanufaadfkrfhekxcex5slwjpvu0aqpuaedvp7xasxwmk6ayw442pz4kaa24dz2l7lc9du9t8mpnhhctqv83ekrpajjnwxrdhtulny0au5dr8cx4s45vks5g46l7xppxg9we4w00mwj5grcuxk8hx78a5uyrttvvkfm84r7hf4kvnls37yw0de5qv48s4eu7hg097cauyenuykzpa5v4hpk24wvkupuxn6hlev65a93kr3j78lxuekd8fxggwu33hue8w7y3erhm88k2recn4amqmxn02uawv3dyrp8trwddl9cwje72xtljy93w4j4jjv027ad8pdv6l6awl9wnduaaekvlkutac8d40hxmmztsls8q7d8nfm5cag4kvwr0zjpak0pp5x466f6hclr095thtch45a50nd4049qdkfn0j4mnvtfkunam2vvce9zlmy05emla8m0f8aumuhjuz8w7vqkkpq6pqkr5kscy6kfvprnahlzu79n4l2z7mctalqjtl75eudz6hvlly34s5j7ld4le829wzpwmrukmaqv6fvmlc9j2d678lcmwjhnau2urpzwznt23hgd8pamham5003e2gug9gd3cfddw2q2hr079uumal77mvve738hdkutu2hd8hkme0xyef6l0ft8pgazlnne0llglcl9ulld5m083phyceqq4vml3hez0vmegqqawvazchh73zy5c9rnm3av44tq5j94h3h0j3levnu7fkk84ct7f8s5rklx6el0036d9et5cmdsha7hy7wmszhq6h0hlm8hmk54804uhua7l4knyahwp6dfh2555w073vxdnznh6h7yyxhuwnc0z3xr6whl0j9a0e50zg7fyqy82ypdqgxvn78"
+          />
+        </div>
+        <div>
+          <label for="g-offer-url">Marketplace offer URL</label>
+          <input
+            id="g-offer-url"
+            value="https://dexie.space/offers/6SEZH1GT5y1ecdaDKpSNCDVSDj4f8J2yjmsuBLyLmqYi"
+          />
+        </div>
+        <div>
+          <label for="g-asset">CAT asset id held by the wallet</label>
+          <input
+            id="g-asset"
+            value="db1a9020d48d9d4ad22631b66ab4b9ebd3637ef7758ad38881348c5d24c38f20"
+          />
+        </div>
+        <div>
+          <label for="g-prefix">Prefix</label>
+          <select id="g-prefix">
+            <option value="sage:">sage:</option>
+            <option value="sage://">sage://</option>
+          </select>
+        </div>
+        <div>
+          <label for="g-sep">Parameter separator</label>
+          <select id="g-sep">
+            <option value="&amp;">&amp; (desktop, iOS)</option>
+            <option value="%26">%26 (Android-safe)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>take_offer</h2>
+      <table id="t-take_offer"></table>
+    </section>
+
+    <section>
+      <h2>send</h2>
+      <table id="t-send"></table>
+    </section>
+
+    <section>
+      <h2>install_app</h2>
+      <table id="t-install_app"></table>
+    </section>
+
+    <section>
+      <h2>Scheme and action handling</h2>
+      <table id="t-protocol"></table>
+    </section>
+
+    <section>
+      <h2>Build your own</h2>
+      <div class="builder">
+        <div>
+          <label for="b-action">Action</label>
+          <input id="b-action" value="send" />
+        </div>
+        <div>
+          <label for="b-params"
+            >Params, one <code>key=value</code> per line (values are
+            encoded)</label
+          >
+          <textarea id="b-params" rows="5" style="width: 100%">
+address=xch1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs3fazuv
+amount=1000000000000
+fee=100000000
+memos=test memo</textarea
+          >
+        </div>
+      </div>
+      <div class="builder-out">
+        <a class="btn" id="b-go" href="#">Open</a>
+        <button class="secondary" id="b-copy">Copy</button>
+        <div style="margin-top: 8px"><code id="b-preview"></code></div>
+      </div>
+    </section>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const g = () => ({
+        address: $('g-address').value.trim(),
+        offer: $('g-offer').value.trim(),
+        offerUrl: $('g-offer-url').value.trim(),
+        asset: $('g-asset').value.trim(),
+        prefix: $('g-prefix').value,
+        sep: $('g-sep').value,
+      });
+
+      // Builds a link from ordered [key, value] pairs; values are always
+      // percent-encoded so only the chosen separator is structural.
+      function link(action, pairs, opts = {}) {
+        const { prefix, sep } = g();
+        const query = pairs
+          .map(([k, v]) => `${k}=${opts.raw ? v : encodeURIComponent(v)}`)
+          .join(opts.sep ?? sep);
+        return `${opts.prefix ?? prefix}${action}${query ? '?' + query : ''}`;
+      }
+
+      const OK = 'ok';
+      const ERR = 'err';
+
+      const cases = {
+        take_offer: (v) => [
+          [
+            'Raw offer',
+            link('take_offer', [['offer', v.offer]]),
+            OK,
+            'Offer view',
+          ],
+          [
+            'Raw offer + fee',
+            link('take_offer', [
+              ['offer', v.offer],
+              ['fee', '100000000'],
+            ]),
+            OK,
+            'Offer view, fee 0.0001 prefilled',
+          ],
+          [
+            'Uppercase offer',
+            link('take_offer', [['offer', v.offer.toUpperCase()]]),
+            OK,
+            'Offer view (lowercased)',
+          ],
+          [
+            'Marketplace URL',
+            link('take_offer', [['url', v.offerUrl]]),
+            OK,
+            'Offer view, fetched from marketplace',
+          ],
+          [
+            'Marketplace URL + fee',
+            link('take_offer', [
+              ['url', v.offerUrl],
+              ['fee', '100000000'],
+            ]),
+            OK,
+            'Offer view, fetched, fee prefilled',
+          ],
+          [
+            'URL with query + trailing slash',
+            link('take_offer', [['url', v.offerUrl + '/?ref=test#x']]),
+            OK,
+            'Offer view (URL canonicalized)',
+          ],
+          [
+            'offerco.de URL',
+            link('take_offer', [
+              ['url', 'https://offerco.de/offers/REPLACE_ME'],
+            ]),
+            OK,
+            'Offer view, or fetch error toast if the id is fake',
+          ],
+          [
+            'Non-numeric fee',
+            link('take_offer', [
+              ['offer', v.offer],
+              ['fee', '1.5'],
+            ]),
+            OK,
+            'Offer view, fee field empty',
+          ],
+          ['No offer or url', link('take_offer', []), ERR, 'Invalid deep link'],
+          [
+            'Both offer and url',
+            link('take_offer', [
+              ['offer', v.offer],
+              ['url', v.offerUrl],
+            ]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Not an offer string',
+            link('take_offer', [['offer', 'hello']]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Mixed-case offer',
+            link('take_offer', [['offer', 'Offer1' + v.offer.slice(6)]]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'http:// URL',
+            link('take_offer', [
+              ['url', v.offerUrl.replace('https:', 'http:')],
+            ]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Host not allowlisted',
+            link('take_offer', [['url', 'https://evil.example/offers/abc']]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Lookalike host',
+            link('take_offer', [
+              ['url', 'https://dexie.space.evil.example/offers/abc'],
+            ]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'www. subdomain',
+            link('take_offer', [['url', 'https://www.dexie.space/offers/abc']]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'URL with no offer id',
+            link('take_offer', [['url', 'https://dexie.space/']]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Offer id with & (API injection)',
+            link(
+              'take_offer',
+              [
+                ['fee', '1'],
+                ['url', 'https://chia-offer.com/offers/abc&evil=1'],
+              ],
+              { sep: '&' },
+            ),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Offer id with ..%2F (path traversal)',
+            link('take_offer', [
+              ['url', 'https://dexie.space/offers/..%2F..%2Fv2%2Fx'],
+            ]),
+            ERR,
+            'Invalid deep link',
+          ],
+        ],
+        send: (v) => [
+          [
+            'Address only',
+            link('send', [['address', v.address]]),
+            OK,
+            'Send XCH, address prefilled',
+          ],
+          [
+            'Address + amount',
+            link('send', [
+              ['address', v.address],
+              ['amount', '1000000000000'],
+            ]),
+            OK,
+            'Send XCH, 1 XCH prefilled',
+          ],
+          [
+            'All XCH params',
+            link('send', [
+              ['address', v.address],
+              ['amount', '1000000000000'],
+              ['fee', '100000000'],
+              ['memos', 'Payment for services'],
+            ]),
+            OK,
+            'Send XCH, all fields prefilled',
+          ],
+          [
+            'CAT (asset_id)',
+            link('send', [
+              ['address', v.address],
+              ['amount', '1000'],
+              ['asset_id', v.asset],
+            ]),
+            OK,
+            'Send CAT, if the wallet holds it',
+          ],
+          [
+            'CAT, uppercase asset_id',
+            link('send', [
+              ['address', v.address],
+              ['asset_id', v.asset.toUpperCase()],
+            ]),
+            OK,
+            'Send CAT (asset id lowercased)',
+          ],
+          [
+            'Memo containing &',
+            link(
+              'send',
+              [
+                ['address', v.address],
+                ['memos', 'salt & pepper'],
+              ],
+              { sep: '&' },
+            ),
+            OK,
+            'Memo "salt & pepper" (needs & separators)',
+          ],
+          [
+            'Memo with + % and unicode',
+            link('send', [
+              ['address', v.address],
+              ['memos', '100% + tip ✓'],
+            ]),
+            OK,
+            'Memo exactly "100% + tip ✓"',
+          ],
+          [
+            'Invalid optionals dropped',
+            link('send', [
+              ['address', v.address],
+              ['amount', '-5'],
+              ['fee', 'abc'],
+              ['asset_id', 'xyz'],
+            ]),
+            OK,
+            'Send XCH, only the address prefilled',
+          ],
+          [
+            'Other network: testnet address',
+            link('send', [
+              [
+                'address',
+                'txch1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygsuw65al',
+              ],
+            ]),
+            ERR,
+            'On a mainnet wallet: different network (txch) toast',
+          ],
+          [
+            'Other network: mainnet address',
+            link('send', [
+              [
+                'address',
+                'xch1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs3fazuv',
+              ],
+            ]),
+            OK,
+            'On a testnet wallet: different network (xch) toast',
+          ],
+          [
+            'Other network: custom prefix',
+            link('send', [
+              [
+                'address',
+                'dev1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3q6ucjwm',
+              ],
+            ]),
+            ERR,
+            'Different network (dev) toast',
+          ],
+          [
+            'Unknown asset_id',
+            link('send', [
+              ['address', v.address],
+              [
+                'asset_id',
+                '00000ca547a83020e537e87f8c83e9332d2c3adb729c052e6f04971317000000',
+              ],
+            ]),
+            ERR,
+            'Toast: unknown asset, not in your wallet',
+          ],
+          [
+            'Amount longer than a u64',
+            link('send', [
+              ['address', v.address],
+              ['amount', '9'.repeat(21)],
+            ]),
+            OK,
+            'Send XCH, amount field empty',
+          ],
+          [
+            'Missing address',
+            link('send', [['amount', '1000']]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Bad address',
+            link('send', [['address', 'xch1notvalid']]),
+            ERR,
+            'Invalid deep link',
+          ],
+        ],
+        install_app: () => [
+          [
+            'App url',
+            link('install_app', [['url', 'https://xch.place']]),
+            OK,
+            'Apps page, installer open with https://xch.place/ in the URL field',
+          ],
+          [
+            'Query string and fragment dropped',
+            link('install_app', [['url', 'https://xch.place/?ref=link#top']]),
+            OK,
+            'Installer prefilled with https://xch.place/',
+          ],
+          [
+            'Lookalike host',
+            link('install_app', [['url', 'https://xch.pl\u0430ce']]),
+            OK,
+            'Installer prefilled with the punycode host https://xch.xn--plce-63d/',
+          ],
+          ['Missing url', link('install_app', []), ERR, 'Invalid deep link'],
+          [
+            'http url',
+            link('install_app', [['url', 'http://xch.place']]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Bare host',
+            link('install_app', [['url', 'xch.place']]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Credentials disguising the host',
+            link('install_app', [['url', 'https://xch.place@evil.example']]),
+            ERR,
+            'Invalid deep link',
+          ],
+        ],
+        protocol: (v) => [
+          [
+            'sage:// prefix',
+            link('send', [['address', v.address]], { prefix: 'sage://' }),
+            OK,
+            'Send XCH',
+          ],
+          [
+            'Trailing slash on action',
+            link('send/', [['address', v.address]], { prefix: 'sage://' }),
+            OK,
+            'Send XCH',
+          ],
+          [
+            'Uppercase scheme + action',
+            link('SEND', [['address', v.address]], { prefix: 'SAGE:' }),
+            OK,
+            'Send XCH',
+          ],
+          [
+            'Mixed separators (& and %26)',
+            `${v.prefix}send?address=${v.address}&amount=1000%26fee=5`,
+            OK,
+            'Address only; amount is "1000&fee=5", invalid, dropped',
+          ],
+          [
+            'Unknown action',
+            link('add_offer', [['offer', v.offer]]),
+            ERR,
+            'Toast: Unsupported deep link action: add_offer',
+          ],
+          [
+            'Very long unknown action',
+            link('x'.repeat(40), []),
+            ERR,
+            'Toast: Invalid deep link (action not echoed)',
+          ],
+          [
+            'No action',
+            `${v.prefix}?address=${v.address}`,
+            ERR,
+            'Invalid deep link',
+          ],
+          ['Empty payload', v.prefix, ERR, 'Invalid deep link'],
+          ['Old bare offer form', `sage:${v.offer}`, ERR, 'Invalid deep link'],
+          [
+            'Old bare address form',
+            `sage:${v.address}?amount=1000`,
+            ERR,
+            'Invalid deep link',
+          ],
+        ],
+      };
+
+      function render() {
+        const v = g();
+        for (const [name, build] of Object.entries(cases)) {
+          const table = $(`t-${name}`);
+          table.innerHTML = '';
+          for (const [label, url, kind, expect] of build(v)) {
+            const tr = table.insertRow();
+            const caseCell = tr.insertCell();
+            caseCell.className = 'case';
+            caseCell.textContent = label;
+            const exp = tr.insertCell();
+            exp.className = `expect ${kind}`;
+            exp.textContent = expect;
+            const code = tr.insertCell();
+            code.innerHTML = '<code></code>';
+            code.firstChild.textContent = url;
+            const go = tr.insertCell();
+            go.className = 'go';
+            const a = document.createElement('a');
+            a.className = 'btn';
+            a.href = url;
+            a.textContent = 'Open';
+            const copy = document.createElement('button');
+            copy.className = 'secondary';
+            copy.textContent = 'Copy';
+            copy.onclick = () => navigator.clipboard.writeText(url);
+            go.append(a, copy);
+          }
+        }
+        renderBuilder();
+      }
+
+      function renderBuilder() {
+        const pairs = $('b-params')
+          .value.split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => {
+            const i = line.indexOf('=');
+            return i === -1
+              ? [line, '']
+              : [line.slice(0, i), line.slice(i + 1)];
+          });
+        const url = link($('b-action').value.trim(), pairs);
+        $('b-preview').textContent = url;
+        $('b-go').href = url;
+      }
+
+      $('b-copy').onclick = () =>
+        navigator.clipboard.writeText($('b-preview').textContent);
+      document
+        .querySelectorAll('.globals input, .globals select')
+        .forEach((el) => el.addEventListener('input', render));
+      $('b-action').addEventListener('input', renderBuilder);
+      $('b-params').addEventListener('input', renderBuilder);
+      render();
+    </script>
+  </body>
+</html>

@@ -9,6 +9,7 @@
     "core:tray:default",
     "core:window:allow-request-user-attention",
     "fs:allow-write-text-file",
-    "dialog:default"
+    "dialog:default",
+    "deep-link:default"
   ]
 }

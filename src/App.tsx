@@ -1,14 +1,17 @@
 import { discoverThemes, resolveThemeImage } from '@/lib/themes';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { useEffect, useState } from 'react';
+import { Fragment, ReactNode, useEffect, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
+  Outlet,
   Navigate,
   Route,
   RouterProvider,
+  useLocation,
 } from 'react-router-dom';
+import { useDeepLink } from './hooks/useDeepLink';
 import { Slide, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ThemeProvider, useTheme } from 'theme-o-rama';
@@ -61,7 +64,20 @@ import Wallet from './pages/Wallet';
 import { AppsProvider } from '@/contexts/AppsContext.tsx';
 import { RustThemeSync } from '@/components/RustThemeSync.tsx';
 import { Apps } from '@/pages/Apps.tsx';
-import { platform } from '@tauri-apps/plugin-os';
+import { supportsSageApps } from '@/lib/apps/platform';
+
+function RootLayout() {
+  useDeepLink();
+
+  return <Outlet />;
+}
+
+// Remounts its page on every navigation (each history entry has its own key),
+// so a deep link, even one repeating the current URL, starts from fresh state
+function RemountOnUrl({ children }: { children: ReactNode }) {
+  const { key } = useLocation();
+  return <Fragment key={key}>{children}</Fragment>;
+}
 
 // Theme-aware toast container component
 function ThemeAwareToastContainer() {
@@ -92,13 +108,9 @@ function ThemeAwareToastContainer() {
   );
 }
 
-const currentPlatform = platform();
-const supportsSageApps =
-  currentPlatform !== 'android' && currentPlatform !== 'ios';
-
 const router = createHashRouter(
   createRoutesFromElements(
-    <>
+    <Route element={<RootLayout />}>
       <Route path='/' element={<Login />} />
       <Route path='/create' element={<CreateWallet />} />
       <Route path='/import' element={<ImportWallet />} />
@@ -106,7 +118,14 @@ const router = createHashRouter(
         <Route path='' element={<TokenList />} />
         <Route path='token/:asset_id' element={<Token />} />
         <Route path='issue-token' element={<IssueToken />} />
-        <Route path='send/:asset_id' element={<Send />} />
+        <Route
+          path='send/:asset_id'
+          element={
+            <RemountOnUrl>
+              <Send />
+            </RemountOnUrl>
+          }
+        />
       </Route>
       <Route path='/nfts' element={<Wallet />}>
         <Route path='' element={<NftList />} />
@@ -139,7 +158,14 @@ const router = createHashRouter(
       <Route path='/offers' element={<Wallet />}>
         <Route path='' element={<Offers />} />
         <Route path='make' element={<MakeOffer />} />
-        <Route path='view/:offer' element={<Offer />} />
+        <Route
+          path='view/:offer'
+          element={
+            <RemountOnUrl>
+              <Offer />
+            </RemountOnUrl>
+          }
+        />
         <Route path='view_saved/:offer_id' element={<SavedOffer />} />
       </Route>
       <Route path='/swap' element={<Wallet />}>
@@ -157,7 +183,7 @@ const router = createHashRouter(
       <Route path='/scan' element={<QRScanner />} />
       <Route path='/peers' element={<PeerList />} />
       <Route path='/themes' element={<Themes />} />
-    </>,
+    </Route>,
   ),
 );
 

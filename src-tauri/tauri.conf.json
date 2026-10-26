@@ -2,6 +2,19 @@
   "productName": "Sage",
   "version": "0.13.1",
   "identifier": "com.rigidnetwork.sage",
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["sage"]
+      },
+      "mobile": [
+        {
+          "scheme": ["sage"],
+          "appLink": false
+        }
+      ]
+    }
+  },
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -41,6 +54,9 @@
     ],
     "iOS": {
       "developmentTeam": "NQJQRYZZG3"
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0"
     }
   },
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json"
