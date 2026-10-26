@@ -1,7 +1,6 @@
 ---
-description: Rust module and import practices
-globs: **/*.rs
-alwaysApply: false
+paths:
+  - '**/*.rs'
 ---
 
 # Rust Modules And Imports
