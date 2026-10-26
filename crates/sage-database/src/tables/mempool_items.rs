@@ -365,7 +365,6 @@ async fn mempool_items_with_coins(
             coins.amount,
             mempool_coins.is_input,
             mempool_coins.is_output,
-            p2_puzzles.hash AS p2_puzzle_hash,
             assets.hash AS asset_hash,
             assets.name AS asset_name,
             assets.ticker AS asset_ticker,

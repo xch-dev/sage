@@ -251,6 +251,19 @@ impl TestWallet {
             .await;
     }
 
+    /// The custody puzzle hash the transaction history shows as the address for a coin.
+    pub async fn history_custody(&self, coin_id: Bytes32) -> anyhow::Result<Option<Bytes32>> {
+        let (transactions, _) = self.wallet.db.transactions(None, false, 1000, 0).await?;
+
+        let coin = transactions
+            .iter()
+            .flat_map(|transaction| transaction.created.iter().chain(&transaction.spent))
+            .find(|coin| coin.coin.coin_id() == coin_id)
+            .unwrap_or_else(|| panic!("coin {coin_id} is missing from the transaction history"));
+
+        Ok(coin.custody_p2_puzzle_hash)
+    }
+
     pub async fn new_block_with_current_time(&self) -> anyhow::Result<u64> {
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         let mut sim = self.sim.lock().await;
