@@ -12,6 +12,7 @@ import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { useWallet } from '@/contexts/WalletContext';
 import { IDENTITY_SIGNATURE, stringifySpendBundle } from '@/lib/spendBundle';
+import { xchandlesEnabled } from '@/lib/features';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -22,6 +23,7 @@ import {
   AlertCircleIcon,
   ArrowUpIcon,
   ArrowUpRightIcon,
+  AtSignIcon,
   BadgeMinus,
   BadgePlus,
   BoxIcon,
@@ -100,6 +102,7 @@ export default function ConfirmationDialog({
     ? calculateTransaction(walletState.sync.unit, response.summary)
     : { spent: [], created: [] };
   const fee = BigNumber(response?.summary.fee || 0);
+  const handles = response?.summary.handles ?? [];
   const isHighFee = fee.isGreaterThan(1000_000_000); // Adjust threshold as needed
 
   const json =
@@ -274,6 +277,48 @@ export default function ConfirmationDialog({
                         <div className='break-words whitespace-pre-wrap w-full'>
                           {additionalData.content}
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {xchandlesEnabled && handles.length > 0 && (
+                  <div className='mb-4'>
+                    <h3 className='text-sm font-medium mb-2 flex items-center'>
+                      <AtSignIcon className='h-4 w-4 mr-1' aria-hidden='true' />
+                      <Trans>Handles</Trans>
+                    </h3>
+                    <div className='space-y-2'>
+                      {handles.map((handle) => (
+                        <div
+                          key={handle.handle}
+                          className='rounded-md border p-2 text-sm space-y-1'
+                        >
+                          <div className='flex items-center gap-2'>
+                            <span className='font-medium'>
+                              @{handle.handle}
+                            </span>
+                            {handle.cached ? (
+                              <Badge variant='outline'>
+                                <Trans>Verified recently</Trans>
+                              </Badge>
+                            ) : (
+                              <Badge variant='outline'>
+                                <Trans>Verified</Trans>
+                              </Badge>
+                            )}
+                          </div>
+                          <div className='font-mono text-xs break-all'>
+                            {handle.address}
+                          </div>
+                        </div>
+                      ))}
+                      <div className='text-xs text-muted-foreground'>
+                        <Trans>
+                          Handles are checked again before submitting. If any
+                          resolve to a different address by then, nothing is
+                          sent.
+                        </Trans>
                       </div>
                     </div>
                   </div>

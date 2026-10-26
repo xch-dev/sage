@@ -5,6 +5,7 @@ import {
   NftUriKind,
   TransactionResponse,
 } from '@/bindings';
+import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { offersEnabled } from '@/lib/features';
@@ -202,12 +203,14 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const onTransferSubmit = (address: string, fee: string) => {
     setIsTransferring(true);
     setTransferAddress(address);
-    commands
-      .transferNfts({
+    withHandleConfirmation((confirmed_handles) =>
+      commands.transferNfts({
         nft_ids: [nft.launcher_id],
         address,
         fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+        confirmed_handles,
+      }),
+    )
       .then(setResponse)
       .catch((err) => {
         setIsTransferring(false);
