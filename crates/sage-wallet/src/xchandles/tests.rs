@@ -572,7 +572,7 @@ async fn test_too_many_transfers_are_not_verified() -> anyhow::Result<()> {
         error,
         XchandlesError::ResolvedSingletonMovedTooOften(..)
     ));
-    assert!(!error.is_unavailable() && !error.is_rejection());
+    assert!(!error.is_unavailable() && error.is_rejection());
 
     Ok(())
 }
@@ -677,7 +677,7 @@ async fn test_unspent_eve_singleton_is_not_verified() -> anyhow::Result<()> {
         error,
         XchandlesError::ResolvedSingletonUnspentEve(..)
     ));
-    assert!(!error.is_unavailable() && !error.is_rejection());
+    assert!(!error.is_unavailable() && error.is_rejection());
 
     Ok(())
 }
@@ -955,6 +955,27 @@ mod store {
         let row = db.xchandle(registry(), "alice").await?.unwrap();
         assert_eq!(row.status, XchandleStatus::Unverified);
         assert_eq!(row.last_verified_at, NOW);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_outdated_owner_is_not_used_offline() -> anyhow::Result<()> {
+        let db = test_db().await?;
+
+        for error in [
+            XchandlesError::ResolvedSingletonMovedTooOften(Bytes32::new([1; 32])),
+            XchandlesError::ResolvedSingletonUnspentEve(Bytes32::new([1; 32])),
+        ] {
+            store(&db, NOW, Ok(verified(A))).await?;
+
+            // The current owner couldn't be verified, but the stored one is known to be out
+            // of date, so it mustn't be returned when the API is unavailable later.
+            store(&db, NOW, Err(error)).await.unwrap_err();
+            let row = db.xchandle(registry(), "alice").await?.unwrap();
+            assert_eq!(row.status, XchandleStatus::Unverified);
+            assert!(store(&db, NOW, Err(unavailable())).await.is_err());
+        }
 
         Ok(())
     }

@@ -99,8 +99,10 @@ impl XchandlesError {
         }
     }
 
-    /// Whether the lookup produced an answer that was rejected, or showed that the handle
-    /// is no longer registered. The stored mapping is marked unverified when this happens.
+    /// Whether the lookup produced an answer that was rejected, showed that the handle is no
+    /// longer registered, or showed that the stored mapping is out of date even though the
+    /// current owner couldn't be verified. The stored mapping is marked unverified when this
+    /// happens.
     pub fn is_rejection(&self) -> bool {
         match self {
             Self::Api(error) => error.is_not_registered(),
@@ -109,7 +111,9 @@ impl XchandlesError {
             | Self::Expired { .. }
             | Self::ResolvedSingletonMelted(..)
             | Self::InvalidResolvedSingleton(..)
-            | Self::ResolvedSingletonInClawback(..) => true,
+            | Self::ResolvedSingletonInClawback(..)
+            | Self::ResolvedSingletonUnspentEve(..)
+            | Self::ResolvedSingletonMovedTooOften(..) => true,
             Self::InvalidHandle(..)
             | Self::Wallet(..)
             | Self::Database(..)
@@ -119,9 +123,7 @@ impl XchandlesError {
             | Self::SlotNotFound(..)
             | Self::SlotSpent(..)
             | Self::ResolutionUnavailable
-            | Self::ResolvedSingletonNotFound(..)
-            | Self::ResolvedSingletonUnspentEve(..)
-            | Self::ResolvedSingletonMovedTooOften(..) => false,
+            | Self::ResolvedSingletonNotFound(..) => false,
         }
     }
 
