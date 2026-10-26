@@ -343,16 +343,13 @@ impl Sage {
         let mut skipped = Vec::new();
 
         for entry in req.contacts {
-            let contact = match self.new_contact(&entry) {
-                Ok(contact) => contact,
-                Err(_) => {
-                    skipped.push(SkippedContact {
-                        entry,
-                        reason: ContactSkipReason::Invalid,
-                        existing_id: None,
-                    });
-                    continue;
-                }
+            let Ok(contact) = self.new_contact(&entry) else {
+                skipped.push(SkippedContact {
+                    entry,
+                    reason: ContactSkipReason::Invalid,
+                    existing_id: None,
+                });
+                continue;
             };
 
             if let Some((reason, existing)) = find_duplicate(&mut tx, &contact).await? {
