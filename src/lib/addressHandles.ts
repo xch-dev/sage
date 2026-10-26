@@ -266,8 +266,6 @@ export async function refreshOwnedHandles(
 
   if (!options.force && Date.now() - last < OWNED_REFRESH_INTERVAL_MS) return;
 
-  localStorage.setItem(key, String(Date.now()));
-
   await commands.getHandles({
     filter: 'owned',
     include_unverified: false,
@@ -276,5 +274,8 @@ export async function refreshOwnedHandles(
     limit: 1,
   });
 
+  // Only recorded once it succeeds, so a failed refresh is tried again the
+  // next time the wallet is opened.
+  localStorage.setItem(key, String(Date.now()));
   addressHandles.refresh();
 }
