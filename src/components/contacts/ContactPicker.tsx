@@ -30,6 +30,9 @@ import { ContactStatusBadge } from './ContactStatusBadge';
 const PICKER_LIMIT = 50;
 const RESOLVED_HANDLE_LIMIT = 100;
 
+/** The most handle contacts loaded to tell which resolved handles are saved. */
+const HANDLE_CONTACT_LIMIT = 1000;
+
 interface ContactPickerProps {
   /**
    * Called with what to enter as the recipient: the contact's address, or its
@@ -53,6 +56,7 @@ export function ContactPicker({ onSelect }: ContactPickerProps) {
   const debouncedSearch = useDebounce(search, 200);
   const [contacts, setContacts] = useState<ContactRecord[]>([]);
   const [handles, setHandles] = useState<HandleRecord[]>([]);
+  const [savedHandles, setSavedHandles] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open || !wallet) return;
@@ -81,6 +85,30 @@ export function ContactPicker({ onSelect }: ContactPickerProps) {
 
     let cancelled = false;
 
+    // Every handle contact, not just the ones on the current page of search
+    // results, so that a saved handle is never offered as an unsaved one.
+    commands
+      .getContacts({
+        search: null,
+        kind: 'handle',
+        offset: 0,
+        limit: HANDLE_CONTACT_LIMIT,
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setSavedHandles(
+            new Set(
+              data.contacts.flatMap((contact) =>
+                contact.handle ? [contact.handle] : [],
+              ),
+            ),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSavedHandles(new Set());
+      });
+
     // Only mappings which are verified and unexpired are offered. Networks
     // without XCHandles fail here, and simply have no handles to offer.
     commands
@@ -104,12 +132,9 @@ export function ContactPicker({ onSelect }: ContactPickerProps) {
   }, [open, wallet]);
 
   const query = debouncedSearch.trim().replace(/^@/, '').toLowerCase();
-  const contactHandles = new Set(
-    contacts.map((contact) => contact.handle).filter(Boolean),
-  );
   const otherHandles = handles.filter(
     (record) =>
-      !contactHandles.has(record.handle) &&
+      !savedHandles.has(record.handle) &&
       (record.handle.includes(query) || record.address === query),
   );
 

@@ -7,6 +7,7 @@ import { contactKindFilter, contactState } from '@/lib/contacts';
 import { toCustomError } from '@/lib/errors';
 import { ExportType, exportText } from '@/lib/exportText';
 import { xchandlesEnabled } from '@/lib/features';
+import { isHandleInput } from '@/lib/handles';
 import { formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -192,13 +193,20 @@ export function ContactsView() {
         return;
       }
 
+      // Builds without XCHandles hide handle contacts everywhere else, so
+      // they aren't imported either, and are reported as skipped instead.
+      const contacts = xchandlesEnabled
+        ? parsed.contacts
+        : parsed.contacts.filter((entry) => !isHandleInput(entry.recipient));
+
       const result = await commands.importContacts({
         network_id: parsed.network_id,
-        contacts: parsed.contacts,
+        contacts,
       });
 
       const added = result.added.length;
-      const skipped = result.skipped.length;
+      const skipped =
+        result.skipped.length + parsed.contacts.length - contacts.length;
 
       if (skipped > 0) {
         toast.warning(
