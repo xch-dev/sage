@@ -1,5 +1,6 @@
 use chia_wallet_sdk::prelude::*;
 use sqlx::SqliteExecutor;
+use unicode_normalization::UnicodeNormalization;
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 
@@ -163,9 +164,16 @@ fn is_ignorable(c: char) -> bool {
     )
 }
 
+/// A contact's name in the form it's stored: Unicode NFC, so that a name is stored the same
+/// way whether its accents were typed as separate combining marks or not.
+pub fn normalize_contact_name(name: &str) -> String {
+    name.nfc().collect()
+}
+
 /// The form of a contact's name used to tell whether two names look the same: lowercased,
-/// with runs of whitespace collapsed to one space, and ignorable characters removed. Two
-/// contacts can't have names with the same key.
+/// with runs of whitespace collapsed to one space, ignorable characters removed, and in
+/// Unicode NFC, so that combining marks are composed and in a consistent order. Two contacts
+/// can't have names with the same key.
 pub fn contact_name_key(name: &str) -> String {
     let mut key = String::with_capacity(name.len());
     let mut space = false;
@@ -184,7 +192,7 @@ pub fn contact_name_key(name: &str) -> String {
         key.extend(c.to_lowercase());
     }
 
-    key
+    key.nfc().collect()
 }
 
 macro_rules! contact_row {
@@ -526,6 +534,16 @@ mod tests {
         assert_eq!(contact_name_key("Bob 🐱\u{FE0F}"), "bob 🐱");
         assert_eq!(contact_name_key("Alice (work)\u{FE0F}"), "alice (work)");
         assert_eq!(contact_name_key("\u{200D}"), "");
+        // Accents typed as combining marks, in either order, look the same as precomposed ones.
+        assert_eq!(contact_name_key("Jose\u{0301}"), contact_name_key("José"));
+        assert_eq!(
+            contact_name_key("a\u{0323}\u{0302}"),
+            contact_name_key("a\u{0302}\u{0323}")
+        );
+        assert_eq!(
+            contact_name_key("a\u{0302}\u{034F}\u{0323}"),
+            contact_name_key("a\u{0323}\u{0302}")
+        );
         // Emoji keep their visible parts, so different emoji stay different.
         assert_ne!(
             contact_name_key("\u{1F3F3}\u{FE0F}\u{200D}\u{1F308}"),

@@ -219,6 +219,17 @@ async fn test_contact_duplicates_and_validation() -> Result<()> {
         assert!(error.to_string().contains("Alice"), "{name:?}: {error}");
     }
 
+    // Accents typed as combining marks look the same as precomposed ones, and are found by
+    // the same search.
+    app.add_contact(add("Jos\u{00E9}", &address(3))).await?;
+    let error = app
+        .add_contact(add("Jose\u{0301}", &address(4)))
+        .await
+        .unwrap_err();
+    assert_status(&error, StatusCode::BAD_REQUEST);
+    let found = app.get_contacts(search(Some("Jose\u{0301}"), None)).await?;
+    assert_eq!(found.total, 1);
+
     let error = app
         .update_contact(UpdateContact {
             id: bob.id,
@@ -244,7 +255,10 @@ async fn test_contact_duplicates_and_validation() -> Result<()> {
         assert_status(&error, StatusCode::BAD_REQUEST);
     }
 
-    assert_eq!(names(&contacts(&app).await?), ["Alice", "Bob"]);
+    assert_eq!(
+        names(&contacts(&app).await?),
+        ["Alice", "Bob", "Jos\u{00E9}"]
+    );
     assert_eq!(contact(&app, "Alice").await?.id, alice.id);
 
     Ok(())

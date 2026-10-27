@@ -19,7 +19,9 @@ use sage_api::{
     ImportContacts, ImportContactsResponse, LookupAddressContacts, LookupAddressContactsResponse,
     SkippedContact, UpdateContact, UpdateContactResponse,
 };
-use sage_database::{ContactQuery, ContactRow, ContactTarget, DatabaseTx, contact_name_key};
+use sage_database::{
+    ContactQuery, ContactRow, ContactTarget, DatabaseTx, contact_name_key, normalize_contact_name,
+};
 use sage_wallet::{Handle, HandleResolution, XchandlesError};
 
 use crate::{Error, Result, Sage};
@@ -63,15 +65,20 @@ fn is_hidden(c: char) -> bool {
                 | '\u{17B5}'
                 | '\u{180E}'
                 | '\u{200B}'
-                | '\u{2060}'..='\u{2064}'
+                | '\u{2028}'
+                | '\u{2029}'
+                | '\u{2060}'..='\u{2065}'
                 | '\u{206A}'..='\u{206F}'
                 | '\u{2800}'
                 | '\u{3164}'
                 | '\u{FEFF}'
                 | '\u{FFA0}'
-                | '\u{FFF9}'..='\u{FFFB}'
+                | '\u{FFF0}'..='\u{FFFB}'
                 | '\u{FDD0}'..='\u{FDEF}'
+                | '\u{1BCA0}'..='\u{1BCA3}'
                 | '\u{1D173}'..='\u{1D17A}'
+                | '\u{E0080}'..='\u{E00FF}'
+                | '\u{E01F0}'..='\u{E0FFF}'
         )
         || (c as u32) & 0xFFFE == 0xFFFE
 }
@@ -79,7 +86,7 @@ fn is_hidden(c: char) -> bool {
 /// Trims a contact's name, and checks that it's one line of a reasonable length,
 /// without invisible characters which could make it look like another name.
 fn contact_name(name: &str) -> Result<String> {
-    let name = name.trim();
+    let name = normalize_contact_name(name.trim());
 
     if name.is_empty() {
         return Err(Error::InvalidContact("the name is empty".to_string()));
@@ -103,20 +110,23 @@ fn contact_name(name: &str) -> Result<String> {
         ));
     }
 
-    if contact_name_key(name).is_empty() {
+    if contact_name_key(&name).is_empty() {
         return Err(Error::InvalidContact(
             "the name has no visible characters".to_string(),
         ));
     }
 
-    Ok(name.to_string())
+    Ok(name)
 }
 
 /// Trims a contact's note, treating an empty note as none. Notes can have more
 /// than one line, but no other control characters, or characters which reorder
 /// the text around them.
 fn contact_note(note: Option<&str>) -> Result<Option<String>> {
-    let Some(note) = note.map(str::trim).filter(|note| !note.is_empty()) else {
+    let Some(note) = note
+        .map(|note| normalize_contact_name(note.trim()))
+        .filter(|note| !note.is_empty())
+    else {
         return Ok(None);
     };
 
@@ -135,7 +145,7 @@ fn contact_note(note: Option<&str>) -> Result<Option<String>> {
         ));
     }
 
-    Ok(Some(note.to_string()))
+    Ok(Some(note))
 }
 
 /// A validated contact, ready to be stored.
@@ -167,11 +177,14 @@ impl Sage {
         let wallet = self.wallet()?;
         let registry_launcher_id = self.contact_registry();
 
+        // Names and notes are stored composed, so the search is too, to match them however
+        // its accents were typed.
         let search = req
             .search
             .as_deref()
-            .map(str::trim)
+            .map(|search| normalize_contact_name(search.trim()))
             .filter(|search| !search.is_empty());
+        let search = search.as_deref();
 
         // An address or puzzle hash matches the contacts which name it, and `@handle` matches
         // by the handle.
@@ -532,6 +545,8 @@ mod tests {
     #[test]
     fn names_are_trimmed_and_validated() {
         assert_eq!(contact_name("  Alice ").unwrap(), "Alice");
+        // Names are stored composed, however their accents were typed.
+        assert_eq!(contact_name("Jose\u{0301}").unwrap(), "Jos\u{00E9}");
         assert!(contact_name("   ").is_err());
         assert!(contact_name("a\nb").is_err());
         assert!(contact_name(&"a".repeat(MAX_CONTACT_NAME_LENGTH)).is_ok());
@@ -549,6 +564,9 @@ mod tests {
             "Alice\u{2067}",
             "Alice\u{2800}",
             "Alice\u{3164}",
+            "Alice\u{E0080}",
+            "Alice\u{1BCA0}",
+            "Alice\u{2028}Smith",
             "\u{200B}",
             // Only ignorable characters, so nothing visible.
             "\u{200D}\u{FE0F}",

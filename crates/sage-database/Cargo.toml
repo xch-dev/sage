@@ -20,6 +20,7 @@ sqlx = { workspace = true, features = ["sqlite"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 hex = { workspace = true }
+unicode-normalization = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }
