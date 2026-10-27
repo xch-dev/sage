@@ -299,4 +299,96 @@ describe('address handle labels', () => {
     expect(backend.lookup).toHaveBeenCalledTimes(2);
     expect(cache.get(ALICE)?.map((record) => record.handle)).toEqual(['alice']);
   });
+
+  it('ignores an older lookup which finishes after a newer one', async () => {
+    const backend = fakeBackend([
+      handle('alice', ALICE, { verification: 'outdated' }),
+    ]);
+    const { cache, flush } = testCache(backend);
+
+    let release: (() => void) | undefined;
+    backend.lookup.mockImplementationOnce(
+      (addresses) =>
+        new Promise((resolve) => {
+          release = () =>
+            resolve(
+              addresses.map((requested) => ({
+                address: requested,
+                handles: [
+                  handle('alice', requested, { verification: 'outdated' }),
+                ],
+              })),
+            );
+        }),
+    );
+
+    cache.watch(ALICE);
+    await flush();
+
+    // Verified again while the first lookup is still running.
+    backend.set([handle('alice', ALICE)]);
+    cache.refresh();
+    await flush();
+    release?.();
+    await flush();
+
+    const [record] = cache.get(ALICE) ?? [];
+    expect(handleTrust(record)).toBe('verified');
+  });
+
+  it('keeps the labels it has if looking them up again fails', async () => {
+    const backend = fakeBackend([handle('alice', ALICE)]);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(vi.fn());
+    const { cache, flush } = testCache(backend);
+
+    cache.watch(ALICE);
+    await flush();
+
+    backend.lookup.mockRejectedValueOnce(new Error('database busy'));
+    cache.refresh();
+    await flush();
+
+    expect(cache.get(ALICE)?.map((record) => record.handle)).toEqual(['alice']);
+    warn.mockRestore();
+  });
+
+  it('stops looking up on networks without XCHandles', async () => {
+    const backend = fakeBackend([]);
+    backend.lookup.mockRejectedValueOnce({
+      kind: 'api',
+      reason: 'unsupported',
+      handle_error_code: 'unsupported_network',
+    });
+    const { cache, flush, advance } = testCache(backend);
+
+    cache.watch(ALICE);
+    await flush();
+    advance(1001);
+    cache.watch(BOB);
+    cache.refresh();
+    await flush();
+    expect(backend.lookup).toHaveBeenCalledTimes(1);
+    expect(cache.get(ALICE)).toEqual([]);
+
+    // Another network or wallet might support them.
+    cache.clear();
+    await flush();
+    expect(backend.lookup).toHaveBeenCalledTimes(2);
+  });
+
+  it('forgets expired lookups for addresses no longer shown', async () => {
+    const backend = fakeBackend([]);
+    const { cache, flush, advance } = testCache(backend);
+
+    const unwatch = cache.watch(ALICE);
+    await flush();
+    unwatch();
+
+    advance(1001);
+    cache.watch(BOB);
+    await flush();
+
+    expect(cache.get(ALICE)).toBeUndefined();
+    expect(cache.get(BOB)).toEqual([]);
+  });
 });

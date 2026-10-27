@@ -67,4 +67,17 @@ describe('refreshing owned handles', () => {
     expect(refresh).toHaveBeenCalledTimes(1);
     refresh.mockRestore();
   });
+
+  it("doesn't try again on networks without XCHandles", async () => {
+    getHandles.mockRejectedValueOnce({
+      kind: 'api',
+      reason: 'unsupported',
+      handle_error_code: 'unsupported_network',
+    });
+
+    await refreshOwnedHandles(1, 'txch');
+    await refreshOwnedHandles(1, 'txch');
+
+    expect(getHandles).toHaveBeenCalledTimes(1);
+  });
 });

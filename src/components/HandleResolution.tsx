@@ -1,7 +1,10 @@
 import { commands, Error as BackendError, HandleRecord } from '@/bindings';
 import { useDebounce } from '@/hooks/useDebounce';
-import { isHandleInput, isValidHandle } from '@/lib/handles';
-import { t } from '@lingui/core/macro';
+import {
+  handleErrorMessage,
+  isHandleInput,
+  isValidHandle,
+} from '@/lib/handles';
 import { Trans } from '@lingui/react/macro';
 import {
   AlertTriangleIcon,
@@ -16,19 +19,6 @@ type Resolution =
   | { state: 'loading' }
   | { state: 'resolved'; record: HandleRecord }
   | { state: 'failed'; error: BackendError };
-
-function errorMessage(error: BackendError) {
-  const reason = error.reason;
-
-  switch (error.kind) {
-    case 'not_found':
-      return t`This handle isn't registered, or has expired`;
-    case 'internal':
-      return t`This handle couldn't be verified right now: ${reason}`;
-    default:
-      return t`This handle couldn't be verified: ${reason}`;
-  }
-}
 
 /**
  * Shows what a handle recipient resolves to while it's being entered. This is
@@ -84,7 +74,9 @@ export function HandleResolution({ value }: { value: string }) {
     return (
       <div className='flex items-start gap-1.5 text-xs text-destructive'>
         <XCircleIcon className='h-3.5 w-3.5 mt-0.5 shrink-0' />
-        <span className='break-words'>{errorMessage(resolution.error)}</span>
+        <span className='break-words'>
+          {handleErrorMessage(resolution.error)}
+        </span>
       </div>
     );
   }

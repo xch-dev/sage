@@ -106,7 +106,11 @@ export class AddressHandleCache {
   private entries = new Map<string, Entry>();
   private watchers = new Map<string, number>();
   private queued = new Set<string>();
-  private inflight = new Set<string>();
+  /** The latest request for each address whose result hasn't arrived yet. */
+  private pending = new Map<string, number>();
+  private requests = 0;
+  /** Set once the backend says this network has no XCHandles registry. */
+  private unsupported = false;
   private listeners = new Set<() => void>();
   private generation = 0;
   private scheduled = false;
@@ -165,16 +169,19 @@ export class AddressHandleCache {
     this.generation += 1;
     this.entries.clear();
     this.queued.clear();
-    this.inflight.clear();
+    this.pending.clear();
+    this.unsupported = false;
     this.notify();
     for (const address of this.watchers.keys()) this.request(address);
   }
 
   private request(address: string, force = false) {
+    if (this.unsupported) return;
+
     const entry = this.entries.get(address);
     if (!force && entry && entry.expiresAt > this.now()) return;
     if (this.queued.has(address)) return;
-    if (!force && this.inflight.has(address)) return;
+    if (!force && this.pending.has(address)) return;
 
     this.queued.add(address);
 
@@ -189,6 +196,7 @@ export class AddressHandleCache {
 
     const addresses = [...this.queued];
     this.queued.clear();
+    this.prune();
 
     for (let i = 0; i < addresses.length; i += MAX_LOOKUP_ADDRESSES) {
       this.send(addresses.slice(i, i + MAX_LOOKUP_ADDRESSES));
@@ -197,16 +205,25 @@ export class AddressHandleCache {
 
   private send(addresses: string[]) {
     const generation = this.generation;
-    for (const address of addresses) this.inflight.add(address);
+    const id = ++this.requests;
+    for (const address of addresses) this.pending.set(address, id);
 
-    const store = (results: Map<string, HandleRecord[]>) => {
+    // Only stores results for addresses this is still the latest request for,
+    // so an older lookup which finishes last can't replace newer labels.
+    const store = (results: Map<string, HandleRecord[]> | null) => {
       if (generation !== this.generation) return;
 
       const expiresAt = this.now() + this.ttlMs;
 
       for (const address of addresses) {
-        this.inflight.delete(address);
-        const handles = sortHandles(results.get(address) ?? []);
+        if (this.pending.get(address) !== id) continue;
+        this.pending.delete(address);
+
+        // A failed lookup keeps the labels already shown, if there are any.
+        const handles = results
+          ? sortHandles(results.get(address) ?? [])
+          : (this.entries.get(address)?.handles ?? []);
+
         this.entries.set(address, {
           handles: handles.length === 0 ? NO_HANDLES : handles,
           expiresAt,
@@ -222,17 +239,42 @@ export class AddressHandleCache {
           new Map(records.map((record) => [record.address, record.handles])),
         );
       })
-      .catch((error) => {
-        // Labels are only a convenience, so a failed lookup shows none rather
-        // than an error, and isn't retried until the entries expire.
-        console.warn('Failed to look up known handles', error);
-        store(new Map());
+      .catch((error: unknown) => {
+        if (isUnsupportedNetwork(error)) {
+          // Nothing will ever be found, so stop asking until the network or
+          // wallet changes.
+          if (generation === this.generation) this.unsupported = true;
+        } else {
+          // Labels are only a convenience, so a failed lookup shows no new
+          // labels rather than an error, and isn't retried until it expires.
+          console.warn('Failed to look up known handles', error);
+        }
+        store(null);
       });
+  }
+
+  /** Forgets expired lookups for addresses which aren't shown anymore. */
+  private prune() {
+    const now = this.now();
+    for (const [address, entry] of this.entries) {
+      if (entry.expiresAt <= now && !this.watchers.has(address)) {
+        this.entries.delete(address);
+      }
+    }
   }
 
   private notify() {
     for (const listener of this.listeners) listener();
   }
+}
+
+function isUnsupportedNetwork(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'handle_error_code' in error &&
+    error.handle_error_code === 'unsupported_network'
+  );
 }
 
 export const addressHandles = new AddressHandleCache(async (addresses) => {
@@ -253,8 +295,9 @@ function ownedRefreshKey(fingerprint: number, prefix: string) {
  * only used by the backend to pick which handles to resolve, and each one is
  * verified against the registry before it's stored.
  *
- * This makes requests to the XCHandles API and holds the wallet for up to 30
- * seconds, so it's only done every few hours for each wallet.
+ * This makes requests to the XCHandles API, and other backend requests wait
+ * for it to finish (for up to 30 seconds), so it's only done every 12 hours
+ * for each wallet and network.
  */
 export async function refreshOwnedHandles(fingerprint: number, prefix: string) {
   const key = ownedRefreshKey(fingerprint, prefix);
@@ -262,13 +305,21 @@ export async function refreshOwnedHandles(fingerprint: number, prefix: string) {
 
   if (Date.now() - last < OWNED_REFRESH_INTERVAL_MS) return;
 
-  await commands.getHandles({
-    filter: 'owned',
-    include_unverified: false,
-    refresh: true,
-    offset: 0,
-    limit: 1,
-  });
+  try {
+    await commands.getHandles({
+      filter: 'owned',
+      include_unverified: false,
+      refresh: true,
+      offset: 0,
+      limit: 1,
+    });
+  } catch (error) {
+    // Networks without XCHandles have nothing to refresh, so there's no point
+    // trying again each time the wallet is opened.
+    if (!isUnsupportedNetwork(error)) throw error;
+    localStorage.setItem(key, String(Date.now()));
+    return;
+  }
 
   // Only recorded once it succeeds, so a failed refresh is tried again the
   // next time the wallet is opened.

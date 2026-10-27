@@ -1120,8 +1120,13 @@ mod store {
             ["alice", "bob"]
         );
 
-        // Alice's resolved NFT is transferred, and the next lookup verifies the new owner.
-        store(&db, NOW + 60, Ok(verified(B))).await?;
+        // Alice's resolved NFT is transferred, and the next lookup verifies the new owner. The
+        // handle still resolves to the same NFT, so only its puzzle hash changes.
+        let original = verified(A).slot_value;
+        let mut transferred = verified(B);
+        transferred.slot_value.owner_launcher_id = original.owner_launcher_id;
+        transferred.slot_value.resolved_launcher_id = original.resolved_launcher_id;
+        store(&db, NOW + 60, Ok(transferred)).await?;
 
         assert_eq!(
             names(db.xchandles_by_puzzle_hash(registry(), A).await?),

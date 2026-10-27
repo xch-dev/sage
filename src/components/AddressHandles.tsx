@@ -8,8 +8,9 @@ import {
 } from '@/components/ui/popover';
 import { useAddressHandles } from '@/hooks/useAddressHandles';
 import { addressHandles, HandleTrust, handleTrust } from '@/lib/addressHandles';
+import { handleErrorMessage } from '@/lib/handles';
 import { cn, formatTimestamp } from '@/lib/utils';
-import { t } from '@lingui/core/macro';
+import { plural, t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
   AlertTriangleIcon,
@@ -54,20 +55,6 @@ function trustLabel(trust: HandleTrust) {
       return t`Not verified recently`;
     case 'changed':
       return t`Changed hands`;
-  }
-}
-
-function verifyError(error: BackendError) {
-  const reason = error.reason;
-
-  switch (error.handle_error_code) {
-    case 'not_found':
-    case 'expired':
-      return t`This handle isn't registered anymore, or has expired`;
-    case 'unavailable':
-      return t`This handle couldn't be verified right now: ${reason}`;
-    default:
-      return t`This handle couldn't be verified: ${reason}`;
   }
 }
 
@@ -118,7 +105,10 @@ export function AddressHandles({
           title={t`@${name} (${label})`}
           aria-label={
             count > 0
-              ? t`@${name} (${label}) and ${count} more handles. Show all handles for this address`
+              ? plural(count, {
+                  one: `@${name} (${label}) and # more handle. Show all handles for this address`,
+                  other: `@${name} (${label}) and # more handles. Show all handles for this address`,
+                })
               : t`@${name} (${label}). Show handle details`
           }
           onClick={(event) => event.stopPropagation()}
@@ -193,7 +183,7 @@ function HandleDetails({ record }: { record: HandleRecord }) {
           toast.warn(t`@${name} now resolves to a different address`);
         }
       })
-      .catch((error: BackendError) => toast.error(verifyError(error)))
+      .catch((error: BackendError) => toast.error(handleErrorMessage(error)))
       // Verifying can move the handle to another address, or mark it as no
       // longer verified, so every label is looked up again.
       .finally(() => {
