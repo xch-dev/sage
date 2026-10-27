@@ -1,0 +1,176 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT * FROM xchandles\n        WHERE registry_launcher_id = ?\n            AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))\n            AND (\n                ? != 1 OR hex(owner_launcher_id) IN (SELECT value FROM json_each(?))\n            )\n            AND (? != 2 OR handle IN (SELECT handle FROM contacts WHERE kind = 1))\n        ORDER BY handle ASC\n        LIMIT ? OFFSET ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "registry_launcher_id",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "handle",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "handle_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "owner_launcher_id",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "resolved_launcher_id",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "resolved_puzzle_hash",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "expiration",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "slot_coin_id",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "slot_counter",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "slot_left_handle_hash",
+        "ordinal": 10,
+        "type_info": "Blob"
+      },
+      {
+        "name": "slot_right_handle_hash",
+        "ordinal": 11,
+        "type_info": "Blob"
+      },
+      {
+        "name": "slot_parent_id",
+        "ordinal": 12,
+        "type_info": "Blob"
+      },
+      {
+        "name": "slot_parent_parent_id",
+        "ordinal": 13,
+        "type_info": "Blob"
+      },
+      {
+        "name": "slot_parent_inner_puzzle_hash",
+        "ordinal": 14,
+        "type_info": "Blob"
+      },
+      {
+        "name": "slot_confirmation_height",
+        "ordinal": 15,
+        "type_info": "Integer"
+      },
+      {
+        "name": "resolved_coin_id",
+        "ordinal": 16,
+        "type_info": "Blob"
+      },
+      {
+        "name": "resolved_confirmation_height",
+        "ordinal": 17,
+        "type_info": "Integer"
+      },
+      {
+        "name": "indexed_height",
+        "ordinal": 18,
+        "type_info": "Integer"
+      },
+      {
+        "name": "verified_height",
+        "ordinal": 19,
+        "type_info": "Integer"
+      },
+      {
+        "name": "verified_timestamp",
+        "ordinal": 20,
+        "type_info": "Integer"
+      },
+      {
+        "name": "last_verified_at",
+        "ordinal": 21,
+        "type_info": "Integer"
+      },
+      {
+        "name": "status",
+        "ordinal": 22,
+        "type_info": "Integer"
+      },
+      {
+        "name": "status_reason",
+        "ordinal": 23,
+        "type_info": "Text"
+      },
+      {
+        "name": "previous_resolved_launcher_id",
+        "ordinal": 24,
+        "type_info": "Blob"
+      },
+      {
+        "name": "previous_resolved_puzzle_hash",
+        "ordinal": 25,
+        "type_info": "Blob"
+      },
+      {
+        "name": "last_sent_puzzle_hash",
+        "ordinal": 26,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "2fddc5c603a4ad34a8e8d38caffb39d369fce5bb25687b80d7bb1c0502fc0e1c"
+}

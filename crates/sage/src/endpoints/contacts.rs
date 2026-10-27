@@ -20,17 +20,12 @@ use sage_api::{
     SkippedContact, UpdateContact, UpdateContactResponse,
 };
 use sage_database::{
-    ContactQuery, ContactRow, ContactTarget, DatabaseTx, contact_name_key, normalize_contact_name,
+    ContactQuery, ContactRow, ContactTarget, MAX_CONTACT_NAME_LENGTH, MAX_CONTACT_NOTE_LENGTH,
+    SharedDatabaseTx, contact_name_key, normalize_contact_name,
 };
 use sage_wallet::{Handle, HandleResolution, XchandlesError};
 
 use crate::{Error, Result, Sage};
-
-/// The longest a contact's name may be, in characters.
-pub const MAX_CONTACT_NAME_LENGTH: usize = 64;
-
-/// The longest a contact's note may be, in characters.
-pub const MAX_CONTACT_NOTE_LENGTH: usize = 1000;
 
 /// The most contacts which can be imported at once.
 pub const MAX_IMPORT_CONTACTS: usize = 10_000;
@@ -163,7 +158,7 @@ struct NewContact {
 /// The existing contact a new contact would duplicate, if any. A recipient can only belong to
 /// one contact, and no two names can look the same (see `contact_name_key`).
 async fn find_duplicate(
-    tx: &mut DatabaseTx<'_>,
+    tx: &mut SharedDatabaseTx<'_>,
     contact: &NewContact,
 ) -> Result<Option<(ContactSkipReason, ContactRow)>> {
     if let Some(existing) = tx.contact_by_target(&contact.target).await? {
@@ -197,7 +192,7 @@ impl Sage {
         let text = search.map(|search| search.strip_prefix('@').unwrap_or(search));
 
         let (rows, total) = wallet
-            .db
+            .shared_db
             .contacts_page(
                 ContactQuery {
                     search: text,
@@ -227,7 +222,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let row = wallet
-            .db
+            .shared_db
             .contact(req.id)
             .await?
             .ok_or(Error::MissingContact(req.id))?;
@@ -247,7 +242,7 @@ impl Sage {
         })?;
 
         let now = unix_now();
-        let mut tx = wallet.db.tx().await?;
+        let mut tx = wallet.shared_db.tx().await?;
 
         match find_duplicate(&mut tx, &contact).await? {
             Some((ContactSkipReason::DuplicateName, existing)) => {
@@ -284,7 +279,7 @@ impl Sage {
         let name = contact_name(&req.name)?;
         let note = contact_note(req.note.as_deref())?;
 
-        let mut tx = wallet.db.tx().await?;
+        let mut tx = wallet.shared_db.tx().await?;
 
         if tx.contact(req.id).await?.is_none() {
             return Err(Error::MissingContact(req.id));
@@ -315,7 +310,7 @@ impl Sage {
     pub async fn delete_contact(&self, req: DeleteContact) -> Result<DeleteContactResponse> {
         let wallet = self.wallet()?;
 
-        if !wallet.db.delete_contact(req.id).await? {
+        if !wallet.shared_db.delete_contact(req.id).await? {
             return Err(Error::MissingContact(req.id));
         }
 
@@ -350,7 +345,7 @@ impl Sage {
             let mut records = Vec::new();
 
             for row in wallet
-                .db
+                .shared_db
                 .contacts_by_puzzle_hash(registry_launcher_id, puzzle_hash, now)
                 .await?
             {
@@ -377,7 +372,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let contacts = wallet
-            .db
+            .shared_db
             .all_contacts()
             .await?
             .into_iter()
@@ -413,7 +408,7 @@ impl Sage {
         }
 
         let now = unix_now();
-        let mut tx = wallet.db.tx().await?;
+        let mut tx = wallet.shared_db.tx().await?;
         let mut added = Vec::new();
         let mut skipped = Vec::new();
 
@@ -447,7 +442,7 @@ impl Sage {
         let mut records = Vec::with_capacity(added.len());
 
         for id in added {
-            if let Some(row) = wallet.db.contact(id).await? {
+            if let Some(row) = wallet.shared_db.contact(id).await? {
                 records.push(self.contact_record(row, now).await?);
             }
         }
@@ -509,7 +504,7 @@ impl Sage {
             ContactTarget::Handle(handle) => {
                 let resolution = match self.contact_registry() {
                     Some(registry_launcher_id) => wallet
-                        .db
+                        .shared_db
                         .xchandle(registry_launcher_id, &handle)
                         .await?
                         .map(|row| {

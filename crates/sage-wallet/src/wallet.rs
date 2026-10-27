@@ -14,7 +14,9 @@ use chia_wallet_sdk::{
     types::puzzles::P2DelegatedConditionsSolution,
 };
 use indexmap::IndexMap;
-use sage_database::{AssetKind, CoinKind, Database, DeserializePrimitive, P2Puzzle};
+use sage_database::{
+    AssetKind, CoinKind, Database, DeserializePrimitive, P2Puzzle, SharedDatabase,
+};
 
 mod cats;
 mod coin_management;
@@ -40,6 +42,9 @@ use crate::WalletError;
 #[derive(Debug)]
 pub struct Wallet {
     pub db: Database,
+    /// The database shared by every wallet on this wallet's network, for the address book
+    /// and verified handle mappings.
+    pub shared_db: SharedDatabase,
     pub fingerprint: u32,
     pub intermediate_pk: PublicKey,
     pub genesis_challenge: Bytes32,
@@ -50,6 +55,7 @@ pub struct Wallet {
 impl Wallet {
     pub fn new(
         db: Database,
+        shared_db: SharedDatabase,
         fingerprint: u32,
         intermediate_pk: PublicKey,
         genesis_challenge: Bytes32,
@@ -58,6 +64,7 @@ impl Wallet {
     ) -> Self {
         Self {
             db,
+            shared_db,
             fingerprint,
             intermediate_pk,
             genesis_challenge,

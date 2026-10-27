@@ -485,7 +485,7 @@ impl Sage {
             let registry_launcher_id = config.registry_launcher_id;
 
             let result = async {
-                let mut tx = wallet.db.tx().await?;
+                let mut tx = wallet.shared_db.tx().await?;
 
                 if let Some(row) = tx.xchandle(registry_launcher_id, handle).await?
                     && row.resolved_puzzle_hash == send.puzzle_hash

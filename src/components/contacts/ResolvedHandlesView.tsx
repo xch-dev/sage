@@ -19,7 +19,7 @@ const PAGE_SIZE = 25;
 const CONTACT_LIMIT = 1000;
 
 /**
- * Every handle Sage has resolved in this wallet, from the verified mapping
+ * Every handle Sage has resolved on this network, in any wallet, from the verified mapping
  * store, whether or not it's saved as a contact. Nothing here is looked up
  * again, so each handle shows when it was last verified.
  */
@@ -110,8 +110,9 @@ export function ResolvedHandlesView() {
     <div className='flex flex-col gap-4'>
       <p className='text-sm text-muted-foreground'>
         <Trans>
-          Every handle this wallet has resolved, as it was last verified.
-          Handles are verified again whenever you send to them.
+          Every handle resolved on this network, in any of your wallets, as it
+          was last verified. Handles are verified again whenever you send to
+          them.
         </Trans>
       </p>
 

@@ -317,7 +317,7 @@ impl SyncManager {
                     && let Some(previous_peak) = previous_peak
                     && message.fork_point_with_previous_peak < previous_peak
                     && let Err(error) = wallet
-                        .db
+                        .shared_db
                         .invalidate_xchandles_between(
                             message.fork_point_with_previous_peak,
                             previous_peak,

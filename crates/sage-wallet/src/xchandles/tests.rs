@@ -954,20 +954,20 @@ fn test_handle_slot_matches_live_registries() -> anyhow::Result<()> {
 }
 
 mod store {
-    use sage_database::{Database, XchandleRow, XchandleStatus};
+    use sage_database::{SharedDatabase, XchandleRow, XchandleStatus};
     use sqlx::{migrate, sqlite::SqlitePoolOptions};
 
     use super::*;
 
     const NOW: u64 = 1_800_000_000;
 
-    async fn test_db() -> anyhow::Result<Database> {
+    async fn test_db() -> anyhow::Result<SharedDatabase> {
         let pool = SqlitePoolOptions::new()
             .max_connections(1)
             .connect("sqlite::memory:")
             .await?;
         migrate!("../../migrations").run(&pool).await?;
-        Ok(Database::new(pool))
+        Ok(SharedDatabase::new(pool))
     }
 
     fn registry() -> Bytes32 {
@@ -1015,7 +1015,7 @@ mod store {
     }
 
     async fn store(
-        db: &Database,
+        db: &SharedDatabase,
         now: u64,
         result: Result<VerifiedHandle, XchandlesError>,
     ) -> Result<HandleResolution, XchandlesError> {
@@ -1278,7 +1278,7 @@ mod store {
             .max_connections(1)
             .connect("sqlite::memory:")
             .await?;
-        let db = Database::new(pool.clone());
+        let db = SharedDatabase::new(pool.clone());
         pool.close().await;
 
         let error = store(&db, NOW, Err(XchandlesError::InvalidLineage))

@@ -242,7 +242,7 @@ Allows the app to look up XCHandles handles, which sends them to the XCHandles A
 
 **Read known XCHandles**
 
-Allows the app to read the XCHandles handles this wallet has already verified, including which ones it owns and which handles point to an address.
+Allows the app to read the XCHandles handles Sage has already verified on this network, in any wallet, including which ones this wallet owns and which handles point to an address.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -256,7 +256,7 @@ Allows the app to read the XCHandles handles this wallet has already verified, i
 
 **Read address book**
 
-Allows the app to read the contacts in this wallet's address book, including their names, notes, addresses and handles.
+Allows the app to read the contacts in your address book, which every wallet on this network shares, including their names, notes, addresses and handles.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |

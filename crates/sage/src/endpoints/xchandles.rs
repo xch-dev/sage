@@ -139,15 +139,26 @@ impl Sage {
 
         let now = unix_now();
 
+        let filter = match req.filter {
+            HandleFilterMode::All => XchandleFilter::All,
+            HandleFilterMode::Owned => XchandleFilter::Owned,
+            HandleFilterMode::Contacts => XchandleFilter::Contacts,
+        };
+
+        // Handle mappings are shared by every wallet on the network, but which handles are
+        // owned depends on the NFTs and DIDs in this wallet.
+        let owned_launcher_ids = if filter == XchandleFilter::Owned {
+            wallet.db.owned_singleton_launcher_ids().await?
+        } else {
+            Vec::new()
+        };
+
         let (rows, total) = wallet
-            .db
+            .shared_db
             .xchandles_page(
                 config.registry_launcher_id,
-                match req.filter {
-                    HandleFilterMode::All => XchandleFilter::All,
-                    HandleFilterMode::Owned => XchandleFilter::Owned,
-                    HandleFilterMode::Contacts => XchandleFilter::Contacts,
-                },
+                filter,
+                &owned_launcher_ids,
                 req.include_unverified,
                 now,
                 req.limit,
@@ -190,7 +201,7 @@ impl Sage {
             }
 
             let records = wallet
-                .db
+                .shared_db
                 .xchandles_by_puzzle_hash(config.registry_launcher_id, puzzle_hash)
                 .await?
                 .into_iter()
@@ -292,7 +303,14 @@ impl Sage {
                 .unwrap_or(Err(XchandlesError::Timeout))
         };
 
-        Ok(resolve_and_store(&wallet.db, config.registry_launcher_id, handle, now, lookup).await?)
+        Ok(resolve_and_store(
+            &wallet.shared_db,
+            config.registry_launcher_id,
+            handle,
+            now,
+            lookup,
+        )
+        .await?)
     }
 
     /// Fetches the pending transfer the API reports for a handle, if any, along with the
@@ -344,9 +362,11 @@ impl Sage {
             .filter_map(|name| Handle::parse(name).ok())
             .collect();
 
+        let owned_launcher_ids = wallet.db.owned_singleton_launcher_ids().await?;
+
         let owned: HashSet<String> = wallet
-            .db
-            .owned_xchandle_names(config.registry_launcher_id)
+            .shared_db
+            .owned_xchandle_names(config.registry_launcher_id, &owned_launcher_ids)
             .await?
             .into_iter()
             .collect();

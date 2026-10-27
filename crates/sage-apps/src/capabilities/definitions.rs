@@ -121,11 +121,11 @@ pub(crate) fn get_user_capability_definition(
             CapabilityFlags::new(true, false, true, true, true),
         ),
         // Known handles come from the local store only, but reveal which handles have been
-        // looked up in this wallet, so they need their own grant.
+        // looked up in any wallet on this network, so they need their own grant.
         UserBridgeCapability::WalletGetHandles => CapabilityDefinition::new(
             capability,
             "Read known XCHandles",
-            "Allows the app to read the XCHandles handles this wallet has already verified, including which ones it owns and which handles point to an address.",
+            "Allows the app to read the XCHandles handles Sage has already verified on this network, in any wallet, including which ones this wallet owns and which handles point to an address.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
         // Contacts come from the local store only, but are personal, so they need their own
@@ -133,7 +133,7 @@ pub(crate) fn get_user_capability_definition(
         UserBridgeCapability::WalletGetContacts => CapabilityDefinition::new(
             capability,
             "Read address book",
-            "Allows the app to read the contacts in this wallet's address book, including their names, notes, addresses and handles.",
+            "Allows the app to read the contacts in your address book, which every wallet on this network shares, including their names, notes, addresses and handles.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
         UserBridgeCapability::WalletFilterUnlockedCoins => CapabilityDefinition::new(

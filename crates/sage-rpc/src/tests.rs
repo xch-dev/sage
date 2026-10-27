@@ -563,6 +563,63 @@ fn handle_names(handles: &[sage_api::HandleRecord]) -> Vec<&str> {
 }
 
 #[tokio::test]
+async fn test_owned_handles_are_per_wallet() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(0).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let nft_id = mint_mutable_nft(&mut app).await?;
+    let owned_nft = Address::decode(&nft_id)?.puzzle_hash;
+    let resolved = Bytes32::new([0xaa; 32]);
+
+    {
+        let sage = app.sage.lock().await;
+        let registry = sage
+            .network()
+            .xchandles()
+            .expect("testnet11 has a deployment")
+            .registry_launcher_id;
+        let db = &sage.wallet()?.shared_db;
+
+        db.upsert_xchandle(&stored_handle(registry, "alice", owned_nft, resolved))
+            .await?;
+        db.upsert_xchandle(&stored_handle(
+            registry,
+            "zed",
+            Bytes32::new([0xbb; 32]),
+            resolved,
+        ))
+        .await?;
+    }
+
+    let owned = app
+        .get_handles(handles_request(HandleFilterMode::Owned, false))
+        .await?;
+    assert_eq!(handle_names(&owned.handles), ["alice"]);
+    assert_eq!(owned.total, 1);
+
+    // Handle mappings are shared with the other wallets on the network, but only the wallet
+    // holding the owner NFT owns the handle.
+    app.login(Login { fingerprint: bob }).await?;
+
+    let owned = app
+        .get_handles(handles_request(HandleFilterMode::Owned, false))
+        .await?;
+    assert!(owned.handles.is_empty());
+    assert_eq!(owned.total, 0);
+
+    let all = app
+        .get_handles(handles_request(HandleFilterMode::All, false))
+        .await?;
+    assert_eq!(handle_names(&all.handles), ["alice", "zed"]);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_known_handles() -> Result<()> {
     let mut app = TestApp::new().await?;
 
@@ -585,7 +642,7 @@ async fn test_known_handles() -> Result<()> {
             .xchandles()
             .expect("testnet11 has a deployment")
             .registry_launcher_id;
-        let db = &sage.wallet()?.db;
+        let db = &sage.wallet()?.shared_db;
 
         db.upsert_xchandle(&stored_handle(
             registry,

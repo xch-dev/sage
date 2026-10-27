@@ -292,6 +292,12 @@ export function ContactsView() {
         }}
       />
 
+      <p className='text-sm text-muted-foreground'>
+        <Trans>
+          Your address book is shared by all of your wallets on this network.
+        </Trans>
+      </p>
+
       <div className='flex flex-wrap items-center gap-2'>
         <div className='relative flex-1 min-w-48'>
           <SearchIcon
@@ -419,12 +425,16 @@ export function ContactsView() {
             <DialogDescription>
               {deleting?.kind === 'handle' ? (
                 <Trans>
-                  This removes the contact from your address book. Sage keeps
-                  what it verified about the handle, so any change since you
-                  last sent to it is still flagged.
+                  This removes the contact from your address book, for all of
+                  your wallets on this network. Sage keeps what it verified
+                  about the handle, so any change since you last sent to it is
+                  still flagged.
                 </Trans>
               ) : (
-                <Trans>This removes the contact from your address book.</Trans>
+                <Trans>
+                  This removes the contact from your address book, for all of
+                  your wallets on this network.
+                </Trans>
               )}
             </DialogDescription>
           </DialogHeader>

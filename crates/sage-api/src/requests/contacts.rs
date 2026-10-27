@@ -7,7 +7,7 @@ use crate::{AddressContactsRecord, ContactEntry, ContactKind, ContactRecord, Ski
     feature = "openapi",
     crate::openapi_attr(
         tag = "Address Book",
-        description = "List contacts in this wallet's address book for the current network, sorted by name. Handle contacts include the mapping Sage last verified for them, read from the local store. Nothing is fetched from the network, so resolve a handle before relying on its address."
+        description = "List contacts in the address book for the current network, sorted by name. The address book is shared by every wallet on the network. Handle contacts include the mapping Sage last verified for them, read from the local store. Nothing is fetched from the network, so resolve a handle before relying on its address."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]

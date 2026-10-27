@@ -372,7 +372,7 @@ pub async fn add_new_subscriptions(
 #[cfg(test)]
 mod tests {
     use chia_wallet_sdk::chia::bls::master_to_wallet_unhardened_intermediate;
-    use sage_database::Database;
+    use sage_database::{Database, SharedDatabase};
     use sqlx::{SqlitePool, migrate};
     use tokio::time::timeout;
 
@@ -386,9 +386,13 @@ mod tests {
         let db = Database::new(pool);
         db.run_rust_migrations("TXCH".to_string()).await?;
 
+        let shared_pool = SqlitePool::connect("sqlite::memory:").await?;
+        migrate!("../../migrations").run(&shared_pool).await?;
+
         let pk = BlsPair::default().sk.public_key();
         let wallet = Wallet::new(
             db,
+            SharedDatabase::new(shared_pool),
             pk.get_fingerprint(),
             master_to_wallet_unhardened_intermediate(&pk),
             TESTNET11_CONSTANTS.genesis_challenge,

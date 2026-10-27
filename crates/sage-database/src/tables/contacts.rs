@@ -2,7 +2,13 @@ use chia_wallet_sdk::prelude::*;
 use sqlx::SqliteExecutor;
 use unicode_normalization::UnicodeNormalization;
 
-use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
+use crate::{Convert, Database, DatabaseError, Result, SharedDatabase, SharedDatabaseTx};
+
+/// The most characters a contact's name can have.
+pub const MAX_CONTACT_NAME_LENGTH: usize = 64;
+
+/// The most characters a contact's note can have.
+pub const MAX_CONTACT_NOTE_LENGTH: usize = 1000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
@@ -72,6 +78,24 @@ pub struct ContactQuery<'a> {
 }
 
 impl Database {
+    /// Every contact in this wallet's database, from before the address book was moved to the
+    /// shared database.
+    pub async fn legacy_contacts(&self) -> Result<Vec<ContactRow>> {
+        all_contacts(&self.pool).await
+    }
+
+    /// Removes the address book and handle mappings from this wallet's database, once they've
+    /// been imported into the shared database.
+    pub async fn clear_legacy_address_book(&self) -> Result<()> {
+        sqlx::query!("DELETE FROM contacts; DELETE FROM xchandles;")
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+}
+
+impl SharedDatabase {
     pub async fn contact(&self, id: u32) -> Result<Option<ContactRow>> {
         contact(&self.pool, id).await
     }
@@ -108,7 +132,7 @@ impl Database {
     }
 }
 
-impl DatabaseTx<'_> {
+impl SharedDatabaseTx<'_> {
     pub async fn contact(&mut self, id: u32) -> Result<Option<ContactRow>> {
         contact(&mut *self.tx, id).await
     }
@@ -472,10 +496,10 @@ mod tests {
 
     use super::*;
 
-    async fn database() -> anyhow::Result<Database> {
+    async fn database() -> anyhow::Result<SharedDatabase> {
         let pool = SqlitePool::connect("sqlite::memory:").await?;
         migrate!("../../migrations").run(&pool).await?;
-        Ok(Database::new(pool))
+        Ok(SharedDatabase::new(pool))
     }
 
     #[tokio::test]

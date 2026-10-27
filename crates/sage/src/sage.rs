@@ -18,7 +18,7 @@ use sage_config::{
     Config, Network, NetworkList, OldConfig, OldNetwork, Wallet as WalletEntry, WalletConfig,
     is_old_config, migrate_config, migrate_networks,
 };
-use sage_database::Database;
+use sage_database::{Database, SharedDatabase};
 use sage_keychain::Keychain;
 use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
 use serde::de::DeserializeOwned;
@@ -387,10 +387,35 @@ impl Sage {
         db.run_rust_migrations(self.network().ticker.clone())
             .await?;
 
+        let shared_db = self.connect_to_shared_database(fingerprint).await?;
+
+        // The address book and handle mappings used to be stored in each wallet's database.
+        // Anything left there is moved to the shared database. If that fails, it stays where
+        // it is and is tried again the next time the wallet is opened.
+        match shared_db.import_legacy(&db).await {
+            Ok(import) => {
+                if import.xchandles > 0 || import.contacts > 0 || import.duplicates > 0 {
+                    info!(
+                        "Moved {} handle mappings and {} contacts to the shared database, \
+                        skipping {} contacts which were already saved",
+                        import.xchandles, import.contacts, import.duplicates
+                    );
+                }
+
+                for (old, new) in import.renamed {
+                    info!("Renamed the contact {old} to {new}, since that name was taken");
+                }
+            }
+            Err(error) => {
+                warn!("Failed to move the address book to the shared database: {error}");
+            }
+        }
+
         let wallet_config = self.wallet_config().cloned().unwrap_or_default();
 
         let wallet = Arc::new(Wallet::new(
             db.clone(),
+            shared_db,
             fingerprint,
             intermediate_pk,
             self.network().genesis_challenge,
@@ -544,11 +569,31 @@ impl Sage {
         Ok(pool)
     }
 
+    /// Connects to the database shared by every wallet on the network of the given wallet.
+    pub async fn connect_to_shared_database(&self, fingerprint: u32) -> Result<SharedDatabase> {
+        let path = self.shared_db_path(fingerprint)?;
+        Ok(SharedDatabase::new(self.connect_to_pool(path).await?))
+    }
+
+    /// The database shared by every wallet on the network of the given wallet, for the
+    /// address book and verified handle mappings. Each network has its own, since addresses
+    /// and handle registries differ between networks.
+    pub fn shared_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
+        let path = self.path.join("shared");
+        fs::create_dir_all(&path)?;
+        Ok(path.join(format!("{}.sqlite", self.wallet_network_id(fingerprint))))
+    }
+
     pub fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
         let path = self.path.join("wallets").join(fingerprint.to_string());
         fs::create_dir_all(&path)?;
-        let network_id = self
-            .wallet_config
+        let path = path.join(format!("{}.sqlite", self.wallet_network_id(fingerprint)));
+        Ok(path)
+    }
+
+    /// The network a wallet uses, which may differ from the default network.
+    fn wallet_network_id(&self, fingerprint: u32) -> String {
+        self.wallet_config
             .wallets
             .iter()
             .find_map(|wallet| {
@@ -558,9 +603,7 @@ impl Sage {
                     None
                 }
             })
-            .unwrap_or_else(|| self.network_id());
-        let path = path.join(format!("{network_id}.sqlite"));
-        Ok(path)
+            .unwrap_or_else(|| self.network_id())
     }
 
     pub fn wallet_config(&self) -> Option<&sage_config::Wallet> {

@@ -1,7 +1,7 @@
 use chia_wallet_sdk::prelude::*;
 use sqlx::{SqliteExecutor, SqlitePool};
 
-use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
+use crate::{Convert, Database, DatabaseError, Result, SharedDatabase, SharedDatabaseTx};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
@@ -72,6 +72,26 @@ pub struct XchandleRow {
 }
 
 impl Database {
+    /// The display names of NFTs owned by this wallet which use the `XCHandles` metadata
+    /// updater. These are only hints about which handles the wallet may own.
+    pub async fn owned_handle_nft_display_names(&self) -> Result<Vec<String>> {
+        owned_handle_nft_display_names(&self.pool).await
+    }
+
+    /// The launcher IDs of the NFTs and DIDs owned by this wallet, which a handle's owner
+    /// must be one of for the wallet to own the handle.
+    pub async fn owned_singleton_launcher_ids(&self) -> Result<Vec<Bytes32>> {
+        owned_singleton_launcher_ids(&self.pool).await
+    }
+
+    /// Every handle mapping in this wallet's database, from before mappings were moved to the
+    /// shared database.
+    pub async fn legacy_xchandles(&self) -> Result<Vec<XchandleRow>> {
+        all_xchandles(&self.pool).await
+    }
+}
+
+impl SharedDatabase {
     pub async fn xchandle(
         &self,
         registry_launcher_id: Bytes32,
@@ -92,11 +112,15 @@ impl Database {
     /// A page of stored handle mappings, sorted by handle, and the total number matching.
     ///
     /// Unless `include_unverified` is set, only verified mappings which haven't expired by
-    /// `now` or the peak they were verified at are included.
+    /// `now` or the peak they were verified at are included. [`XchandleFilter::Owned`] only
+    /// includes handles whose owner is one of `owned_launcher_ids`, which should be the NFTs
+    /// and DIDs owned by the current wallet.
+    #[allow(clippy::too_many_arguments)]
     pub async fn xchandles_page(
         &self,
         registry_launcher_id: Bytes32,
         filter: XchandleFilter,
+        owned_launcher_ids: &[Bytes32],
         include_unverified: bool,
         now: u64,
         limit: u32,
@@ -106,6 +130,7 @@ impl Database {
             &self.pool,
             registry_launcher_id,
             filter,
+            owned_launcher_ids,
             include_unverified,
             now,
             limit,
@@ -114,16 +139,14 @@ impl Database {
         .await
     }
 
-    /// The display names of NFTs owned by this wallet which use the `XCHandles` metadata
-    /// updater. These are only hints about which handles the wallet may own.
-    pub async fn owned_handle_nft_display_names(&self) -> Result<Vec<String>> {
-        owned_handle_nft_display_names(&self.pool).await
-    }
-
-    /// The stored handles whose owner singleton is an NFT or DID owned by this wallet,
-    /// whatever their status.
-    pub async fn owned_xchandle_names(&self, registry_launcher_id: Bytes32) -> Result<Vec<String>> {
-        owned_xchandle_names(&self.pool, registry_launcher_id).await
+    /// The stored handles whose owner singleton is one of `owned_launcher_ids`, which should
+    /// be the NFTs and DIDs owned by the current wallet, whatever their status.
+    pub async fn owned_xchandle_names(
+        &self,
+        registry_launcher_id: Bytes32,
+        owned_launcher_ids: &[Bytes32],
+    ) -> Result<Vec<String>> {
+        owned_xchandle_names(&self.pool, registry_launcher_id, owned_launcher_ids).await
     }
 
     pub async fn upsert_xchandle(&self, row: &XchandleRow) -> Result<()> {
@@ -169,7 +192,7 @@ impl Database {
     }
 }
 
-impl DatabaseTx<'_> {
+impl SharedDatabaseTx<'_> {
     pub async fn xchandle(
         &mut self,
         registry_launcher_id: Bytes32,
@@ -276,10 +299,23 @@ async fn xchandles_by_puzzle_hash(
     .collect()
 }
 
+/// Launcher IDs as a JSON array of uppercase hex strings, to be matched against a blob column
+/// with `hex(column) IN (SELECT value FROM json_each(?))`, since a list can't be bound
+/// directly.
+fn launcher_ids_json(launcher_ids: &[Bytes32]) -> String {
+    let ids: Vec<String> = launcher_ids
+        .iter()
+        .map(|id| format!("\"{}\"", hex::encode_upper(id)))
+        .collect();
+    format!("[{}]", ids.join(","))
+}
+
+#[allow(clippy::too_many_arguments)]
 async fn xchandles_page(
     pool: &SqlitePool,
     registry_launcher_id: Bytes32,
     filter: XchandleFilter,
+    owned_launcher_ids: &[Bytes32],
     include_unverified: bool,
     now: u64,
     limit: u32,
@@ -288,6 +324,7 @@ async fn xchandles_page(
     let registry_launcher_id = registry_launcher_id.as_ref();
     let now: i64 = now.try_into()?;
     let filter = filter as u8;
+    let owned = launcher_ids_json(owned_launcher_ids);
 
     // The total is counted separately, so that it's still correct for a page past the end.
     let total = sqlx::query_scalar!(
@@ -296,9 +333,7 @@ async fn xchandles_page(
         WHERE registry_launcher_id = ?
             AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))
             AND (
-                ? != 1 OR owner_launcher_id IN (
-                    SELECT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)
-                )
+                ? != 1 OR hex(owner_launcher_id) IN (SELECT value FROM json_each(?))
             )
             AND (? != 2 OR handle IN (SELECT handle FROM contacts WHERE kind = 1))
         ",
@@ -306,6 +341,7 @@ async fn xchandles_page(
         include_unverified,
         now,
         filter,
+        owned,
         filter
     )
     .fetch_one(pool)
@@ -317,9 +353,7 @@ async fn xchandles_page(
         WHERE registry_launcher_id = ?
             AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))
             AND (
-                ? != 1 OR owner_launcher_id IN (
-                    SELECT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)
-                )
+                ? != 1 OR hex(owner_launcher_id) IN (SELECT value FROM json_each(?))
             )
             AND (? != 2 OR handle IN (SELECT handle FROM contacts WHERE kind = 1))
         ORDER BY handle ASC
@@ -329,6 +363,7 @@ async fn xchandles_page(
         include_unverified,
         now,
         filter,
+        owned,
         filter,
         limit,
         offset
@@ -345,20 +380,41 @@ async fn xchandles_page(
 async fn owned_xchandle_names(
     conn: impl SqliteExecutor<'_>,
     registry_launcher_id: Bytes32,
+    owned_launcher_ids: &[Bytes32],
 ) -> Result<Vec<String>> {
     let registry_launcher_id = registry_launcher_id.as_ref();
+    let owned = launcher_ids_json(owned_launcher_ids);
 
     Ok(sqlx::query_scalar!(
         "
         SELECT handle FROM xchandles
-        WHERE registry_launcher_id = ? AND owner_launcher_id IN (
-            SELECT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)
-        )
+        WHERE registry_launcher_id = ?
+            AND hex(owner_launcher_id) IN (SELECT value FROM json_each(?))
+        ORDER BY handle ASC
         ",
-        registry_launcher_id
+        registry_launcher_id,
+        owned
     )
     .fetch_all(conn)
     .await?)
+}
+
+async fn owned_singleton_launcher_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    sqlx::query_scalar!("SELECT DISTINCT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)")
+        .fetch_all(conn)
+        .await?
+        .into_iter()
+        .map(Convert::convert)
+        .collect()
+}
+
+async fn all_xchandles(conn: impl SqliteExecutor<'_>) -> Result<Vec<XchandleRow>> {
+    sqlx::query!("SELECT * FROM xchandles ORDER BY id ASC")
+        .fetch_all(conn)
+        .await?
+        .into_iter()
+        .map(|row| xchandle_row!(row))
+        .collect()
 }
 
 async fn owned_handle_nft_display_names(conn: impl SqliteExecutor<'_>) -> Result<Vec<String>> {
@@ -563,4 +619,91 @@ async fn set_xchandle_last_sent(
     .await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::{SqlitePool, migrate};
+
+    use super::*;
+
+    const REGISTRY: Bytes32 = Bytes32::new([9; 32]);
+
+    fn row(handle: &str, owner: Bytes32) -> XchandleRow {
+        XchandleRow {
+            registry_launcher_id: REGISTRY,
+            handle: handle.to_string(),
+            handle_hash: Bytes32::default(),
+            owner_launcher_id: owner,
+            resolved_launcher_id: Bytes32::default(),
+            resolved_puzzle_hash: Bytes32::default(),
+            expiration: 2_000_000_000,
+            slot_coin_id: Bytes32::default(),
+            slot_counter: 1,
+            slot_left_handle_hash: Bytes32::default(),
+            slot_right_handle_hash: Bytes32::default(),
+            slot_parent_id: Bytes32::default(),
+            slot_parent_parent_id: Bytes32::default(),
+            slot_parent_inner_puzzle_hash: Bytes32::default(),
+            slot_confirmation_height: 1,
+            resolved_coin_id: Bytes32::default(),
+            resolved_confirmation_height: 1,
+            indexed_height: 1,
+            verified_height: 1,
+            verified_timestamp: 1,
+            last_verified_at: 1,
+            status: XchandleStatus::Verified,
+            status_reason: None,
+            previous_resolved_launcher_id: None,
+            previous_resolved_puzzle_hash: None,
+            last_sent_puzzle_hash: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn owned_handles_are_matched_by_the_given_launcher_ids() -> anyhow::Result<()> {
+        let pool = SqlitePool::connect("sqlite::memory:").await?;
+        migrate!("../../migrations").run(&pool).await?;
+        let db = SharedDatabase::new(pool);
+
+        // Launcher IDs with hex letters, which must match whatever case they're encoded in.
+        let mine = Bytes32::new([0xab; 32]);
+        let other = Bytes32::new([0xcd; 32]);
+
+        db.upsert_xchandle(&row("alice", mine)).await?;
+        db.upsert_xchandle(&row("bob", other)).await?;
+        db.upsert_xchandle(&row("carol", mine)).await?;
+
+        let names = |rows: Vec<XchandleRow>| -> Vec<String> {
+            rows.into_iter().map(|row| row.handle).collect()
+        };
+
+        let (owned, total) = db
+            .xchandles_page(REGISTRY, XchandleFilter::Owned, &[mine], false, 0, 10, 0)
+            .await?;
+        assert_eq!(names(owned), ["alice", "carol"]);
+        assert_eq!(total, 2);
+        assert_eq!(
+            db.owned_xchandle_names(REGISTRY, &[mine]).await?,
+            ["alice", "carol"]
+        );
+
+        // Another wallet, owning other singletons, owns other handles.
+        assert_eq!(db.owned_xchandle_names(REGISTRY, &[other]).await?, ["bob"]);
+        assert!(db.owned_xchandle_names(REGISTRY, &[]).await?.is_empty());
+        let (owned, total) = db
+            .xchandles_page(REGISTRY, XchandleFilter::Owned, &[], false, 0, 10, 0)
+            .await?;
+        assert!(owned.is_empty());
+        assert_eq!(total, 0);
+
+        // The owned launcher IDs are ignored by the other filters.
+        let (all, total) = db
+            .xchandles_page(REGISTRY, XchandleFilter::All, &[], false, 0, 10, 0)
+            .await?;
+        assert_eq!(names(all), ["alice", "bob", "carol"]);
+        assert_eq!(total, 3);
+
+        Ok(())
+    }
 }

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT COUNT(*) FROM xchandles\n        WHERE registry_launcher_id = ?\n            AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))\n            AND (\n                ? != 1 OR hex(owner_launcher_id) IN (SELECT value FROM json_each(?))\n            )\n            AND (? != 2 OR handle IN (SELECT handle FROM contacts WHERE kind = 1))\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "COUNT(*)",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e0d7f0b033f3168368e651bacc900ddd350be87044efea72e1021ee9e79847c4"
+}

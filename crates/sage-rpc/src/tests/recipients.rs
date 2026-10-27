@@ -105,7 +105,7 @@ pub(super) async fn store_handle(
     edit(&mut row);
 
     let wallet = app.sage.lock().await.wallet()?;
-    wallet.db.upsert_xchandle(&row).await?;
+    wallet.shared_db.upsert_xchandle(&row).await?;
 
     Ok(())
 }
@@ -115,7 +115,7 @@ pub(super) async fn stored_handle(app: &TestApp, handle: &str) -> Result<Xchandl
     let wallet = app.sage.lock().await.wallet()?;
 
     Ok(wallet
-        .db
+        .shared_db
         .xchandle(registry_launcher_id, handle)
         .await?
         .expect("missing handle mapping"))

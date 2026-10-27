@@ -315,8 +315,8 @@ export const walletConnectCommands = {
   // 'expired' or 'unavailable', or 'rate_limited' when sites resolve too many
   // handles in a short time.
   //
-  // There's no reverse lookup for sites: which handles this wallet has looked up
-  // for other addresses is private.
+  // There's no reverse lookup for sites: which handles have been looked up for
+  // other addresses, in this wallet or another on the network, is private.
   chia_resolveHandle: {
     paramsType: z.object({ handle: z.string() }),
     returnType: handleRecord,

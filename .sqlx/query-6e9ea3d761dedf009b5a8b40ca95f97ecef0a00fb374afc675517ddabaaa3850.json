@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT * FROM xchandles\n        WHERE registry_launcher_id = ?\n            AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))\n            AND (\n                ? != 1 OR owner_launcher_id IN (\n                    SELECT asset_hash FROM owned_coins WHERE asset_kind IN (1, 2)\n                )\n            )\n            AND (? != 2 OR handle IN (SELECT handle FROM contacts WHERE kind = 1))\n        ORDER BY handle ASC\n        LIMIT ? OFFSET ?\n        ",
+  "query": "SELECT * FROM xchandles ORDER BY id ASC",
   "describe": {
     "columns": [
       {
@@ -140,7 +140,7 @@
       }
     ],
     "parameters": {
-      "Right": 7
+      "Right": 0
     },
     "nullable": [
       false,
@@ -172,5 +172,5 @@
       true
     ]
   },
-  "hash": "c1eeca28dd6877c8a5b216c6983130d3ebca582236eb35b8e0729b2717faf6f4"
+  "hash": "6e9ea3d761dedf009b5a8b40ca95f97ecef0a00fb374afc675517ddabaaa3850"
 }
