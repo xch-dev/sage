@@ -59,7 +59,12 @@ fn is_hidden(c: char) -> bool {
     is_bidi_control(c)
         || matches!(
             c,
-            '\u{115F}'
+            // Directional marks can reorder what's displayed, so a name containing them
+            // can look like a different name.
+            '\u{061C}'
+                | '\u{200E}'
+                | '\u{200F}'
+                | '\u{115F}'
                 | '\u{1160}'
                 | '\u{17B4}'
                 | '\u{17B5}'
@@ -567,6 +572,9 @@ mod tests {
             "Alice\u{E0080}",
             "Alice\u{1BCA0}",
             "Alice\u{2028}Smith",
+            // Displayed as "Ann 2 1", which another contact could already be named.
+            "Ann \u{200F}1 2\u{200F}",
+            "Ann \u{061C}1 2\u{061C}",
             "\u{200B}",
             // Only ignorable characters, so nothing visible.
             "\u{200D}\u{FE0F}",

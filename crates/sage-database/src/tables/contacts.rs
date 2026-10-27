@@ -148,16 +148,17 @@ impl DatabaseTx<'_> {
 
 /// Whether a character is skipped when comparing names, since it doesn't change how a name
 /// looks on its own: zero-width joiners and non-joiners, variation selectors, tag characters,
-/// directional marks, the combining grapheme joiner and soft hyphens. These are needed by
-/// emoji and some scripts, so they're allowed in names, but never make a name distinct.
+/// the combining grapheme joiner and soft hyphens. These are needed by emoji and some
+/// scripts, so they're allowed in names, but never make a name distinct. Directional marks
+/// aren't here, since they can reorder what's displayed, so names can't contain them.
 fn is_ignorable(c: char) -> bool {
     matches!(
         c,
         '\u{00AD}'
             | '\u{034F}'
-            | '\u{061C}'
             | '\u{180B}'..='\u{180F}'
-            | '\u{200C}'..='\u{200F}'
+            | '\u{200C}'
+            | '\u{200D}'
             | '\u{FE00}'..='\u{FE0F}'
             | '\u{E0000}'..='\u{E007F}'
             | '\u{E0100}'..='\u{E01EF}'
