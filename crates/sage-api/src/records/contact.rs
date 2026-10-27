@@ -62,7 +62,10 @@ pub struct AddressContactsRecord {
     pub address: String,
     /// Contacts for this address, sorted by name. These are address contacts for it, and
     /// handle contacts whose stored mapping is verified, unexpired and resolves to it. Handle
-    /// contacts whose mapping is outdated should be resolved again before they're relied on
+    /// contacts whose mapping is outdated should be resolved again before they're relied on.
+    /// A handle contact whose handle changed hands since it was last used, so that
+    /// `resolution.changed_from` is set, is listed for the new address, which may belong to
+    /// someone else; it must be shown with a warning, never as the contact
     pub contacts: Vec<ContactRecord>,
 }
 

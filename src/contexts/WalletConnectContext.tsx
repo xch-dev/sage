@@ -28,6 +28,7 @@ import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useErrors } from '@/hooks/useErrors';
+import { xchandlesEnabled } from '@/lib/features';
 import { decodeHexMessage, fromMojos, toMojos, isHex } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
@@ -917,7 +918,9 @@ function AddContactDialog({ params }: CommandDialogProps<'chia_addContact'>) {
         <div className='text-sm text-muted-foreground font-mono break-all'>
           {params.recipient}
         </div>
-        <HandleResolution value={params.recipient ?? ''} />
+        {xchandlesEnabled && (
+          <HandleResolution value={params.recipient ?? ''} />
+        )}
       </div>
       {params.note && (
         <div>

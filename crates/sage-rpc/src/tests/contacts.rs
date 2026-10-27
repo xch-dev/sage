@@ -233,6 +233,8 @@ async fn test_contact_duplicates_and_validation() -> Result<()> {
     for (name, recipient) in [
         ("", address(5).as_str()),
         ("Line\nbreak", address(5).as_str()),
+        // Looks the same as an existing contact's name.
+        ("Alice\u{200B}", address(5).as_str()),
         ("Mainnet", mainnet.as_str()),
         ("Bad handle", "@AB"),
         ("Not an address", "alice"),
@@ -393,8 +395,20 @@ async fn test_lookup_address_contacts() -> Result<()> {
     app.add_contact(add("Bob", "@bob")).await?;
     app.add_contact(add("Carol", "@carol")).await?;
     app.add_contact(add("Dave", "@dave")).await?;
+    app.add_contact(add("Erin", "@erin")).await?;
+    app.add_contact(add("Frank", "@frank")).await?;
 
     store_handle(&app, "alice", puzzle_hash(1), |_| {}).await?;
+    store_handle(&app, "erin", puzzle_hash(1), |row| {
+        row.status = XchandleStatus::Stale;
+    })
+    .await?;
+    // A handle which changed hands labels its new address, marked as changed, and no
+    // longer labels the address it used to resolve to.
+    store_handle(&app, "frank", puzzle_hash(2), |row| {
+        row.previous_resolved_puzzle_hash = Some(puzzle_hash(1));
+    })
+    .await?;
     // Mappings which can't be relied on never label an address.
     store_handle(&app, "bob", puzzle_hash(1), |row| {
         row.status = XchandleStatus::Unverified;
@@ -422,7 +436,7 @@ async fn test_lookup_address_contacts() -> Result<()> {
     assert_eq!(results.len(), 4);
     assert_eq!(results[0].address, address(1));
     assert_eq!(names(&results[0].contacts), ["Alice", "Alice's handle"]);
-    assert_eq!(names(&results[1].contacts), ["Dave"]);
+    assert_eq!(names(&results[1].contacts), ["Dave", "Frank"]);
     assert_eq!(
         results[1].contacts[0]
             .resolution
@@ -430,6 +444,15 @@ async fn test_lookup_address_contacts() -> Result<()> {
             .unwrap()
             .verification,
         HandleVerification::Outdated
+    );
+    assert_eq!(
+        results[1].contacts[1]
+            .resolution
+            .as_ref()
+            .unwrap()
+            .changed_from
+            .as_deref(),
+        Some(address(1).as_str())
     );
     assert!(results[2].contacts.is_empty());
     assert_eq!(names(&results[3].contacts), ["Alice", "Alice's handle"]);

@@ -43,7 +43,69 @@ fn unix_now() -> u64 {
         .as_secs()
 }
 
-/// Trims a contact's name, and checks that it's one line of a reasonable length.
+/// Whether a character changes how text around it is displayed without being
+/// visible itself: bidirectional overrides, embeddings and isolates.
+fn is_bidi_control(c: char) -> bool {
+    matches!(c, '\u{202A}'..='\u{202E}' | '\u{2066}'..='\u{2069}')
+}
+
+/// Whether a character is invisible or reorders text, so that a name containing
+/// it can look the same as another name. This covers the Unicode format (`Cf`)
+/// characters which can appear in names, such as zero-width spaces and joiners,
+/// directional marks, the byte order mark and tag characters, along with
+/// noncharacters.
+fn is_invisible(c: char) -> bool {
+    is_bidi_control(c)
+        || matches!(
+            c,
+            '\u{00AD}'
+                | '\u{034F}'
+                | '\u{061C}'
+                | '\u{115F}'
+                | '\u{1160}'
+                | '\u{17B4}'
+                | '\u{17B5}'
+                | '\u{180B}'..='\u{180F}'
+                | '\u{200B}'..='\u{200F}'
+                | '\u{2060}'..='\u{2064}'
+                | '\u{206A}'..='\u{206F}'
+                | '\u{3164}'
+                | '\u{FE00}'..='\u{FE0F}'
+                | '\u{FEFF}'
+                | '\u{FFA0}'
+                | '\u{FFF9}'..='\u{FFFB}'
+                | '\u{FDD0}'..='\u{FDEF}'
+                | '\u{E0000}'..='\u{E0FFF}'
+        )
+        || (c as u32) & 0xFFFE == 0xFFFE
+}
+
+/// Whether a name has an invisible character which isn't part of an emoji.
+///
+/// Emoji use zero-width joiners and variation selectors, as in "❤️" or "👨‍👩‍👧", so
+/// those are allowed between symbols. Next to a letter or digit they're never
+/// needed, and would only make the name look like another one.
+fn has_hidden_characters(name: &str) -> bool {
+    let chars: Vec<char> = name.chars().collect();
+
+    chars.iter().enumerate().any(|(i, &c)| {
+        if !is_invisible(c) {
+            return false;
+        }
+
+        let emoji_part = matches!(c, '\u{200D}' | '\u{FE0E}' | '\u{FE0F}');
+        let symbol = |c: Option<&char>| {
+            c.is_some_and(|&c| !c.is_alphanumeric() && !c.is_whitespace() && !is_invisible(c))
+        };
+        let next = chars.get(i + 1);
+        let next_is_symbol = symbol(next) || next.is_none_or(|&c| c == '\u{200D}');
+
+        !(emoji_part && i > 0 && symbol(chars.get(i - 1)) && (c != '\u{200D}' || next_is_symbol))
+    })
+}
+
+/// Trims a contact's name, and checks that it's one line of a reasonable length,
+/// without invisible characters which could make it look like another name.
 fn contact_name(name: &str) -> Result<String> {
     let name = name.trim();
 
@@ -63,10 +125,18 @@ fn contact_name(name: &str) -> Result<String> {
         ));
     }
 
+    if has_hidden_characters(name) {
+        return Err(Error::InvalidContact(
+            "the name contains invisible characters".to_string(),
+        ));
+    }
+
     Ok(name.to_string())
 }
 
-/// Trims a contact's note, treating an empty note as none.
+/// Trims a contact's note, treating an empty note as none. Notes can have more
+/// than one line, but no other control characters, or characters which reorder
+/// the text around them.
 fn contact_note(note: Option<&str>) -> Result<Option<String>> {
     let Some(note) = note.map(str::trim).filter(|note| !note.is_empty()) else {
         return Ok(None);
@@ -76,6 +146,15 @@ fn contact_note(note: Option<&str>) -> Result<Option<String>> {
         return Err(Error::InvalidContact(format!(
             "the note is longer than {MAX_CONTACT_NOTE_LENGTH} characters"
         )));
+    }
+
+    if note
+        .chars()
+        .any(|c| (c.is_control() && c != '\n' && c != '\t') || is_bidi_control(c))
+    {
+        return Err(Error::InvalidContact(
+            "the note contains control characters".to_string(),
+        ));
     }
 
     Ok(Some(note.to_string()))
@@ -482,10 +561,40 @@ mod tests {
     }
 
     #[test]
+    fn names_cant_hide_characters() {
+        // Each of these would look like "Alice", or reorder the name.
+        for name in [
+            "Alice\u{200B}",
+            "Al\u{200D}ice",
+            "Alice\u{FEFF}",
+            "Alice\u{2060}",
+            "\u{202E}ecilA",
+            "Alice\u{2067}",
+            "Alice\u{E0041}",
+            "Alice\u{FE0F}",
+            "Alice\u{00AD}",
+            "\u{200B}",
+        ] {
+            assert!(contact_name(name).is_err(), "{name:?} was accepted");
+        }
+
+        assert_eq!(contact_name("Zoë").unwrap(), "Zoë");
+        assert_eq!(contact_name("Ali 🐱").unwrap(), "Ali 🐱");
+        assert_eq!(contact_name("محمد").unwrap(), "محمد");
+        assert!(contact_name("Mom \u{2764}\u{FE0F}").is_ok());
+        assert!(contact_name("\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467} family").is_ok());
+        assert!(contact_name("Alice \u{200D}").is_err());
+        assert!(contact_name("\u{1F468}\u{200D}Alice").is_err());
+    }
+
+    #[test]
     fn empty_notes_are_cleared() {
         assert_eq!(contact_note(None).unwrap(), None);
         assert_eq!(contact_note(Some("  ")).unwrap(), None);
         assert_eq!(contact_note(Some(" hi ")).unwrap().as_deref(), Some("hi"));
         assert!(contact_note(Some(&"a".repeat(MAX_CONTACT_NOTE_LENGTH + 1))).is_err());
+        assert!(contact_note(Some("line one\nline\ttwo")).is_ok());
+        assert!(contact_note(Some("pay \u{202E}1234")).is_err());
+        assert!(contact_note(Some("a\u{7}b")).is_err());
     }
 }

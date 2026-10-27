@@ -155,7 +155,7 @@ pub struct DeleteContactResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Address Book",
-        description = "Find the contacts which name each of the given addresses or puzzle hashes: address contacts for it, and handle contacts whose stored mapping is verified, unexpired and resolves to it. This only uses the local store and never makes network requests. Up to 1000 addresses can be looked up at once."
+        description = "Find the contacts which name each of the given addresses or puzzle hashes: address contacts for it, and handle contacts whose stored mapping is verified, unexpired and resolves to it. A handle contact whose handle changed hands is listed for its new address with `resolution.changed_from` set, and must be shown with a warning. This only uses the local store and never makes network requests. Up to 1000 addresses can be looked up at once."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]

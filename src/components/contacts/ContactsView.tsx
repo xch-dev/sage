@@ -9,7 +9,7 @@ import { ExportType, exportText } from '@/lib/exportText';
 import { xchandlesEnabled } from '@/lib/features';
 import { isHandleInput } from '@/lib/handles';
 import { formatTimestamp } from '@/lib/utils';
-import { t } from '@lingui/core/macro';
+import { plural, t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
   AlertTriangleIcon,
@@ -57,6 +57,25 @@ interface ContactsFile {
   contacts: ContactEntry[];
 }
 
+/**
+ * Whether an entry in a contacts file has the expected fields. Other entries
+ * are skipped, rather than failing the whole import.
+ */
+function isContactEntry(value: unknown): value is ContactEntry {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'name' in value &&
+    typeof value.name === 'string' &&
+    'recipient' in value &&
+    typeof value.recipient === 'string' &&
+    (!('note' in value) ||
+      value.note === null ||
+      value.note === undefined ||
+      typeof value.note === 'string')
+  );
+}
+
 function isContactsFile(value: unknown): value is ContactsFile {
   return (
     typeof value === 'object' &&
@@ -85,9 +104,14 @@ export function ContactsView() {
   const [deleting, setDeleting] = useState<ContactRecord | null>(null);
   const [verifying, setVerifying] = useState<number | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
+  const latestRequest = useRef(0);
 
   const refresh = useCallback(() => {
     if (!wallet) return;
+
+    // Only the latest request is shown, so a slow response for an earlier
+    // search or page can't replace the current one.
+    const request = ++latestRequest.current;
 
     commands
       .getContacts({
@@ -97,11 +121,22 @@ export function ContactsView() {
         limit: PAGE_SIZE,
       })
       .then((data) => {
+        if (request !== latestRequest.current) return;
+
+        // Deleting the last contact on the last page leaves it empty, so the
+        // last page that still has contacts is shown instead.
+        if (data.contacts.length === 0 && page > 0 && data.total > 0) {
+          setPage(Math.ceil(data.total / PAGE_SIZE) - 1);
+          return;
+        }
+
         setContacts(data.contacts);
         setTotal(data.total);
         setLoaded(true);
       })
-      .catch((error) => addError(toCustomError(error)));
+      .catch((error) => {
+        if (request === latestRequest.current) addError(toCustomError(error));
+      });
   }, [wallet, debouncedSearch, page, addError]);
 
   useEffect(() => {
@@ -193,11 +228,14 @@ export function ContactsView() {
         return;
       }
 
-      // Builds without XCHandles hide handle contacts everywhere else, so
-      // they aren't imported either, and are reported as skipped instead.
-      const contacts = xchandlesEnabled
-        ? parsed.contacts
-        : parsed.contacts.filter((entry) => !isHandleInput(entry.recipient));
+      // Malformed entries are skipped rather than failing the whole file. Builds
+      // without XCHandles hide handle contacts everywhere else, so they aren't
+      // imported either. Both are reported as skipped.
+      const contacts = parsed.contacts.filter(
+        (entry: unknown) =>
+          isContactEntry(entry) &&
+          (xchandlesEnabled || !isHandleInput(entry.recipient)),
+      );
 
       const result = await commands.importContacts({
         network_id: parsed.network_id,
@@ -209,11 +247,22 @@ export function ContactsView() {
         result.skipped.length + parsed.contacts.length - contacts.length;
 
       if (skipped > 0) {
-        toast.warning(
-          t`Imported ${added} contacts. ${skipped} were skipped because they were invalid or already saved.`,
-        );
+        const imported = plural(added, {
+          one: 'Imported # contact.',
+          other: 'Imported # contacts.',
+        });
+        const skippedMessage = plural(skipped, {
+          one: '# was skipped because it was invalid or already saved.',
+          other: '# were skipped because they were invalid or already saved.',
+        });
+        toast.warning(`${imported} ${skippedMessage}`);
       } else {
-        toast.success(t`Imported ${added} contacts`);
+        toast.success(
+          plural(added, {
+            one: 'Imported # contact',
+            other: 'Imported # contacts',
+          }),
+        );
       }
     } catch (error) {
       if (error instanceof SyntaxError) {

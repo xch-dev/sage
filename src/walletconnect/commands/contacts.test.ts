@@ -14,6 +14,7 @@ vi.mock('@/bindings', () => ({ commands: mocks.commands }));
 vi.mock('@/lib/features', () => mocks.features);
 
 const { handleAddContact, handleGetContacts } = await import('./contacts');
+const { parseCommand } = await import('../commands');
 
 i18n.loadAndActivate({ locale: 'en', messages: {} });
 
@@ -103,5 +104,34 @@ describe('address book WalletConnect methods', () => {
       handleAddContact({ name: 'Alice', recipient: '@alice' }),
     ).rejects.toThrow();
     expect(mocks.commands.addContact).not.toHaveBeenCalled();
+  });
+
+  it('bounds what one approval can share', () => {
+    expect(parseCommand('chia_getContacts', { limit: 100 })).toEqual({
+      limit: 100,
+    });
+
+    for (const params of [
+      { limit: 101 },
+      { limit: 0 },
+      { limit: 1.5 },
+      { offset: -1 },
+    ]) {
+      expect(() => parseCommand('chia_getContacts', params)).toThrow();
+    }
+  });
+
+  it('counts name lengths in characters', () => {
+    const cats = '🐱'.repeat(64);
+
+    expect(
+      parseCommand('chia_addContact', { name: cats, recipient: '@alice' }).name,
+    ).toBe(cats);
+    expect(() =>
+      parseCommand('chia_addContact', {
+        name: `${cats}x`,
+        recipient: '@alice',
+      }),
+    ).toThrow();
   });
 });

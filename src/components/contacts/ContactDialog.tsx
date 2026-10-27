@@ -62,7 +62,11 @@ export function ContactDialog({
       .string()
       .trim()
       .min(1, t`Name is required`)
-      .max(64, t`Name must be at most 64 characters`),
+      // Counted in characters, as the backend does, not UTF-16 code units.
+      .refine(
+        (name) => [...name].length <= 64,
+        t`Name must be at most 64 characters`,
+      ),
     recipient: z
       .string()
       .trim()
@@ -71,7 +75,12 @@ export function ContactDialog({
         (value) => xchandlesEnabled || !isHandleInput(value),
         t`Handles are not supported in this build`,
       ),
-    note: z.string().max(1000, t`Note must be at most 1000 characters`),
+    note: z
+      .string()
+      .refine(
+        (note) => [...note.trim()].length <= 1000,
+        t`Note must be at most 1000 characters`,
+      ),
   });
 
   const form = useForm<z.infer<typeof schema>>({
@@ -202,7 +211,9 @@ export function ContactDialog({
                       />
                     )}
                   </FormControl>
-                  {!editing && <HandleResolution value={recipient} />}
+                  {!editing && xchandlesEnabled && (
+                    <HandleResolution value={recipient} />
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

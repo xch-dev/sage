@@ -362,8 +362,9 @@ export const walletConnectCommands = {
     paramsType: z
       .object({
         search: z.string().optional(),
-        limit: z.number().optional(),
-        offset: z.number().optional(),
+        // One approval shares at most a page of contacts.
+        limit: z.number().int().min(1).max(100).optional(),
+        offset: z.number().int().min(0).optional(),
       })
       .optional(),
     returnType: z.object({
@@ -374,9 +375,19 @@ export const walletConnectCommands = {
   },
   chia_addContact: {
     paramsType: z.object({
-      name: z.string().trim().min(1).max(64),
+      // Lengths are in characters, as the backend counts them, not UTF-16
+      // code units.
+      name: z
+        .string()
+        .trim()
+        .min(1)
+        .refine((name) => [...name].length <= 64, 'name is too long'),
       recipient: z.string().trim().min(1),
-      note: z.string().trim().max(1000).optional(),
+      note: z
+        .string()
+        .trim()
+        .refine((note) => [...note].length <= 1000, 'note is too long')
+        .optional(),
     }),
     returnType: contactRecord,
     confirm: true,
