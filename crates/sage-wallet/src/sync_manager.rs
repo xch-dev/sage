@@ -173,7 +173,7 @@ impl SyncManager {
                     {
                         self.state.lock().await.reset();
                         self.abort_wallet_tasks();
-                        self.network = network;
+                        self.network = *network;
                         let _ = self
                             .event_sender
                             .send(SyncEvent::NetworkChanged {
@@ -301,10 +301,31 @@ impl SyncManager {
             ProtocolMessageTypes::NewPeakWallet => {
                 let message =
                     NewPeakWallet::from_bytes(&message.data).map_err(ClientError::from)?;
-                self.state
-                    .lock()
-                    .await
-                    .update_peak(ip, message.height, message.header_hash);
+
+                let previous_peak = {
+                    let mut state = self.state.lock().await;
+                    let previous_peak = state.peak_of(ip).map(|(height, _)| height);
+                    state.update_peak(ip, message.height, message.header_hash);
+                    previous_peak
+                };
+
+                // When the chain is extended, the fork point is the previous peak. A fork point
+                // below it means blocks were rolled back, so handle mappings verified against
+                // them must be verified again. The peer can only have rolled back blocks up to
+                // its previous peak, so a lagging peer doesn't affect anything verified above.
+                if let Some(wallet) = self.wallet.as_ref()
+                    && let Some(previous_peak) = previous_peak
+                    && message.fork_point_with_previous_peak < previous_peak
+                    && let Err(error) = wallet
+                        .db
+                        .invalidate_xchandles_between(
+                            message.fork_point_with_previous_peak,
+                            previous_peak,
+                        )
+                        .await
+                {
+                    warn!("Failed to invalidate handle mappings after a reorg: {error}");
+                }
             }
             ProtocolMessageTypes::CoinStateUpdate => {
                 let message =

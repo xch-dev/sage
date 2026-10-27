@@ -1,7 +1,12 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import {
+  HandleResolution,
+  HandleResolutionList,
+} from '@/components/HandleResolution';
 import { WalletAddressPicker } from '@/components/WalletAddressPicker';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import Container from '@/components/Container';
+import { ExpirationInput } from '@/components/ExpirationInput';
 import Header from '@/components/Header';
 import { NumberFormat } from '@/components/NumberFormat';
 import { PasteInput } from '@/components/PasteInput';
@@ -18,17 +23,16 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  FeeAmountInput,
-  IntegerInput,
-  TokenAmountInput,
-} from '@/components/ui/masked-input';
+import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { expirationError, futureExpirationTimestamp } from '@/lib/expiration';
+import { xchandlesEnabled } from '@/lib/features';
 import { amount, positiveAmount } from '@/lib/formTypes';
+import { validateRecipient, withHandleConfirmation } from '@/lib/handles';
 import {
   fromHexStrict,
   fromMojos,
@@ -55,6 +59,8 @@ import {
   TokenRecord,
   TransactionResponse,
 } from '../bindings';
+
+const emptyClawback = { days: '0', hours: '0', minutes: '0' };
 
 export default function Send() {
   let { asset_id: assetId = null } = useParams();
@@ -122,10 +128,16 @@ export default function Send() {
           (address) =>
             Promise.all(
               addressList(address).map((address) =>
-                commands.validateAddress(address).catch(addError),
+                validateRecipient(address).catch(addError),
               ),
             ).then((values) => values.every(Boolean)),
-          bulk ? t`Invalid addresses` : t`Invalid address`,
+          xchandlesEnabled
+            ? bulk
+              ? t`Invalid addresses or handles`
+              : t`Invalid address or handle`
+            : bulk
+              ? t`Invalid addresses`
+              : t`Invalid address`,
         ),
       amount: positiveAmount(asset?.precision || 12).refine(
         (amount) =>
@@ -145,6 +157,16 @@ export default function Send() {
           days: z.string(),
           hours: z.string(),
           minutes: z.string(),
+          timestamp: z.number().optional(),
+        })
+        // Checked on the field rather than the whole form so the error updates
+        // even while other fields are invalid. The value is cleared when
+        // clawback is disabled, so it is only checked while enabled.
+        .superRefine((value, ctx) => {
+          const error = expirationError(value);
+          if (error !== undefined) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: error });
+          }
         })
         .optional(),
     })
@@ -197,15 +219,16 @@ export default function Send() {
     let clawback: number | null = null;
 
     if (values.clawbackEnabled && values.clawback) {
-      const days = parseInt(values.clawback.days) || 0;
-      const hours = parseInt(values.clawback.hours) || 0;
-      const minutes = parseInt(values.clawback.minutes) || 0;
-      clawback =
-        Math.ceil(Date.now() / 1000) +
-        (days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60);
+      try {
+        clawback = futureExpirationTimestamp(values.clawback);
+      } catch (error) {
+        addError({ kind: 'invalid', reason: (error as Error).message });
+        return;
+      }
     }
 
     let result: Promise<TransactionResponse>;
+    const address = values.address.trim();
 
     const amount = toMojos(values.amount.toString(), asset?.precision || 12);
     const fee = toMojos(
@@ -215,39 +238,51 @@ export default function Send() {
 
     if (!assetId) {
       if (bulk) {
-        result = commands.bulkSendXch({
-          addresses: [...new Set(addressList(values.address))],
-          amount,
-          fee,
-          memos,
-        });
+        result = withHandleConfirmation((confirmed_handles) =>
+          commands.bulkSendXch({
+            addresses: [...new Set(addressList(values.address))],
+            amount,
+            fee,
+            memos,
+            confirmed_handles,
+          }),
+        );
       } else {
-        result = commands.sendXch({
-          address: values.address,
-          amount,
-          fee,
-          memos,
-          clawback,
-        });
+        result = withHandleConfirmation((confirmed_handles) =>
+          commands.sendXch({
+            address,
+            amount,
+            fee,
+            memos,
+            clawback,
+            confirmed_handles,
+          }),
+        );
       }
     } else {
       if (bulk) {
-        result = commands.bulkSendCat({
-          asset_id: assetId ?? '',
-          addresses: [...new Set(addressList(values.address))],
-          amount,
-          fee,
-          memos,
-        });
+        result = withHandleConfirmation((confirmed_handles) =>
+          commands.bulkSendCat({
+            asset_id: assetId ?? '',
+            addresses: [...new Set(addressList(values.address))],
+            amount,
+            fee,
+            memos,
+            confirmed_handles,
+          }),
+        );
       } else {
-        result = commands.sendCat({
-          asset_id: assetId ?? '',
-          address: values.address,
-          amount,
-          fee,
-          memos,
-          clawback,
-        });
+        result = withHandleConfirmation((confirmed_handles) =>
+          commands.sendCat({
+            asset_id: assetId ?? '',
+            address,
+            amount,
+            fee,
+            memos,
+            clawback,
+            confirmed_handles,
+          }),
+        );
       }
     }
 
@@ -309,7 +344,11 @@ export default function Send() {
                         autoCorrect='off'
                         autoCapitalize='off'
                         autoComplete='off'
-                        placeholder={t`Enter multiple distinct addresses`}
+                        placeholder={
+                          xchandlesEnabled
+                            ? t`Enter multiple distinct addresses or handles`
+                            : t`Enter multiple distinct addresses`
+                        }
                         {...field}
                       />
                     ) : (
@@ -317,13 +356,24 @@ export default function Send() {
                         autoCorrect='off'
                         autoCapitalize='off'
                         autoComplete='off'
-                        placeholder={t`Enter address`}
+                        placeholder={
+                          xchandlesEnabled
+                            ? t`Enter address or @handle`
+                            : t`Enter address`
+                        }
                         onEndIconClick={handleScanOrPaste}
                         onScanImage={handleScanImage}
                         {...field}
                       />
                     )}
                   </FormControl>
+                  {bulk ? (
+                    <HandleResolutionList
+                      values={addressList(field.value ?? '')}
+                    />
+                  ) : (
+                    <HandleResolution value={field.value ?? ''} />
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -452,6 +502,7 @@ export default function Send() {
                         checked={form.watch('clawbackEnabled')}
                         onCheckedChange={(checked) => {
                           form.setValue('clawbackEnabled', checked);
+                          form.clearErrors('clawback');
                           if (checked) {
                             form.setValue('clawback', {
                               days: clawback?.days?.toString() ?? '0',
@@ -467,58 +518,16 @@ export default function Send() {
 
                     {form.watch('clawbackEnabled') && (
                       <div className='flex flex-col gap-4'>
-                        <div className='flex gap-2'>
-                          <div className='relative'>
-                            <IntegerInput
-                              className='pr-12'
-                              value={form.watch('clawback.days')}
-                              placeholder='0'
-                              min={0}
-                              onValueChange={(values: { value: string }) => {
-                                form.setValue('clawback.days', values.value);
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-muted-foreground text-sm'>
-                                <Trans>Days</Trans>
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className='relative'>
-                            <IntegerInput
-                              className='pr-12'
-                              value={form.watch('clawback.hours')}
-                              placeholder='0'
-                              min={0}
-                              onValueChange={(values: { value: string }) => {
-                                form.setValue('clawback.hours', values.value);
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-muted-foreground text-sm'>
-                                <Trans>Hours</Trans>
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className='relative'>
-                            <IntegerInput
-                              className='pr-12'
-                              value={form.watch('clawback.minutes')}
-                              placeholder='0'
-                              min={0}
-                              onValueChange={(values: { value: string }) => {
-                                form.setValue('clawback.minutes', values.value);
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-muted-foreground text-sm'>
-                                <Trans>Minutes</Trans>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                        <ExpirationInput
+                          value={form.watch('clawback') ?? emptyClawback}
+                          onChange={(value) =>
+                            form.setValue('clawback', value, {
+                              shouldValidate: !!form.formState.errors.clawback,
+                            })
+                          }
+                          formatLabel={(date) => t`Clawback until ${date}`}
+                          error={form.formState.errors.clawback?.message}
+                        />
 
                         <Alert variant='warning'>
                           <AlertCircleIcon className='h-4 w-4' />

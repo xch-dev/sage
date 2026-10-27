@@ -118,6 +118,18 @@
 | ---------- | ------------------------ |
 | Capability | `wallet.get_derivations` |
 
+## `wallet.getHandle`
+
+| Field      | Value                   |
+| ---------- | ----------------------- |
+| Capability | `wallet.resolve_handle` |
+
+## `wallet.getHandles`
+
+| Field      | Value                |
+| ---------- | -------------------- |
+| Capability | `wallet.get_handles` |
+
 ## `wallet.getKey`
 
 | Field      | Value            |
@@ -177,6 +189,18 @@
 | Field      | Value                      |
 | ---------- | -------------------------- |
 | Capability | `wallet.get_xch_usd_price` |
+
+## `wallet.lookupAddressHandles`
+
+| Field      | Value                |
+| ---------- | -------------------- |
+| Capability | `wallet.get_handles` |
+
+## `wallet.resolveHandle`
+
+| Field      | Value                   |
+| ---------- | ----------------------- |
+| Capability | `wallet.resolve_handle` |
 
 ## `wallet.sendTransaction`
 

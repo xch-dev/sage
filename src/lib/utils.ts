@@ -49,6 +49,8 @@ export function emptyNftRecord(nftId: string): NftRecord {
   return {
     launcher_id: nftId,
     name: `${nftId.slice(0, 8)}...${nftId.slice(-4)}`,
+    // Nothing is known about the NFT, so it isn't assumed to be append-only.
+    metadata_updater_kind: 'unknown',
     icon_url: null,
     collection_id: null,
     collection_name: null,

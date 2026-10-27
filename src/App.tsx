@@ -26,6 +26,7 @@ import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import { WalletProvider } from './contexts/WalletContext';
+import { StartupError } from './components/StartupError';
 import useInitialization from './hooks/useInitialization';
 import { useTransactionFailures } from './hooks/useTransactionFailures';
 import { loadCatalog } from './i18n';
@@ -59,6 +60,7 @@ import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
 import { AppsProvider } from '@/contexts/AppsContext.tsx';
+import { HandleChangeDialog } from '@/components/HandleChangeDialog';
 import { RustThemeSync } from '@/components/RustThemeSync.tsx';
 import { Apps } from '@/pages/Apps.tsx';
 import { platform } from '@tauri-apps/plugin-os';
@@ -177,6 +179,7 @@ export default function App() {
           <ErrorProvider>
             <BiometricProvider>
               <AppInner />
+              <HandleChangeDialog />
               <ThemeAwareToastContainer />
             </BiometricProvider>
           </ErrorProvider>
@@ -187,7 +190,7 @@ export default function App() {
 }
 
 function AppInner() {
-  const initialized = useInitialization();
+  const { initialized, startupError } = useInitialization();
   const { locale } = useLanguage();
   const [isLocaleInitialized, setIsLocaleInitialized] = useState(false);
 
@@ -200,6 +203,16 @@ function AppInner() {
     };
     void initLocale();
   }, [locale]);
+
+  if (startupError) {
+    return (
+      isLocaleInitialized && (
+        <I18nProvider i18n={i18n}>
+          <StartupError error={startupError} />
+        </I18nProvider>
+      )
+    );
+  }
 
   return (
     initialized &&

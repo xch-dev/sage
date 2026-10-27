@@ -1,3 +1,4 @@
+import { AddressLabels } from '@/components/AddressLabels';
 import { CopyBox } from '@/components/CopyBox';
 import { t } from '@lingui/core/macro';
 import { useId } from 'react';
@@ -35,14 +36,19 @@ export function AddressItem({
       aria-labelledby={labelId}
       aria-label={t`${label} address section`}
     >
-      {!hideLabel && (
-        <label
-          id={labelId}
-          htmlFor={contentId}
-          className='text-sm font-medium text-muted-foreground block mb-1'
-        >
-          {label}
-        </label>
+      {hideLabel ? (
+        <AddressLabels address={address} className='mb-1' />
+      ) : (
+        <div className='flex flex-wrap items-center gap-x-2 gap-y-1 mb-1'>
+          <label
+            id={labelId}
+            htmlFor={contentId}
+            className='text-sm font-medium text-muted-foreground block'
+          >
+            {label}
+          </label>
+          <AddressLabels address={address} />
+        </div>
       )}
       <CopyBox
         id={contentId}

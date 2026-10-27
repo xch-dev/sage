@@ -7,6 +7,7 @@ mod mempool_items;
 mod offers;
 mod p2_puzzles;
 mod transactions;
+mod xchandles;
 
 pub use assets::*;
 pub use coins::*;
@@ -16,3 +17,4 @@ pub use mempool_items::*;
 pub use offers::*;
 pub use p2_puzzles::*;
 pub use transactions::*;
+pub use xchandles::*;

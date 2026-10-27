@@ -20,4 +20,5 @@ pub struct OptionRecord {
     pub expiration_seconds: u64,
     pub created_height: Option<u32>,
     pub created_timestamp: Option<u64>,
+    pub is_owned: bool,
 }

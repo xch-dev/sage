@@ -89,10 +89,10 @@ tauri-specta = "2.0.0-rc.21"
 utoipa = "5.2.0"
 
 # Chia
-chia-wallet-sdk = { version = "0.36.0", features = ["rustls", "offer-compression", "peer-simulator"] }
-chia_streamable_macro = "0.36.1"
-chia-traits = "0.36.1"
-chia-sha2 = "0.36.1"
+chia-wallet-sdk = { version = "0.37.1", features = ["rustls", "offer-compression", "peer-simulator", "action-layer"] }
+chia_streamable_macro = "0.52.1"
+chia-traits = "0.52.1"
+chia-sha2 = "0.52.1"
 bip39 = "2.0.0"
 bech32 = "0.9.1"
 rand = "0.8.5"
@@ -102,6 +102,7 @@ argon2 = "0.5.3"
 
 # Async
 tokio = "1.39.2"
+percent-encoding = "2.3.2"
 futures-util = "0.3.30"
 futures-lite = "2.3.0"
 sqlx = "0.8.0"
@@ -113,6 +114,7 @@ itertools = "0.13.0"
 anyhow = "1.0.86"
 thiserror = "1.0.63"
 semver = "1"
+uuid = "1.19.0"
 hex-literal = "0.4.1"
 glob = "0.3.1"
 num-bigint = "0.4.6"

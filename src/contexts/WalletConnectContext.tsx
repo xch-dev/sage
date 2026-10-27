@@ -1,12 +1,15 @@
 import {
   commands,
+  OfferHandleNft,
   OfferRecord,
   OfferSummary,
   TokenRecord,
   TransactionSummary,
 } from '@/bindings';
 import { AdvancedTransactionSummary } from '@/components/AdvancedTransactionSummary';
+import { HandleResolution } from '@/components/HandleResolution';
 import { OfferCard } from '@/components/OfferCard';
+import { OfferHandleNftWarning } from '@/components/OfferHandleNftWarning';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,6 +35,7 @@ import {
   WalletConnectCommand,
   walletConnectCommands,
 } from '@/walletconnect/commands';
+import { WalletConnectError } from '@/walletconnect/errors';
 import { handleCommand } from '@/walletconnect/handler';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -124,8 +128,27 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
             : typeof error === 'object' && error !== null && 'reason' in error
               ? (error.reason as string)
               : 'Request failed';
-        addError({ kind: 'walletconnect', reason: errorMessage });
+        // Declining a changed handle has already been shown to the user.
+        const declined =
+          typeof error === 'object' &&
+          error !== null &&
+          'kind' in error &&
+          error.kind === 'cancelled';
+
+        if (!declined) {
+          addError({ kind: 'walletconnect', reason: errorMessage });
+        }
         console.error('WalletConnect request failed:', error);
+
+        // Recipients which couldn't be used, such as a handle which changed
+        // hands, are passed on as JSON so the dApp can tell which one failed.
+        const recipients =
+          typeof error === 'object' &&
+          error !== null &&
+          'recipients' in error &&
+          Array.isArray(error.recipients)
+            ? error.recipients
+            : null;
 
         await signClient.respond({
           topic: request.topic,
@@ -135,6 +158,11 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
             error: {
               code: 4001,
               message: errorMessage,
+              ...(error instanceof WalletConnectError
+                ? { data: JSON.stringify({ code: error.code }) }
+                : recipients
+                  ? { data: JSON.stringify({ recipients }) }
+                  : {}),
             },
           },
         });
@@ -593,17 +621,22 @@ function TakeOfferDialog({
   onFeeChange,
 }: CommandDialogProps<'chia_takeOffer'>) {
   const [offer, setOffer] = useState<OfferSummary | null>(null);
+  const [handleNfts, setHandleNfts] = useState<OfferHandleNft[]>([]);
   const { addError } = useErrors();
 
   useEffect(() => {
     commands
       .viewOffer({ offer: params.offer ?? '' })
-      .then((data) => setOffer(data.offer))
+      .then((data) => {
+        setOffer(data.offer);
+        setHandleNfts(data.handle_nfts ?? []);
+      })
       .catch(addError);
   }, [params, addError]);
 
   return (
     <div className='space-y-4'>
+      <OfferHandleNftWarning handleNfts={handleNfts} className='mx-4' />
       {offer ? (
         <OfferCard summary={offer} />
       ) : (
@@ -730,6 +763,7 @@ function SendDialog({ params, onFeeChange }: CommandDialogProps<'chia_send'>) {
         <div className='text-sm truncate text-muted-foreground'>
           {params.address}
         </div>
+        <HandleResolution value={params.address ?? ''} />
       </div>
       <div>
         <div className='font-medium'>Amount</div>
@@ -919,7 +953,11 @@ function RequestDialog({
   };
   const peerMetadata = signClient?.session.get(request.topic)?.peer.metadata;
 
-  const CommandComponent = COMMAND_COMPONENTS[method] ?? DefaultCommandDialog;
+  // The component is selected by `method`, so its params always match `parsedParams`.
+  const CommandComponent = (COMMAND_COMPONENTS[method] ??
+    DefaultCommandDialog) as (
+    props: CommandDialogProps<WalletConnectCommand>,
+  ) => JSX.Element;
 
   const parsedParams = useMemo(
     () => commandInfo.paramsType.parse(params),

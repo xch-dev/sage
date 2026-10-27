@@ -14,7 +14,6 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Type)]
 #[serde(default)]
 pub struct OldConfig {
-    version: u32,
     app: OldAppConfig,
     rpc: OldRpcConfig,
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
@@ -22,16 +21,17 @@ pub struct OldConfig {
     network: OldNetworkConfig,
 }
 
-impl OldConfig {
-    pub fn is_old(&self) -> bool {
-        self.version == 1
-    }
+/// Whether this is a config from before the wallet config was split out of it. Those had an
+/// `[app]` table and no `version`. This is checked explicitly, because every field has a default,
+/// so an empty file would otherwise parse as an old config and replace the wallet config.
+pub fn is_old_config(text: &str) -> bool {
+    toml::from_str::<toml::Table>(text)
+        .is_ok_and(|table| table.contains_key("app") && !table.contains_key("version"))
 }
 
 impl Default for OldConfig {
     fn default() -> Self {
         Self {
-            version: 1,
             app: OldAppConfig::default(),
             rpc: OldRpcConfig::default(),
             wallets: IndexMap::new(),
@@ -130,6 +130,7 @@ pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseInt
         global: GlobalConfig {
             log_level: old.app.log_level,
             fingerprint: old.app.active_fingerprint,
+            theme: None,
         },
         network: NetworkConfig {
             default_network: old.network.network_id,
@@ -193,6 +194,7 @@ pub fn migrate_networks(old: IndexMap<String, OldNetwork>) -> NetworkList {
                     additional_dns_introducers: network.dns_introducers,
                     additional_peer_introducers: vec![],
                     inherit,
+                    xchandles: None,
                 }
             })
             .collect(),

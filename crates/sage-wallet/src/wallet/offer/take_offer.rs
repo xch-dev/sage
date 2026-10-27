@@ -116,7 +116,7 @@ impl Wallet {
         let trade_prices = calculate_trade_prices(
             &calculate_trade_price_amounts(&requested_amounts, royalty_nft_count),
             offer.asset_info(),
-        );
+        )?;
 
         for nft in spends.nfts.values().rev() {
             let nft = nft.last()?;

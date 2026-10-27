@@ -13,11 +13,11 @@ use chia_wallet_sdk::{
     utils::Bech32Error,
 };
 use hex::FromHexError;
-use sage_api::ErrorKind;
+use sage_api::{ErrorKind, HandleErrorCode, RecipientError};
 use sage_assets::UriError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::{SyncCommand, WalletError};
+use sage_wallet::{SyncCommand, WalletError, XchandlesApiError, XchandlesError};
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
 use tokio::{sync::mpsc::error::SendError, time::error::Elapsed};
@@ -46,6 +46,9 @@ pub enum Error {
 
     #[error("Driver error: {0}")]
     Driver(#[from] DriverError),
+
+    #[error("XCHandles error: {0}")]
+    Xchandles(#[from] XchandlesError),
 
     #[error("URI error: {0}")]
     Uri(#[from] UriError),
@@ -203,6 +206,11 @@ pub enum Error {
     #[error("Coin already spent: {0}")]
     CoinSpent(Bytes32),
 
+    #[error(
+        "Coin {0} cannot be selected: it must be this wallet's, confirmed, unspent, of an asset this transaction spends, and not pending or locked in an offer"
+    )]
+    CoinNotSelectable(Bytes32),
+
     #[error("IP addr parse error: {0}")]
     IpAddrParse(#[from] AddrParseError),
 
@@ -230,14 +238,61 @@ pub enum Error {
     #[error("Database version too old")]
     DatabaseVersionTooOld,
 
+    #[error("Sage did not initialize successfully, so changes cannot be saved")]
+    NotInitialized,
+
+    #[error("Another instance of Sage is already running with this data directory")]
+    AlreadyRunning,
+
+    #[error(
+        "The config file at {path} is invalid: {error}\nFix or delete this file, then restart Sage. Deleting it resets the settings it contains, but doesn't affect your keys."
+    )]
+    InvalidConfig {
+        path: String,
+        error: toml::de::Error,
+    },
+
     #[error("Timeout")]
     Timeout(#[from] Elapsed),
+
+    #[error("At most {0} addresses can be looked up at once")]
+    TooManyAddresses(usize),
+
+    #[error("{}", recipient_errors_message(.0))]
+    Recipients(Vec<RecipientError>),
+
+    #[error("The offer can't be taken: {0}")]
+    OfferHandleNft(String),
+}
+
+fn recipient_errors_message(errors: &[RecipientError]) -> String {
+    errors
+        .iter()
+        .map(|error| error.reason.as_str())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 impl Error {
+    /// The recipients which couldn't be used, if that's why the request failed.
+    pub fn recipient_errors(&self) -> Option<&[RecipientError]> {
+        match self {
+            Self::Recipients(errors) => Some(errors),
+            _ => None,
+        }
+    }
+
     pub fn kind(&self) -> ErrorKind {
         match self {
+            Self::Recipients(..) => ErrorKind::Recipient,
             Self::Wallet(..) | Self::NoSigningKey => ErrorKind::Wallet,
+            Self::Xchandles(error) => match error {
+                XchandlesError::Database(..) => ErrorKind::Internal,
+                error if error.is_not_registered() => ErrorKind::NotFound,
+                // Failures that may succeed if retried, rather than a problem with the request.
+                error if error.is_unavailable() => ErrorKind::Internal,
+                _ => ErrorKind::Api,
+            },
             Self::NotLoggedIn => ErrorKind::Unauthorized,
             Self::Keychain(error) => match error {
                 KeychainError::Decrypt => ErrorKind::Unauthorized,
@@ -267,7 +322,10 @@ impl Error {
             | Self::Bincode(..)
             | Self::Eval(..)
             | Self::Driver(..)
-            | Self::Timeout(..) => ErrorKind::Internal,
+            | Self::Timeout(..)
+            | Self::NotInitialized
+            | Self::InvalidConfig { .. } => ErrorKind::Internal,
+            Self::AlreadyRunning => ErrorKind::AlreadyRunning,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
             | Self::MissingCoin(..)
@@ -302,6 +360,7 @@ impl Error {
             | Self::InvalidSignature(..)
             | Self::InvalidPublicKey(..)
             | Self::CoinSpent(..)
+            | Self::CoinNotSelectable(..)
             | Self::Uri(..)
             | Self::IpAddrParse(..)
             | Self::NoPeers
@@ -310,7 +369,103 @@ impl Error {
             | Self::MissingAssetId
             | Self::InvalidGroup
             | Self::InvalidThemeJson
-            | Self::MissingThemeData => ErrorKind::Api,
+            | Self::MissingThemeData
+            | Self::TooManyAddresses(..)
+            | Self::OfferHandleNft(..) => ErrorKind::Api,
         }
+    }
+
+    /// A machine-readable reason for an `XCHandles` failure, so that callers can tell the
+    /// cases apart without parsing the message.
+    pub fn handle_error_code(&self) -> Option<HandleErrorCode> {
+        let Self::Xchandles(error) = self else {
+            return None;
+        };
+
+        Some(match error {
+            XchandlesError::InvalidHandle(..) => HandleErrorCode::InvalidHandle,
+            XchandlesError::UnsupportedNetwork => HandleErrorCode::UnsupportedNetwork,
+            XchandlesError::Expired { .. }
+            | XchandlesError::Api(XchandlesApiError::HandleExpired) => HandleErrorCode::Expired,
+            XchandlesError::Api(XchandlesApiError::HandleNotFound) => HandleErrorCode::NotFound,
+            XchandlesError::Database(..) => return None,
+            error if error.is_unavailable() => HandleErrorCode::Unavailable,
+            _ => HandleErrorCode::VerificationFailed,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sage_wallet::HandleError;
+
+    use super::*;
+
+    #[test]
+    fn test_xchandles_error_kinds() {
+        let kind = |error: XchandlesError| Error::from(error).kind();
+
+        assert!(matches!(kind(XchandlesError::NoPeers), ErrorKind::Internal));
+        assert!(matches!(kind(XchandlesError::Timeout), ErrorKind::Internal));
+        assert!(matches!(
+            kind(XchandlesError::InvalidLineage),
+            ErrorKind::Api
+        ));
+        assert!(matches!(
+            kind(XchandlesError::UnsupportedNetwork),
+            ErrorKind::Api
+        ));
+        assert!(matches!(
+            kind(XchandlesError::Expired {
+                expiration: 0,
+                timestamp: 0
+            }),
+            ErrorKind::NotFound
+        ));
+    }
+
+    #[test]
+    fn test_xchandles_error_codes() {
+        let code = |error: XchandlesError| Error::from(error).handle_error_code();
+
+        assert_eq!(
+            code(XchandlesError::InvalidHandle(HandleError::InvalidLength)),
+            Some(HandleErrorCode::InvalidHandle)
+        );
+        assert_eq!(
+            code(XchandlesError::UnsupportedNetwork),
+            Some(HandleErrorCode::UnsupportedNetwork)
+        );
+        assert_eq!(
+            code(XchandlesApiError::HandleNotFound.into()),
+            Some(HandleErrorCode::NotFound)
+        );
+        assert_eq!(
+            code(XchandlesApiError::HandleExpired.into()),
+            Some(HandleErrorCode::Expired)
+        );
+        assert_eq!(
+            code(XchandlesError::Expired {
+                expiration: 0,
+                timestamp: 0
+            }),
+            Some(HandleErrorCode::Expired)
+        );
+        for error in [
+            XchandlesError::NoPeers,
+            XchandlesError::Timeout,
+            XchandlesApiError::IndexStale.into(),
+            XchandlesError::SlotSpent(Bytes32::default()),
+        ] {
+            assert_eq!(code(error), Some(HandleErrorCode::Unavailable));
+        }
+        for error in [
+            XchandlesError::InvalidLineage,
+            XchandlesError::ResponseMismatch,
+            XchandlesError::ResolvedSingletonMelted(Bytes32::default()),
+        ] {
+            assert_eq!(code(error), Some(HandleErrorCode::VerificationFailed));
+        }
+        assert_eq!(Error::NotLoggedIn.handle_error_code(), None);
     }
 }

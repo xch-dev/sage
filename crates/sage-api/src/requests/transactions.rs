@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Amount, CoinSpendJson, SpendBundleJson, TransactionSummary};
+use crate::{Amount, CoinSpendJson, HandleConfirmation, SpendBundleJson, TransactionSummary};
 
 /// Send XCH to an address
 #[cfg_attr(
@@ -33,6 +33,15 @@ pub struct SendXch {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Optional XCH coin IDs to spend first, for the amount and the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub coin_ids: Option<Vec<String>>,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 /// Send XCH to multiple addresses
@@ -61,6 +70,11 @@ pub struct BulkSendXch {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 /// Combine multiple coins into one
@@ -258,6 +272,15 @@ pub struct SendCat {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Optional coin IDs to spend first: coins of this CAT for the amount, XCH coins for the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub coin_ids: Option<Vec<String>>,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 /// Send CAT tokens to multiple addresses
@@ -292,6 +315,11 @@ pub struct BulkSendCat {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 fn yes() -> bool {
@@ -319,6 +347,11 @@ pub struct MultiSend {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 /// Individual payment in a multi-send transaction
@@ -385,6 +418,11 @@ pub struct BulkMintNfts {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 /// Response for bulk NFT minting
@@ -476,6 +514,11 @@ pub struct TransferNfts {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 /// Add a URI to an NFT
@@ -570,6 +613,11 @@ pub struct TransferDids {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 /// Normalize DIDs to latest state
@@ -698,9 +746,14 @@ pub struct TransferOptions {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
-/// Send CAT tokens to an address
+/// Finalize the clawback for a set of coins
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
@@ -714,6 +767,29 @@ pub struct TransferOptions {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct FinalizeClawback {
     /// The coins to finalize the clawback for
+    pub coin_ids: Vec<String>,
+    /// Transaction fee
+    pub fee: Amount,
+    /// Whether to automatically submit the transaction
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub auto_submit: bool,
+}
+
+/// Claim Clawback
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "XCH Transactions",
+        description = "Claim the coins from an early clawback version.",
+        response_type = "TransactionResponse"
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ClaimClawback {
+    /// The coins to claim from the clawback v1 coin.
     pub coin_ids: Vec<String>,
     /// Transaction fee
     pub fee: Amount,
@@ -745,6 +821,11 @@ pub struct SignCoinSpends {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub partial: bool,
+    /// Existing aggregated signature to add this wallet's signatures to.
+    /// It's returned unchanged if it already includes them.
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub aggregated_signature: Option<String>,
 }
 
 /// Response with signed spend bundle
@@ -835,3 +916,4 @@ pub type NormalizeDidsResponse = TransactionResponse;
 pub type TransferOptionsResponse = TransactionResponse;
 pub type ExerciseOptionsResponse = TransactionResponse;
 pub type FinalizeClawbackResponse = TransactionResponse;
+pub type ClaimClawbackResponse = TransactionResponse;

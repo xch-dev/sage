@@ -241,10 +241,19 @@ pub async fn incremental_sync(
             .await?;
         }
 
-        confirmed_transactions.extend(
-            tx.mempool_items_for_output(coin_state.coin.coin_id())
-                .await?,
-        );
+        if let Some(height) = coin_state.created_height {
+            // A coin can only be created by spending its parent, so mark the parent spent now
+            // rather than letting it look unspent until its own coin state arrives. Other inputs
+            // of our mempool items can't be assumed spent, since a different spend bundle may
+            // have created this coin.
+            tx.mark_coin_spent(coin_state.coin.parent_coin_info, height)
+                .await?;
+
+            confirmed_transactions.extend(
+                tx.mempool_items_for_output(coin_state.coin.coin_id())
+                    .await?,
+            );
+        }
 
         if coin_state.spent_height.is_some() {
             confirmed_transactions.extend(
@@ -278,12 +287,23 @@ pub async fn incremental_sync(
             .await
             .ok();
 
-        command_sender
-            .send(SyncCommand::SubscribePuzzles {
-                puzzle_hashes: new_derivations,
-            })
-            .await
-            .ok();
+        // The sync manager calls this inline while handling a CoinStateUpdate, and it is the
+        // only reader of `command_sender`. Awaiting a send on a full channel here would wait for
+        // a reader that is blocked on this very send, freezing sync (and every RPC that sends a
+        // command while holding the Sage lock) until restart. Hand a full channel off instead.
+        let command = SyncCommand::SubscribePuzzles {
+            puzzle_hashes: new_derivations,
+        };
+        if let Err(mpsc::error::TrySendError::Full(command)) = command_sender.try_send(command) {
+            warn!(
+                "Sync command queue is full; deferring a puzzle subscription so the sync manager \
+                 is not left waiting on its own queue"
+            );
+            let command_sender = command_sender.clone();
+            tokio::spawn(async move {
+                command_sender.send(command).await.ok();
+            });
+        }
     }
 
     Ok(())
@@ -347,4 +367,60 @@ pub async fn add_new_subscriptions(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use chia_wallet_sdk::chia::bls::master_to_wallet_unhardened_intermediate;
+    use sage_database::Database;
+    use sqlx::{SqlitePool, migrate};
+    use tokio::time::timeout;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn incremental_sync_does_not_wait_on_a_full_command_queue() -> anyhow::Result<()> {
+        let pool = SqlitePool::connect("file:incremental_sync_full_queue?mode=memory&cache=shared")
+            .await?;
+        migrate!("../../migrations").run(&pool).await?;
+        let db = Database::new(pool);
+        db.run_rust_migrations("TXCH".to_string()).await?;
+
+        let pk = BlsPair::default().sk.public_key();
+        let wallet = Wallet::new(
+            db,
+            pk.get_fingerprint(),
+            master_to_wallet_unhardened_intermediate(&pk),
+            TESTNET11_CONSTANTS.genesis_challenge,
+            AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
+            None,
+        );
+
+        // The sync manager is the queue's only reader, so while it runs incremental_sync
+        // nothing drains the queue. A full queue must not stop it.
+        let (command_sender, mut command_receiver) = mpsc::channel(1);
+        command_sender
+            .send(SyncCommand::SetDiscoverPeers(true))
+            .await?;
+        let (event_sender, _event_receiver) = mpsc::channel(10);
+
+        // A wallet with no derivations always derives new ones, so this reaches the send.
+        timeout(
+            Duration::from_secs(10),
+            incremental_sync(&wallet, Vec::new(), true, &event_sender, &command_sender),
+        )
+        .await
+        .expect("incremental_sync waited on the full command queue")?;
+
+        assert!(matches!(
+            command_receiver.recv().await,
+            Some(SyncCommand::SetDiscoverPeers(true))
+        ));
+        assert!(matches!(
+            timeout(Duration::from_secs(10), command_receiver.recv()).await?,
+            Some(SyncCommand::SubscribePuzzles { puzzle_hashes }) if !puzzle_hashes.is_empty()
+        ));
+
+        Ok(())
+    }
 }

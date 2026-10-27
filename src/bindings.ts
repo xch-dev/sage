@@ -8,6 +8,12 @@ export const commands = {
 async initialize() : Promise<null> {
     return await TAURI_INVOKE("initialize");
 },
+/**
+ * Exits the app. This is used when initialization fails, since Sage can't continue safely.
+ */
+async quit() : Promise<void> {
+    await TAURI_INVOKE("quit");
+},
 async login(req: Login) : Promise<LoginResponse> {
     return await TAURI_INVOKE("login", { req });
 },
@@ -107,6 +113,9 @@ async assignNftsToDid(req: AssignNftsToDid) : Promise<TransactionResponse> {
 async finalizeClawback(req: FinalizeClawback) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("finalize_clawback", { req });
 },
+async claimClawback(req: ClaimClawback) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("claim_clawback", { req });
+},
 async createTransaction(req: CreateTransaction) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("create_transaction", { req });
 },
@@ -133,6 +142,18 @@ async performDatabaseMaintenance(req: PerformDatabaseMaintenance) : Promise<Perf
 },
 async checkAddress(req: CheckAddress) : Promise<CheckAddressResponse> {
     return await TAURI_INVOKE("check_address", { req });
+},
+async resolveHandle(req: ResolveHandle) : Promise<ResolveHandleResponse> {
+    return await TAURI_INVOKE("resolve_handle", { req });
+},
+async getHandle(req: GetHandle) : Promise<GetHandleResponse> {
+    return await TAURI_INVOKE("get_handle", { req });
+},
+async getHandles(req: GetHandles) : Promise<GetHandlesResponse> {
+    return await TAURI_INVOKE("get_handles", { req });
+},
+async lookupAddressHandles(req: LookupAddressHandles) : Promise<LookupAddressHandlesResponse> {
+    return await TAURI_INVOKE("lookup_address_handles", { req });
 },
 async getDerivations(req: GetDerivations) : Promise<GetDerivationsResponse> {
     return await TAURI_INVOKE("get_derivations", { req });
@@ -190,6 +211,9 @@ async getNftIcon(req: GetNftIcon) : Promise<GetNftIconResponse> {
 },
 async getNftThumbnail(req: GetNftThumbnail) : Promise<GetNftThumbnailResponse> {
     return await TAURI_INVOKE("get_nft_thumbnail", { req });
+},
+async getNftMetadataUpdater(req: GetNftMetadataUpdater) : Promise<GetNftMetadataUpdaterResponse> {
+    return await TAURI_INVOKE("get_nft_metadata_updater", { req });
 },
 async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTransactionsResponse> {
     return await TAURI_INVOKE("get_pending_transactions", { req });
@@ -331,6 +355,12 @@ async signMessageByAddress(req: SignMessageByAddress) : Promise<SignMessageByAdd
 },
 async sendTransactionImmediately(req: SendTransactionImmediately) : Promise<SendTransactionImmediatelyResponse> {
     return await TAURI_INVOKE("send_transaction_immediately", { req });
+},
+async getSelectedTheme(req: GetSelectedTheme) : Promise<GetSelectedThemeResponse> {
+    return await TAURI_INVOKE("get_selected_theme", { req });
+},
+async setSelectedTheme(req: SetSelectedTheme) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_selected_theme", { req });
 },
 async isRpcRunning() : Promise<boolean> {
     return await TAURI_INVOKE("is_rpc_running");
@@ -487,6 +517,20 @@ export type AddPeer = {
  * IP address or hostname with port
  */
 ip: string }
+/**
+ * The known handles which resolve to an address
+ */
+export type AddressHandlesRecord = { 
+/**
+ * The address or puzzle hash, as it was given
+ */
+address: string; 
+/**
+ * Unexpired handles which resolve to it, sorted by handle. Only mappings which are
+ * verified or outdated are included, and outdated ones should be resolved again before
+ * they're relied on
+ */
+handles: HandleRecord[] }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
 export type Amount = string | number
 export type AppLaunchGateResult = { allowed: boolean; kind: string; capability: SandboxCapability | null; message: string | null }
@@ -613,7 +657,13 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Response for bulk NFT minting
  */
@@ -661,7 +711,13 @@ memos?: string[];
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Send XCH to multiple addresses
  */
@@ -685,7 +741,13 @@ memos?: string[];
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Cancel an offer on-chain
  */
@@ -701,7 +763,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Cancel multiple offers
  */
@@ -717,7 +783,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Validate and check an address
  */
@@ -734,6 +804,22 @@ export type CheckAddressResponse = {
  * Whether the address is valid and belongs to this wallet
  */
 valid: boolean }
+/**
+ * Claim Clawback
+ */
+export type ClaimClawback = { 
+/**
+ * The coins to claim from the clawback v1 coin.
+ */
+coin_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
 /**
  * Coin structure
  */
@@ -752,8 +838,8 @@ puzzle_hash: string;
 amount: Amount }
 export type CoinFilterMode = "all" | "selectable" | "owned" | "spent" | "clawback"
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
-export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null }
-export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height" | "clawback_timestamp"
+export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; clawback_version: number | null; clawback_is_sender: boolean | null; clawback_is_receiver: boolean | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null }
+export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height" | "clawback_timestamp" | "clawback_version"
 /**
  * Coin spend structure
  */
@@ -833,7 +919,13 @@ actions: Action[];
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Delete a wallet database
  */
@@ -887,8 +979,20 @@ export type DerivationRecord = { index: number; public_key: string; address: str
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
 export type EnvironmentThemeView = { name: string; displayName: string; mostLike?: string | null; inherits?: string | null; cssVars: Partial<{ [key in string]: string }> }
-export type Error = { kind: ErrorKind; reason: string }
-export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
+export type Error = { kind: ErrorKind; reason: string; 
+/**
+ * Why an XCHandles request failed, if it did.
+ */
+handle_error_code?: HandleErrorCode | null; 
+/**
+ * The recipients which couldn't be used, if that's why the request failed.
+ */
+recipients?: RecipientError[] | null }
+export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc" | 
+/**
+ * One or more recipients couldn't be used. See the attached recipient errors.
+ */
+"recipient" | "already_running"
 /**
  * Exercise options
  */
@@ -927,7 +1031,7 @@ export type FilterUnlockedCoinsResponse = {
  */
 coin_ids: string[] }
 /**
- * Send CAT tokens to an address
+ * Finalize the clawback for a set of coins
  */
 export type FinalizeClawback = { 
 /**
@@ -1151,6 +1255,72 @@ export type GetDidsResponse = {
  */
 dids: DidRecord[] }
 /**
+ * Get the full verified details of an XCHandles handle
+ */
+export type GetHandle = { 
+/**
+ * The handle, with or without a leading `@`
+ */
+handle: string }
+/**
+ * Response with the full verified details of a handle
+ */
+export type GetHandleResponse = { 
+/**
+ * The verified handle mapping
+ */
+handle: HandleRecord; 
+/**
+ * The registry slot the mapping was verified against
+ */
+slot: HandleSlotRecord; 
+/**
+ * Whether a transfer of the handle is pending
+ */
+pending_transfer_status: PendingTransferStatus; 
+/**
+ * The pending transfer reported by the API, unless the status is none or unavailable
+ */
+pending_transfer: PendingTransferRecord | null }
+/**
+ * List the handles Sage knows about
+ */
+export type GetHandles = { 
+/**
+ * Which handles to list
+ */
+filter?: HandleFilterMode; 
+/**
+ * Also list mappings which are unverified, stale or expired. Outdated mappings are
+ * always listed
+ */
+include_unverified?: boolean; 
+/**
+ * Verify the handles named by NFTs in this wallet before listing. This makes requests
+ * to the XCHandles API and peers
+ */
+refresh?: boolean; 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of handles to return
+ */
+limit: number }
+/**
+ * Response with known handles
+ */
+export type GetHandlesResponse = { 
+/**
+ * The handles, sorted by handle
+ */
+handles: HandleRecord[]; 
+/**
+ * Total number of handles matching the filter
+ */
+total: number }
+/**
  * Get a specific wallet key
  */
 export type GetKey = { 
@@ -1307,6 +1477,26 @@ export type GetNftIconResponse = {
  */
 icon: string | null }
 /**
+ * Get the metadata updater of any NFT, including ones not in the wallet
+ */
+export type GetNftMetadataUpdater = { 
+/**
+ * NFT launcher ID
+ */
+nft_id: string }
+/**
+ * Response with an NFT's metadata updater kind
+ */
+export type GetNftMetadataUpdaterResponse = { 
+/**
+ * The metadata updater kind, or null if the NFT couldn't be found
+ */
+metadata_updater_kind: NftUpdaterKind | null; 
+/**
+ * The NFT's name, if it's known
+ */
+name: string | null }
+/**
  * Response with NFT details
  */
 export type GetNftResponse = { 
@@ -1397,7 +1587,35 @@ offer: OfferRecord }
 /**
  * List all offers
  */
-export type GetOffers = Record<string, never>
+export type GetOffers = { 
+/**
+ * Starting offset for pagination
+ */
+offset?: number | null; 
+/**
+ * Maximum number of offers to return (all when omitted)
+ */
+limit?: number | null; 
+/**
+ * Only return offers with this status
+ */
+status?: OfferRecordStatus | null; 
+/**
+ * Search by asset name, ticker, asset/offer id, or NFT/DID/option address
+ */
+find_value?: string | null; 
+/**
+ * Which side of the offer the search applies to (defaults to any)
+ */
+find_side?: OfferFindSide | null; 
+/**
+ * Sort column (defaults to creation time)
+ */
+sort_mode?: OfferSortMode | null; 
+/**
+ * Sort ascending (defaults to false, newest first)
+ */
+ascending?: boolean }
 /**
  * Get offers for a specific asset
  */
@@ -1421,7 +1639,11 @@ export type GetOffersResponse = {
 /**
  * List of offers
  */
-offers: OfferRecord[] }
+offers: OfferRecord[]; 
+/**
+ * Total number of offers matching the filters, before paging
+ */
+total: number }
 /**
  * Get a specific option
  */
@@ -1465,7 +1687,11 @@ find_value: string | null;
 /**
  * Include hidden options
  */
-include_hidden?: boolean }
+include_hidden?: boolean; 
+/**
+ * Which options to list (defaults to owned options)
+ */
+filter?: OptionFilter }
 /**
  * Response with options list
  */
@@ -1518,6 +1744,18 @@ export type GetSecretKeyResponse = {
  * Secret key information if authorized
  */
 secrets: SecretKeyInfo | null }
+/**
+ * Get the UI theme the user last selected
+ */
+export type GetSelectedTheme = Record<string, never>
+/**
+ * Response with the selected UI theme
+ */
+export type GetSelectedThemeResponse = { 
+/**
+ * Theme name, if one has been selected
+ */
+theme: string | null }
 /**
  * Get the count of spendable coins
  */
@@ -1706,6 +1944,235 @@ export type GetWalletAddressResponse = {
 address: string }
 export type GetXchUsdPrice = Record<string, never>
 export type GetXchUsdPriceResponse = { usd: number }
+/**
+ * Confirms that a handle recipient was reviewed while it resolved to an address.
+ * 
+ * A transaction to a handle is rejected if the handle no longer resolves to the confirmed
+ * address. Confirming the address the handle resolves to now also acknowledges a change
+ * from the address it resolved to before, or from the address last sent to.
+ */
+export type HandleConfirmation = { 
+/**
+ * The handle, with or without a leading `@`
+ */
+handle: string; 
+/**
+ * The address the handle was reviewed as resolving to
+ */
+address: string }
+/**
+ * Why an XCHandles request failed
+ */
+export type HandleErrorCode = 
+/**
+ * The handle isn't syntactically valid
+ */
+"invalid_handle" | 
+/**
+ * XCHandles isn't deployed on the current network
+ */
+"unsupported_network" | 
+/**
+ * The handle isn't registered
+ */
+"not_found" | 
+/**
+ * The handle has expired
+ */
+"expired" | 
+/**
+ * The API or peers were unavailable or behind, so the handle couldn't be verified
+ * right now. Retrying later may succeed
+ */
+"unavailable" | 
+/**
+ * The API's answer failed verification against the chain
+ */
+"verification_failed"
+/**
+ * Which known handles to list
+ */
+export type HandleFilterMode = 
+/**
+ * Every handle Sage knows about
+ */
+"all" | 
+/**
+ * Handles whose owner NFT or DID is in this wallet
+ */
+"owned"
+/**
+ * A handle mapping which was verified against the chain
+ */
+export type HandleRecord = { 
+/**
+ * The handle, without the leading `@`
+ */
+handle: string; 
+/**
+ * The hash the registry stores the handle under
+ */
+handle_hash: string; 
+/**
+ * The address the handle resolves to
+ */
+address: string; 
+/**
+ * Whether the resolved address is new since it was last verified
+ */
+status: HandleStatus; 
+/**
+ * The address the handle resolved to before it changed, while the change is
+ * unacknowledged
+ */
+previous_address: string | null; 
+/**
+ * The address this handle last resolved to when it was sent to
+ */
+last_sent_address: string | null; 
+/**
+ * The address a send to this handle has to confirm the new address against, if any.
+ * This is the previous address while a change is unacknowledged, or otherwise the
+ * address last sent to if the handle now resolves somewhere else.
+ */
+changed_from: string | null; 
+/**
+ * Whether the mapping was verified against the chain before this request, rather
+ * than by it. Resolutions are only cached when the handle could not be verified right
+ * now, while mappings listed from the store are always cached
+ */
+cached: boolean; 
+/**
+ * Whether the stored mapping can currently be relied on
+ */
+verification: HandleVerification; 
+/**
+ * Why the mapping is no longer verified, if it isn't
+ */
+verification_reason: string | null; 
+/**
+ * Launcher ID of the singleton which owns the handle
+ */
+owner_launcher_id: string; 
+/**
+ * Launcher ID of the singleton the handle resolves to
+ */
+resolved_launcher_id: string; 
+/**
+ * Unix timestamp after which the handle expires
+ */
+expiration: number; 
+/**
+ * The handle's registry slot coin
+ */
+slot_coin_id: string; 
+/**
+ * Height the slot coin was confirmed at
+ */
+slot_confirmation_height: number; 
+/**
+ * The resolved singleton coin the address was derived from
+ */
+resolved_coin_id: string; 
+/**
+ * Height the resolved singleton coin was confirmed at
+ */
+resolved_confirmation_height: number; 
+/**
+ * The latest height at which the slot or the resolved singleton changed, so the
+ * latest height at which the address this handle resolves to could have changed. The
+ * slot is also recreated by activity on neighboring handles, so this can be later
+ * than the last time the handle itself was updated.
+ */
+updated_height: number; 
+/**
+ * Height of the peak transaction block the mapping was verified at
+ */
+verified_height: number; 
+/**
+ * Timestamp of the peak transaction block the mapping was verified at
+ */
+verified_timestamp: number; 
+/**
+ * Local Unix timestamp of the verification
+ */
+last_verified_at: number }
+/**
+ * The registry slot a handle was verified against
+ */
+export type HandleSlotRecord = { 
+/**
+ * Launcher ID of the registry singleton the handle is registered in
+ */
+registry_launcher_id: string; 
+/**
+ * The slot's counter, which increases whenever the handle's slot is updated
+ */
+counter: number; 
+/**
+ * Hash of the neighboring handle before this one in the registry
+ */
+left_handle_hash: string; 
+/**
+ * Hash of the neighboring handle after this one in the registry
+ */
+right_handle_hash: string; 
+/**
+ * The registry coin which created the slot
+ */
+parent_id: string; 
+/**
+ * The parent of the registry coin which created the slot
+ */
+parent_parent_id: string; 
+/**
+ * Inner puzzle hash of the registry coin which created the slot
+ */
+parent_inner_puzzle_hash: string; 
+/**
+ * The API's indexed peak height when the handle was last fetched
+ */
+indexed_height: number }
+/**
+ * Whether a verified handle mapping has changed
+ */
+export type HandleStatus = 
+/**
+ * The handle resolves to the same address as when it was first verified, or the
+ * change has been acknowledged
+ */
+"verified" | 
+/**
+ * The handle now resolves to a different address than it did previously
+ */
+"changed"
+/**
+ * Whether a stored handle mapping can currently be relied on
+ */
+export type HandleVerification = 
+/**
+ * The values were verified against the chain by the most recent lookup, within the
+ * last day
+ */
+"verified" | 
+/**
+ * The values were verified by the most recent lookup, but more than a day ago, so the
+ * handle may have changed since. Resolve it again before relying on it
+ */
+"outdated" | 
+/**
+ * The most recent lookup was rejected, or showed the handle is no longer registered,
+ * so the values are only the last ones that were verified
+ */
+"unverified" | 
+/**
+ * The values must be verified again before they are used, for example after a reorg
+ */
+"stale" | 
+/**
+ * The handle has expired since it was last verified
+ */
+"expired"
 export type Id = 
 /**
  * The XCH asset
@@ -1885,6 +2352,22 @@ export type Logout = Record<string, never>
  */
 export type LogoutResponse = Record<string, never>
 /**
+ * Look up the known handles for addresses
+ */
+export type LookupAddressHandles = { 
+/**
+ * Addresses on the current network, or hex encoded puzzle hashes
+ */
+addresses: string[] }
+/**
+ * Response with the known handles for each address
+ */
+export type LookupAddressHandlesResponse = { 
+/**
+ * One entry per requested address, in the same order
+ */
+results: AddressHandlesRecord[] }
+/**
  * Create a new offer
  */
 export type MakeOffer = { 
@@ -1915,7 +2398,13 @@ auto_import?: boolean;
 /**
  * Optional specific coin IDs to use for the offer instead of auto-selecting
  */
-coin_ids?: string[] | null }
+coin_ids?: string[] | null; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Response with created offer
  */
@@ -2013,7 +2502,12 @@ summary: TransactionSummary;
  * Coin spends in the transaction
  */
 coin_spends: CoinSpendJson[] }
-export type Network = { name: string; ticker: string; prefix?: string | null; precision: number; network_id?: string | null; default_port: number; genesis_challenge: string; agg_sig_me?: string | null; dns_introducers: string[]; peer_introducers: string[]; inherit?: InheritedNetwork | null }
+export type Network = { name: string; ticker: string; prefix?: string | null; precision: number; network_id?: string | null; default_port: number; genesis_challenge: string; agg_sig_me?: string | null; dns_introducers: string[]; peer_introducers: string[]; inherit?: InheritedNetwork | null; 
+/**
+ * Overrides the XCHandles deployment for this network. When unset, the deployment
+ * is inherited from the built-in network named by `inherit`, if there is one.
+ */
+xchandles?: XchandlesConfig | null }
 export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean }
 export type NetworkKind = "mainnet" | "testnet" | "unknown"
 export type NetworkList = { networks: Network[] }
@@ -2076,7 +2570,7 @@ royalty_address?: string | null;
  * Royalty percentage in ten-thousandths (e.g., 300 = 3%)
  */
 royalty_ten_thousandths?: number }
-export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null; special_use_type: NftSpecialUseType | null }
+export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; metadata_updater_kind: NftUpdaterKind; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null; special_use_type: NftSpecialUseType | null }
 export type NftRoyalty = { royalty_address: string; royalty_basis_points: number }
 export type NftSortMode = "name" | "recent"
 export type NftSpecialUseType = "none" | "theme"
@@ -2085,6 +2579,25 @@ export type NftTransfer = {
  * The DID to assign as the owner
  */
 did_id: Id | null }
+/**
+ * The kind of metadata updater puzzle an NFT uses, which determines how its
+ * on-chain metadata can change.
+ */
+export type NftUpdaterKind = 
+/**
+ * The standard CHIP-7 updater. Metadata is append-only: URIs can be added, but
+ * nothing else can change.
+ */
+"default" | 
+/**
+ * The any metadata updater, used by `XCHandles`. The owner can replace all metadata
+ * at any time.
+ */
+"any" | 
+/**
+ * An updater that isn't recognized. Its metadata should be treated as mutable.
+ */
+"unknown"
 /**
  * Type of NFT URI
  */
@@ -2121,9 +2634,61 @@ hidden_puzzle_hash?: string | null;
  * Amount of the asset
  */
 amount: Amount }
-export type OfferAsset = { asset: Asset; amount: Amount; royalty: Amount; nft_royalty: NftRoyalty | null; option_assets: OptionAssets | null }
+export type OfferAsset = { asset: Asset; amount: Amount; royalty: Amount; nft_royalty: NftRoyalty | null; option_assets: OptionAssets | null; 
+/**
+ * The metadata updater kind, if the asset is an NFT. Mutable NFTs can have all of
+ * their metadata replaced by the owner, including after the offer is accepted.
+ */
+nft_metadata_updater_kind: NftUpdaterKind | null }
+/**
+ * Which side of an offer a search matches
+ */
+export type OfferFindSide = "any" | "offered" | "requested"
+/**
+ * An NFT offered in an offer whose metadata names an XCHandles handle
+ */
+export type OfferHandleNft = { 
+/**
+ * The offered NFT
+ */
+nft_id: string; 
+/**
+ * The handle named by the NFT's metadata, without the leading `@`. The owner can set
+ * this to anything, so it only says which handle to check.
+ */
+handle: string; status: OfferHandleStatus; 
+/**
+ * Why the handle couldn't be checked, or what is pending
+ */
+reason: string | null }
+/**
+ * What the registry says about a handle NFT in an offer
+ */
+export type OfferHandleStatus = 
+/**
+ * The registry confirms the handle belongs to the NFT, and no update is pending
+ */
+"verified" | 
+/**
+ * An update to the handle's owner or resolved singleton is pending, so the seller
+ * could take the handle back after the trade. The offer can't be taken.
+ */
+"pending_transfer" | 
+/**
+ * The registry doesn't associate the handle with this NFT, or the handle isn't
+ * registered, so the NFT isn't the handle it claims to be
+ */
+"not_associated" | 
+/**
+ * The handle couldn't be checked right now. The offer can't be taken until it is.
+ */
+"unavailable"
 export type OfferRecord = { offer_id: string; offer: string; status: OfferRecordStatus; creation_timestamp: number; summary: OfferSummary }
 export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled" | "expired"
+/**
+ * Offer list sort column
+ */
+export type OfferSortMode = "created" | "expiration"
 export type OfferSummary = { fee: Amount; maker: OfferAsset[]; taker: OfferAsset[]; expiration_height: number | null; expiration_timestamp: number | null }
 /**
  * Asset specification for options
@@ -2138,10 +2703,78 @@ asset_id: string | null;
  */
 amount: Amount }
 export type OptionAssets = { underlying_asset: Asset; underlying_amount: Amount; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number }
-export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null }
+export type OptionFilter = 
+/**
+ * Options currently held by the wallet
+ */
+"owned" | 
+/**
+ * Options minted by the wallet, including ones that have since been transferred
+ */
+"created" | 
+/**
+ * Both owned and created options
+ */
+"all"
+export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null; is_owned: boolean }
 export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }
+/**
+ * A transfer of a handle to a new owner or resolved singleton, which has been initiated
+ * but not executed yet
+ */
+export type PendingTransferRecord = { 
+/**
+ * Launcher ID of the singleton which will own the handle
+ */
+new_owner_launcher_id: string; 
+/**
+ * Launcher ID of the singleton the handle will resolve to
+ */
+new_resolved_launcher_id: string; 
+/**
+ * Height from which the transfer can be executed
+ */
+minimum_execution_height: number; 
+/**
+ * The owner coin which initiated the transfer
+ */
+initiator_coin_id: string; 
+/**
+ * The coin the API expects to execute the transfer. Not verified
+ */
+executor_coin_id: string; 
+/**
+ * Height the API reports the transfer was initiated at. Not verified
+ */
+update_confirmation_height: number; 
+/**
+ * The registry's update slot coin which records the transfer, if it was verified
+ */
+update_slot_coin_id: string | null }
+/**
+ * Whether a handle has a pending transfer
+ */
+export type PendingTransferStatus = 
+/**
+ * The API reports no pending transfer. The API is the only source of pending
+ * transfers, so this can't be proven on chain
+ */
+"none" | 
+/**
+ * The API reports a pending transfer, and its update slot was found on chain
+ */
+"verified" | 
+/**
+ * The API reports a pending transfer, but no matching update slot from the registry
+ * was found on chain. It may already have been executed, or the claim may be false
+ */
+"unverified" | 
+/**
+ * Pending transfers couldn't be checked right now
+ */
+"unavailable"
 /**
  * Perform database maintenance operations
  */
@@ -2178,6 +2811,56 @@ pages_vacuumed: number;
  * Number of WAL pages checkpointed
  */
 wal_pages_checkpointed: number }
+/**
+ * A recipient which couldn't be used, so the transaction wasn't created
+ */
+export type RecipientError = { 
+/**
+ * The recipient as it was given
+ */
+recipient: string; kind: RecipientErrorKind; reason: string; 
+/**
+ * The handle, without the leading `@`, if the recipient is a handle
+ */
+handle: string | null; 
+/**
+ * The verified address the handle resolves to now
+ */
+address: string | null; 
+/**
+ * The address the handle resolved to before it changed. Confirm `address` with a
+ * [`HandleConfirmation`] to use the new address.
+ */
+previous_address: string | null }
+/**
+ * Why a recipient couldn't be used
+ */
+export type RecipientErrorKind = 
+/**
+ * The recipient isn't a valid address or handle for this network
+ */
+"invalid" | 
+/**
+ * XCHandles isn't supported on this network
+ */
+"unsupported_network" | 
+/**
+ * The handle isn't registered, or has expired
+ */
+"not_registered" | 
+/**
+ * The handle's registration couldn't be verified against the chain
+ */
+"unverified" | 
+/**
+ * The handle couldn't be verified right now, and there is no recent verified mapping
+ */
+"unavailable" | 
+/**
+ * The handle resolves to a different address than the one last sent to or confirmed,
+ * and the new address must be confirmed before it can be used
+ */
+"changed"
 /**
  * Re-download an `NFT`'s data and metadata from its URIs
  */
@@ -2219,6 +2902,22 @@ name: string }
  */
 export type RenameKeyResponse = Record<string, never>
 export type ReorderTaskbarRuntimesParams = { windowLabel: string; appIds: string[] }
+/**
+ * Resolve an XCHandles handle to an address
+ */
+export type ResolveHandle = { 
+/**
+ * The handle, with or without a leading `@`
+ */
+handle: string }
+/**
+ * Response with the verified handle mapping
+ */
+export type ResolveHandleResponse = { 
+/**
+ * The verified handle mapping
+ */
+handle: HandleRecord }
 /**
  * Resynchronize wallet data with the blockchain
  */
@@ -2382,7 +3081,17 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Optional coin IDs to spend first: coins of this CAT for the amount, XCH coins for the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Send a transaction immediately
  */
@@ -2430,7 +3139,17 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Optional XCH coin IDs to spend first, for the amount and the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Set the change address for transactions
  */
@@ -2492,6 +3211,14 @@ fingerprint: number;
  */
 name: string | null }
 /**
+ * Remember the UI theme the user selected
+ */
+export type SetSelectedTheme = { 
+/**
+ * Theme name (null to clear)
+ */
+theme: string | null }
+/**
  * Set target number of peers to maintain
  */
 export type SetTargetPeers = { 
@@ -2530,7 +3257,12 @@ auto_submit?: boolean;
 /**
  * Whether to partially sign (for multi-signature)
  */
-partial?: boolean }
+partial?: boolean; 
+/**
+ * Existing aggregated signature to add this wallet's signatures to.
+ * It's returned unchanged if it already includes them.
+ */
+aggregated_signature?: string | null }
 /**
  * Response with signed spend bundle
  */
@@ -2715,7 +3447,12 @@ summary: TransactionSummary;
  * Coin spends in the transaction
  */
 coin_spends: CoinSpendJson[] }
-export type TransactionSummary = { fee: Amount; inputs: TransactionInput[] }
+export type TransactionSummary = { fee: Amount; inputs: TransactionInput[]; 
+/**
+ * The handle recipients of the transaction, and the verified addresses they were
+ * resolved to
+ */
+handles?: HandleRecord[] }
 /**
  * Transfer DIDs to a new address
  */
@@ -2739,7 +3476,13 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Transfer NFTs to a new owner
  */
@@ -2763,7 +3506,13 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Transfer options to another address
  */
@@ -2787,7 +3536,13 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 export type Unit = { ticker: string; precision: number }
 /**
  * Update a `CAT` token's metadata and visibility
@@ -2882,7 +3637,7 @@ visible: boolean }
  * Response after updating an option
  */
 export type UpdateOptionResponse = Record<string, never>
-export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
+export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.resolve_handle" | "wallet.get_handles" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
 export type UserSageAppPendingUpdateDecisionReviewView = { requiredUserGrantableCapabilities: UserBridgeCapability[]; requiredNetworkWhitelist: SageNetworkWhitelistEntry[]; requiredNetworkWhitelistByNetwork: Partial<{ [key in string]: SageNetworkWhitelistEntry[] }> }
 export type UserSageAppPendingUpdateDecisionView = { kind: "apply" } | ({ kind: "review" } & UserSageAppPendingUpdateDecisionReviewView)
 export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest; decision: UserSageAppPendingUpdateDecisionView }
@@ -2923,10 +3678,23 @@ offer: OfferSummary;
 /**
  * Offer status
  */
-status: OfferRecordStatus }
+status: OfferRecordStatus; 
+/**
+ * Offered NFTs which claim to be XCHandles handles, checked against the registry.
+ * An offer with a pending handle transfer, or a handle which couldn't be checked,
+ * can't be taken.
+ */
+handle_nfts?: OfferHandleNft[] }
 export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
 export type WindowTargetParams = { windowLabel: string }
+/**
+ * The XCHandles deployment used to resolve handles on a network.
+ * 
+ * The constants must match the ones committed to in the registry's launcher solution,
+ * since they determine the registry's puzzle and therefore which slots are authentic.
+ */
+export type XchandlesConfig = { registry_launcher_id: string; price_singleton_launcher_id: string; precommit_payout_puzzle_hash: string; relative_block_height: number; api_url: string }
 
 /** tauri-specta globals **/
 
