@@ -2,12 +2,13 @@
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-const { lookupAddressHandles } = vi.hoisted(() => ({
+const { lookupAddressHandles, resolveHandle } = vi.hoisted(() => ({
   lookupAddressHandles: vi.fn(),
+  resolveHandle: vi.fn(),
 }));
 
 vi.mock('@/bindings', () => ({
-  commands: { lookupAddressHandles },
+  commands: { lookupAddressHandles, resolveHandle },
   events: { syncEvent: { listen: vi.fn(() => Promise.resolve(vi.fn())) } },
 }));
 
@@ -15,8 +16,16 @@ import type { HandleRecord, LookupAddressHandles } from '@/bindings';
 import { addressHandles } from '@/lib/addressHandles';
 import { defaultState, useWalletState } from '@/state';
 import { i18n } from '@lingui/core';
-import { cleanup, render, screen } from '@testing-library/react';
+import { I18nProvider } from '@lingui/react';
+import {
+  cleanup,
+  fireEvent,
+  render as renderBase,
+  screen,
+  within,
+} from '@testing-library/react';
 import { bech32m } from 'bech32';
+import type { ReactElement } from 'react';
 import { AddressItem } from './AddressItem';
 
 function address(byte: number, prefix = 'txch') {
@@ -85,7 +94,24 @@ afterEach(() => {
   cleanup();
   addressHandles.clear();
   lookupAddressHandles.mockClear();
+  resolveHandle.mockReset();
 });
+
+function render(ui: ReactElement) {
+  return renderBase(ui, {
+    wrapper: ({ children }) => (
+      <I18nProvider i18n={i18n}>{children}</I18nProvider>
+    ),
+  });
+}
+
+/** Opens the popover listing every known handle for an address. */
+async function openHandles(name: string) {
+  const trigger = (await screen.findByText(name)).closest('button');
+  if (!trigger) throw new Error(`No label for ${name}`);
+  fireEvent.click(trigger);
+  return screen.findByRole('dialog');
+}
 
 describe('AddressHandles', () => {
   it('labels a page of addresses with one lookup', async () => {
@@ -114,31 +140,75 @@ describe('AddressHandles', () => {
     expect(screen.getByDisplayValue(BOB)).toBeTruthy();
   });
 
-  it('shows the first of several handles and makes the rest discoverable', async () => {
+  it('lists every handle for an address, in a fixed order', async () => {
     render(<AddressItem label='Owner' address={ALICE} />);
 
-    const label = await screen.findByText('@alice');
-    const trigger = label.closest('button');
+    const trigger = (await screen.findByText('@alice')).closest('button');
     expect(trigger?.textContent).toContain('+1');
-    expect(trigger?.getAttribute('aria-label')).toContain('1 more handles');
+
+    const popover = await openHandles('@alice');
+    const names = within(popover)
+      .getAllByText(/^@/)
+      .map((element) => element.textContent);
+    expect(names).toEqual(['@alice', '@ally']);
+    // The full address can be copied from the popover too.
+    expect(within(popover).getByText(ALICE)).toBeTruthy();
   });
 
   it("doesn't call an outdated mapping verified", async () => {
     render(<AddressItem label='Owner' address={CAROL} />);
 
     const trigger = (await screen.findByText('@carol')).closest('button');
-    expect(trigger?.getAttribute('title')).toBe(
-      '@carol (Not verified recently)',
+    const name = trigger?.getAttribute('aria-label') ?? '';
+    expect(name).toContain('Not verified recently');
+    expect(name).not.toContain('(Verified)');
+
+    const popover = await openHandles('@carol');
+    expect(within(popover).queryByText('Verified')).toBeNull();
+    expect(within(popover).getByText('Not verified recently')).toBeTruthy();
+  });
+
+  it('verifies an outdated handle again on request, then relabels', async () => {
+    resolveHandle.mockResolvedValue({ handle: handle('carol', CAROL) });
+    render(<AddressItem label='Owner' address={CAROL} />);
+
+    const popover = await openHandles('@carol');
+    fireEvent.click(
+      within(popover).getByRole('button', { name: /Verify again/ }),
     );
-    expect(trigger?.className).toContain('border-dashed');
+
+    await vi.waitFor(() =>
+      expect(lookupAddressHandles).toHaveBeenCalledTimes(2),
+    );
+    expect(resolveHandle).toHaveBeenCalledWith({ handle: 'carol' });
+  });
+
+  it('only offers to verify again when a handle is outdated', async () => {
+    render(<AddressItem label='Owner' address={BOB} />);
+
+    const popover = await openHandles('@bob');
+    expect(
+      within(popover).queryByRole('button', { name: /Verify again/ }),
+    ).toBeNull();
   });
 
   it('shows nothing for addresses without known handles', async () => {
-    const { container } = render(
-      <AddressItem label='Owner' address={address(4)} />,
+    const unknown = address(4);
+    render(
+      <div>
+        <div data-testid='unknown'>
+          <AddressItem label='Owner' address={unknown} />
+        </div>
+        <AddressItem label='Royalties' address={BOB} />
+      </div>,
     );
 
-    await vi.waitFor(() => expect(lookupAddressHandles).toHaveBeenCalled());
-    expect(container.querySelector('button[title^="@"]')).toBeNull();
+    // Both are looked up together, so once one label arrives the other's
+    // result has too.
+    await screen.findByText('@bob');
+    expect(lookupAddressHandles).toHaveBeenCalledWith({
+      addresses: [unknown, BOB],
+    });
+    expect(within(screen.getByTestId('unknown')).queryByText(/^@/)).toBeNull();
   });
 });

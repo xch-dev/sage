@@ -220,7 +220,7 @@ describe('address handle labels', () => {
     expect(cache.get(ALICE)).toHaveLength(1);
   });
 
-  it('moves the label when the resolved NFT is transferred', async () => {
+  it('looks up every shown address again on refresh', async () => {
     const backend = fakeBackend([handle('alice', ALICE)]);
     const { cache, flush } = testCache(backend);
 
@@ -229,7 +229,7 @@ describe('address handle labels', () => {
     await flush();
     expect(cache.get(ALICE)?.map((record) => record.handle)).toEqual(['alice']);
 
-    // The handle's NFT moved to BOB, and resolving it again recorded that.
+    // Resolving a handle again found that it moved, so the store changed.
     backend.set([
       handle('alice', BOB, { status: 'changed', previous_address: ALICE }),
     ]);

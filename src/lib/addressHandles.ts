@@ -256,15 +256,11 @@ function ownedRefreshKey(fingerprint: number, prefix: string) {
  * This makes requests to the XCHandles API and holds the wallet for up to 30
  * seconds, so it's only done every few hours for each wallet.
  */
-export async function refreshOwnedHandles(
-  fingerprint: number,
-  prefix: string,
-  options: { force?: boolean } = {},
-) {
+export async function refreshOwnedHandles(fingerprint: number, prefix: string) {
   const key = ownedRefreshKey(fingerprint, prefix);
   const last = Number(localStorage.getItem(key) ?? 0);
 
-  if (!options.force && Date.now() - last < OWNED_REFRESH_INTERVAL_MS) return;
+  if (Date.now() - last < OWNED_REFRESH_INTERVAL_MS) return;
 
   await commands.getHandles({
     filter: 'owned',
