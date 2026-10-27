@@ -1,4 +1,5 @@
 import { commands, ContactRecord } from '@/bindings';
+import { refreshAddressLabels } from '@/lib/addressContacts';
 import { xchandlesEnabled } from '@/lib/features';
 import { isHandleInput } from '@/lib/handles';
 import { t } from '@lingui/core/macro';
@@ -52,6 +53,8 @@ export async function handleAddContact(
     recipient: params.recipient,
     note: params.note ?? null,
   });
+
+  refreshAddressLabels();
 
   return toContact(data.contact);
 }

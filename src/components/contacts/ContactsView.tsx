@@ -2,6 +2,7 @@ import { commands, ContactEntry, ContactRecord, events } from '@/bindings';
 import { useWallet } from '@/contexts/WalletContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useErrors } from '@/hooks/useErrors';
+import { refreshAddressLabels } from '@/lib/addressContacts';
 import { contactKindFilter, contactState } from '@/lib/contacts';
 import { toCustomError } from '@/lib/errors';
 import { ExportType, exportText } from '@/lib/exportText';
@@ -134,6 +135,7 @@ export function ContactsView() {
     } finally {
       setVerifying(null);
       refresh();
+      refreshAddressLabels();
     }
   };
 
@@ -147,6 +149,7 @@ export function ContactsView() {
     } finally {
       setDeleting(null);
       refresh();
+      refreshAddressLabels();
     }
   };
 
@@ -212,6 +215,7 @@ export function ContactsView() {
       }
     } finally {
       refresh();
+      refreshAddressLabels();
     }
   };
 

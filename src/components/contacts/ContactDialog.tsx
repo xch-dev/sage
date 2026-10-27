@@ -1,6 +1,7 @@
 import { commands, ContactRecord } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { refreshAddressLabels } from '@/lib/addressContacts';
 import { toCustomError } from '@/lib/errors';
 import { xchandlesEnabled } from '@/lib/features';
 import { isHandleInput, validateRecipient } from '@/lib/handles';
@@ -123,6 +124,7 @@ export function ContactDialog({
         onSaved(added);
       }
 
+      refreshAddressLabels();
       setOpen(false);
     } catch (error) {
       addError(toCustomError(error));
