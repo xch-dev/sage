@@ -119,7 +119,7 @@ impl DatabaseTx<'_> {
         contact_by_target(&mut *self.tx, target).await
     }
 
-    /// The contact with this name, ignoring ASCII case.
+    /// The contact whose name looks the same as this one, as compared by [`contact_name_key`].
     pub async fn contact_by_name(&mut self, name: &str) -> Result<Option<ContactRow>> {
         contact_by_name(&mut *self.tx, name).await
     }
@@ -143,6 +143,48 @@ impl DatabaseTx<'_> {
     ) -> Result<bool> {
         update_contact(&mut *self.tx, id, name, note, now).await
     }
+}
+
+/// Whether a character is skipped when comparing names, since it doesn't change how a name
+/// looks on its own: zero-width joiners and non-joiners, variation selectors, tag characters,
+/// directional marks, the combining grapheme joiner and soft hyphens. These are needed by
+/// emoji and some scripts, so they're allowed in names, but never make a name distinct.
+fn is_ignorable(c: char) -> bool {
+    matches!(
+        c,
+        '\u{00AD}'
+            | '\u{034F}'
+            | '\u{061C}'
+            | '\u{180B}'..='\u{180F}'
+            | '\u{200C}'..='\u{200F}'
+            | '\u{FE00}'..='\u{FE0F}'
+            | '\u{E0000}'..='\u{E007F}'
+            | '\u{E0100}'..='\u{E01EF}'
+    )
+}
+
+/// The form of a contact's name used to tell whether two names look the same: lowercased,
+/// with runs of whitespace collapsed to one space, and ignorable characters removed. Two
+/// contacts can't have names with the same key.
+pub fn contact_name_key(name: &str) -> String {
+    let mut key = String::with_capacity(name.len());
+    let mut space = false;
+
+    for c in name.chars().filter(|&c| !is_ignorable(c)) {
+        if c.is_whitespace() {
+            space = !key.is_empty();
+            continue;
+        }
+
+        if space {
+            key.push(' ');
+            space = false;
+        }
+
+        key.extend(c.to_lowercase());
+    }
+
+    key
 }
 
 macro_rules! contact_row {
@@ -212,7 +254,9 @@ async fn contact_by_target(
 }
 
 async fn contact_by_name(conn: impl SqliteExecutor<'_>, name: &str) -> Result<Option<ContactRow>> {
-    sqlx::query!("SELECT * FROM contacts WHERE name = ?", name)
+    let key = contact_name_key(name);
+
+    sqlx::query!("SELECT * FROM contacts WHERE name_key = ?", key)
         .fetch_optional(conn)
         .await?
         .map(|row| contact_row!(row))
@@ -355,15 +399,19 @@ async fn insert_contact(
 ) -> Result<u32> {
     let kind = target.kind() as u8;
     let (puzzle_hash, handle) = target.columns();
+    let key = contact_name_key(name);
     let now: i64 = now.try_into()?;
 
     let id = sqlx::query_scalar!(
         "
-        INSERT INTO contacts (name, note, kind, puzzle_hash, handle, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO contacts (
+            name, name_key, note, kind, puzzle_hash, handle, created_at, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING id
         ",
         name,
+        key,
         note,
         kind,
         puzzle_hash,
@@ -384,11 +432,13 @@ async fn update_contact(
     note: Option<&str>,
     now: u64,
 ) -> Result<bool> {
+    let key = contact_name_key(name);
     let now: i64 = now.try_into()?;
 
     let result = sqlx::query!(
-        "UPDATE contacts SET name = ?, note = ?, updated_at = ? WHERE id = ?",
+        "UPDATE contacts SET name = ?, name_key = ?, note = ?, updated_at = ? WHERE id = ?",
         name,
+        key,
         note,
         now,
         id
@@ -430,8 +480,8 @@ mod tests {
         let id = tx.insert_contact("Alice", None, &alice, 1).await?;
         tx.insert_contact("Bob", Some("note"), &bob, 1).await?;
 
-        // The schema backs up the endpoint's checks: one contact per recipient, and names
-        // unique ignoring case.
+        // The schema backs up the endpoint's checks: one contact per recipient, and no two
+        // names which look the same.
         assert!(tx.insert_contact("Other", None, &alice, 1).await.is_err());
         assert!(tx.insert_contact("Other", None, &bob, 1).await.is_err());
         assert!(
@@ -440,14 +490,21 @@ mod tests {
                 .is_err()
         );
 
+        assert!(
+            tx.insert_contact("Al\u{200D}ice", None, &ContactTarget::Handle("y".into()), 1)
+                .await
+                .is_err()
+        );
+
         assert_eq!(tx.contact_by_name("alice").await?.unwrap().id, id);
+        assert_eq!(tx.contact_by_name(" ALICE\u{FE0F}").await?.unwrap().id, id);
         assert_eq!(tx.contact_by_target(&alice).await?.unwrap().name, "Alice");
         tx.commit().await?;
 
         // A contact names exactly one kind of recipient.
         let invalid = sqlx::query(
-            "INSERT INTO contacts (name, kind, puzzle_hash, handle, created_at, updated_at)
-            VALUES ('Mixed', 0, x'01', 'mixed', 1, 1)",
+            "INSERT INTO contacts (name, name_key, kind, puzzle_hash, handle, created_at, updated_at)
+            VALUES ('Mixed', 'mixed', 0, x'01', 'mixed', 1, 1)",
         )
         .execute(&db.pool)
         .await;
@@ -458,6 +515,22 @@ mod tests {
         assert_eq!(db.all_contacts().await?.len(), 1);
 
         Ok(())
+    }
+
+    #[test]
+    fn name_keys_ignore_what_cant_be_seen() {
+        assert_eq!(contact_name_key("Alice"), "alice");
+        assert_eq!(contact_name_key("ÉLODIE"), "élodie");
+        assert_eq!(contact_name_key("Alice  \u{00A0}Smith"), "alice smith");
+        assert_eq!(contact_name_key("Bob 🐱\u{200D}"), "bob 🐱");
+        assert_eq!(contact_name_key("Bob 🐱\u{FE0F}"), "bob 🐱");
+        assert_eq!(contact_name_key("Alice (work)\u{FE0F}"), "alice (work)");
+        assert_eq!(contact_name_key("\u{200D}"), "");
+        // Emoji keep their visible parts, so different emoji stay different.
+        assert_ne!(
+            contact_name_key("\u{1F3F3}\u{FE0F}\u{200D}\u{1F308}"),
+            contact_name_key("\u{1F3F3}")
+        );
     }
 
     #[test]

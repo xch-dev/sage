@@ -70,7 +70,7 @@ pub struct GetContactResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Address Book",
-        description = "Add a named contact for an address on the current network, or for an XCHandles handle written as @handle. A handle isn't looked up when it's added: it's resolved and checked for changes whenever it's used as a recipient. Each recipient can only belong to one contact, and names must be unique ignoring ASCII case."
+        description = "Add a named contact for an address on the current network, or for an XCHandles handle written as @handle. A handle isn't looked up when it's added: it's resolved and checked for changes whenever it's used as a recipient. Each recipient can only belong to one contact, and no two names can look the same, ignoring case, whitespace and invisible characters like zero-width joiners. Names can't contain control characters, bidirectional overrides or other hidden characters."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]

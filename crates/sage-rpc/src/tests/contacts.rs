@@ -211,12 +211,13 @@ async fn test_contact_duplicates_and_validation() -> Result<()> {
     let error = app.add_contact(add("Bobby", "@bob")).await.unwrap_err();
     assert_status(&error, StatusCode::BAD_REQUEST);
 
-    // Names are unique ignoring case, so two picker entries can't look the same.
-    let error = app
-        .add_contact(add("ALICE", &address(2)))
-        .await
-        .unwrap_err();
-    assert_status(&error, StatusCode::BAD_REQUEST);
+    // No two names can look the same, so two picker entries can't be confused. That covers
+    // case, and characters which don't change how a name looks.
+    for name in ["ALICE", "Al\u{200D}ice", "Alice\u{FE0F}", " alice "] {
+        let error = app.add_contact(add(name, &address(2))).await.unwrap_err();
+        assert_status(&error, StatusCode::BAD_REQUEST);
+        assert!(error.to_string().contains("Alice"), "{name:?}: {error}");
+    }
 
     let error = app
         .update_contact(UpdateContact {

@@ -14,33 +14,38 @@
         "type_info": "Text"
       },
       {
-        "name": "note",
+        "name": "name_key",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "kind",
+        "name": "note",
         "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "kind",
+        "ordinal": 4,
         "type_info": "Integer"
       },
       {
         "name": "puzzle_hash",
-        "ordinal": 4,
+        "ordinal": 5,
         "type_info": "Blob"
       },
       {
         "name": "handle",
-        "ordinal": 5,
+        "ordinal": 6,
         "type_info": "Text"
       },
       {
         "name": "created_at",
-        "ordinal": 6,
+        "ordinal": 7,
         "type_info": "Integer"
       },
       {
         "name": "updated_at",
-        "ordinal": 7,
+        "ordinal": 8,
         "type_info": "Integer"
       }
     ],
@@ -48,6 +53,7 @@
       "Right": 1
     },
     "nullable": [
+      false,
       false,
       false,
       true,

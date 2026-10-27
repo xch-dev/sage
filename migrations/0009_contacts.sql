@@ -11,12 +11,15 @@
  * whether that is verified, the address it resolved to before a change, and the address last
  * sent to all come from the xchandles table, so they're never copied or allowed to drift.
  *
- * Duplicates: a recipient can belong to at most one contact, and names are unique ignoring
- * ASCII case, so that two entries in a recipient picker can't look the same.
+ * Duplicates: a recipient can belong to at most one contact, and no two names can look the
+ * same, so that two entries in a recipient picker can't be confused. Names are compared by
+ * name_key, which is the name lowercased, with whitespace collapsed and characters that
+ * don't change how it looks, like zero-width joiners and variation selectors, removed.
  */
 CREATE TABLE contacts (
   id INTEGER NOT NULL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  name TEXT NOT NULL COLLATE NOCASE,
+  name_key TEXT NOT NULL UNIQUE,
   note TEXT,
   kind INTEGER NOT NULL,
   puzzle_hash BLOB UNIQUE,

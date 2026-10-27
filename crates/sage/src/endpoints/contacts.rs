@@ -19,7 +19,7 @@ use sage_api::{
     ImportContacts, ImportContactsResponse, LookupAddressContacts, LookupAddressContactsResponse,
     SkippedContact, UpdateContact, UpdateContactResponse,
 };
-use sage_database::{ContactQuery, ContactRow, ContactTarget, DatabaseTx};
+use sage_database::{ContactQuery, ContactRow, ContactTarget, DatabaseTx, contact_name_key};
 use sage_wallet::{Handle, HandleResolution, XchandlesError};
 
 use crate::{Error, Result, Sage};
@@ -49,59 +49,31 @@ fn is_bidi_control(c: char) -> bool {
     matches!(c, '\u{202A}'..='\u{202E}' | '\u{2066}'..='\u{2069}')
 }
 
-/// Whether a character is invisible or reorders text, so that a name containing
-/// it can look the same as another name. This covers the Unicode format (`Cf`)
-/// characters which can appear in names, such as zero-width spaces and joiners,
-/// directional marks, the byte order mark and tag characters, along with
-/// noncharacters.
-fn is_invisible(c: char) -> bool {
+/// Whether a character is invisible, or reorders the text around it, and has no
+/// use in a name. Joiners and variation selectors are needed by emoji and some
+/// scripts, so they're allowed, and are instead ignored when names are compared
+/// (see `contact_name_key`).
+fn is_hidden(c: char) -> bool {
     is_bidi_control(c)
         || matches!(
             c,
-            '\u{00AD}'
-                | '\u{034F}'
-                | '\u{061C}'
-                | '\u{115F}'
+            '\u{115F}'
                 | '\u{1160}'
                 | '\u{17B4}'
                 | '\u{17B5}'
-                | '\u{180B}'..='\u{180F}'
-                | '\u{200B}'..='\u{200F}'
+                | '\u{180E}'
+                | '\u{200B}'
                 | '\u{2060}'..='\u{2064}'
                 | '\u{206A}'..='\u{206F}'
+                | '\u{2800}'
                 | '\u{3164}'
-                | '\u{FE00}'..='\u{FE0F}'
                 | '\u{FEFF}'
                 | '\u{FFA0}'
                 | '\u{FFF9}'..='\u{FFFB}'
                 | '\u{FDD0}'..='\u{FDEF}'
-                | '\u{E0000}'..='\u{E0FFF}'
+                | '\u{1D173}'..='\u{1D17A}'
         )
         || (c as u32) & 0xFFFE == 0xFFFE
-}
-
-/// Whether a name has an invisible character which isn't part of an emoji.
-///
-/// Emoji use zero-width joiners and variation selectors, as in "❤️" or "👨‍👩‍👧", so
-/// those are allowed between symbols. Next to a letter or digit they're never
-/// needed, and would only make the name look like another one.
-fn has_hidden_characters(name: &str) -> bool {
-    let chars: Vec<char> = name.chars().collect();
-
-    chars.iter().enumerate().any(|(i, &c)| {
-        if !is_invisible(c) {
-            return false;
-        }
-
-        let emoji_part = matches!(c, '\u{200D}' | '\u{FE0E}' | '\u{FE0F}');
-        let symbol = |c: Option<&char>| {
-            c.is_some_and(|&c| !c.is_alphanumeric() && !c.is_whitespace() && !is_invisible(c))
-        };
-        let next = chars.get(i + 1);
-        let next_is_symbol = symbol(next) || next.is_none_or(|&c| c == '\u{200D}');
-
-        !(emoji_part && i > 0 && symbol(chars.get(i - 1)) && (c != '\u{200D}' || next_is_symbol))
-    })
 }
 
 /// Trims a contact's name, and checks that it's one line of a reasonable length,
@@ -125,9 +97,15 @@ fn contact_name(name: &str) -> Result<String> {
         ));
     }
 
-    if has_hidden_characters(name) {
+    if name.chars().any(is_hidden) {
         return Err(Error::InvalidContact(
             "the name contains invisible characters".to_string(),
+        ));
+    }
+
+    if contact_name_key(name).is_empty() {
+        return Err(Error::InvalidContact(
+            "the name has no visible characters".to_string(),
         ));
     }
 
@@ -168,7 +146,7 @@ struct NewContact {
 }
 
 /// The existing contact a new contact would duplicate, if any. A recipient can only belong to
-/// one contact, and names must be unique ignoring ASCII case.
+/// one contact, and no two names can look the same (see `contact_name_key`).
 async fn find_duplicate(
     tx: &mut DatabaseTx<'_>,
     contact: &NewContact,
@@ -562,29 +540,43 @@ mod tests {
 
     #[test]
     fn names_cant_hide_characters() {
-        // Each of these would look like "Alice", or reorder the name.
+        // Each of these hides a character, or reorders the name.
         for name in [
             "Alice\u{200B}",
-            "Al\u{200D}ice",
             "Alice\u{FEFF}",
             "Alice\u{2060}",
             "\u{202E}ecilA",
             "Alice\u{2067}",
-            "Alice\u{E0041}",
-            "Alice\u{FE0F}",
-            "Alice\u{00AD}",
+            "Alice\u{2800}",
+            "Alice\u{3164}",
             "\u{200B}",
+            // Only ignorable characters, so nothing visible.
+            "\u{200D}\u{FE0F}",
         ] {
             assert!(contact_name(name).is_err(), "{name:?} was accepted");
         }
 
-        assert_eq!(contact_name("Zoë").unwrap(), "Zoë");
-        assert_eq!(contact_name("Ali 🐱").unwrap(), "Ali 🐱");
-        assert_eq!(contact_name("محمد").unwrap(), "محمد");
-        assert!(contact_name("Mom \u{2764}\u{FE0F}").is_ok());
-        assert!(contact_name("\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467} family").is_ok());
-        assert!(contact_name("Alice \u{200D}").is_err());
-        assert!(contact_name("\u{1F468}\u{200D}Alice").is_err());
+        // Emoji and scripts which need joiners or selectors are allowed. Names which only
+        // differ by these are rejected as duplicates instead.
+        for name in [
+            "Zoë",
+            "Ali 🐱",
+            "محمد",
+            "Mom \u{2764}\u{FE0F}",
+            "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467} family",
+            "\u{1F3F3}\u{FE0F}\u{200D}\u{1F308}",
+            "\u{2764}\u{FE0F}\u{200D}\u{1F525}",
+            "\u{1F575}\u{FE0F}\u{200D}\u{2642}\u{FE0F}",
+            "1\u{FE0F}\u{20E3}",
+            "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}",
+            "\u{1F469}\u{1F3FD}\u{200D}\u{1F4BB}",
+            "\u{0645}\u{06CC}\u{200C}\u{062E}\u{0648}\u{0627}\u{0647}\u{0645}",
+            "\u{0915}\u{094D}\u{200D}\u{0937}",
+            "\u{0DC1}\u{0DCA}\u{200D}\u{0DBB}\u{0DD3}",
+            "山田\u{3000}太郎",
+        ] {
+            assert!(contact_name(name).is_ok(), "{name:?} was rejected");
+        }
     }
 
     #[test]

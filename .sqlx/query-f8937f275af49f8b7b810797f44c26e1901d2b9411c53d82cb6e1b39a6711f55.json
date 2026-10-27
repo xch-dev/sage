@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT * FROM contacts WHERE name = ?",
+  "query": "SELECT * FROM contacts WHERE name_key = ?",
   "describe": {
     "columns": [
       {
@@ -14,33 +14,38 @@
         "type_info": "Text"
       },
       {
-        "name": "note",
+        "name": "name_key",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "kind",
+        "name": "note",
         "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "kind",
+        "ordinal": 4,
         "type_info": "Integer"
       },
       {
         "name": "puzzle_hash",
-        "ordinal": 4,
+        "ordinal": 5,
         "type_info": "Blob"
       },
       {
         "name": "handle",
-        "ordinal": 5,
+        "ordinal": 6,
         "type_info": "Text"
       },
       {
         "name": "created_at",
-        "ordinal": 6,
+        "ordinal": 7,
         "type_info": "Integer"
       },
       {
         "name": "updated_at",
-        "ordinal": 7,
+        "ordinal": 8,
         "type_info": "Integer"
       }
     ],
@@ -48,6 +53,7 @@
       "Right": 1
     },
     "nullable": [
+      false,
       false,
       false,
       true,
@@ -58,5 +64,5 @@
       false
     ]
   },
-  "hash": "918cd67f87415ff148d956247589c33f935ad2f09020be31fdd0336309e4bfca"
+  "hash": "f8937f275af49f8b7b810797f44c26e1901d2b9411c53d82cb6e1b39a6711f55"
 }
