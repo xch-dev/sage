@@ -1,4 +1,10 @@
-import { commands, HandleConfirmation, RecipientError } from '@/bindings';
+import {
+  Error as BackendError,
+  commands,
+  HandleConfirmation,
+  RecipientError,
+} from '@/bindings';
+import { t } from '@lingui/core/macro';
 import { create } from 'zustand';
 
 const HANDLE_PATTERN = /^@[a-z0-9]{3,63}$/;
@@ -10,6 +16,21 @@ const HANDLE_PATTERN = /^@[a-z0-9]{3,63}$/;
  */
 export function isHandleInput(value: string): boolean {
   return value.trim().startsWith('@');
+}
+
+/** Explains why resolving or verifying a handle failed. */
+export function handleErrorMessage(error: BackendError): string {
+  const reason = error.reason;
+
+  switch (error.handle_error_code) {
+    case 'not_found':
+    case 'expired':
+      return t`This handle isn't registered, or has expired`;
+    case 'unavailable':
+      return t`This handle couldn't be verified right now: ${reason}`;
+    default:
+      return t`This handle couldn't be verified: ${reason}`;
+  }
 }
 
 /** Whether a handle is written as `@handle` with a valid name. */

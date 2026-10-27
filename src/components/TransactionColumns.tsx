@@ -14,6 +14,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Copy, MoreHorizontal, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { AddressLabels } from './AddressLabels';
 import { AmountCell } from './AmountCell';
 import { AssetIcon } from './AssetIcon';
 import { AssetLink } from './AssetLink';
@@ -137,9 +138,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       className: 'hidden md:table-cell',
     },
     cell: ({ row }) => (
-      <div className='hidden md:block font-mono'>
-        {formatAddress(row.getValue<string | null>('address') || '', 7, 4)}
-      </div>
+      <AddressCell address={row.getValue<string | null>('address')} />
     ),
   },
   {
@@ -189,3 +188,14 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     },
   },
 ];
+
+function AddressCell({ address }: { address: string | null }) {
+  return (
+    <div className='hidden md:flex flex-col items-start gap-0.5 min-w-0'>
+      <span className='font-mono' title={address ?? undefined}>
+        {formatAddress(address || '', 7, 4)}
+      </span>
+      <AddressLabels address={address} compact />
+    </div>
+  );
+}

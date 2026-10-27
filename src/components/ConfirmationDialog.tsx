@@ -38,6 +38,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { commands, TakeOfferResponse, TransactionResponse } from '../bindings';
 import { formatNumber } from '../i18n';
+import { AddressLabels } from './AddressLabels';
 import { calculateTransaction } from './AdvancedTransactionSummary';
 import { CopyButton } from './CopyButton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -394,6 +395,7 @@ export default function ConfirmationDialog({
                                     <div className='text-sm truncate flex-1'>
                                       {address}
                                     </div>
+                                    <AddressLabels address={address} compact />
                                     {address !== t`Permanently Burned` &&
                                       address !== t`You` &&
                                       address !== t`Change` && (
@@ -530,6 +532,7 @@ export default function ConfirmationDialog({
                               <div className='text-sm truncate flex-1'>
                                 {item.address}
                               </div>
+                              <AddressLabels address={item.address} compact />
                               {item.address !== t`Permanently Burned` &&
                                 item.address !== t`You` &&
                                 item.address !== t`Change` && (
