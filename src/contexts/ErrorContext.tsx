@@ -11,13 +11,7 @@ import { createContext, ReactNode, useCallback, useState } from 'react';
 import { ErrorKind, RecipientError } from '../bindings';
 
 export interface CustomError {
-  kind:
-    | ErrorKind
-    | 'walletconnect'
-    | 'upload'
-    | 'invalid'
-    | 'dexie'
-    | 'cancelled';
+  kind: ErrorKind | 'walletconnect' | 'upload' | 'invalid' | 'cancelled';
   reason: string;
   recipients?: RecipientError[] | null;
 }
@@ -104,10 +98,6 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
 
     case 'database_migration':
       kind = 'Database Migration';
-      break;
-
-    case 'dexie':
-      kind = 'Dexie';
       break;
 
     case 'recipient':

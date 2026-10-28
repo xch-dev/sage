@@ -27,7 +27,6 @@ interface OfferCreationProgressDialogProps {
   splitNftOffers: boolean;
   enabledMarketplaces?: Record<string, boolean>;
   clearOfferState: (offers: string[]) => void;
-  isSwap?: boolean;
 }
 
 export function OfferCreationProgressDialog({
@@ -37,7 +36,6 @@ export function OfferCreationProgressDialog({
   splitNftOffers,
   enabledMarketplaces,
   clearOfferState,
-  isSwap,
 }: OfferCreationProgressDialogProps) {
   const { addError } = useErrors();
   const { isTestnet, isUnknown } = useNetwork();
@@ -326,11 +324,6 @@ export function OfferCreationProgressDialog({
                   where you can view the details of each offer.
                 </Trans>
               )
-            ) : isSwap ? (
-              <Trans>
-                The offer to fulfill the swap has been created successfully. It
-                will now be executed on Dexie and imported on the offers page.
-              </Trans>
             ) : uploadedToMarketplaces ? (
               <Trans>
                 Your offer has been created and imported successfully and

@@ -9,7 +9,7 @@ Sage is a fast, open source light wallet for [Chia](https://www.chia.net). It sy
 - **XCH and CATs** - Send, receive, and manage XCH and Chia Asset Tokens, or issue your own tokens.
 - **NFTs** - Mint, view, organize, and transfer NFTs and collections.
 - **DIDs** - Create and manage Decentralized Identifiers.
-- **Offers** - Make, take, and manage Chia offer files for trustless peer-to-peer trading, plus token swaps.
+- **Offers** - Make, take, and manage Chia offer files for trustless peer-to-peer trading.
 - **Options** - Mint and exercise option contracts.
 - **WalletConnect** - Connect to dApps and DeFi services.
 - **Apps** - Run sandboxed apps inside the wallet, built with the Sage App SDK.
