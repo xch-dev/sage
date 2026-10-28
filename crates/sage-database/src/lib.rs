@@ -1,4 +1,3 @@
-mod legacy;
 mod maintenance;
 mod nft_metadata;
 mod serialized_primitives;
@@ -8,7 +7,6 @@ mod utils;
 #[cfg(test)]
 mod tests;
 
-pub use legacy::*;
 pub use maintenance::*;
 pub use nft_metadata::*;
 pub use serialized_primitives::*;
@@ -117,9 +115,8 @@ impl<'a> DatabaseTx<'a> {
 /// be run against a wallet's database by mistake, and none of them read the wallet tables,
 /// which are always empty here.
 ///
-/// The `xchandles` and `contacts` tables were first created in wallet databases, and their
-/// migrations still describe them that way. Anything left in a wallet's tables is moved here
-/// when the wallet is opened (see [`SharedDatabase::import_legacy`]).
+/// The `xchandles` and `contacts` tables were first created for wallet databases, and their
+/// migrations still describe them that way, but they're only used here.
 #[derive(Debug, Clone)]
 pub struct SharedDatabase {
     pub(crate) pool: SqlitePool,

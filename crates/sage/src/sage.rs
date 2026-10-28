@@ -389,30 +389,6 @@ impl Sage {
 
         let shared_db = self.connect_to_shared_database(fingerprint).await?;
 
-        // The address book and handle mappings used to be stored in each wallet's database.
-        // Anything left there is moved to the shared database. If that fails, it stays where
-        // it is and is tried again the next time the wallet is opened.
-        match shared_db.import_legacy(&db).await {
-            Ok(import) => {
-                // Contact names are personal, and logs are shared for support, so only
-                // counts are logged.
-                if import.xchandles > 0 || import.contacts > 0 || import.duplicates > 0 {
-                    info!(
-                        "Moved {} handle mappings and {} contacts to the shared database, \
-                        renaming {} whose names were taken and skipping {} which were \
-                        already saved",
-                        import.xchandles,
-                        import.contacts,
-                        import.renamed.len(),
-                        import.duplicates
-                    );
-                }
-            }
-            Err(error) => {
-                warn!("Failed to move the address book to the shared database: {error}");
-            }
-        }
-
         let wallet_config = self.wallet_config().cloned().unwrap_or_default();
 
         let wallet = Arc::new(Wallet::new(

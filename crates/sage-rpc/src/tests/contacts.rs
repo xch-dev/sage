@@ -7,7 +7,7 @@ use sage_api::{
     HandleVerification, ImportContacts, Login, LookupAddressContacts, SetNetworkOverride,
     UpdateContact,
 };
-use sage_database::{ContactTarget, Database, SharedDatabase, XchandleRow, XchandleStatus};
+use sage_database::{XchandleRow, XchandleStatus};
 
 use super::{
     TestApp,
@@ -678,100 +678,6 @@ async fn test_contacts_and_handles_are_shared_per_network() -> Result<()> {
     assert_eq!(
         stored_handle(&app, "bob").await?.resolved_puzzle_hash,
         puzzle_hash(2)
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_wallet_address_books_move_to_the_shared_database() -> Result<()> {
-    let mut app = TestApp::new().await?;
-
-    let first = app.setup_bls(0).await?;
-    app.add_contact(add("Alice", &address(1))).await?;
-    store_handle(&app, "carol", puzzle_hash(3), |_| {}).await?;
-    let template = stored_handle(&app, "carol").await?;
-
-    // Before the address book was shared, the second wallet saved its own contacts and
-    // resolved its own handles.
-    let second = app.setup_bls(0).await?;
-    app.login(Login { fingerprint: first }).await?;
-
-    let mut dave = template.clone();
-    dave.handle = "dave".to_string();
-    dave.resolved_puzzle_hash = puzzle_hash(4);
-    dave.last_sent_puzzle_hash = Some(puzzle_hash(4));
-
-    // The second wallet last knew @carol at another address, so that's a pending change.
-    let mut carol = template.clone();
-    carol.resolved_puzzle_hash = puzzle_hash(9);
-    carol.last_verified_at -= 60;
-
-    {
-        let path = app.sage.lock().await.wallet_db_path(second)?;
-        let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display())).await?;
-        let legacy = SharedDatabase::new(pool.clone());
-
-        let mut tx = legacy.tx().await?;
-        // A name which is taken in the shared address book, for another recipient.
-        tx.insert_contact("alice", None, &ContactTarget::Address(puzzle_hash(2)), 1)
-            .await?;
-        // A recipient which is already saved.
-        tx.insert_contact("Al", None, &ContactTarget::Address(puzzle_hash(1)), 1)
-            .await?;
-        tx.insert_contact(
-            "Dave",
-            Some("note"),
-            &ContactTarget::Handle("dave".to_string()),
-            1,
-        )
-        .await?;
-        tx.upsert_xchandle(&dave).await?;
-        tx.upsert_xchandle(&carol).await?;
-        tx.commit().await?;
-
-        pool.close().await;
-    }
-
-    // Opening the wallet moves them to the shared database.
-    app.login(Login {
-        fingerprint: second,
-    })
-    .await?;
-
-    assert_eq!(
-        names(&contacts(&app).await?),
-        ["Alice", "alice (2)", "Dave"]
-    );
-    let dave_contact = contact(&app, "Dave").await?;
-    assert_eq!(dave_contact.note.as_deref(), Some("note"));
-    assert_eq!(
-        dave_contact
-            .resolution
-            .unwrap()
-            .last_sent_address
-            .as_deref(),
-        Some(address(4).as_str())
-    );
-
-    let carol = stored_handle(&app, "carol").await?;
-    assert_eq!(carol.resolved_puzzle_hash, puzzle_hash(3));
-    assert_eq!(carol.previous_resolved_puzzle_hash, Some(puzzle_hash(9)));
-
-    // They're no longer in the wallet's own database, and the first wallet sees them too.
-    {
-        let path = app.sage.lock().await.wallet_db_path(second)?;
-        let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display())).await?;
-        let wallet = Database::new(pool.clone());
-        assert!(wallet.legacy_contacts().await?.is_empty());
-        assert!(wallet.legacy_xchandles().await?.is_empty());
-        pool.close().await;
-    }
-
-    app.login(Login { fingerprint: first }).await?;
-    assert_eq!(
-        names(&contacts(&app).await?),
-        ["Alice", "alice (2)", "Dave"]
     );
 
     Ok(())

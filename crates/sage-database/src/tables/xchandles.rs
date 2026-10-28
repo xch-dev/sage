@@ -83,12 +83,6 @@ impl Database {
     pub async fn owned_singleton_launcher_ids(&self) -> Result<Vec<Bytes32>> {
         owned_singleton_launcher_ids(&self.pool).await
     }
-
-    /// Every handle mapping in this wallet's database, from before mappings were moved to the
-    /// shared database.
-    pub async fn legacy_xchandles(&self) -> Result<Vec<XchandleRow>> {
-        all_xchandles(&self.pool).await
-    }
 }
 
 impl SharedDatabase {
@@ -405,15 +399,6 @@ async fn owned_singleton_launcher_ids(conn: impl SqliteExecutor<'_>) -> Result<V
         .await?
         .into_iter()
         .map(Convert::convert)
-        .collect()
-}
-
-async fn all_xchandles(conn: impl SqliteExecutor<'_>) -> Result<Vec<XchandleRow>> {
-    sqlx::query!("SELECT * FROM xchandles ORDER BY id ASC")
-        .fetch_all(conn)
-        .await?
-        .into_iter()
-        .map(|row| xchandle_row!(row))
         .collect()
 }
 

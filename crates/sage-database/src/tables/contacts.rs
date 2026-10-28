@@ -2,7 +2,7 @@ use chia_wallet_sdk::prelude::*;
 use sqlx::SqliteExecutor;
 use unicode_normalization::UnicodeNormalization;
 
-use crate::{Convert, Database, DatabaseError, Result, SharedDatabase, SharedDatabaseTx};
+use crate::{Convert, DatabaseError, Result, SharedDatabase, SharedDatabaseTx};
 
 /// The most characters a contact's name can have.
 pub const MAX_CONTACT_NAME_LENGTH: usize = 64;
@@ -75,24 +75,6 @@ pub struct ContactQuery<'a> {
     pub puzzle_hash: Option<Bytes32>,
     pub registry_launcher_id: Option<Bytes32>,
     pub kind: Option<ContactKind>,
-}
-
-impl Database {
-    /// Every contact in this wallet's database, from before the address book was moved to the
-    /// shared database.
-    pub async fn legacy_contacts(&self) -> Result<Vec<ContactRow>> {
-        all_contacts(&self.pool).await
-    }
-
-    /// Removes the address book and handle mappings from this wallet's database, once they've
-    /// been imported into the shared database.
-    pub async fn clear_legacy_address_book(&self) -> Result<()> {
-        sqlx::query!("DELETE FROM contacts; DELETE FROM xchandles;")
-            .execute(&self.pool)
-            .await?;
-
-        Ok(())
-    }
 }
 
 impl SharedDatabase {
