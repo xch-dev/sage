@@ -316,7 +316,10 @@ export const walletConnectCommands = {
   // handles in a short time.
   //
   // There's no reverse lookup for sites: which handles have been looked up for
-  // other addresses, in this wallet or another on the network, is private.
+  // other addresses, in this wallet or another on the network, is private. For
+  // the same reason, handle records sent to sites without asking the user say
+  // whether a handle changed hands, but leave out the addresses it was used
+  // with before (previousAddress, lastSentAddress and changedFrom are null).
   chia_resolveHandle: {
     paramsType: z.object({ handle: z.string() }),
     returnType: handleRecord,

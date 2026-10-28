@@ -5,11 +5,17 @@
 //! `wallet.resolve_handle`, which is externally observable and so can't be granted together
 //! with secret access. Reading handles Sage already knows (`wallet.getHandles`,
 //! `wallet.lookupAddressHandles`) never leaves the device, and needs `wallet.get_handles`.
+//!
+//! Handle history (the address a handle last resolved to, the address last sent to, and any
+//! change from it) is shared by every wallet on the network, so it's only returned by the
+//! methods which need `wallet.get_handles`. Resolving a handle returns what the lookup found,
+//! and whether it changed hands, but not the addresses it was used with before.
 
 use async_trait::async_trait;
 use sage::Error;
 use sage_api::{
-    GetHandle, GetHandles, HandleErrorCode, HandleFilterMode, LookupAddressHandles, ResolveHandle,
+    GetHandle, GetHandles, HandleErrorCode, HandleFilterMode, HandleRecord, LookupAddressHandles,
+    ResolveHandle,
 };
 
 use crate::{
@@ -34,6 +40,14 @@ fn handle_error(method: &str, error: &Error) -> BridgeMethodHandleError {
     BridgeMethodHandleError::new(code, format!("{method} failed: {error}"))
 }
 
+/// Removes how a handle was used before from a record returned by a lookup, since that's
+/// shared by every wallet on the network, and needs `wallet.get_handles` to read.
+fn without_history(record: &mut HandleRecord) {
+    record.previous_address = None;
+    record.last_sent_address = None;
+    record.changed_from = None;
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct WalletResolveHandle;
 
@@ -56,10 +70,11 @@ impl BridgeMethod for WalletResolveHandle {
         let params: ResolveHandle = parse_required_params(self, request)?;
         let sage = tools.app_state.lock().await;
 
-        let result = sage
+        let mut result = sage
             .resolve_handle(params)
             .await
             .map_err(|err| handle_error(self.name(), &err))?;
+        without_history(&mut result.handle);
 
         Ok(Box::new(result))
     }
@@ -87,10 +102,11 @@ impl BridgeMethod for WalletGetHandle {
         let params: GetHandle = parse_required_params(self, request)?;
         let sage = tools.app_state.lock().await;
 
-        let result = sage
+        let mut result = sage
             .get_handle(params)
             .await
             .map_err(|err| handle_error(self.name(), &err))?;
+        without_history(&mut result.handle);
 
         Ok(Box::new(result))
     }
@@ -181,6 +197,7 @@ impl BridgeMethod for WalletLookupAddressHandles {
 
 #[cfg(test)]
 mod tests {
+    use sage_api::{HandleStatus, HandleVerification};
     use sage_wallet::{HandleError, XchandlesApiError, XchandlesError};
 
     use super::*;
@@ -203,6 +220,43 @@ mod tests {
                 BridgeMethodCapability::user(UserBridgeCapability::WalletGetHandles)
             );
         }
+    }
+
+    #[test]
+    fn lookups_leave_out_handle_history() {
+        let mut record = HandleRecord {
+            handle: "alice".to_string(),
+            handle_hash: "aa".to_string(),
+            address: "txch1new".to_string(),
+            status: HandleStatus::Changed,
+            previous_address: Some("txch1old".to_string()),
+            last_sent_address: Some("txch1paid".to_string()),
+            changed_from: Some("txch1old".to_string()),
+            cached: false,
+            verification: HandleVerification::Verified,
+            verification_reason: None,
+            owner_launcher_id: "bb".to_string(),
+            resolved_launcher_id: "cc".to_string(),
+            expiration: 2_000_000_000,
+            slot_coin_id: "dd".to_string(),
+            slot_confirmation_height: 1,
+            resolved_coin_id: "ee".to_string(),
+            resolved_confirmation_height: 1,
+            updated_height: 1,
+            verified_height: 2,
+            verified_timestamp: 3,
+            last_verified_at: 4,
+        };
+
+        without_history(&mut record);
+
+        // Whether the handle changed hands is still shown, but not the addresses it was
+        // used with, which may come from another wallet.
+        assert_eq!(record.status, HandleStatus::Changed);
+        assert_eq!(record.address, "txch1new");
+        assert_eq!(record.previous_address, None);
+        assert_eq!(record.last_sent_address, None);
+        assert_eq!(record.changed_from, None);
     }
 
     #[test]

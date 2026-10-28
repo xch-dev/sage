@@ -875,12 +875,14 @@ function GetContactsDialog({ params }: CommandDialogProps<'chia_getContacts'>) {
           <Trans>
             The site wants to read the contacts in your address book matching{' '}
             <span className='font-mono text-foreground'>{search}</span>,
-            including their names, notes, addresses and handles.
+            including their names, notes, addresses and handles. Your address
+            book is shared by all of your wallets on this network.
           </Trans>
         ) : (
           <Trans>
             The site wants to read the contacts in your address book, including
-            their names, notes, addresses and handles.
+            their names, notes, addresses and handles. Your address book is
+            shared by all of your wallets on this network.
           </Trans>
         )}
       </p>

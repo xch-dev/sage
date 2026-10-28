@@ -25,7 +25,7 @@ const record: HandleRecord = {
   address: 'txch1new',
   status: 'changed',
   previous_address: 'txch1old',
-  last_sent_address: null,
+  last_sent_address: 'txch1paid',
   changed_from: 'txch1old',
   cached: false,
   verification: 'verified',
@@ -51,7 +51,7 @@ describe('XCHandles WalletConnect methods', () => {
     vi.setSystemTime(Date.now() + 120_000);
   });
 
-  it('returns the change warning along with the address', async () => {
+  it('says a handle changed hands, without how it was used before', async () => {
     mocks.commands.resolveHandle.mockResolvedValue({ handle: record });
 
     const result = await handleResolveHandle({ handle: '@alice' });
@@ -59,10 +59,14 @@ describe('XCHandles WalletConnect methods', () => {
     expect(mocks.commands.resolveHandle).toHaveBeenCalledWith({
       handle: '@alice',
     });
+    // Handle history is shared by every wallet on the network, so it would tell
+    // the site what other wallets looked up and paid.
     expect(result).toMatchObject({
       address: 'txch1new',
       status: 'changed',
-      previousAddress: 'txch1old',
+      previousAddress: null,
+      lastSentAddress: null,
+      changedFrom: null,
       verification: 'verified',
       cached: false,
     });
@@ -101,6 +105,8 @@ describe('XCHandles WalletConnect methods', () => {
     });
     expect(result.total).toBe(1);
     expect(result.handles[0].handle).toBe('alice');
+    expect(result.handles[0].lastSentAddress).toBeNull();
+    expect(result.handles[0].previousAddress).toBeNull();
   });
 
   it('is unavailable when XCHandles is disabled', async () => {

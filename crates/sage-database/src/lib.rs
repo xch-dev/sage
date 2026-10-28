@@ -116,6 +116,10 @@ impl<'a> DatabaseTx<'a> {
 /// tables are used in it. Queries for those tables are only available here, so they can't
 /// be run against a wallet's database by mistake, and none of them read the wallet tables,
 /// which are always empty here.
+///
+/// The `xchandles` and `contacts` tables were first created in wallet databases, and their
+/// migrations still describe them that way. Anything left in a wallet's tables is moved here
+/// when the wallet is opened (see [`SharedDatabase::import_legacy`]).
 #[derive(Debug, Clone)]
 pub struct SharedDatabase {
     pub(crate) pool: SqlitePool,

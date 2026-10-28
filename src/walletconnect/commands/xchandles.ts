@@ -79,13 +79,29 @@ export function toRecord(record: HandleRecord): WalletConnectHandle {
   };
 }
 
+/**
+ * A handle record without how the handle was used before: the address it last
+ * resolved to, the address last sent to, and any change from it. Handle
+ * history is shared by every wallet on the network, so it would tell a site
+ * what other wallets looked up and paid, and these methods don't ask the user.
+ * Whether the handle changed hands is still shown by its status.
+ */
+export function toLookupRecord(record: HandleRecord): WalletConnectHandle {
+  return {
+    ...toRecord(record),
+    previousAddress: null,
+    lastSentAddress: null,
+    changedFrom: null,
+  };
+}
+
 export async function handleResolveHandle(
   params: Params<'chia_resolveHandle'>,
 ): Promise<Return<'chia_resolveHandle'>> {
   return await withHandleErrors(async () => {
     checkResolveRateLimit();
     const data = await commands.resolveHandle({ handle: params.handle });
-    return toRecord(data.handle);
+    return toLookupRecord(data.handle);
   });
 }
 
@@ -98,7 +114,7 @@ export async function handleGetHandle(
     const transfer = data.pending_transfer;
 
     return {
-      handle: toRecord(data.handle),
+      handle: toLookupRecord(data.handle),
       slot: {
         registryLauncherId: data.slot.registry_launcher_id,
         counter: data.slot.counter,
@@ -140,7 +156,7 @@ export async function handleGetOwnedHandles(
     });
 
     return {
-      handles: data.handles.map(toRecord),
+      handles: data.handles.map(toLookupRecord),
       total: data.total,
     };
   });
