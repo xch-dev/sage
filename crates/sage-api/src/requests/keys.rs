@@ -228,7 +228,7 @@ pub struct DeleteDatabaseResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Authentication & Keys",
-        description = "Permanently delete a wallet, along with its synced data. The key of a BLS wallet is removed from the keychain too, unless delete_key is false or another wallet still uses it. This action cannot be undone."
+        description = "Permanently delete a wallet, along with its synced data. The keys the wallet uses, such as a BLS wallet's own key, are removed from the keychain too, unless delete_keys is false. Keys that another wallet still uses are always kept. This action cannot be undone."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -238,11 +238,11 @@ pub struct DeleteWallet {
     /// Wallet fingerprint to delete
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
     pub fingerprint: u32,
-    /// Whether to also remove a BLS wallet's key from the keychain. It's kept regardless if
-    /// another wallet still uses it
+    /// Whether to also remove the keys the wallet uses from the keychain, such as a BLS
+    /// wallet's own key. Keys that another wallet still uses are kept regardless
     #[serde(default = "yes")]
     #[cfg_attr(feature = "openapi", schema(default = true))]
-    pub delete_key: bool,
+    pub delete_keys: bool,
 }
 
 /// Response for wallet deletion

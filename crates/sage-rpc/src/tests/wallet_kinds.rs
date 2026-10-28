@@ -213,7 +213,7 @@ async fn manages_vault_and_watch_wallets() -> Result<()> {
 
         app.delete_wallet(DeleteWallet {
             fingerprint,
-            delete_key: true,
+            delete_keys: true,
         })
         .await?;
     }
@@ -346,7 +346,7 @@ async fn deleting_a_wallet_can_keep_its_key() -> Result<()> {
 
     app.delete_wallet(DeleteWallet {
         fingerprint: kept,
-        delete_key: false,
+        delete_keys: false,
     })
     .await?;
 

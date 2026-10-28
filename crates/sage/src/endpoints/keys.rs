@@ -295,8 +295,8 @@ impl Sage {
             .wallets
             .retain(|wallet| wallet.fingerprint != req.fingerprint);
 
-        // The key is kept if another wallet still uses it, or if the caller asked to keep it.
-        if req.delete_key && owns_key && !self.is_key_used(req.fingerprint) {
+        // Keys are kept if another wallet still uses them, or if the caller asked to keep them.
+        if req.delete_keys && owns_key && !self.is_key_used(req.fingerprint) {
             self.keychain.remove(req.fingerprint);
         }
 

@@ -672,7 +672,7 @@ async fn test_contacts_and_handles_are_shared_per_network() -> Result<()> {
     // Deleting a wallet leaves the address book for the other wallets.
     app.delete_wallet(DeleteWallet {
         fingerprint: first,
-        delete_key: true,
+        delete_keys: true,
     })
     .await?;
     app.login(Login {
