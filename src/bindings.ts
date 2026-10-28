@@ -4002,17 +4002,13 @@ status: OfferRecordStatus;
  * can't be taken.
  */
 handle_nfts?: OfferHandleNft[] }
-export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null; 
+export type Wallet = 
 /**
- * What the wallet is made of. This is omitted for BLS wallets, which every wallet was
- * before other kinds existed.
+ * What the wallet is made of. Its fields are stored alongside the wallet's own, under a
+ * `type` key, so `type` and the fields of each kind can't be used by the wallet. They're
+ * omitted for BLS wallets, which every wallet was before other kinds existed.
  */
-kind?: WalletConfigKind }
-/**
- * The kind of a wallet. A BLS wallet's key is stored in the keychain under the wallet's
- * fingerprint. Other kinds are defined entirely here, since they have no key of their own.
- */
-export type WalletConfigKind = { type: "bls" } | { type: "vault"; launcher_id: string } | { type: "watch"; p2_puzzle_hashes: string[] }
+({ type: "bls" } | { type: "vault"; launcher_id: string } | { type: "watch"; p2_puzzle_hashes: string[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
 export type WalletInfo = { name: string; fingerprint: number; kind: WalletKind; network_id: string; emoji: string | null }
 /**

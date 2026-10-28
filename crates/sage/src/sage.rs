@@ -945,10 +945,10 @@ mod tests {
             dir.path().join("wallets.toml"),
             format!(
                 "version = 1\n\n\
-                 [[wallets]]\nname = \"Vault\"\nfingerprint = 1\n\n\
-                 [wallets.kind]\ntype = \"vault\"\nlauncher_id = \"{launcher_id}\"\n\n\
-                 [[wallets]]\nname = \"Watch\"\nfingerprint = 2\n\n\
-                 [wallets.kind]\ntype = \"watch\"\np2_puzzle_hashes = [\"{watched}\"]\n\n\
+                 [[wallets]]\nname = \"Vault\"\nfingerprint = 1\n\
+                 type = \"vault\"\nlauncher_id = \"{launcher_id}\"\n\n\
+                 [[wallets]]\nname = \"Watch\"\nfingerprint = 2\n\
+                 type = \"watch\"\np2_puzzle_hashes = [\"{watched}\"]\n\n\
                  [[wallets]]\nname = \"Missing key\"\nfingerprint = 3\n"
             ),
         )?;
