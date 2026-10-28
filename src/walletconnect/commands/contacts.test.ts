@@ -54,7 +54,6 @@ describe('address book WalletConnect methods', () => {
     expect(result).toEqual({
       contacts: [
         {
-          id: 7,
           name: 'Alice',
           note: null,
           kind: 'handle',
@@ -94,7 +93,9 @@ describe('address book WalletConnect methods', () => {
       recipient: '@alice',
       note: null,
     });
-    expect(result.id).toBe(7);
+    // Sites get the contact without its row ID.
+    expect(result).not.toHaveProperty('id');
+    expect(result.recipient).toBe('@alice');
   });
 
   it('rejects handle contacts when XCHandles is disabled', async () => {

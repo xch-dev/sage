@@ -10,7 +10,6 @@ type WalletConnectContact = Return<'chia_addContact'>;
 
 function toContact(contact: ContactRecord): WalletConnectContact {
   return {
-    id: contact.id,
     name: contact.name,
     note: contact.note,
     kind: contact.kind,

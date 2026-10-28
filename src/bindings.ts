@@ -971,7 +971,7 @@ export type ContactRecord = {
  */
 id: number; 
 /**
- * The contact's name. No two contacts in a wallet have names which look the same,
+ * The contact's name. No two contacts on the network have names which look the same,
  * ignoring case, whitespace and invisible characters like zero-width joiners
  */
 name: string; 

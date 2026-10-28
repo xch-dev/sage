@@ -97,11 +97,11 @@ export type SageWalletClient = {
   /** Requires `wallet.get_contacts`. Reads the address book only. */
   getContacts(
     input: Generated.GetContacts,
-  ): Promise<Generated.GetContactsResponse>;
+  ): Promise<Generated.WalletGetContactsResult>;
   /** Requires `wallet.get_contacts`. Reads the address book only. */
   lookupAddressContacts(
     input: Generated.LookupAddressContacts,
-  ): Promise<Generated.LookupAddressContactsResponse>;
+  ): Promise<Generated.WalletLookupAddressContactsResult>;
 
   sendXch(
     input: Generated.WalletSendXchParams,

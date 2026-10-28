@@ -1,13 +1,12 @@
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
-    GetCoinsResponse, GetContacts, GetContactsResponse, GetDerivations, GetDerivationsResponse,
-    GetHandle, GetHandleResponse, GetHandles, GetHandlesResponse, GetKeyResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKeyResponse,
-    GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse,
-    GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
-    GetVersionResponse, GetXchUsdPriceResponse, LookupAddressContacts,
-    LookupAddressContactsResponse, LookupAddressHandles, LookupAddressHandlesResponse,
-    ResolveHandle, ResolveHandleResponse, TransactionResponse,
+    GetCoinsResponse, GetContacts, GetDerivations, GetDerivationsResponse, GetHandle,
+    GetHandleResponse, GetHandles, GetHandlesResponse, GetKeyResponse, GetPendingTransactions,
+    GetPendingTransactionsResponse, GetSecretKeyResponse, GetSpendableCoinCount,
+    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
+    GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
+    GetVersionResponse, GetXchUsdPriceResponse, LookupAddressContacts, LookupAddressHandles,
+    LookupAddressHandlesResponse, ResolveHandle, ResolveHandleResponse, TransactionResponse,
 };
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
@@ -35,10 +34,11 @@ use crate::{
     SelectedWalletChangedEvent, SetBeforeStopListenerParams, SystemKillRuntimeResult,
     SystemWalletView, WalletFilterUnlockedCoinsParams, WalletFilterUnlockedCoinsResult,
     WalletGetAssetBalanceParams, WalletGetAssetBalanceResult, WalletGetAssetCoinsParams,
-    WalletGetAssetCoinsResult, WalletGetPublicKeysParams, WalletGetPublicKeysResult,
-    WalletListWalletsResult, WalletSendTransactionParams, WalletSendTransactionResult,
-    WalletSendXchApprovalResponse, WalletSendXchParams, WalletSignCoinSpendsParams,
-    WalletSignCoinSpendsResult, WalletSignMessageParams, WalletSignMessageResult,
+    WalletGetAssetCoinsResult, WalletGetContactsResult, WalletGetPublicKeysParams,
+    WalletGetPublicKeysResult, WalletListWalletsResult, WalletLookupAddressContactsResult,
+    WalletSendTransactionParams, WalletSendTransactionResult, WalletSendXchApprovalResponse,
+    WalletSendXchParams, WalletSignCoinSpendsParams, WalletSignCoinSpendsResult,
+    WalletSignMessageParams, WalletSignMessageResult,
 };
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -98,9 +98,9 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<LookupAddressHandles>();
     types.register::<LookupAddressHandlesResponse>();
     types.register::<GetContacts>();
-    types.register::<GetContactsResponse>();
+    types.register::<WalletGetContactsResult>();
     types.register::<LookupAddressContacts>();
-    types.register::<LookupAddressContactsResponse>();
+    types.register::<WalletLookupAddressContactsResult>();
     types.register::<GetDerivations>();
     types.register::<GetDerivationsResponse>();
     types.register::<GetSpendableCoinCount>();

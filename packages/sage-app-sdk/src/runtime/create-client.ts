@@ -324,14 +324,14 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
       },
 
       async getContacts(input: Generated.GetContacts) {
-        return await callHost<Generated.GetContactsResponse>(
+        return await callHost<Generated.WalletGetContactsResult>(
           'wallet.getContacts',
           input,
         );
       },
 
       async lookupAddressContacts(input: Generated.LookupAddressContacts) {
-        return await callHost<Generated.LookupAddressContactsResponse>(
+        return await callHost<Generated.WalletLookupAddressContactsResult>(
           'wallet.lookupAddressContacts',
           input,
         );

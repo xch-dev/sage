@@ -91,8 +91,10 @@ const handleRecord = z.object({
   lastVerifiedAt: z.number(),
 });
 
+// Contacts are identified by their recipient. Their row IDs aren't shared: sites
+// can't change contacts, so they've no use for them, and they'd hint at how many
+// contacts were ever made.
 const contactRecord = z.object({
-  id: z.number(),
   name: z.string(),
   note: z.string().nullable(),
   kind: z.enum(['address', 'handle']),
