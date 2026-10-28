@@ -265,6 +265,7 @@ mod tests {
             filter: HandleFilterMode::Owned,
             include_unverified: false,
             refresh: false,
+            search: None,
             offset: 0,
             limit: 10,
         };

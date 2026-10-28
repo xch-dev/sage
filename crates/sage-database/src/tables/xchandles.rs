@@ -1,7 +1,9 @@
 use chia_wallet_sdk::prelude::*;
 use sqlx::{SqliteExecutor, SqlitePool};
 
-use crate::{Convert, Database, DatabaseError, Result, SharedDatabase, SharedDatabaseTx};
+use crate::{
+    Convert, Database, DatabaseError, Result, SharedDatabase, SharedDatabaseTx, like_pattern,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
@@ -38,6 +40,20 @@ pub enum XchandleFilter {
     Owned = 1,
     /// Handles saved in the address book.
     Contacts = 2,
+}
+
+/// Which stored handle mappings to list, and which of them to include.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct XchandleQuery<'a> {
+    pub filter: XchandleFilter,
+    /// The NFTs and DIDs owned by the current wallet, used by [`XchandleFilter::Owned`].
+    pub owned_launcher_ids: &'a [Bytes32],
+    /// Also include mappings which are unverified, stale or expired.
+    pub include_unverified: bool,
+    /// Only handles which contain this text, ignoring ASCII case.
+    pub search: Option<&'a str>,
+    /// Also match handles whose stored mapping resolves to this puzzle hash.
+    pub puzzle_hash: Option<Bytes32>,
 }
 
 /// A handle mapping, holding the values from its last successful verification.
@@ -106,31 +122,17 @@ impl SharedDatabase {
     /// A page of stored handle mappings, sorted by handle, and the total number matching.
     ///
     /// Unless `include_unverified` is set, only verified mappings which haven't expired by
-    /// `now` or the peak they were verified at are included. [`XchandleFilter::Owned`] only
-    /// includes handles whose owner is one of `owned_launcher_ids`, which should be the NFTs
-    /// and DIDs owned by the current wallet.
-    #[allow(clippy::too_many_arguments)]
+    /// `now` or the peak they were verified at are included. If a search or puzzle hash is
+    /// given, only handles matching either one are included.
     pub async fn xchandles_page(
         &self,
         registry_launcher_id: Bytes32,
-        filter: XchandleFilter,
-        owned_launcher_ids: &[Bytes32],
-        include_unverified: bool,
+        query: XchandleQuery<'_>,
         now: u64,
         limit: u32,
         offset: u32,
     ) -> Result<(Vec<XchandleRow>, u32)> {
-        xchandles_page(
-            &self.pool,
-            registry_launcher_id,
-            filter,
-            owned_launcher_ids,
-            include_unverified,
-            now,
-            limit,
-            offset,
-        )
-        .await
+        xchandles_page(&self.pool, registry_launcher_id, query, now, limit, offset).await
     }
 
     /// The stored handles whose owner singleton is one of `owned_launcher_ids`, which should
@@ -304,21 +306,22 @@ fn launcher_ids_json(launcher_ids: &[Bytes32]) -> String {
     format!("[{}]", ids.join(","))
 }
 
-#[allow(clippy::too_many_arguments)]
 async fn xchandles_page(
     pool: &SqlitePool,
     registry_launcher_id: Bytes32,
-    filter: XchandleFilter,
-    owned_launcher_ids: &[Bytes32],
-    include_unverified: bool,
+    query: XchandleQuery<'_>,
     now: u64,
     limit: u32,
     offset: u32,
 ) -> Result<(Vec<XchandleRow>, u32)> {
     let registry_launcher_id = registry_launcher_id.as_ref();
     let now: i64 = now.try_into()?;
-    let filter = filter as u8;
-    let owned = launcher_ids_json(owned_launcher_ids);
+    let filter = query.filter as u8;
+    let include_unverified = query.include_unverified;
+    let owned = launcher_ids_json(query.owned_launcher_ids);
+    let search = query.search.map(like_pattern);
+    let puzzle_hash = query.puzzle_hash.as_ref().map(AsRef::<[u8]>::as_ref);
+    let unfiltered = search.is_none() && puzzle_hash.is_none();
 
     // The total is counted separately, so that it's still correct for a page past the end.
     let total = sqlx::query_scalar!(
@@ -330,13 +333,17 @@ async fn xchandles_page(
                 ? != 1 OR hex(owner_launcher_id) IN (SELECT value FROM json_each(?))
             )
             AND (? != 2 OR handle IN (SELECT handle FROM contacts WHERE kind = 1))
+            AND (? OR handle LIKE ? ESCAPE '\\' OR resolved_puzzle_hash = ?)
         ",
         registry_launcher_id,
         include_unverified,
         now,
         filter,
         owned,
-        filter
+        filter,
+        unfiltered,
+        search,
+        puzzle_hash
     )
     .fetch_one(pool)
     .await?;
@@ -350,6 +357,7 @@ async fn xchandles_page(
                 ? != 1 OR hex(owner_launcher_id) IN (SELECT value FROM json_each(?))
             )
             AND (? != 2 OR handle IN (SELECT handle FROM contacts WHERE kind = 1))
+            AND (? OR handle LIKE ? ESCAPE '\\' OR resolved_puzzle_hash = ?)
         ORDER BY handle ASC
         LIMIT ? OFFSET ?
         ",
@@ -359,6 +367,9 @@ async fn xchandles_page(
         filter,
         owned,
         filter,
+        unfiltered,
+        search,
+        puzzle_hash,
         limit,
         offset
     )
@@ -664,7 +675,17 @@ mod tests {
         };
 
         let (owned, total) = db
-            .xchandles_page(REGISTRY, XchandleFilter::Owned, &[mine], false, 0, 10, 0)
+            .xchandles_page(
+                REGISTRY,
+                XchandleQuery {
+                    filter: XchandleFilter::Owned,
+                    owned_launcher_ids: &[mine],
+                    ..Default::default()
+                },
+                0,
+                10,
+                0,
+            )
             .await?;
         assert_eq!(names(owned), ["alice", "carol"]);
         assert_eq!(total, 2);
@@ -677,17 +698,103 @@ mod tests {
         assert_eq!(db.owned_xchandle_names(REGISTRY, &[other]).await?, ["bob"]);
         assert!(db.owned_xchandle_names(REGISTRY, &[]).await?.is_empty());
         let (owned, total) = db
-            .xchandles_page(REGISTRY, XchandleFilter::Owned, &[], false, 0, 10, 0)
+            .xchandles_page(
+                REGISTRY,
+                XchandleQuery {
+                    filter: XchandleFilter::Owned,
+                    ..Default::default()
+                },
+                0,
+                10,
+                0,
+            )
             .await?;
         assert!(owned.is_empty());
         assert_eq!(total, 0);
 
         // The owned launcher IDs are ignored by the other filters.
         let (all, total) = db
-            .xchandles_page(REGISTRY, XchandleFilter::All, &[], false, 0, 10, 0)
+            .xchandles_page(REGISTRY, XchandleQuery::default(), 0, 10, 0)
             .await?;
         assert_eq!(names(all), ["alice", "bob", "carol"]);
         assert_eq!(total, 3);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn handles_are_searched_by_handle_or_address() -> anyhow::Result<()> {
+        let pool = SqlitePool::connect("sqlite::memory:").await?;
+        migrate!("../../migrations").run(&pool).await?;
+        let db = SharedDatabase::new(pool);
+
+        let owner = Bytes32::default();
+        let address = Bytes32::new([7; 32]);
+
+        // More handles than one page, so a search must find ones past the first page.
+        for index in 0..30 {
+            db.upsert_xchandle(&row(&format!("aaa{index:02}"), owner))
+                .await?;
+        }
+        db.upsert_xchandle(&row("zed_50%", owner)).await?;
+        db.upsert_xchandle(&XchandleRow {
+            resolved_puzzle_hash: address,
+            ..row("zoe", owner)
+        })
+        .await?;
+
+        let search = |search: Option<&'static str>, puzzle_hash: Option<Bytes32>| {
+            let db = db.clone();
+            async move {
+                let (rows, total) = db
+                    .xchandles_page(
+                        REGISTRY,
+                        XchandleQuery {
+                            search,
+                            puzzle_hash,
+                            ..Default::default()
+                        },
+                        0,
+                        10,
+                        0,
+                    )
+                    .await?;
+                anyhow::Ok((
+                    rows.into_iter().map(|row| row.handle).collect::<Vec<_>>(),
+                    total,
+                ))
+            }
+        };
+
+        let (first_page, total) = search(None, None).await?;
+        assert_eq!(first_page.len(), 10);
+        assert_eq!(total, 32);
+        assert!(!first_page.contains(&"zoe".to_string()));
+
+        // Matched anywhere in the handle, ignoring ASCII case.
+        assert_eq!(
+            search(Some("ZO"), None).await?,
+            (vec!["zoe".to_string()], 1)
+        );
+        assert_eq!(
+            search(Some("a29"), None).await?,
+            (vec!["aaa29".to_string()], 1)
+        );
+
+        // Wildcards are matched literally.
+        assert_eq!(
+            search(Some("50%"), None).await?,
+            (vec!["zed_50%".to_string()], 1)
+        );
+        assert_eq!(search(Some("d_5"), None).await?.1, 1);
+        assert_eq!(search(Some("%"), None).await?.1, 1);
+
+        // An address matches the handles which resolve to it.
+        assert_eq!(
+            search(Some("no such text"), Some(address)).await?,
+            (vec!["zoe".to_string()], 1)
+        );
+        assert_eq!(search(Some("nothing"), None).await?, (vec![], 0));
 
         Ok(())
     }

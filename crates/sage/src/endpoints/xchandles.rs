@@ -14,7 +14,8 @@ use sage_api::{
 };
 use sage_config::XchandlesConfig;
 use sage_database::{
-    NftUpdaterKindExt, ParsedNftMetadata, XchandleFilter, XchandleRow, XchandleStatus,
+    NftUpdaterKindExt, ParsedNftMetadata, XchandleFilter, XchandleQuery, XchandleRow,
+    XchandleStatus,
 };
 use sage_wallet::{
     Handle, HandleResolution, OFFLINE_MAX_AGE_SECONDS, PendingTransferResponse, RESOLVE_TIMEOUT,
@@ -153,13 +154,27 @@ impl Sage {
             Vec::new()
         };
 
+        // An address or puzzle hash matches the handles which resolve to it, and `@handle`
+        // matches by the handle.
+        let search = req
+            .search
+            .as_deref()
+            .map(str::trim)
+            .filter(|search| !search.is_empty());
+        let puzzle_hash = search.and_then(|search| self.parse_lookup_address(search).ok());
+        let search = search.map(|search| search.strip_prefix('@').unwrap_or(search));
+
         let (rows, total) = wallet
             .shared_db
             .xchandles_page(
                 config.registry_launcher_id,
-                filter,
-                &owned_launcher_ids,
-                req.include_unverified,
+                XchandleQuery {
+                    filter,
+                    owned_launcher_ids: &owned_launcher_ids,
+                    include_unverified: req.include_unverified,
+                    search,
+                    puzzle_hash,
+                },
                 now,
                 req.limit,
                 req.offset,

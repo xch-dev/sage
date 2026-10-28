@@ -109,13 +109,25 @@ export function ContactPicker({ onSelect }: ContactPickerProps) {
         if (!cancelled) setSavedHandles(new Set());
       });
 
-    // Only mappings which are verified and unexpired are offered. Networks
-    // without XCHandles fail here, and simply have no handles to offer.
+    return () => {
+      cancelled = true;
+    };
+  }, [open, wallet]);
+
+  useEffect(() => {
+    if (!open || !wallet || !xchandlesEnabled) return;
+
+    let cancelled = false;
+
+    // Only mappings which are verified and unexpired are offered. The search runs in the
+    // backend, so handles past the first page are still found. Networks without XCHandles
+    // fail here, and simply have no handles to offer.
     commands
       .getHandles({
         filter: 'all',
         include_unverified: false,
         refresh: false,
+        search: debouncedSearch.trim() || null,
         offset: 0,
         limit: RESOLVED_HANDLE_LIMIT,
       })
@@ -129,13 +141,10 @@ export function ContactPicker({ onSelect }: ContactPickerProps) {
     return () => {
       cancelled = true;
     };
-  }, [open, wallet]);
+  }, [open, wallet, debouncedSearch]);
 
-  const query = debouncedSearch.trim().replace(/^@/, '').toLowerCase();
   const otherHandles = handles.filter(
-    (record) =>
-      !savedHandles.has(record.handle) &&
-      (record.handle.includes(query) || record.address === query),
+    (record) => !savedHandles.has(record.handle),
   );
 
   const select = (recipient: string) => {

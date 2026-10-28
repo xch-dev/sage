@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT * FROM xchandles\n        WHERE registry_launcher_id = ?\n            AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))\n            AND (\n                ? != 1 OR hex(owner_launcher_id) IN (SELECT value FROM json_each(?))\n            )\n            AND (? != 2 OR handle IN (SELECT handle FROM contacts WHERE kind = 1))\n        ORDER BY handle ASC\n        LIMIT ? OFFSET ?\n        ",
+  "query": "\n        SELECT * FROM xchandles\n        WHERE registry_launcher_id = ?\n            AND (? OR (status = 0 AND expiration > MAX(?, verified_timestamp)))\n            AND (\n                ? != 1 OR hex(owner_launcher_id) IN (SELECT value FROM json_each(?))\n            )\n            AND (? != 2 OR handle IN (SELECT handle FROM contacts WHERE kind = 1))\n            AND (? OR handle LIKE ? ESCAPE '\\' OR resolved_puzzle_hash = ?)\n        ORDER BY handle ASC\n        LIMIT ? OFFSET ?\n        ",
   "describe": {
     "columns": [
       {
@@ -140,7 +140,7 @@
       }
     ],
     "parameters": {
-      "Right": 8
+      "Right": 11
     },
     "nullable": [
       false,
@@ -172,5 +172,5 @@
       true
     ]
   },
-  "hash": "2fddc5c603a4ad34a8e8d38caffb39d369fce5bb25687b80d7bb1c0502fc0e1c"
+  "hash": "325351d52b0056faaad8e9f2c49b4f0342444cba52602b752f4259e3cef1ce7c"
 }

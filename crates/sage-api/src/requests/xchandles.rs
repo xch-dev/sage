@@ -74,7 +74,7 @@ pub struct GetHandleResponse {
         description = "List handle mappings Sage has already verified, from the local store. Nothing is fetched from the network unless refresh is set, in which case handle NFTs owned by this wallet are verified first, using their display names only as hints."
     )
 )]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetHandles {
@@ -89,6 +89,11 @@ pub struct GetHandles {
     /// to the XCHandles API and peers
     #[serde(default)]
     pub refresh: bool,
+    /// Only list handles which contain this text, ignoring ASCII case and a leading `@`. An
+    /// address or puzzle hash also matches the handles which resolve to it
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true, example = "ali"))]
+    pub search: Option<String>,
     /// Starting offset for pagination
     #[cfg_attr(feature = "openapi", schema(example = 0))]
     pub offset: u32,

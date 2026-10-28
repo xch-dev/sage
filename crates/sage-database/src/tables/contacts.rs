@@ -228,7 +228,7 @@ macro_rules! contact_row {
 }
 
 /// Escapes text for a `LIKE` pattern using `\` as the escape character.
-fn like_pattern(search: &str) -> String {
+pub(crate) fn like_pattern(search: &str) -> String {
     let mut pattern = String::with_capacity(search.len() + 2);
     pattern.push('%');
 

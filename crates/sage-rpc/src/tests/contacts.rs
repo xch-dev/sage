@@ -509,6 +509,7 @@ async fn test_get_handles_contacts_filter() -> Result<()> {
         filter,
         include_unverified: true,
         refresh: false,
+        search: None,
         offset: 0,
         limit: 50,
     };

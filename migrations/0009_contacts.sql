@@ -1,8 +1,9 @@
 /*
  * The address book.
  *
- * Every wallet has its own database for each network, so contacts are already scoped to a
- * single wallet and network, and are never shared between them.
+ * This table, like xchandles, is only used in the database shared by every wallet on a
+ * network, so each network has one address book for all of its wallets. Wallet databases
+ * have it too, since every database runs the same migrations, but it's always empty there.
  *
  * A contact is a name for exactly one recipient, which is either a raw address (kind 0,
  * stored as its puzzle hash) or an XCHandles handle (kind 1, stored without the leading `@`).

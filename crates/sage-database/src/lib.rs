@@ -115,8 +115,8 @@ impl<'a> DatabaseTx<'a> {
 /// be run against a wallet's database by mistake, and none of them read the wallet tables,
 /// which are always empty here.
 ///
-/// The `xchandles` and `contacts` tables were first created for wallet databases, and their
-/// migrations still describe them that way, but they're only used here.
+/// The `xchandles` table was first created for wallet databases, which may still have rows
+/// in it from before, but nothing reads them anymore.
 #[derive(Debug, Clone)]
 pub struct SharedDatabase {
     pub(crate) pool: SqlitePool,

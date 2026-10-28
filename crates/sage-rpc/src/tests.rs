@@ -509,6 +509,7 @@ fn handles_request(filter: HandleFilterMode, include_unverified: bool) -> GetHan
         filter,
         include_unverified,
         refresh: false,
+        search: None,
         offset: 0,
         limit: 50,
     }
@@ -756,6 +757,23 @@ async fn test_known_handles() -> Result<()> {
         .await?;
     assert!(past_end.handles.is_empty());
     assert_eq!(past_end.total, 3);
+
+    // Searching matches handles past the first page, by handle or by the address they
+    // resolve to.
+    let search = |search: &str| GetHandles {
+        search: Some(search.to_string()),
+        limit: 1,
+        ..handles_request(HandleFilterMode::All, false)
+    };
+    let found = app.get_handles(search(" @GIN ")).await?;
+    assert_eq!(handle_names(&found.handles), ["gina"]);
+    assert_eq!(found.total, 1);
+    let found = app.get_handles(search(&address)).await?;
+    assert_eq!(handle_names(&found.handles), ["alice"]);
+    assert_eq!(found.total, 1);
+    let found = app.get_handles(search("nobody")).await?;
+    assert!(found.handles.is_empty());
+    assert_eq!(found.total, 0);
 
     let unknown = hex::encode([0xee; 32]);
     let results = app

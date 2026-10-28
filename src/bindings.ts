@@ -1505,6 +1505,11 @@ include_unverified?: boolean;
  */
 refresh?: boolean; 
 /**
+ * Only list handles which contain this text, ignoring ASCII case and a leading `@`. An
+ * address or puzzle hash also matches the handles which resolve to it
+ */
+search?: string | null; 
+/**
  * Starting offset for pagination
  */
 offset: number; 
