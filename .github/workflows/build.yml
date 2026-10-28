@@ -98,7 +98,6 @@ jobs:
             build: 'pnpm tauri ios build --export-method app-store-connect --build-number 1'
             disable_offers: 'false'
             disable_options: 'false'
-            disable_swap: 'false'
             ipa_name: Sage_TestFlight
           - platform: 'macos-26'
             platform_name: iOS (App Store)
@@ -107,7 +106,6 @@ jobs:
             build: 'pnpm tauri ios build --export-method app-store-connect --build-number 2'
             disable_offers: 'true'
             disable_options: 'true'
-            disable_swap: 'true'
             ipa_name: Sage_AppStore
           - platform: 'blacksmith-8vcpu-ubuntu-2404'
             platform_name: Android
@@ -236,7 +234,6 @@ jobs:
           APPLE_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           VITE_DISABLE_OFFERS: ${{ matrix.disable_offers }}
           VITE_DISABLE_OPTIONS: ${{ matrix.disable_options }}
-          VITE_DISABLE_SWAP: ${{ matrix.disable_swap }}
           CI: true
 
       - name: Preserve iOS IPA
