@@ -56,6 +56,12 @@ async getKey(req: GetKey) : Promise<GetKeyResponse> {
 async getKeys(req: GetKeys) : Promise<GetKeysResponse> {
     return await TAURI_INVOKE("get_keys", { req });
 },
+async addKey(req: AddKey) : Promise<AddKeyResponse> {
+    return await TAURI_INVOKE("add_key", { req });
+},
+async deleteKey(req: DeleteKey) : Promise<DeleteKeyResponse> {
+    return await TAURI_INVOKE("delete_key", { req });
+},
 async getSecretKey(req: GetSecretKey) : Promise<GetSecretKeyResponse> {
     return await TAURI_INVOKE("get_secret_key", { req });
 },
@@ -527,6 +533,26 @@ recipient: string; note?: string | null }
  * Response with the new contact
  */
 export type AddContactResponse = { contact: ContactRecord }
+/**
+ * Add a key to the keychain
+ */
+export type AddKey = { 
+/**
+ * Mnemonic phrase, or hex encoded secret or public key
+ */
+key: string; 
+/**
+ * Whether to store the secret key, if one is given
+ */
+save_secrets?: boolean }
+/**
+ * Response with the added key
+ */
+export type AddKeyResponse = { 
+/**
+ * Fingerprint of the key
+ */
+fingerprint: number }
 /**
  * Add a URI to an NFT
  */
@@ -1095,6 +1121,18 @@ network: string }
  * Response for database deletion
  */
 export type DeleteDatabaseResponse = Record<string, never>
+/**
+ * Remove a key from the keychain
+ */
+export type DeleteKey = { 
+/**
+ * Key fingerprint
+ */
+fingerprint: number }
+/**
+ * Response for key removal
+ */
+export type DeleteKeyResponse = Record<string, never>
 /**
  * Delete an offer
  */
@@ -2586,15 +2624,23 @@ auto_submit?: boolean }
 /**
  * Public information about a key in the keychain
  */
-export type KeyInfo = { fingerprint: number; 
+export type KeyInfo = { fingerprint: number; kind: KeyKind; 
 /**
- * The hex encoded BLS master public key
+ * The hex encoded public key. For BLS keys, this is the master public key
  */
 public_key: string; 
 /**
  * Whether the keychain holds the secret key, rather than only the public key
  */
 has_secrets: boolean }
+/**
+ * The kind of a key in the keychain
+ */
+export type KeyKind = 
+/**
+ * A BLS key, which can be a wallet of its own
+ */
+"bls"
 /**
  * Lineage proof for CAT coins
  */

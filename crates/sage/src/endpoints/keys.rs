@@ -14,16 +14,17 @@ use chia_wallet_sdk::{
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteDatabase, DeleteDatabaseResponse, DeleteWallet, DeleteWalletResponse, GenerateMnemonic,
-    GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
-    GetSecretKeyResponse, GetWallet, GetWalletAddress, GetWalletAddressResponse, GetWalletResponse,
-    GetWallets, GetWalletsResponse, ImportWallet, ImportWalletResponse, KeyInfo, Login,
-    LoginResponse, Logout, LogoutResponse, RenameWallet, RenameWalletResponse, Resync,
-    ResyncResponse, SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse, WalletInfo,
-    WalletKind as ApiWalletKind,
+    AddKey, AddKeyResponse, DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse,
+    DeleteWallet, DeleteWalletResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey,
+    GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey, GetSecretKeyResponse, GetWallet,
+    GetWalletAddress, GetWalletAddressResponse, GetWalletResponse, GetWallets, GetWalletsResponse,
+    ImportWallet, ImportWalletResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout,
+    LogoutResponse, RenameWallet, RenameWalletResponse, Resync, ResyncResponse, SecretKeyInfo,
+    SetWalletEmoji, SetWalletEmojiResponse, WalletInfo, WalletKind as ApiWalletKind,
 };
 use sage_config::{Wallet, WalletKind as ConfigWalletKind};
 use sage_database::{Database, Derivation};
+use sage_keychain::KeychainError;
 use sage_wallet::WalletKind;
 use sqlx::query;
 
@@ -130,49 +131,11 @@ impl Sage {
     }
 
     pub async fn import_wallet(&mut self, req: ImportWallet) -> Result<ImportWalletResponse> {
-        let mut key_hex = req.key.as_str();
-
-        if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
-            key_hex = &key_hex[2..];
-        }
-
-        let (master_pk, master_sk, mnemonic) = if let Ok(bytes) = hex::decode(key_hex) {
-            if let Ok(master_pk) = bytes.clone().try_into() {
-                (PublicKey::from_bytes(&master_pk)?, None, None)
-            } else if let Ok(master_sk) = bytes.try_into() {
-                let master_sk = SecretKey::from_bytes(&master_sk)?;
-                (master_sk.public_key(), Some(master_sk), None)
-            } else {
-                return Err(Error::InvalidKey);
-            }
-        } else {
-            let words: Vec<&str> = req.key.split_whitespace().collect();
-            let word_count = words.len();
-
-            if word_count != 12 && word_count != 24 {
-                return Err(Error::InvalidMnemonic(format!(
-                    "Expected 12 or 24 words, but got {word_count}."
-                )));
-            }
-
-            let mnemonic = Mnemonic::from_str(&req.key).map_err(|e| match e {
-                bip39::Error::BadWordCount(count) => {
-                    Error::InvalidMnemonic(format!("Expected 12 or 24 words, but got {count}."))
-                }
-                bip39::Error::UnknownWord(idx) => Error::InvalidMnemonic(format!(
-                    "Word #{} ({}) is not a valid BIP39 word.",
-                    idx + 1,
-                    words.get(idx).copied().unwrap_or("unknown"),
-                )),
-                bip39::Error::InvalidChecksum => Error::InvalidMnemonic(
-                    "Invalid checksum. Please verify all words are correct and in the right order."
-                        .to_string(),
-                ),
-                _ => Error::InvalidMnemonic(format!("Invalid mnemonic: {e}")),
-            })?;
-            let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
-            (master_sk.public_key(), Some(master_sk), Some(mnemonic))
-        };
+        let ParsedKey {
+            master_pk,
+            master_sk,
+            mnemonic,
+        } = parse_key(&req.key)?;
 
         let fingerprint = master_pk.get_fingerprint();
 
@@ -188,25 +151,12 @@ impl Sage {
 
         // The keychain can hold keys that aren't wallets, so the key may already be there. It's
         // reused, unless this import adds secrets that the keychain doesn't have yet.
-        let store_secrets = req.save_secrets && master_sk.is_some();
-
-        if !self.keychain.contains(fingerprint)
-            || (store_secrets && !self.keychain.has_secret_key(fingerprint))
-        {
-            self.keychain.remove(fingerprint);
-
-            match (&mnemonic, &master_sk) {
-                (Some(mnemonic), _) if store_secrets => {
-                    self.keychain.add_mnemonic(mnemonic, b"")?;
-                }
-                (None, Some(master_sk)) if store_secrets => {
-                    self.keychain.add_secret_key(master_sk, b"")?;
-                }
-                _ => {
-                    self.keychain.add_public_key(&master_pk)?;
-                }
-            }
-        }
+        self.store_key(
+            &master_pk,
+            master_sk.as_ref(),
+            mnemonic.as_ref(),
+            req.save_secrets,
+        )?;
 
         if !restoring {
             self.wallet_config.wallets.push(Wallet {
@@ -427,6 +377,7 @@ impl Sage {
 
         Ok(Some(KeyInfo {
             fingerprint,
+            kind: KeyKind::Bls,
             public_key: hex::encode(master_pk.to_bytes()),
             has_secrets: self.keychain.has_secret_key(fingerprint),
         }))
@@ -452,6 +403,84 @@ impl Sage {
             network_id: wallet.network.clone().unwrap_or_else(|| self.network_id()),
             emoji: wallet.emoji.clone(),
         })
+    }
+
+    /// Adds a BLS key to the keychain, and returns whether the keychain changed. A key that's
+    /// already there is kept, unless this adds secrets that it doesn't have yet.
+    fn store_key(
+        &mut self,
+        master_pk: &PublicKey,
+        master_sk: Option<&SecretKey>,
+        mnemonic: Option<&Mnemonic>,
+        save_secrets: bool,
+    ) -> Result<bool> {
+        let fingerprint = master_pk.get_fingerprint();
+        let store_secrets = save_secrets && master_sk.is_some();
+
+        if self.keychain.contains(fingerprint)
+            && (!store_secrets || self.keychain.has_secret_key(fingerprint))
+        {
+            return Ok(false);
+        }
+
+        self.keychain.remove(fingerprint);
+
+        match (mnemonic, master_sk) {
+            (Some(mnemonic), _) if store_secrets => {
+                self.keychain.add_mnemonic(mnemonic, b"")?;
+            }
+            (None, Some(master_sk)) if store_secrets => {
+                self.keychain.add_secret_key(master_sk, b"")?;
+            }
+            _ => {
+                self.keychain.add_public_key(master_pk)?;
+            }
+        }
+
+        Ok(true)
+    }
+
+    /// Adds a BLS key to the keychain without creating a wallet for it.
+    pub fn add_key(&mut self, req: AddKey) -> Result<AddKeyResponse> {
+        let ParsedKey {
+            master_pk,
+            master_sk,
+            mnemonic,
+        } = parse_key(&req.key)?;
+
+        if !self.store_key(
+            &master_pk,
+            master_sk.as_ref(),
+            mnemonic.as_ref(),
+            req.save_secrets,
+        )? {
+            return Err(KeychainError::KeyExists.into());
+        }
+
+        self.save_keychain()?;
+
+        Ok(AddKeyResponse {
+            fingerprint: master_pk.get_fingerprint(),
+        })
+    }
+
+    /// Removes a key from the keychain. A BLS wallet's key can only be removed by deleting the
+    /// wallet, since the wallet can't be opened without it.
+    pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {
+        if self
+            .wallet_entry(req.fingerprint)
+            .is_some_and(|wallet| matches!(wallet.kind, ConfigWalletKind::Bls))
+        {
+            return Err(Error::KeyInUse(req.fingerprint));
+        }
+
+        if !self.keychain.remove(req.fingerprint) {
+            return Err(Error::UnknownFingerprint);
+        }
+
+        self.save_keychain()?;
+
+        Ok(DeleteKeyResponse {})
     }
 
     pub async fn get_wallet_address(
@@ -521,4 +550,63 @@ impl Sage {
         let index = tx.unused_derivation_index(hardened).await?;
         Ok(tx.custody_p2_puzzle_hash(index, hardened).await.ok())
     }
+}
+
+/// A BLS key given as a mnemonic, or a hex encoded secret or public key.
+struct ParsedKey {
+    master_pk: PublicKey,
+    master_sk: Option<SecretKey>,
+    mnemonic: Option<Mnemonic>,
+}
+
+fn parse_key(key: &str) -> Result<ParsedKey> {
+    let mut key_hex = key;
+
+    if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
+        key_hex = &key_hex[2..];
+    }
+
+    let (master_pk, master_sk, mnemonic) = if let Ok(bytes) = hex::decode(key_hex) {
+        if let Ok(master_pk) = bytes.clone().try_into() {
+            (PublicKey::from_bytes(&master_pk)?, None, None)
+        } else if let Ok(master_sk) = bytes.try_into() {
+            let master_sk = SecretKey::from_bytes(&master_sk)?;
+            (master_sk.public_key(), Some(master_sk), None)
+        } else {
+            return Err(Error::InvalidKey);
+        }
+    } else {
+        let words: Vec<&str> = key.split_whitespace().collect();
+        let word_count = words.len();
+
+        if word_count != 12 && word_count != 24 {
+            return Err(Error::InvalidMnemonic(format!(
+                "Expected 12 or 24 words, but got {word_count}."
+            )));
+        }
+
+        let mnemonic = Mnemonic::from_str(key).map_err(|e| match e {
+            bip39::Error::BadWordCount(count) => {
+                Error::InvalidMnemonic(format!("Expected 12 or 24 words, but got {count}."))
+            }
+            bip39::Error::UnknownWord(idx) => Error::InvalidMnemonic(format!(
+                "Word #{} ({}) is not a valid BIP39 word.",
+                idx + 1,
+                words.get(idx).copied().unwrap_or("unknown"),
+            )),
+            bip39::Error::InvalidChecksum => Error::InvalidMnemonic(
+                "Invalid checksum. Please verify all words are correct and in the right order."
+                    .to_string(),
+            ),
+            _ => Error::InvalidMnemonic(format!("Invalid mnemonic: {e}")),
+        })?;
+        let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
+        (master_sk.public_key(), Some(master_sk), Some(mnemonic))
+    };
+
+    Ok(ParsedKey {
+        master_pk,
+        master_sk,
+        mnemonic,
+    })
 }

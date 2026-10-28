@@ -1,4 +1,6 @@
 import Container from '@/components/Container';
+import { AddKeyDialog } from '@/components/dialogs/AddKeyDialog';
+import { KeyDetailsDialog } from '@/components/dialogs/KeyDetailsDialog';
 import { ResyncDialog } from '@/components/dialogs/ResyncDialog';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
@@ -62,7 +64,9 @@ import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   DownloadIcon,
+  EyeIcon,
   LoaderCircleIcon,
+  PlusIcon,
   TrashIcon,
   WalletIcon,
 } from 'lucide-react';
@@ -80,6 +84,7 @@ import {
   NetworkConfig,
   PerformDatabaseMaintenanceResponse,
   Wallet,
+  WalletInfo,
   WalletDefaults,
 } from '../bindings';
 
@@ -146,6 +151,13 @@ export default function Settings() {
                   </TabsTrigger>
 
                   <TabsTrigger
+                    value='keys'
+                    className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
+                  >
+                    <Trans>Keys</Trans>
+                  </TabsTrigger>
+
+                  <TabsTrigger
                     value='network'
                     className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
                   >
@@ -193,6 +205,10 @@ export default function Settings() {
                     </CardContent>
                   </Card>
                 )}
+              </TabsContent>
+
+              <TabsContent value='keys'>
+                <KeySettings />
               </TabsContent>
 
               <TabsContent value='network'>
@@ -1145,6 +1161,168 @@ function RpcSettings() {
         }
       />
     </SettingsSection>
+  );
+}
+
+/** The keys in the keychain. Wallets add and remove their own keys, so this is
+ *  only needed for lower level access, such as keys that aren't wallets. */
+function KeySettings() {
+  const { addError } = useErrors();
+
+  const [keys, setKeys] = useState<KeyInfo[] | null>(null);
+  const [wallets, setWallets] = useState<WalletInfo[]>([]);
+  const [addOpen, setAddOpen] = useState(false);
+  const [details, setDetails] = useState<KeyInfo | null>(null);
+  const [deleting, setDeleting] = useState<KeyInfo | null>(null);
+
+  const refresh = useCallback(() => {
+    commands
+      .getKeys({})
+      .then((data) => setKeys(data.keys))
+      .catch(addError);
+
+    commands
+      .getWallets({})
+      .then((data) => setWallets(data.wallets))
+      .catch(addError);
+  }, [addError]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  // A BLS key belongs to the BLS wallet with the same fingerprint.
+  const walletFor = (key: KeyInfo) =>
+    wallets.find(
+      (wallet) =>
+        wallet.fingerprint === key.fingerprint && wallet.kind === 'bls',
+    ) ?? null;
+
+  const deleteKey = () => {
+    if (!deleting) return;
+
+    commands
+      .deleteKey({ fingerprint: deleting.fingerprint })
+      .then(refresh)
+      .catch(addError)
+      .finally(() => setDeleting(null));
+  };
+
+  return (
+    <>
+      <SettingsSection title={t`Keys`}>
+        <SettingItem
+          label={t`Keychain`}
+          description={t`Keys are added and removed along with their wallets. Keys that aren't wallets can be managed here.`}
+          control={
+            <Button
+              variant='secondary'
+              size='sm'
+              onClick={() => setAddOpen(true)}
+            >
+              <PlusIcon className='h-4 w-4 mr-2' aria-hidden='true' />
+              <Trans>Add Key</Trans>
+            </Button>
+          }
+        />
+
+        {keys?.length === 0 && (
+          <div className='p-3 text-sm text-muted-foreground'>
+            <Trans>The keychain is empty.</Trans>
+          </div>
+        )}
+
+        {keys?.map((key) => {
+          const wallet = walletFor(key);
+
+          return (
+            <SettingItem
+              key={key.fingerprint}
+              label={t`BLS key ${key.fingerprint}`}
+              description={
+                wallet ? t`Used by ${wallet.name}` : t`Not used by a wallet`
+              }
+              control={
+                <div className='flex items-center gap-2'>
+                  <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
+                    {key.has_secrets ? (
+                      <Trans>Secret key</Trans>
+                    ) : (
+                      <Trans>Public key only</Trans>
+                    )}
+                  </div>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    aria-label={t`Key details`}
+                    onClick={() => setDetails(key)}
+                  >
+                    <EyeIcon className='h-4 w-4' aria-hidden='true' />
+                  </Button>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    aria-label={t`Delete key`}
+                    title={
+                      wallet
+                        ? t`Delete the wallet to remove its key`
+                        : undefined
+                    }
+                    disabled={wallet !== null}
+                    onClick={() => setDeleting(key)}
+                  >
+                    <TrashIcon className='h-4 w-4' aria-hidden='true' />
+                  </Button>
+                </div>
+              }
+            />
+          );
+        })}
+      </SettingsSection>
+
+      <AddKeyDialog open={addOpen} setOpen={setAddOpen} onAdded={refresh} />
+
+      <KeyDetailsDialog
+        keyInfo={details}
+        wallet={details ? walletFor(details) : null}
+        onClose={() => setDetails(null)}
+      />
+
+      <Dialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Delete Key</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              {deleting?.has_secrets ? (
+                <Trans>
+                  Are you sure you want to delete this key? Its secret key will
+                  be removed from this device, so make sure you have a backup.
+                  This cannot be undone.
+                </Trans>
+              ) : (
+                <Trans>
+                  Are you sure you want to delete this key? This cannot be
+                  undone.
+                </Trans>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setDeleting(null)}>
+              <Trans>Cancel</Trans>
+            </Button>
+            <Button variant='destructive' onClick={deleteKey}>
+              <Trans>Delete</Trans>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

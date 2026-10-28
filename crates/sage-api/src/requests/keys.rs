@@ -429,6 +429,67 @@ pub struct GetKeyResponse {
     pub key: Option<KeyInfo>,
 }
 
+/// Add a key to the keychain
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Add a key to the keychain without creating a wallet for it. Use import_wallet to create a wallet instead."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct AddKey {
+    /// Mnemonic phrase, or hex encoded secret or public key
+    pub key: String,
+    /// Whether to store the secret key, if one is given
+    #[serde(default = "yes")]
+    #[cfg_attr(feature = "openapi", schema(default = true))]
+    pub save_secrets: bool,
+}
+
+/// Response with the added key
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct AddKeyResponse {
+    /// Fingerprint of the key
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+}
+
+/// Remove a key from the keychain
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Permanently remove a key from the keychain. A key that a wallet uses can only be removed by deleting the wallet. This action cannot be undone."
+    )
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct DeleteKey {
+    /// Key fingerprint
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+}
+
+/// Response for key removal
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct DeleteKeyResponse {}
+
 /// Get wallet secret key
 #[cfg_attr(
     feature = "openapi",

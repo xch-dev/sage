@@ -89,6 +89,7 @@ pub fn generate_openapi() -> OpenApi {
         .schema_from::<sage_api::OfferHandleStatus>()
         .schema_from::<sage_api::PeerRecord>()
         .schema_from::<sage_api::KeyInfo>()
+        .schema_from::<sage_api::KeyKind>()
         .schema_from::<sage_api::SecretKeyInfo>()
         .schema_from::<sage_api::WalletInfo>()
         .schema_from::<sage_api::WalletKind>()

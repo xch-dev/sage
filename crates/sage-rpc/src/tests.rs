@@ -1,4 +1,5 @@
 mod contacts;
+mod keys;
 mod recipients;
 mod wallets;
 

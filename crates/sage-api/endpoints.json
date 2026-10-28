@@ -13,6 +13,8 @@
   "get_wallet_address": true,
   "get_key": false,
   "get_keys": false,
+  "add_key": false,
+  "delete_key": false,
   "get_secret_key": false,
   "get_sync_status": true,
   "get_version": false,
