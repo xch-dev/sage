@@ -14,15 +14,16 @@
 //!   marks the stored mapping unverified, and a reorg below anything it was verified against
 //!   marks it stale. Neither can be used offline until verified again. Lookups which fail
 //!   for any other reason leave the stored mapping untouched.
-//! - Mappings are stored per registry launcher ID, and each wallet database belongs to a
-//!   single network, so mappings never cross deployments or networks.
+//! - Mappings are stored per registry launcher ID in the database shared by the wallets on
+//!   a network, so mappings never cross deployments or networks, and a handle verified in
+//!   one wallet is known to the others on the same network.
 //! - If a verification finds a different resolved address than the last verified one, the
 //!   old address is kept as a pending change until it is explicitly acknowledged.
 
 use std::future::Future;
 
 use chia_wallet_sdk::prelude::*;
-use sage_database::{Database, XchandleRow, XchandleStatus};
+use sage_database::{SharedDatabase, XchandleRow, XchandleStatus};
 use tracing::warn;
 
 use crate::{Handle, VerifiedHandle, XchandlesError};
@@ -120,7 +121,7 @@ pub fn usable_offline(row: &XchandleRow, now: u64) -> bool {
 /// changes made while the lookup was in flight (such as recording the address last sent
 /// to, or acknowledging a change) aren't overwritten.
 pub async fn resolve_and_store(
-    db: &Database,
+    db: &SharedDatabase,
     registry_launcher_id: Bytes32,
     handle: &Handle,
     now: u64,

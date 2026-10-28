@@ -1,5 +1,6 @@
 mod action_system;
 mod actions;
+mod contacts;
 mod data;
 mod keys;
 mod offers;
@@ -9,6 +10,7 @@ mod xchandles;
 
 pub use action_system::*;
 pub use actions::*;
+pub use contacts::*;
 pub use data::*;
 pub use keys::*;
 pub use offers::*;

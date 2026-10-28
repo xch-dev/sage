@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT handle FROM xchandles\n        WHERE registry_launcher_id = ?\n            AND hex(owner_launcher_id) IN (SELECT value FROM json_each(?))\n        ORDER BY handle ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "handle",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0cb038dd94b6d66f47f2d4a5e1b4b2d1a990f202d19cdd02e212fb294e3924e0"
+}

@@ -7,7 +7,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useAddressHandles } from '@/hooks/useAddressHandles';
-import { addressHandles, HandleTrust, handleTrust } from '@/lib/addressHandles';
+import { refreshAddressLabels } from '@/lib/addressContacts';
+import { HandleTrust, handleTrust } from '@/lib/addressHandles';
 import { handleErrorMessage } from '@/lib/handles';
 import { cn, formatTimestamp } from '@/lib/utils';
 import { plural, t } from '@lingui/core/macro';
@@ -185,10 +186,11 @@ function HandleDetails({ record }: { record: HandleRecord }) {
       })
       .catch((error: BackendError) => toast.error(handleErrorMessage(error)))
       // Verifying can move the handle to another address, or mark it as no
-      // longer verified, so every label is looked up again.
+      // longer verified, so every label, including the names of contacts
+      // saved as the handle, is looked up again.
       .finally(() => {
         setVerifying(false);
-        addressHandles.refresh();
+        refreshAddressLabels();
       });
   };
 

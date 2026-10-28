@@ -13,7 +13,10 @@ use sage_api::{
     PendingTransferRecord, PendingTransferStatus, ResolveHandle, ResolveHandleResponse,
 };
 use sage_config::XchandlesConfig;
-use sage_database::{NftUpdaterKindExt, ParsedNftMetadata, XchandleRow, XchandleStatus};
+use sage_database::{
+    NftUpdaterKindExt, ParsedNftMetadata, XchandleFilter, XchandleQuery, XchandleRow,
+    XchandleStatus,
+};
 use sage_wallet::{
     Handle, HandleResolution, OFFLINE_MAX_AGE_SECONDS, PendingTransferResponse, RESOLVE_TIMEOUT,
     WalletPeer, XchandlesClient, XchandlesError, chain_tip, resolve_and_store, resolve_handle,
@@ -137,12 +140,41 @@ impl Sage {
 
         let now = unix_now();
 
+        let filter = match req.filter {
+            HandleFilterMode::All => XchandleFilter::All,
+            HandleFilterMode::Owned => XchandleFilter::Owned,
+            HandleFilterMode::Contacts => XchandleFilter::Contacts,
+        };
+
+        // Handle mappings are shared by every wallet on the network, but which handles are
+        // owned depends on the NFTs and DIDs in this wallet.
+        let owned_launcher_ids = if filter == XchandleFilter::Owned {
+            wallet.db.owned_singleton_launcher_ids().await?
+        } else {
+            Vec::new()
+        };
+
+        // An address or puzzle hash matches the handles which resolve to it, and `@handle`
+        // matches by the handle.
+        let search = req
+            .search
+            .as_deref()
+            .map(str::trim)
+            .filter(|search| !search.is_empty());
+        let puzzle_hash = search.and_then(|search| self.parse_lookup_address(search).ok());
+        let search = search.map(|search| search.strip_prefix('@').unwrap_or(search));
+
         let (rows, total) = wallet
-            .db
+            .shared_db
             .xchandles_page(
                 config.registry_launcher_id,
-                req.filter == HandleFilterMode::Owned,
-                req.include_unverified,
+                XchandleQuery {
+                    filter,
+                    owned_launcher_ids: &owned_launcher_ids,
+                    include_unverified: req.include_unverified,
+                    search,
+                    puzzle_hash,
+                },
                 now,
                 req.limit,
                 req.offset,
@@ -184,7 +216,7 @@ impl Sage {
             }
 
             let records = wallet
-                .db
+                .shared_db
                 .xchandles_by_puzzle_hash(config.registry_launcher_id, puzzle_hash)
                 .await?
                 .into_iter()
@@ -215,7 +247,7 @@ impl Sage {
 
     /// Parses an address on the current network or a hex puzzle hash. This deliberately
     /// doesn't accept handles, since looking up a handle would make network requests.
-    fn parse_lookup_address(&self, input: &str) -> Result<Bytes32> {
+    pub(crate) fn parse_lookup_address(&self, input: &str) -> Result<Bytes32> {
         let hex = input.strip_prefix("0x").unwrap_or(input);
 
         if hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
@@ -286,7 +318,14 @@ impl Sage {
                 .unwrap_or(Err(XchandlesError::Timeout))
         };
 
-        Ok(resolve_and_store(&wallet.db, config.registry_launcher_id, handle, now, lookup).await?)
+        Ok(resolve_and_store(
+            &wallet.shared_db,
+            config.registry_launcher_id,
+            handle,
+            now,
+            lookup,
+        )
+        .await?)
     }
 
     /// Fetches the pending transfer the API reports for a handle, if any, along with the
@@ -338,9 +377,11 @@ impl Sage {
             .filter_map(|name| Handle::parse(name).ok())
             .collect();
 
+        let owned_launcher_ids = wallet.db.owned_singleton_launcher_ids().await?;
+
         let owned: HashSet<String> = wallet
-            .db
-            .owned_xchandle_names(config.registry_launcher_id)
+            .shared_db
+            .owned_xchandle_names(config.registry_launcher_id, &owned_launcher_ids)
             .await?
             .into_iter()
             .collect();
@@ -383,7 +424,11 @@ impl Sage {
         self.handle_record_at(resolution, unix_now())
     }
 
-    fn handle_record_at(&self, resolution: &HandleResolution, now: u64) -> Result<HandleRecord> {
+    pub(crate) fn handle_record_at(
+        &self,
+        resolution: &HandleResolution,
+        now: u64,
+    ) -> Result<HandleRecord> {
         let row = &resolution.row;
         let prefix = self.network().prefix();
         let encode = |puzzle_hash| Address::new(puzzle_hash, prefix.clone()).encode();

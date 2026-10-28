@@ -4,6 +4,10 @@ import {
   HandleResolutionList,
 } from '@/components/HandleResolution';
 import { WalletAddressPicker } from '@/components/WalletAddressPicker';
+import {
+  ContactPicker,
+  RecipientContact,
+} from '@/components/contacts/ContactPicker';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import Container from '@/components/Container';
 import { ExpirationInput } from '@/components/ExpirationInput';
@@ -51,7 +55,7 @@ import BigNumber from 'bignumber.js';
 import { AlertCircleIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import * as z from 'zod';
 import {
   commands,
@@ -65,6 +69,10 @@ const emptyClawback = { days: '0', hours: '0', minutes: '0' };
 export default function Send() {
   let { asset_id: assetId = null } = useParams();
   if (assetId === 'xch') assetId = null;
+
+  // A recipient picked elsewhere, such as from the address book.
+  const [searchParams] = useSearchParams();
+  const initialRecipient = searchParams.get('to') ?? undefined;
 
   const { addError } = useErrors();
   const { clawback } = useDefaultClawback();
@@ -187,6 +195,7 @@ export default function Send() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      address: initialRecipient,
       memoMode: MemoMode.Text,
     },
   });
@@ -330,13 +339,33 @@ export default function Send() {
                     <FormLabel>
                       <Trans>Address</Trans>
                     </FormLabel>
-                    {!bulk && (
-                      <WalletAddressPicker
-                        onSelect={(address) =>
-                          form.setValue('address', address)
-                        }
+                    <div className='flex items-center gap-1'>
+                      <ContactPicker
+                        onSelect={(recipient) => {
+                          if (!bulk) {
+                            form.setValue('address', recipient, {
+                              shouldValidate: true,
+                            });
+                            return;
+                          }
+
+                          // Bulk sends take one recipient per line.
+                          const current = (field.value ?? '').trimEnd();
+                          form.setValue(
+                            'address',
+                            current ? `${current}\n${recipient}` : recipient,
+                            { shouldValidate: true },
+                          );
+                        }}
                       />
-                    )}
+                      {!bulk && (
+                        <WalletAddressPicker
+                          onSelect={(address) =>
+                            form.setValue('address', address)
+                          }
+                        />
+                      )}
+                    </div>
                   </div>
                   <FormControl>
                     {bulk ? (
@@ -372,7 +401,10 @@ export default function Send() {
                       values={addressList(field.value ?? '')}
                     />
                   ) : (
-                    <HandleResolution value={field.value ?? ''} />
+                    <>
+                      <RecipientContact value={field.value ?? ''} />
+                      <HandleResolution value={field.value ?? ''} />
+                    </>
                   )}
                   <FormMessage />
                 </FormItem>

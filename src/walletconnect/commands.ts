@@ -91,6 +91,21 @@ const handleRecord = z.object({
   lastVerifiedAt: z.number(),
 });
 
+// Contacts are identified by their recipient. Their row IDs aren't shared: sites
+// can't change contacts, so they've no use for them, and they'd hint at how many
+// contacts were ever made.
+const contactRecord = z.object({
+  name: z.string(),
+  note: z.string().nullable(),
+  kind: z.enum(['address', 'handle']),
+  recipient: z.string(),
+  handle: z.string().nullable(),
+  address: z.string().nullable(),
+  resolution: handleRecord.nullable(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+
 const handleSlot = z.object({
   registryLauncherId: z.string(),
   counter: z.number(),
@@ -302,8 +317,11 @@ export const walletConnectCommands = {
   // 'expired' or 'unavailable', or 'rate_limited' when sites resolve too many
   // handles in a short time.
   //
-  // There's no reverse lookup for sites: which handles this wallet has looked up
-  // for other addresses is private.
+  // There's no reverse lookup for sites: which handles have been looked up for
+  // other addresses, in this wallet or another on the network, is private. For
+  // the same reason, handle records sent to sites without asking the user say
+  // whether a handle changed hands, but leave out the addresses it was used
+  // with before (previousAddress, lastSentAddress and changedFrom are null).
   chia_resolveHandle: {
     paramsType: z.object({ handle: z.string() }),
     returnType: handleRecord,
@@ -338,6 +356,46 @@ export const walletConnectCommands = {
       total: z.number(),
     }),
     confirm: false,
+  },
+  // The address book. Contacts are personal, so the user approves every read,
+  // and there is no reverse lookup for sites. A site can suggest a contact, which
+  // the user reviews before it's saved, but can't change or delete contacts.
+  // Handle contacts carry the mapping Sage last verified, with its verification
+  // state and any change warning; it's read from the local store, so resolve
+  // the handle before relying on its address.
+  chia_getContacts: {
+    paramsType: z
+      .object({
+        search: z.string().optional(),
+        // One approval shares at most a page of contacts.
+        limit: z.number().int().min(1).max(100).optional(),
+        offset: z.number().int().min(0).optional(),
+      })
+      .optional(),
+    returnType: z.object({
+      contacts: z.array(contactRecord),
+      total: z.number(),
+    }),
+    confirm: true,
+  },
+  chia_addContact: {
+    paramsType: z.object({
+      // Lengths are in characters, as the backend counts them, not UTF-16
+      // code units.
+      name: z
+        .string()
+        .trim()
+        .min(1)
+        .refine((name) => [...name].length <= 64, 'name is too long'),
+      recipient: z.string().trim().min(1),
+      note: z
+        .string()
+        .trim()
+        .refine((note) => [...note].length <= 1000, 'note is too long')
+        .optional(),
+    }),
+    returnType: contactRecord,
+    confirm: true,
   },
   // Update the display name, ticker, icon and description of a CAT this wallet
   // already holds (the same record update_cat edits). Nothing is signed; the user

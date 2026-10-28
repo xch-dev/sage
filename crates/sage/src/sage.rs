@@ -18,7 +18,7 @@ use sage_config::{
     Config, Network, NetworkList, OldConfig, OldNetwork, Wallet as WalletEntry, WalletConfig,
     is_old_config, migrate_config, migrate_networks,
 };
-use sage_database::Database;
+use sage_database::{Database, SharedDatabase};
 use sage_keychain::Keychain;
 use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
 use serde::de::DeserializeOwned;
@@ -387,10 +387,13 @@ impl Sage {
         db.run_rust_migrations(self.network().ticker.clone())
             .await?;
 
+        let shared_db = self.connect_to_shared_database(fingerprint).await?;
+
         let wallet_config = self.wallet_config().cloned().unwrap_or_default();
 
         let wallet = Arc::new(Wallet::new(
             db.clone(),
+            shared_db,
             fingerprint,
             intermediate_pk,
             self.network().genesis_challenge,
@@ -544,11 +547,49 @@ impl Sage {
         Ok(pool)
     }
 
+    /// Connects to the database shared by every wallet on the network of the given wallet.
+    pub async fn connect_to_shared_database(&self, fingerprint: u32) -> Result<SharedDatabase> {
+        let path = self.shared_db_path(fingerprint)?;
+        Ok(SharedDatabase::new(self.connect_to_pool(path).await?))
+    }
+
+    /// The database shared by every wallet on the network of the given wallet, for the
+    /// address book and verified handle mappings. Each network has its own, since addresses
+    /// and handle registries differ between networks.
+    pub fn shared_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
+        let path = self.path.join("shared");
+        fs::create_dir_all(&path)?;
+
+        // Wallet databases are named after the network a wallet is switched to, which for a
+        // custom network can differ from its ID. Every wallet on a network must share one
+        // database, so this always uses the network's ID.
+        let network_id = match self
+            .wallet_config
+            .wallets
+            .iter()
+            .find(|wallet| wallet.fingerprint == fingerprint)
+            .and_then(|wallet| wallet.network.as_deref())
+        {
+            Some(name) => self
+                .network_list
+                .by_name(name)
+                .map_or_else(|| name.to_string(), Network::network_id),
+            None => self.network_id(),
+        };
+
+        Ok(path.join(format!("{network_id}.sqlite")))
+    }
+
     pub fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
         let path = self.path.join("wallets").join(fingerprint.to_string());
         fs::create_dir_all(&path)?;
-        let network_id = self
-            .wallet_config
+        let path = path.join(format!("{}.sqlite", self.wallet_network_id(fingerprint)));
+        Ok(path)
+    }
+
+    /// The network a wallet uses, which may differ from the default network.
+    fn wallet_network_id(&self, fingerprint: u32) -> String {
+        self.wallet_config
             .wallets
             .iter()
             .find_map(|wallet| {
@@ -558,9 +599,7 @@ impl Sage {
                     None
                 }
             })
-            .unwrap_or_else(|| self.network_id());
-        let path = path.join(format!("{network_id}.sqlite"));
-        Ok(path)
+            .unwrap_or_else(|| self.network_id())
     }
 
     pub fn wallet_config(&self) -> Option<&sage_config::Wallet> {
@@ -685,6 +724,38 @@ mod tests {
         sage.setup_config()?;
         sage.recover_missing_wallets()?;
         Ok(sage)
+    }
+
+    #[test]
+    fn wallets_on_a_network_share_one_database() -> Result<()> {
+        let dir = TempDir::new()?;
+        let mut sage = load(dir.path())?;
+
+        // A custom network whose ID differs from its name, which wallet databases are named
+        // after when a wallet is switched to it.
+        let mut custom = sage_config::TESTNET11.clone();
+        custom.name = "custom".to_string();
+        custom.network_id = Some("custom-id".to_string());
+        sage.network_list.networks.push(custom);
+
+        for (fingerprint, network) in [(1, None), (2, Some("custom")), (3, Some("mainnet"))] {
+            sage.wallet_config.wallets.push(WalletEntry {
+                name: format!("Wallet {fingerprint}"),
+                fingerprint,
+                network: network.map(str::to_string),
+                ..Default::default()
+            });
+        }
+
+        let shared = dir.path().join("shared");
+        assert_eq!(
+            sage.shared_db_path(1)?,
+            shared.join(format!("{}.sqlite", sage.network_id()))
+        );
+        assert_eq!(sage.shared_db_path(2)?, shared.join("custom-id.sqlite"));
+        assert_eq!(sage.shared_db_path(3)?, shared.join("mainnet.sqlite"));
+
+        Ok(())
     }
 
     fn add_key(sage: &mut Sage, seed: u8) -> Result<u32> {

@@ -323,6 +323,20 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
         );
       },
 
+      async getContacts(input: Generated.GetContacts) {
+        return await callHost<Generated.WalletGetContactsResult>(
+          'wallet.getContacts',
+          input,
+        );
+      },
+
+      async lookupAddressContacts(input: Generated.LookupAddressContacts) {
+        return await callHost<Generated.WalletLookupAddressContactsResult>(
+          'wallet.lookupAddressContacts',
+          input,
+        );
+      },
+
       async sendXch(input: Generated.WalletSendXchParams) {
         return await callHost<Generated.TransactionResponse>(
           'wallet.sendXch',

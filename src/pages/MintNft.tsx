@@ -1,5 +1,9 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { HandleResolution } from '@/components/HandleResolution';
+import {
+  ContactPicker,
+  RecipientContact,
+} from '@/components/contacts/ContactPicker';
 import Header from '@/components/Header';
 import { PasteInput } from '@/components/PasteInput';
 import {
@@ -275,9 +279,18 @@ export default function MintNft() {
               name='royaltyAddress'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
-                    <Trans>Royalty Address</Trans>
-                  </FormLabel>
+                  <div className='flex items-center justify-between'>
+                    <FormLabel>
+                      <Trans>Royalty Address</Trans>
+                    </FormLabel>
+                    <ContactPicker
+                      onSelect={(recipient) =>
+                        form.setValue('royaltyAddress', recipient, {
+                          shouldValidate: true,
+                        })
+                      }
+                    />
+                  </div>
                   <FormControl>
                     <PasteInput
                       type='text'
@@ -291,6 +304,7 @@ export default function MintNft() {
                       onScanImage={handleRoyaltyScanImage}
                     />
                   </FormControl>
+                  <RecipientContact value={field.value ?? ''} />
                   <HandleResolution value={field.value ?? ''} />
                   <FormMessage />
                 </FormItem>

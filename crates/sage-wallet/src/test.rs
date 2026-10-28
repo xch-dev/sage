@@ -16,7 +16,7 @@ use chia_wallet_sdk::{
     test::PeerSimulator,
 };
 use sage_config::TESTNET11;
-use sage_database::{Database, Derivation};
+use sage_database::{Database, Derivation, SharedDatabase};
 use sqlx::{SqlitePool, migrate};
 use tokio::{
     sync::{
@@ -91,6 +91,13 @@ impl TestWallet {
         let db = Database::new(pool);
         db.run_rust_migrations("TXCH".to_string()).await?;
 
+        let shared_pool = SqlitePool::connect(&format!(
+            "file:testshareddb{db_index}?mode=memory&cache=shared"
+        ))
+        .await?;
+        migrate!("../../migrations").run(&shared_pool).await?;
+        let shared_db = SharedDatabase::new(shared_pool);
+
         let sk = BlsPair::default().sk.derive_unhardened(key_index);
         let pk = sk.public_key();
         let fingerprint = pk.get_fingerprint();
@@ -136,6 +143,7 @@ impl TestWallet {
         let state = Arc::new(Mutex::new(PeerState::default()));
         let wallet = Arc::new(Wallet::new(
             db,
+            shared_db,
             fingerprint,
             intermediate_pk,
             genesis_challenge,

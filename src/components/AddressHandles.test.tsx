@@ -2,13 +2,15 @@
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-const { lookupAddressHandles, resolveHandle } = vi.hoisted(() => ({
-  lookupAddressHandles: vi.fn(),
-  resolveHandle: vi.fn(),
-}));
+const { lookupAddressContacts, lookupAddressHandles, resolveHandle } =
+  vi.hoisted(() => ({
+    lookupAddressContacts: vi.fn(),
+    lookupAddressHandles: vi.fn(),
+    resolveHandle: vi.fn(),
+  }));
 
 vi.mock('@/bindings', () => ({
-  commands: { lookupAddressHandles, resolveHandle },
+  commands: { lookupAddressContacts, lookupAddressHandles, resolveHandle },
   events: { syncEvent: { listen: vi.fn(() => Promise.resolve(vi.fn())) } },
 }));
 
@@ -79,6 +81,16 @@ beforeAll(() => {
 
   const sync = defaultState().sync;
   useWalletState.setState({ sync: { ...sync, receive_address: address(9) } });
+
+  // Contact labels are tested in AddressContacts.test.tsx.
+  lookupAddressContacts.mockImplementation(
+    async ({ addresses }: { addresses: string[] }) => ({
+      results: addresses.map((requested) => ({
+        address: requested,
+        contacts: [],
+      })),
+    }),
+  );
 
   lookupAddressHandles.mockImplementation(
     async ({ addresses }: LookupAddressHandles) => ({
