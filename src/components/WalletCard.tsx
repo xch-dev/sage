@@ -74,8 +74,8 @@ export function WalletCard({
   const { promptIfEnabled } = useBiometric();
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [deleteKey, setDeleteKey] = useState(true);
-  const deleteKeyId = useId();
+  const [deleteKeys, setDeleteKeys] = useState(true);
+  const deleteKeysId = useId();
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
@@ -90,7 +90,7 @@ export function WalletCard({
       await commands
         .deleteWallet({
           fingerprint: info.fingerprint,
-          delete_key: deleteKey,
+          delete_keys: deleteKeys,
         })
         .then(() =>
           setWallets(
@@ -339,7 +339,7 @@ export function WalletCard({
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
                   onClick={(e) => {
-                    setDeleteKey(true);
+                    setDeleteKeys(true);
                     setIsDeleteOpen(true);
                     e.stopPropagation();
                   }}
@@ -408,18 +408,18 @@ export function WalletCard({
             <div className='flex flex-col gap-1'>
               <div className='flex items-center gap-2'>
                 <Switch
-                  id={deleteKeyId}
-                  checked={deleteKey}
-                  onCheckedChange={setDeleteKey}
+                  id={deleteKeysId}
+                  checked={deleteKeys}
+                  onCheckedChange={setDeleteKeys}
                 />
-                <Label htmlFor={deleteKeyId}>
-                  <Trans>Also remove its key from the keychain</Trans>
+                <Label htmlFor={deleteKeysId}>
+                  <Trans>Also remove its keys from the keychain</Trans>
                 </Label>
               </div>
-              {!deleteKey && (
+              {!deleteKeys && (
                 <p className='text-sm text-muted-foreground'>
                   <Trans>
-                    The key will stay under Settings, in the Keys tab.
+                    Its keys will stay under Settings, in the Keys tab.
                   </Trans>
                 </p>
               )}

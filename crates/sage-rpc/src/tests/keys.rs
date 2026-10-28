@@ -103,7 +103,7 @@ async fn wallet_keys_follow_their_wallets() -> Result<()> {
     // Deleting the wallet removes its key.
     app.delete_wallet(DeleteWallet {
         fingerprint,
-        delete_key: true,
+        delete_keys: true,
     })
     .await?;
     assert!(app.get_keys(GetKeys {}).await?.keys.is_empty());
