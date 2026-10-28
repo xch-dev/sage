@@ -213,8 +213,8 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
         );
       },
 
-      async getKey() {
-        return await callHost<Generated.GetKeyResponse>('wallet.getKey');
+      async getWallet() {
+        return await callHost<Generated.GetWalletResponse>('wallet.getWallet');
       },
 
       async getSecretKey() {

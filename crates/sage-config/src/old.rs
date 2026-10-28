@@ -8,7 +8,7 @@ use specta::Type;
 
 use crate::{
     Config, GlobalConfig, InheritedNetwork, Network, NetworkConfig, NetworkList, RpcConfig, Wallet,
-    WalletConfig, WalletDefaults,
+    WalletConfig, WalletDefaults, WalletKind,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Type)]
@@ -143,7 +143,10 @@ pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseInt
         },
     };
 
+    // Keys missing from the old config are recovered when this is upgraded to the current
+    // version, so it starts at version 0.
     let mut wallet_config = WalletConfig {
+        version: 0,
         defaults: WalletDefaults::default(),
         wallets: Vec::new(),
     };
@@ -156,6 +159,7 @@ pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseInt
             delta_sync: None,
             emoji: None,
             change_address: None,
+            kind: WalletKind::Bls,
         });
     }
 

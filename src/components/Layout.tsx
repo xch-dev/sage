@@ -1,4 +1,4 @@
-import { KeyInfo } from '@/bindings';
+import { WalletInfo } from '@/bindings';
 import {
   Tooltip,
   TooltipContent,
@@ -7,8 +7,9 @@ import {
 } from '@/components/ui/tooltip';
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
+import { walletKindName } from '@/lib/walletKind';
 import { t } from '@lingui/core/macro';
-import { PanelLeft, PanelLeftClose, Snowflake } from 'lucide-react';
+import { Eye, PanelLeft, PanelLeftClose, Snowflake, Vault } from 'lucide-react';
 import { PropsWithChildren } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Insets } from 'tauri-plugin-safe-area-insets';
@@ -24,6 +25,7 @@ function WalletTransitionWrapper({
   insets,
 }: PropsWithChildren<{ props: LayoutProps; insets: Insets }>) {
   const { isSwitching, wallet, isReadOnly } = useWallet();
+  const kind = wallet ? walletKindName(wallet.kind) : 'bls';
 
   // Only show content if we have a wallet or we're not switching
   // This prevents old wallet data from showing during transition
@@ -48,13 +50,25 @@ function WalletTransitionWrapper({
         <>
           {isReadOnly && (
             <Banner
-              message={t`Read-only wallet — transactions require private keys`}
+              message={
+                kind === 'watch'
+                  ? t`Watch-only wallet — these addresses can't be spent from here`
+                  : kind === 'vault'
+                    ? t`Read-only vault — spending from vaults isn't supported yet`
+                    : t`Read-only wallet — transactions require private keys`
+              }
               aria-label={t`Read-only wallet`}
               icon={
-                <Snowflake
-                  className='h-3 w-3 flex-shrink-0'
-                  aria-hidden='true'
-                />
+                kind === 'watch' ? (
+                  <Eye className='h-3 w-3 flex-shrink-0' aria-hidden='true' />
+                ) : kind === 'vault' ? (
+                  <Vault className='h-3 w-3 flex-shrink-0' aria-hidden='true' />
+                ) : (
+                  <Snowflake
+                    className='h-3 w-3 flex-shrink-0'
+                    aria-hidden='true'
+                  />
+                )
               }
             />
           )}
@@ -69,7 +83,7 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
 type LayoutProps = PropsWithChildren<object> & {
   transparentBackground?: boolean;
-  wallet?: KeyInfo;
+  wallet?: WalletInfo;
 };
 
 export function FullLayout(props: LayoutProps) {

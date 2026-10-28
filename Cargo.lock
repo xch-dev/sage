@@ -7004,6 +7004,7 @@ name = "sage-keychain"
 version = "0.13.1"
 dependencies = [
  "aes-gcm",
+ "anyhow",
  "argon2",
  "bincode 1.3.3",
  "bip39",

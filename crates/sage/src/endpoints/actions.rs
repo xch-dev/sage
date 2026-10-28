@@ -14,7 +14,7 @@ use sage_api::{
 };
 use sage_assets::{DexieCat, XchUsdPrice};
 use sage_database::{Asset, AssetKind, Derivation};
-use sage_wallet::SyncCommand;
+use sage_wallet::{SyncCommand, WalletError};
 
 use crate::{
     Error, Result, Sage, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
@@ -185,6 +185,10 @@ impl Sage {
         req: IncreaseDerivationIndex,
     ) -> Result<IncreaseDerivationIndexResponse> {
         let wallet = self.wallet()?;
+
+        if !wallet.kind.is_bls() {
+            return Err(WalletError::DerivationsNotSupported.into());
+        }
 
         let hardened = req.hardened.is_none_or(|hardened| hardened);
         let unhardened = req.unhardened.is_none_or(|unhardened| unhardened);

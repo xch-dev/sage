@@ -3,24 +3,24 @@ use serde::Deserialize;
 
 use crate::{
     BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeTools,
-    RustBridgeRequest, UserBridgeCapability, current_scoped_key, parse_optional_params,
+    RustBridgeRequest, UserBridgeCapability, current_scoped_wallet, parse_optional_params,
 };
 
 #[derive(Debug, Clone, Copy)]
-pub struct WalletGetKey;
+pub struct WalletGetWallet;
 
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct WalletGetKeyParams {}
+pub struct WalletGetWalletParams {}
 
 #[async_trait]
-impl BridgeMethod for WalletGetKey {
+impl BridgeMethod for WalletGetWallet {
     fn name(&self) -> &'static str {
-        "wallet.getKey"
+        "wallet.getWallet"
     }
 
     fn capability(&self) -> BridgeMethodCapability {
-        BridgeMethodCapability::user(UserBridgeCapability::WalletGetKey)
+        BridgeMethodCapability::user(UserBridgeCapability::WalletGetWallet)
     }
 
     async fn handle(
@@ -29,10 +29,10 @@ impl BridgeMethod for WalletGetKey {
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let _params: WalletGetKeyParams = parse_optional_params(self, request)?;
+        let _params: WalletGetWalletParams = parse_optional_params(self, request)?;
 
         let sage = tools.app_state.lock().await;
-        let (result, _) = current_scoped_key(&ctx, &sage)?;
+        let (result, _) = current_scoped_wallet(&ctx, &sage)?;
 
         Ok(Box::new(result))
     }

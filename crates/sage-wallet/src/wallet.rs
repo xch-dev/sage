@@ -28,6 +28,7 @@ mod nfts;
 mod offer;
 mod options;
 mod signing;
+mod wallet_kind;
 mod xch;
 
 pub use memos::*;
@@ -36,6 +37,7 @@ pub use nfts::*;
 pub use offer::*;
 pub use options::*;
 pub use signing::*;
+pub use wallet_kind::*;
 
 use crate::WalletError;
 
@@ -46,7 +48,7 @@ pub struct Wallet {
     /// and verified handle mappings.
     pub shared_db: SharedDatabase,
     pub fingerprint: u32,
-    pub intermediate_pk: PublicKey,
+    pub kind: WalletKind,
     pub genesis_challenge: Bytes32,
     pub agg_sig_constants: AggSigConstants,
     pub change_p2_puzzle_hash: Option<Bytes32>,
@@ -57,7 +59,7 @@ impl Wallet {
         db: Database,
         shared_db: SharedDatabase,
         fingerprint: u32,
-        intermediate_pk: PublicKey,
+        kind: WalletKind,
         genesis_challenge: Bytes32,
         agg_sig_constants: AggSigConstants,
         change_p2_puzzle_hash: Option<Bytes32>,
@@ -66,10 +68,20 @@ impl Wallet {
             db,
             shared_db,
             fingerprint,
-            intermediate_pk,
+            kind,
             genesis_challenge,
             agg_sig_constants,
             change_p2_puzzle_hash,
+        }
+    }
+
+    /// Only BLS wallets know the puzzle reveals of their coins. Vault spends aren't supported
+    /// yet, and watch wallets can never spend.
+    fn ensure_spendable(&self) -> Result<(), WalletError> {
+        if self.kind.is_bls() {
+            Ok(())
+        } else {
+            Err(WalletError::WalletKindNotSupported)
         }
     }
 
@@ -123,6 +135,8 @@ impl Wallet {
         ctx: &mut SpendContext,
         selected_coin_ids: &[Bytes32],
     ) -> Result<Spends, WalletError> {
+        self.ensure_spendable()?;
+
         let change_p2_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let mut spends = Spends::new(change_p2_puzzle_hash);
@@ -213,6 +227,8 @@ impl Wallet {
         actions: &[Action],
         excluded_coin_ids: &[Bytes32],
     ) -> Result<(), WalletError> {
+        self.ensure_spendable()?;
+
         let mut deltas = Deltas::from_actions(actions);
 
         deltas.update(Id::Xch).input += spends.xch.selected_amount();
@@ -329,6 +345,8 @@ impl Wallet {
         deltas: &Deltas,
         spends: Spends,
     ) -> Result<Outputs, WalletError> {
+        self.ensure_spendable()?;
+
         let mut p2_puzzles = IndexMap::new();
 
         for p2_puzzle_hash in spends.p2_puzzle_hashes() {

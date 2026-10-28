@@ -75,7 +75,7 @@ define_bridge_capabilities! {
         AppRequestNetworkWhitelistGrant => "app.request_network_whitelist_grant",
         AppRequestPermissionGrants => "app.request_permission_grants",
 
-        WalletGetKey => "wallet.get_key",
+        WalletGetWallet => "wallet.get_wallet",
         WalletGetSecretKey => "wallet.get_secret_key",
         WalletSendXch => "wallet.send_xch",
         WalletSendXchAutoSubmit => "wallet.send_xch_auto_submit",

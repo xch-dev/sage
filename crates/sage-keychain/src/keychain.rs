@@ -176,3 +176,49 @@ impl Keychain {
         Ok(fingerprint)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A keychain written by an earlier version of Sage, holding a mnemonic, a secret key and a
+    /// public key, all encrypted with an empty password.
+    const KEYS_V0: &[u8] = include_bytes!("../fixtures/keys_v0.bin");
+
+    #[test]
+    fn loads_existing_keychain() -> anyhow::Result<()> {
+        let keychain = Keychain::from_bytes(KEYS_V0)?;
+
+        let mut fingerprints: Vec<u32> = keychain.fingerprints().collect();
+        fingerprints.sort_unstable();
+        assert_eq!(fingerprints, [350_302_556, 2_397_551_190, 2_916_568_590]);
+
+        let mnemonic = Mnemonic::from_entropy(&[7; 32])?;
+        let (Some(extracted), Some(secret_key)) = keychain.extract_secrets(2_916_568_590, b"")?
+        else {
+            panic!("mnemonic secrets are missing");
+        };
+        assert_eq!(extracted, mnemonic);
+        assert_eq!(
+            secret_key.public_key(),
+            SecretKey::from_seed(&mnemonic.to_seed("")).public_key()
+        );
+
+        let secret_key = SecretKey::from_seed(&[8; 32]);
+        let (None, Some(extracted)) = keychain.extract_secrets(2_397_551_190, b"")? else {
+            panic!("secret key is missing");
+        };
+        assert_eq!(extracted, secret_key);
+
+        let public_key = SecretKey::from_seed(&[9; 32]).public_key();
+        assert!(!keychain.has_secret_key(350_302_556));
+        assert_eq!(keychain.extract_public_key(350_302_556)?, Some(public_key));
+
+        // Saving it again must not change how existing keys are encoded.
+        let reloaded = Keychain::from_bytes(&keychain.to_bytes()?)?;
+        assert_eq!(reloaded.to_bytes()?.len(), KEYS_V0.len());
+        assert_eq!(reloaded.extract_public_key(350_302_556)?, Some(public_key));
+
+        Ok(())
+    }
+}

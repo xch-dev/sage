@@ -112,11 +112,11 @@ Allows the app to request additional capabilities and network targets in one app
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
-## `wallet.get_key`
+## `wallet.get_wallet`
 
-**Read wallet key**
+**Read wallet**
 
-Allows the app to read public information about a wallet key.
+Allows the app to read public information about the selected wallet.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |

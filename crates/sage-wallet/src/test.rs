@@ -29,7 +29,7 @@ use tracing::debug;
 
 use crate::{
     PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Transaction, Wallet,
-    insert_transaction,
+    WalletKind, insert_transaction,
 };
 
 static INDEX: Mutex<u32> = Mutex::const_new(0);
@@ -145,7 +145,7 @@ impl TestWallet {
             db,
             shared_db,
             fingerprint,
-            intermediate_pk,
+            WalletKind::Bls { intermediate_pk },
             genesis_challenge,
             AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
             None,

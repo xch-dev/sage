@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { WalletKindBadge } from '@/components/WalletKindBadge';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { useSortable } from '@dnd-kit/sortable';
@@ -31,12 +32,10 @@ import {
   CopyIcon,
   EraserIcon,
   EyeIcon,
-  FlameIcon,
   LogInIcon,
   MoreVerticalIcon,
   PenIcon,
   RefreshCcw,
-  SnowflakeIcon,
   TrashIcon,
   WalletIcon,
 } from 'lucide-react';
@@ -45,23 +44,26 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Spoiler } from 'spoiled';
 import { useTheme } from 'theme-o-rama';
-import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
+import { commands, KeyInfo, SecretKeyInfo, WalletInfo } from '../bindings';
 import { CustomError } from '../contexts/ErrorContext';
 import { useWallet } from '../contexts/WalletContext';
 import { loginAndUpdateState, logoutAndUpdateState } from '../state';
 
 interface WalletCardProps {
   draggable?: boolean;
-  info: KeyInfo;
-  keys: KeyInfo[];
-  setKeys: (keys: KeyInfo[]) => void;
+  info: WalletInfo;
+  /** The keychain entry of a BLS wallet. */
+  keyInfo: KeyInfo | null | undefined;
+  wallets: WalletInfo[];
+  setWallets: (wallets: WalletInfo[]) => void;
 }
 
 export function WalletCard({
   draggable,
   info,
-  keys,
-  setKeys,
+  keyInfo,
+  wallets,
+  setWallets,
 }: WalletCardProps) {
   const navigate = useNavigate();
   const { addError } = useErrors();
@@ -81,9 +83,11 @@ export function WalletCard({
   const deleteSelf = async () => {
     if (await promptIfEnabled()) {
       await commands
-        .deleteKey({ fingerprint: info.fingerprint })
+        .deleteWallet({ fingerprint: info.fingerprint })
         .then(() =>
-          setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
+          setWallets(
+            wallets.filter((wallet) => wallet.fingerprint !== info.fingerprint),
+          ),
         )
         .catch(addError);
     }
@@ -95,13 +99,13 @@ export function WalletCard({
     if (!newName) return;
 
     commands
-      .renameKey({ fingerprint: info.fingerprint, name: newName })
+      .renameWallet({ fingerprint: info.fingerprint, name: newName })
       .then(() =>
-        setKeys(
-          keys.map((key) =>
-            key.fingerprint === info.fingerprint
-              ? { ...key, name: newName }
-              : key,
+        setWallets(
+          wallets.map((wallet) =>
+            wallet.fingerprint === info.fingerprint
+              ? { ...wallet, name: newName }
+              : wallet,
           ),
         ),
       )
@@ -115,9 +119,11 @@ export function WalletCard({
     commands
       .setWalletEmoji({ fingerprint: info.fingerprint, emoji })
       .then(() =>
-        setKeys(
-          keys.map((key) =>
-            key.fingerprint === info.fingerprint ? { ...key, emoji } : key,
+        setWallets(
+          wallets.map((wallet) =>
+            wallet.fingerprint === info.fingerprint
+              ? { ...wallet, emoji }
+              : wallet,
           ),
         ),
       )
@@ -150,8 +156,8 @@ export function WalletCard({
     try {
       await loginAndUpdateState(info.fingerprint);
 
-      const data = await commands.getKey({});
-      setWallet(data.key);
+      const data = await commands.getWallet({});
+      setWallet(data.wallet);
       navigate('/wallet');
     } catch (error: unknown) {
       if (
@@ -341,21 +347,7 @@ export function WalletCard({
         <CardContent className='p-0 px-5 pb-5'>
           <div className='flex items-center justify-between'>
             <span className='text-muted-foreground'>{info.fingerprint}</span>
-            {info.has_secrets ? (
-              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
-                <FlameIcon className='h-4 w-4' />
-                <span>
-                  <Trans>Hot</Trans>
-                </span>
-              </div>
-            ) : (
-              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
-                <SnowflakeIcon className='h-4 w-4' />
-                <span>
-                  <Trans>Cold</Trans>
-                </span>
-              </div>
-            )}
+            <WalletKindBadge wallet={info} keyInfo={keyInfo} />
           </div>
         </CardContent>
       </Card>
@@ -469,14 +461,41 @@ export function WalletCard({
                 {networkId}
               </p>
             </div>
-            <div>
-              <h3 className='font-semibold'>
-                <Trans>Public Key</Trans>
-              </h3>
-              <p className='break-all text-sm text-muted-foreground'>
-                {info.public_key}
-              </p>
-            </div>
+            {keyInfo && (
+              <div>
+                <h3 className='font-semibold'>
+                  <Trans>Public Key</Trans>
+                </h3>
+                <p className='break-all text-sm text-muted-foreground'>
+                  {keyInfo.public_key}
+                </p>
+              </div>
+            )}
+            {info.kind !== 'bls' && 'vault' in info.kind && (
+              <div>
+                <h3 className='font-semibold'>
+                  <Trans>Launcher ID</Trans>
+                </h3>
+                <p className='break-all text-sm text-muted-foreground'>
+                  {info.kind.vault.launcher_id}
+                </p>
+              </div>
+            )}
+            {info.kind !== 'bls' && 'watch' in info.kind && (
+              <div>
+                <h3 className='font-semibold'>
+                  <Trans>Addresses</Trans>
+                </h3>
+                {info.kind.watch.addresses.map((address) => (
+                  <p
+                    key={address}
+                    className='break-all text-sm text-muted-foreground'
+                  >
+                    {address}
+                  </p>
+                ))}
+              </div>
+            )}
             {secrets && (
               <>
                 <div>

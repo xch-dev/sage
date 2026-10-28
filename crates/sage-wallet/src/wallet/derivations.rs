@@ -14,19 +14,22 @@ use crate::WalletError;
 use super::Wallet;
 
 impl Wallet {
-    /// Inserts a range of unhardened derivations to the database.
+    /// Inserts a range of unhardened derivations to the database. Only BLS wallets have
+    /// derivations.
     pub async fn insert_unhardened_derivations(
         &self,
         tx: &mut DatabaseTx<'_>,
         range: Range<u32>,
     ) -> Result<Vec<Bytes32>, WalletError> {
+        let intermediate_pk = self
+            .kind
+            .intermediate_pk()
+            .ok_or(WalletError::DerivationsNotSupported)?;
+
         let mut puzzle_hashes = Vec::new();
 
         for index in range {
-            let synthetic_key = self
-                .intermediate_pk
-                .derive_unhardened(index)
-                .derive_synthetic();
+            let synthetic_key = intermediate_pk.derive_unhardened(index).derive_synthetic();
 
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
 
@@ -52,6 +55,10 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<Bytes32>, WalletError> {
+        if !self.kind.is_bls() {
+            return Err(WalletError::DerivationsNotSupported);
+        }
+
         let mut tx = self.db.read_tx().await?;
 
         let unused_index = tx.unused_derivation_index(hardened).await?;
@@ -85,6 +92,11 @@ impl Wallet {
         if let Some(change_p2_puzzle_hash) = self.change_p2_puzzle_hash {
             return Ok(change_p2_puzzle_hash);
         }
+
+        if let Some(p2_puzzle_hash) = self.kind.fixed_p2_puzzle_hash() {
+            return Ok(p2_puzzle_hash);
+        }
+
         Ok(self.p2_puzzle_hashes(1, false, true).await?[0])
     }
 }

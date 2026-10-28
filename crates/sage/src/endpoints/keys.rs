@@ -8,23 +8,25 @@ use chia_wallet_sdk::{
             master_to_wallet_unhardened_intermediate,
         },
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
+        sha2::Sha256,
     },
     prelude::*,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse, GenerateMnemonic,
+    DeleteDatabase, DeleteDatabaseResponse, DeleteWallet, DeleteWalletResponse, GenerateMnemonic,
     GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
-    GetSecretKeyResponse, GetWalletAddress, GetWalletAddressResponse, ImportKey, ImportKeyResponse,
-    KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey, RenameKeyResponse,
-    Resync, ResyncResponse, SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse,
+    GetSecretKeyResponse, GetWallet, GetWalletAddress, GetWalletAddressResponse, GetWalletResponse,
+    GetWallets, GetWalletsResponse, ImportKey, ImportKeyResponse, KeyInfo, Login, LoginResponse,
+    Logout, LogoutResponse, RenameWallet, RenameWalletResponse, Resync, ResyncResponse,
+    SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse, WalletInfo, WalletKind as ApiWalletKind,
 };
-use sage_config::Wallet;
+use sage_config::{Wallet, WalletKind};
 use sage_database::{Database, Derivation};
 use sqlx::query;
 
-use crate::{Error, Result, Sage};
+use crate::{Error, Result, Sage, assign_fingerprint};
 
 impl Sage {
     pub async fn login(&mut self, req: Login) -> Result<LoginResponse> {
@@ -128,22 +130,12 @@ impl Sage {
             key_hex = &key_hex[2..];
         }
 
-        let (fingerprint, master_sk, master_pk) = if let Ok(bytes) = hex::decode(key_hex) {
+        let (master_pk, master_sk, mnemonic) = if let Ok(bytes) = hex::decode(key_hex) {
             if let Ok(master_pk) = bytes.clone().try_into() {
-                let master_pk = PublicKey::from_bytes(&master_pk)?;
-                let fingerprint = self.keychain.add_public_key(&master_pk)?;
-                (fingerprint, None, master_pk)
+                (PublicKey::from_bytes(&master_pk)?, None, None)
             } else if let Ok(master_sk) = bytes.try_into() {
                 let master_sk = SecretKey::from_bytes(&master_sk)?;
-                let master_pk = master_sk.public_key();
-
-                let fingerprint = if req.save_secrets {
-                    self.keychain.add_secret_key(&master_sk, b"")?
-                } else {
-                    self.keychain.add_public_key(&master_pk)?
-                };
-
-                (fingerprint, Some(master_sk), master_pk)
+                (master_sk.public_key(), Some(master_sk), None)
             } else {
                 return Err(Error::InvalidKey);
             }
@@ -173,15 +165,40 @@ impl Sage {
                 _ => Error::InvalidMnemonic(format!("Invalid mnemonic: {e}")),
             })?;
             let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
-            let master_pk = master_sk.public_key();
-            let fingerprint = if req.save_secrets {
-                self.keychain.add_mnemonic(&mnemonic, b"")?
-            } else {
-                self.keychain.add_public_key(&master_pk)?
-            };
-
-            (fingerprint, Some(master_sk), master_pk)
+            (master_sk.public_key(), Some(master_sk), Some(mnemonic))
         };
+
+        let fingerprint = master_pk.get_fingerprint();
+
+        if let Some(existing) = self.wallet_entry(fingerprint) {
+            return Err(if existing.kind.is_bls() {
+                Error::WalletExists(fingerprint)
+            } else {
+                Error::FingerprintCollision(fingerprint)
+            });
+        }
+
+        // The keychain can hold keys that aren't wallets, so the key may already be there. It's
+        // reused, unless this import adds secrets that the keychain doesn't have yet.
+        let store_secrets = req.save_secrets && master_sk.is_some();
+
+        if !self.keychain.contains(fingerprint)
+            || (store_secrets && !self.keychain.has_secret_key(fingerprint))
+        {
+            self.keychain.remove(fingerprint);
+
+            match (&mnemonic, &master_sk) {
+                (Some(mnemonic), _) if store_secrets => {
+                    self.keychain.add_mnemonic(mnemonic, b"")?;
+                }
+                (None, Some(master_sk)) if store_secrets => {
+                    self.keychain.add_secret_key(master_sk, b"")?;
+                }
+                _ => {
+                    self.keychain.add_public_key(&master_pk)?;
+                }
+            }
+        }
 
         self.wallet_config.wallets.push(Wallet {
             name: req.name,
@@ -267,8 +284,15 @@ impl Sage {
         Ok(DeleteDatabaseResponse {})
     }
 
-    pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {
-        self.keychain.remove(req.fingerprint);
+    pub fn delete_wallet(&mut self, req: DeleteWallet) -> Result<DeleteWalletResponse> {
+        // Only a BLS wallet's key belongs to it. Any other key under this fingerprint isn't
+        // part of the wallet, so it's kept.
+        if self
+            .wallet_entry(req.fingerprint)
+            .is_some_and(|wallet| wallet.kind.is_bls())
+        {
+            self.keychain.remove(req.fingerprint);
+        }
 
         self.wallet_config
             .wallets
@@ -286,10 +310,10 @@ impl Sage {
             fs::remove_dir_all(path)?;
         }
 
-        Ok(DeleteKeyResponse {})
+        Ok(DeleteWalletResponse {})
     }
 
-    pub fn rename_key(&mut self, req: RenameKey) -> Result<RenameKeyResponse> {
+    pub fn rename_wallet(&mut self, req: RenameWallet) -> Result<RenameWalletResponse> {
         let Some(wallet) = self
             .wallet_config
             .wallets
@@ -302,7 +326,7 @@ impl Sage {
         wallet.name = req.name;
         self.save_config()?;
 
-        Ok(RenameKeyResponse {})
+        Ok(RenameWalletResponse {})
     }
 
     pub fn set_wallet_emoji(&mut self, req: SetWalletEmoji) -> Result<SetWalletEmojiResponse> {
@@ -321,31 +345,20 @@ impl Sage {
         Ok(SetWalletEmojiResponse {})
     }
 
-    pub fn get_key(&self, req: GetKey) -> Result<GetKeyResponse> {
+    pub fn get_wallet(&self, req: GetWallet) -> Result<GetWalletResponse> {
         let fingerprint = req.fingerprint.or(self.config.global.fingerprint);
 
         let Some(fingerprint) = fingerprint else {
-            return Ok(GetKeyResponse { key: None });
+            return Ok(GetWalletResponse { wallet: None });
         };
 
-        let wallet_config = self.wallet_config().cloned().unwrap_or_default();
-
-        let network_id = wallet_config.network.unwrap_or_else(|| self.network_id());
-
-        let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
-            return Ok(GetKeyResponse { key: None });
+        // Only fingerprints listed in `wallets.toml` are wallets.
+        let Some(wallet) = self.wallet_entry(fingerprint) else {
+            return Ok(GetWalletResponse { wallet: None });
         };
 
-        Ok(GetKeyResponse {
-            key: Some(KeyInfo {
-                name: wallet_config.name,
-                fingerprint,
-                public_key: hex::encode(master_pk.to_bytes()),
-                kind: KeyKind::Bls,
-                has_secrets: self.keychain.has_secret_key(fingerprint),
-                network_id,
-                emoji: wallet_config.emoji,
-            }),
+        Ok(GetWalletResponse {
+            wallet: self.wallet_info(wallet)?,
         })
     }
 
@@ -363,35 +376,196 @@ impl Sage {
         })
     }
 
-    pub fn get_keys(&self, _req: GetKeys) -> Result<GetKeysResponse> {
-        let mut keys = Vec::new();
+    pub fn get_wallets(&self, _req: GetWallets) -> Result<GetWalletsResponse> {
+        let mut wallets = Vec::new();
 
         for wallet in &self.wallet_config.wallets {
-            let Some(master_pk) = self.keychain.extract_public_key(wallet.fingerprint)? else {
-                continue;
-            };
+            if let Some(info) = self.wallet_info(wallet)? {
+                wallets.push(info);
+            }
+        }
 
-            keys.push(KeyInfo {
-                name: wallet.name.clone(),
-                fingerprint: wallet.fingerprint,
-                public_key: hex::encode(master_pk.to_bytes()),
-                kind: KeyKind::Bls,
-                has_secrets: self.keychain.has_secret_key(wallet.fingerprint),
-                network_id: wallet.network.clone().unwrap_or_else(|| self.network_id()),
-                emoji: wallet.emoji.clone(),
-            });
+        Ok(GetWalletsResponse { wallets })
+    }
+
+    pub fn get_key(&self, req: GetKey) -> Result<GetKeyResponse> {
+        Ok(GetKeyResponse {
+            key: self.key_info(req.fingerprint)?,
+        })
+    }
+
+    pub fn get_keys(&self, _req: GetKeys) -> Result<GetKeysResponse> {
+        let mut fingerprints: Vec<u32> = self.keychain.fingerprints().collect();
+        fingerprints.sort_unstable();
+
+        let mut keys = Vec::new();
+
+        for fingerprint in fingerprints {
+            if let Some(key) = self.key_info(fingerprint)? {
+                keys.push(key);
+            }
         }
 
         Ok(GetKeysResponse { keys })
+    }
+
+    fn key_info(&self, fingerprint: u32) -> Result<Option<KeyInfo>> {
+        let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
+            return Ok(None);
+        };
+
+        Ok(Some(KeyInfo {
+            fingerprint,
+            public_key: hex::encode(master_pk.to_bytes()),
+            has_secrets: self.keychain.has_secret_key(fingerprint),
+        }))
+    }
+
+    /// Describes a wallet of any kind. Returns `None` for a BLS wallet whose key is missing
+    /// from the keychain.
+    fn wallet_info(&self, wallet: &Wallet) -> Result<Option<WalletInfo>> {
+        let network_id = wallet.network.clone().unwrap_or_else(|| self.network_id());
+        let prefix = self
+            .network_list
+            .by_name(&network_id)
+            .unwrap_or_else(|| self.network())
+            .prefix();
+
+        let kind = match &wallet.kind {
+            WalletKind::Bls => {
+                if !self.keychain.contains(wallet.fingerprint) {
+                    return Ok(None);
+                }
+
+                ApiWalletKind::Bls
+            }
+            WalletKind::Vault { launcher_id } => ApiWalletKind::Vault {
+                launcher_id: hex::encode(launcher_id),
+            },
+            WalletKind::Watch { p2_puzzle_hashes } => ApiWalletKind::Watch {
+                addresses: p2_puzzle_hashes
+                    .iter()
+                    .map(|&p2_puzzle_hash| {
+                        Ok(Address::new(p2_puzzle_hash, prefix.clone()).encode()?)
+                    })
+                    .collect::<Result<_>>()?,
+            },
+        };
+
+        Ok(Some(WalletInfo {
+            name: wallet.name.clone(),
+            fingerprint: wallet.fingerprint,
+            kind,
+            network_id,
+            emoji: wallet.emoji.clone(),
+        }))
+    }
+
+    /// Adds a vault wallet to the wallet list, and returns its fingerprint. Its fingerprint is
+    /// the first 4 bytes of the launcher ID, unless that is already taken.
+    pub fn add_vault_wallet(
+        &mut self,
+        launcher_id: Bytes32,
+        name: String,
+        emoji: Option<String>,
+    ) -> Result<u32> {
+        if let Some(existing) = self.wallet_config.wallets.iter().find(|wallet| {
+            matches!(&wallet.kind, WalletKind::Vault { launcher_id: existing } if *existing == launcher_id)
+        }) {
+            return Err(Error::WalletExists(existing.fingerprint));
+        }
+
+        let fingerprint = assign_fingerprint(&launcher_id, |fingerprint| {
+            self.fingerprint_taken(fingerprint)
+        })
+        .ok_or(Error::NoFreeFingerprint)?;
+
+        self.add_wallet(Wallet {
+            name,
+            fingerprint,
+            emoji,
+            kind: WalletKind::Vault { launcher_id },
+            ..Default::default()
+        })?;
+
+        Ok(fingerprint)
+    }
+
+    /// Adds a watch wallet for a list of p2 puzzle hashes to the wallet list, and returns its
+    /// fingerprint. The first puzzle hash is the wallet's receive address. Its fingerprint is
+    /// hashed from the set of puzzle hashes, unless that is already taken.
+    pub fn add_watch_wallet(
+        &mut self,
+        p2_puzzle_hashes: &[Bytes32],
+        name: String,
+        emoji: Option<String>,
+    ) -> Result<u32> {
+        let mut unique = Vec::new();
+
+        for &p2_puzzle_hash in p2_puzzle_hashes {
+            if !unique.contains(&p2_puzzle_hash) {
+                unique.push(p2_puzzle_hash);
+            }
+        }
+
+        if unique.is_empty() {
+            return Err(Error::NoWatchAddresses);
+        }
+
+        let sorted = sorted_set(&unique);
+
+        if let Some(existing) = self.wallet_config.wallets.iter().find(|wallet| {
+            matches!(&wallet.kind, WalletKind::Watch { p2_puzzle_hashes } if sorted_set(p2_puzzle_hashes) == sorted)
+        }) {
+            return Err(Error::WalletExists(existing.fingerprint));
+        }
+
+        let mut hasher = Sha256::new();
+        for p2_puzzle_hash in &sorted {
+            hasher.update(p2_puzzle_hash);
+        }
+        let seed = hasher.finalize();
+
+        let fingerprint =
+            assign_fingerprint(&seed, |fingerprint| self.fingerprint_taken(fingerprint))
+                .ok_or(Error::NoFreeFingerprint)?;
+
+        self.add_wallet(Wallet {
+            name,
+            fingerprint,
+            emoji,
+            kind: WalletKind::Watch {
+                p2_puzzle_hashes: unique,
+            },
+            ..Default::default()
+        })?;
+
+        Ok(fingerprint)
+    }
+
+    /// Whether a new wallet without a BLS key can't use this fingerprint. Besides existing
+    /// wallets, this avoids keys in the keychain, whose wallets would use their fingerprint,
+    /// and databases left behind by wallets that are no longer listed.
+    fn fingerprint_taken(&self, fingerprint: u32) -> bool {
+        self.wallet_entry(fingerprint).is_some()
+            || self.keychain.contains(fingerprint)
+            || self
+                .path
+                .join("wallets")
+                .join(fingerprint.to_string())
+                .exists()
+    }
+
+    fn add_wallet(&mut self, wallet: Wallet) -> Result<()> {
+        self.wallet_config.wallets.push(wallet);
+        self.save_config()
     }
 
     pub async fn get_wallet_address(
         &self,
         req: GetWalletAddress,
     ) -> Result<GetWalletAddressResponse> {
-        let Some(master_pk) = self.keychain.extract_public_key(req.fingerprint)? else {
-            return Err(Error::UnknownFingerprint);
-        };
+        let kind = self.wallet_kind(req.fingerprint)?;
 
         // Return the change_address override directly if one is configured
         let wallet_cfg = self
@@ -414,7 +588,16 @@ impl Sage {
             .ok_or(Error::UnknownFingerprint)?;
 
         let prefix = network.prefix();
-        let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
+
+        let Some(intermediate_pk) = kind.intermediate_pk() else {
+            let p2_puzzle_hash = kind
+                .fixed_p2_puzzle_hash()
+                .ok_or(Error::UnknownFingerprint)?;
+
+            return Ok(GetWalletAddressResponse {
+                address: Address::new(p2_puzzle_hash, prefix).encode()?,
+            });
+        };
 
         // Try to read the current receive address from the wallet's DB
         let p2_puzzle_hash = self
@@ -456,4 +639,11 @@ impl Sage {
         let index = tx.unused_derivation_index(hardened).await?;
         Ok(tx.custody_p2_puzzle_hash(index, hardened).await.ok())
     }
+}
+
+fn sorted_set(p2_puzzle_hashes: &[Bytes32]) -> Vec<Bytes32> {
+    let mut sorted = p2_puzzle_hashes.to_vec();
+    sorted.sort_unstable();
+    sorted.dedup();
+    sorted
 }

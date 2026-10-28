@@ -1,24 +1,15 @@
 use serde::{Deserialize, Serialize};
 
+/// Public information about a key in the keychain
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct KeyInfo {
-    pub name: String,
     pub fingerprint: u32,
+    /// The hex encoded BLS master public key
     pub public_key: String,
-    pub kind: KeyKind,
+    /// Whether the keychain holds the secret key, rather than only the public key
     pub has_secrets: bool,
-    pub network_id: String,
-    pub emoji: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-#[serde(rename_all = "snake_case")]
-pub enum KeyKind {
-    Bls,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

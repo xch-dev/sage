@@ -48,6 +48,7 @@ import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { getConsoleLogs } from '@/lib/consoleCapture';
 import { exportText, ExportType } from '@/lib/exportText';
 import { offersEnabled } from '@/lib/features';
+import { canDeriveAddresses } from '@/lib/walletKind';
 import {
   clearState,
   fetchState,
@@ -80,6 +81,7 @@ import {
   NetworkConfig,
   PerformDatabaseMaintenanceResponse,
   Wallet,
+  WalletInfo,
   WalletDefaults,
 } from '../bindings';
 
@@ -1153,6 +1155,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   const walletState = useWalletState();
 
+  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
   const [key, setKey] = useState<KeyInfo | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
@@ -1216,6 +1219,11 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   }, [addError, fetchDatabaseStats]);
 
   useEffect(() => {
+    commands
+      .getWallet({ fingerprint })
+      .then((data) => setWalletInfo(data.wallet))
+      .catch(addError);
+
     commands
       .getKey({ fingerprint })
       .then((data) => setKey(data.key))
@@ -1353,7 +1361,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
                 if (localName === wallet?.name) return;
 
                 commands
-                  .renameKey({
+                  .renameWallet({
                     fingerprint,
                     name: localName,
                   })
@@ -1432,22 +1440,24 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       </SettingsSection>
 
       <SettingsSection title={t`Syncing`}>
-        <SettingItem
-          label={t`Derivation Index`}
-          description={t`The number of addresses managed by this wallet`}
-          control={
-            <div className='flex items-center gap-3'>
-              <span className='text-md'>{derivationIndex}</span>
-              <Button
-                variant='secondary'
-                size='sm'
-                onClick={() => setDeriveOpen(true)}
-              >
-                <Trans>Increase</Trans>
-              </Button>
-            </div>
-          }
-        />
+        {canDeriveAddresses(walletInfo) && (
+          <SettingItem
+            label={t`Derivation Index`}
+            description={t`The number of addresses managed by this wallet`}
+            control={
+              <div className='flex items-center gap-3'>
+                <span className='text-md'>{derivationIndex}</span>
+                <Button
+                  variant='secondary'
+                  size='sm'
+                  onClick={() => setDeriveOpen(true)}
+                >
+                  <Trans>Increase</Trans>
+                </Button>
+              </div>
+            }
+          />
+        )}
 
         <SettingItem
           label={t`Resync`}
