@@ -17,7 +17,7 @@ use specta::Type;
 use crate::{
     BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability,
     BridgeMethodHandleError, BridgeTools, RustBridgeRequest, UserBridgeCapability,
-    parse_required_params,
+    parse_required_params, without_history,
 };
 
 /// A contact as apps see it. Its row ID is left out: apps can't change contacts, so they've
@@ -42,7 +42,8 @@ pub struct WalletContact {
     /// relying on it, since it may be outdated, unverified or changed
     pub address: Option<String>,
     /// The stored mapping for handle contacts which have been resolved, including its
-    /// verification state. It is read from the local store, so it is always marked as cached
+    /// verification state and whether it changed, but not the addresses it was used with
+    /// before. It is read from the local store, so it is always marked as cached
     pub resolution: Option<HandleRecord>,
     /// Unix timestamp the contact was created at
     pub created_at: u64,
@@ -72,7 +73,10 @@ impl From<ContactRecord> for WalletContact {
             recipient,
             handle,
             address,
-            resolution,
+            resolution: resolution.map(|mut record| {
+                without_history(&mut record);
+                record
+            }),
             created_at,
             updated_at,
         }
@@ -205,10 +209,35 @@ impl BridgeMethod for WalletLookupAddressContacts {
 
 #[cfg(test)]
 mod tests {
+    use sage_api::{HandleStatus, HandleVerification};
+
     use super::*;
 
     #[test]
-    fn contacts_are_shared_without_their_ids() {
+    fn contacts_are_shared_without_their_ids_or_handle_history() {
+        let resolution = HandleRecord {
+            handle: "alice".to_string(),
+            handle_hash: "aa".to_string(),
+            address: "txch1new".to_string(),
+            status: HandleStatus::Changed,
+            previous_address: Some("txch1old".to_string()),
+            last_sent_address: Some("txch1paid".to_string()),
+            changed_from: Some("txch1old".to_string()),
+            cached: true,
+            verification: HandleVerification::Verified,
+            verification_reason: None,
+            owner_launcher_id: "bb".to_string(),
+            resolved_launcher_id: "cc".to_string(),
+            expiration: 2_000_000_000,
+            slot_coin_id: "dd".to_string(),
+            slot_confirmation_height: 1,
+            resolved_coin_id: "ee".to_string(),
+            resolved_confirmation_height: 1,
+            updated_height: 1,
+            verified_height: 2,
+            verified_timestamp: 3,
+            last_verified_at: 4,
+        };
         let contact = ContactRecord {
             id: 7,
             name: "Alice".to_string(),
@@ -216,10 +245,21 @@ mod tests {
             kind: ContactKind::Handle,
             recipient: "@alice".to_string(),
             handle: Some("alice".to_string()),
-            address: None,
-            resolution: None,
+            address: Some("txch1new".to_string()),
+            resolution: Some(resolution),
             created_at: 1,
             updated_at: 2,
+        };
+
+        // Whether the handle changed hands is still shown, but not the addresses it was used
+        // with, which may come from another wallet.
+        let assert_shared = |contact: &serde_json::Value| {
+            assert!(contact.get("id").is_none());
+            assert_eq!(contact["resolution"]["status"], "changed");
+            assert_eq!(contact["resolution"]["address"], "txch1new");
+            assert!(contact["resolution"]["previous_address"].is_null());
+            assert!(contact["resolution"]["last_sent_address"].is_null());
+            assert!(contact["resolution"]["changed_from"].is_null());
         };
 
         let result = WalletGetContactsResult::from(GetContactsResponse {
@@ -229,7 +269,7 @@ mod tests {
         let json = serde_json::to_value(&result).unwrap();
         assert_eq!(json["total"], 1);
         assert_eq!(json["contacts"][0]["recipient"], "@alice");
-        assert!(json["contacts"][0].get("id").is_none());
+        assert_shared(&json["contacts"][0]);
 
         let result = WalletLookupAddressContactsResult::from(LookupAddressContactsResponse {
             results: vec![AddressContactsRecord {
@@ -240,7 +280,7 @@ mod tests {
         let json = serde_json::to_value(&result).unwrap();
         assert_eq!(json["results"][0]["address"], "txch1alice");
         assert_eq!(json["results"][0]["contacts"][0]["name"], "Alice");
-        assert!(json["results"][0]["contacts"][0].get("id").is_none());
+        assert_shared(&json["results"][0]["contacts"][0]);
     }
 
     #[test]

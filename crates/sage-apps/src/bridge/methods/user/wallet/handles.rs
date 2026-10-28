@@ -40,9 +40,10 @@ fn handle_error(method: &str, error: &Error) -> BridgeMethodHandleError {
     BridgeMethodHandleError::new(code, format!("{method} failed: {error}"))
 }
 
-/// Removes how a handle was used before from a record returned by a lookup, since that's
-/// shared by every wallet on the network, and needs `wallet.get_handles` to read.
-fn without_history(record: &mut HandleRecord) {
+/// Removes how a handle was used before from a record returned by a lookup or with a
+/// contact, since that's shared by every wallet on the network, and needs
+/// `wallet.get_handles` to read.
+pub(crate) fn without_history(record: &mut HandleRecord) {
     record.previous_address = None;
     record.last_sent_address = None;
     record.changed_from = None;
