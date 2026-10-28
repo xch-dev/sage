@@ -286,17 +286,19 @@ impl Sage {
 
     pub fn delete_wallet(&mut self, req: DeleteWallet) -> Result<DeleteWalletResponse> {
         // Only a BLS wallet's key belongs to it. Any other key under this fingerprint isn't
-        // part of the wallet, so it's kept.
-        if self
+        // part of the wallet.
+        let owns_key = self
             .wallet_entry(req.fingerprint)
-            .is_some_and(|wallet| wallet.kind.is_bls())
-        {
-            self.keychain.remove(req.fingerprint);
-        }
+            .is_some_and(|wallet| wallet.kind.is_bls());
 
         self.wallet_config
             .wallets
             .retain(|wallet| wallet.fingerprint != req.fingerprint);
+
+        // The key is kept if another wallet still uses it, or if the caller asked to keep it.
+        if req.delete_key && owns_key && !self.is_key_used(req.fingerprint) {
+            self.keychain.remove(req.fingerprint);
+        }
 
         if self.config.global.fingerprint == Some(req.fingerprint) {
             self.config.global.fingerprint = None;

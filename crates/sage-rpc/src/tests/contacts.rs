@@ -670,8 +670,11 @@ async fn test_contacts_and_handles_are_shared_per_network() -> Result<()> {
     assert_eq!(names(&contacts(&app).await?), ["Bob", "Carol"]);
 
     // Deleting a wallet leaves the address book for the other wallets.
-    app.delete_wallet(DeleteWallet { fingerprint: first })
-        .await?;
+    app.delete_wallet(DeleteWallet {
+        fingerprint: first,
+        delete_key: true,
+    })
+    .await?;
     app.login(Login {
         fingerprint: second,
     })

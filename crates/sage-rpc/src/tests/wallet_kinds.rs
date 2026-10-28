@@ -211,7 +211,11 @@ async fn manages_vault_and_watch_wallets() -> Result<()> {
         app.consume_until(|event| matches!(event, SyncEvent::Subscribed))
             .await;
 
-        app.delete_wallet(DeleteWallet { fingerprint }).await?;
+        app.delete_wallet(DeleteWallet {
+            fingerprint,
+            delete_key: true,
+        })
+        .await?;
     }
 
     assert!(app.get_wallets(GetWallets {}).await?.wallets.is_empty());
@@ -316,6 +320,68 @@ async fn imports_a_key_that_is_not_a_wallet_yet() -> Result<()> {
         .await
         .expect_err("the wallet already exists");
     assert!(error.to_string().contains("already exists"), "{error}");
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn deleting_a_wallet_can_keep_its_key() -> Result<()> {
+    let app = TestApp::new().await?;
+
+    let import = |seed: u8| ImportKey {
+        name: "Wallet".to_string(),
+        key: Mnemonic::from_entropy(&[seed; 16])
+            .expect("valid entropy")
+            .to_string(),
+        derivation_index: 0,
+        hardened: None,
+        unhardened: None,
+        save_secrets: true,
+        login: false,
+        emoji: None,
+    };
+
+    let kept = app.import_key(import(5)).await?.fingerprint;
+    let removed = app.import_key(import(6)).await?.fingerprint;
+
+    app.delete_wallet(DeleteWallet {
+        fingerprint: kept,
+        delete_key: false,
+    })
+    .await?;
+
+    // The key is no longer a wallet, but it's still in the keychain with its secrets.
+    assert!(
+        app.get_wallet(GetWallet {
+            fingerprint: Some(kept),
+        })
+        .await?
+        .wallet
+        .is_none()
+    );
+    let key = app
+        .get_key(GetKey { fingerprint: kept })
+        .await?
+        .key
+        .expect("key should be kept");
+    assert!(key.has_secrets);
+
+    // By default, the key is removed along with its wallet.
+    let response: Value = app
+        .call_rpc("/delete_wallet", json!({ "fingerprint": removed }))
+        .await?;
+    assert_eq!(response, json!({}));
+    assert!(
+        app.get_key(GetKey {
+            fingerprint: removed
+        })
+        .await?
+        .key
+        .is_none()
+    );
+
+    // The kept key can become a wallet again.
+    assert_eq!(app.import_key(import(5)).await?.fingerprint, kept);
 
     Ok(())
 }

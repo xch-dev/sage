@@ -1123,7 +1123,12 @@ export type DeleteWallet = {
 /**
  * Wallet fingerprint to delete
  */
-fingerprint: number }
+fingerprint: number; 
+/**
+ * Whether to also remove a BLS wallet's key from the keychain. It's kept regardless if
+ * another wallet still uses it
+ */
+delete_key?: boolean }
 /**
  * Response for wallet deletion
  */

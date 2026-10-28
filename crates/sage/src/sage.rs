@@ -632,6 +632,16 @@ impl Sage {
             .find(|wallet| wallet.fingerprint == fingerprint)
     }
 
+    /// Whether any wallet uses the key with this fingerprint. For now that's only the BLS
+    /// wallet with the same fingerprint, but other wallets will be able to use keys too, such as
+    /// vaults with signers.
+    pub fn is_key_used(&self, fingerprint: u32) -> bool {
+        self.wallet_config
+            .wallets
+            .iter()
+            .any(|wallet| wallet.kind.is_bls() && wallet.fingerprint == fingerprint)
+    }
+
     /// Determines how the wallet with this fingerprint is opened, for every kind of wallet.
     pub fn wallet_kind(&self, fingerprint: u32) -> Result<WalletKind> {
         let wallet = self
