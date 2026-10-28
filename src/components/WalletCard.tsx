@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { useSortable } from '@dnd-kit/sortable';
@@ -40,7 +41,7 @@ import {
   TrashIcon,
   WalletIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Spoiler } from 'spoiled';
@@ -73,6 +74,8 @@ export function WalletCard({
   const { promptIfEnabled } = useBiometric();
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteKey, setDeleteKey] = useState(true);
+  const deleteKeyId = useId();
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
@@ -85,7 +88,10 @@ export function WalletCard({
   const deleteSelf = async () => {
     if (await promptIfEnabled()) {
       await commands
-        .deleteWallet({ fingerprint: info.fingerprint })
+        .deleteWallet({
+          fingerprint: info.fingerprint,
+          delete_key: deleteKey,
+        })
         .then(() =>
           setWallets(
             wallets.filter((wallet) => wallet.fingerprint !== info.fingerprint),
@@ -333,6 +339,7 @@ export function WalletCard({
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
                   onClick={(e) => {
+                    setDeleteKey(true);
                     setIsDeleteOpen(true);
                     e.stopPropagation();
                   }}
@@ -397,6 +404,27 @@ export function WalletCard({
               </Trans>
             </DialogDescription>
           </DialogHeader>
+          {keyInfo && (
+            <div className='flex flex-col gap-1'>
+              <div className='flex items-center gap-2'>
+                <Switch
+                  id={deleteKeyId}
+                  checked={deleteKey}
+                  onCheckedChange={setDeleteKey}
+                />
+                <Label htmlFor={deleteKeyId}>
+                  <Trans>Also remove its key from the keychain</Trans>
+                </Label>
+              </div>
+              {!deleteKey && (
+                <p className='text-sm text-muted-foreground'>
+                  <Trans>
+                    The key will stay under Settings, in the Keys tab.
+                  </Trans>
+                </p>
+              )}
+            </div>
+          )}
           <DialogFooter>
             <Button variant='outline' onClick={() => setIsDeleteOpen(false)}>
               <Trans>Cancel</Trans>

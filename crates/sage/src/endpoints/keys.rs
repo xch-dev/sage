@@ -464,13 +464,10 @@ impl Sage {
         })
     }
 
-    /// Removes a key from the keychain. A BLS wallet's key can only be removed by deleting the
-    /// wallet, since the wallet can't be opened without it.
+    /// Removes a key from the keychain. A key that a wallet uses can only be removed along with
+    /// the wallet, since the wallet can't be used without it.
     pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {
-        if self
-            .wallet_entry(req.fingerprint)
-            .is_some_and(|wallet| matches!(wallet.kind, ConfigWalletKind::Bls))
-        {
+        if self.is_key_used(req.fingerprint) {
             return Err(Error::KeyInUse(req.fingerprint));
         }
 
