@@ -37,7 +37,7 @@ macro_rules! sage_commands {
             commands::logout,
             commands::resync,
             commands::generate_mnemonic,
-            commands::import_key,
+            commands::import_wallet,
             commands::delete_wallet,
             commands::delete_database,
             commands::rename_wallet,

@@ -4,7 +4,7 @@ use chia_wallet_sdk::{driver::P2Singleton, prelude::*, utils::Address};
 use sage::Error;
 use sage_api::{
     DeleteWallet, GetDerivations, GetKey, GetKeys, GetSyncStatus, GetWallet, GetWalletAddress,
-    GetWallets, ImportKey, IncreaseDerivationIndex, Login, RenameWallet, Resync, SetWalletEmoji,
+    GetWallets, ImportWallet, IncreaseDerivationIndex, Login, RenameWallet, Resync, SetWalletEmoji,
     WalletKind,
 };
 use sage_wallet::SyncEvent;
@@ -270,7 +270,7 @@ async fn imports_a_key_that_is_not_a_wallet_yet() -> Result<()> {
     // The keychain can hold keys without wallets, such as a public key added on its own.
     let fingerprint = app.sage.lock().await.keychain.add_public_key(&master_pk)?;
 
-    let import = |save_secrets| ImportKey {
+    let import = |save_secrets| ImportWallet {
         name: "Imported".to_string(),
         key: mnemonic.to_string(),
         derivation_index: 0,
@@ -297,7 +297,10 @@ async fn imports_a_key_that_is_not_a_wallet_yet() -> Result<()> {
         .expect("key is missing");
     assert!(!key.has_secrets);
 
-    assert_eq!(app.import_key(import(true)).await?.fingerprint, fingerprint);
+    assert_eq!(
+        app.import_wallet(import(true)).await?.fingerprint,
+        fingerprint
+    );
 
     let wallet = app
         .get_wallet(GetWallet {
@@ -316,7 +319,7 @@ async fn imports_a_key_that_is_not_a_wallet_yet() -> Result<()> {
     assert!(key.has_secrets, "the import should add the missing secrets");
 
     let error = app
-        .import_key(import(true))
+        .import_wallet(import(true))
         .await
         .expect_err("the wallet already exists");
     assert!(error.to_string().contains("already exists"), "{error}");
@@ -328,7 +331,7 @@ async fn imports_a_key_that_is_not_a_wallet_yet() -> Result<()> {
 async fn deleting_a_wallet_can_keep_its_key() -> Result<()> {
     let app = TestApp::new().await?;
 
-    let import = |seed: u8| ImportKey {
+    let import = |seed: u8| ImportWallet {
         name: "Wallet".to_string(),
         key: Mnemonic::from_entropy(&[seed; 16])
             .expect("valid entropy")
@@ -341,8 +344,8 @@ async fn deleting_a_wallet_can_keep_its_key() -> Result<()> {
         emoji: None,
     };
 
-    let kept = app.import_key(import(5)).await?.fingerprint;
-    let removed = app.import_key(import(6)).await?.fingerprint;
+    let kept = app.import_wallet(import(5)).await?.fingerprint;
+    let removed = app.import_wallet(import(6)).await?.fingerprint;
 
     app.delete_wallet(DeleteWallet {
         fingerprint: kept,
@@ -381,7 +384,7 @@ async fn deleting_a_wallet_can_keep_its_key() -> Result<()> {
     );
 
     // The kept key can become a wallet again.
-    assert_eq!(app.import_key(import(5)).await?.fingerprint, kept);
+    assert_eq!(app.import_wallet(import(5)).await?.fingerprint, kept);
 
     Ok(())
 }

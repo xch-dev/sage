@@ -137,21 +137,21 @@ pub struct GenerateMnemonicResponse {
     pub mnemonic: String,
 }
 
-/// Import a wallet key
+/// Import a BLS wallet from a key
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
         tag = "Authentication & Keys",
-        description = "Import a wallet using a mnemonic phrase or private key. Optionally saves secrets and automatically logs in."
+        description = "Import a BLS wallet using a mnemonic phrase, private key or public key. Its key is added to the keychain, or reused if it's already there. Optionally saves secrets and automatically logs in."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct ImportKey {
+pub struct ImportWallet {
     /// Display name for the wallet
     pub name: String,
-    /// Mnemonic phrase or private key
+    /// Mnemonic phrase, or hex encoded private or public key
     pub key: String,
     /// Starting derivation index
     #[serde(default)]
@@ -183,7 +183,7 @@ fn yes() -> bool {
     true
 }
 
-/// Response with imported key fingerprint
+/// Response with the imported wallet's fingerprint
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(tag = "Authentication & Keys")
@@ -191,8 +191,8 @@ fn yes() -> bool {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct ImportKeyResponse {
-    /// Fingerprint of the imported key
+pub struct ImportWalletResponse {
+    /// Fingerprint of the imported wallet, which is also its key's fingerprint
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
     pub fingerprint: u32,
 }

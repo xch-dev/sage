@@ -18,9 +18,10 @@ use sage_api::{
     DeleteDatabase, DeleteDatabaseResponse, DeleteWallet, DeleteWalletResponse, GenerateMnemonic,
     GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
     GetSecretKeyResponse, GetWallet, GetWalletAddress, GetWalletAddressResponse, GetWalletResponse,
-    GetWallets, GetWalletsResponse, ImportKey, ImportKeyResponse, KeyInfo, Login, LoginResponse,
-    Logout, LogoutResponse, RenameWallet, RenameWalletResponse, Resync, ResyncResponse,
-    SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse, WalletInfo, WalletKind as ApiWalletKind,
+    GetWallets, GetWalletsResponse, ImportWallet, ImportWalletResponse, KeyInfo, Login,
+    LoginResponse, Logout, LogoutResponse, RenameWallet, RenameWalletResponse, Resync,
+    ResyncResponse, SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse, WalletInfo,
+    WalletKind as ApiWalletKind,
 };
 use sage_config::{Wallet, WalletKind};
 use sage_database::{Database, Derivation};
@@ -123,7 +124,7 @@ impl Sage {
         })
     }
 
-    pub async fn import_key(&mut self, req: ImportKey) -> Result<ImportKeyResponse> {
+    pub async fn import_wallet(&mut self, req: ImportWallet) -> Result<ImportWalletResponse> {
         let mut key_hex = req.key.as_str();
 
         if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
@@ -267,7 +268,7 @@ impl Sage {
             self.switch_wallet().await?;
         }
 
-        Ok(ImportKeyResponse { fingerprint })
+        Ok(ImportWalletResponse { fingerprint })
     }
 
     pub fn delete_database(&mut self, req: DeleteDatabase) -> Result<DeleteDatabaseResponse> {

@@ -83,7 +83,7 @@ export default function ImportWallet() {
     setPending(true);
 
     commands
-      .importKey({
+      .importWallet({
         name: values.name,
         key: cleanKey(values.key),
         derivation_index: parseInt(values.addresses),

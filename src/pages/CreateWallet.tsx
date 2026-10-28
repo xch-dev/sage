@@ -52,7 +52,7 @@ export default function CreateWallet() {
 
   const submit = (values: z.infer<typeof formSchema>) => {
     commands
-      .importKey({
+      .importWallet({
         name: values.walletName,
         key: values.mnemonic,
         save_secrets: values.saveMnemonic,

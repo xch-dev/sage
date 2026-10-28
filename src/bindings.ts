@@ -26,8 +26,8 @@ async resync(req: Resync) : Promise<ResyncResponse> {
 async generateMnemonic(req: GenerateMnemonic) : Promise<GenerateMnemonicResponse> {
     return await TAURI_INVOKE("generate_mnemonic", { req });
 },
-async importKey(req: ImportKey) : Promise<ImportKeyResponse> {
-    return await TAURI_INVOKE("import_key", { req });
+async importWallet(req: ImportWallet) : Promise<ImportWalletResponse> {
+    return await TAURI_INVOKE("import_wallet", { req });
 },
 async deleteWallet(req: DeleteWallet) : Promise<DeleteWalletResponse> {
     return await TAURI_INVOKE("delete_wallet", { req });
@@ -2459,15 +2459,31 @@ added: ContactRecord[];
  */
 skipped: SkippedContact[] }
 /**
- * Import a wallet key
+ * Import an offer
  */
-export type ImportKey = { 
+export type ImportOffer = { 
+/**
+ * Offer string to import
+ */
+offer: string }
+/**
+ * Response with imported offer ID
+ */
+export type ImportOfferResponse = { 
+/**
+ * ID of the imported offer
+ */
+offer_id: string }
+/**
+ * Import a BLS wallet from a key
+ */
+export type ImportWallet = { 
 /**
  * Display name for the wallet
  */
 name: string; 
 /**
- * Mnemonic phrase or private key
+ * Mnemonic phrase, or hex encoded private or public key
  */
 key: string; 
 /**
@@ -2495,29 +2511,13 @@ login?: boolean;
  */
 emoji?: string | null }
 /**
- * Response with imported key fingerprint
+ * Response with the imported wallet's fingerprint
  */
-export type ImportKeyResponse = { 
+export type ImportWalletResponse = { 
 /**
- * Fingerprint of the imported key
+ * Fingerprint of the imported wallet, which is also its key's fingerprint
  */
 fingerprint: number }
-/**
- * Import an offer
- */
-export type ImportOffer = { 
-/**
- * Offer string to import
- */
-offer: string }
-/**
- * Response with imported offer ID
- */
-export type ImportOfferResponse = { 
-/**
- * ID of the imported offer
- */
-offer_id: string }
 /**
  * Increase the derivation index to generate more addresses
  */

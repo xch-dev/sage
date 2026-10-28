@@ -3,7 +3,7 @@
   "logout": true,
   "resync": true,
   "generate_mnemonic": false,
-  "import_key": true,
+  "import_wallet": true,
   "delete_wallet": false,
   "delete_database": false,
   "rename_wallet": false,

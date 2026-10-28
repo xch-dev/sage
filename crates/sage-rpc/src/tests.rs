@@ -36,7 +36,7 @@ use sage_api::{
     Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CreateDid, CreateTransaction, GetDids,
     GetHandle, GetHandles, GetNft, GetNftMetadataUpdater, GetOffers, GetPeers, GetSyncStatus,
     GetVersion, GetWallet, HandleFilterMode, HandleStatus, HandleVerification, Id as ApiId,
-    ImportKey, ImportOffer, Login, LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind,
+    ImportOffer, ImportWallet, Login, LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind,
     NftUriKind, OfferAmount, OfferAsset, ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction,
     ViewOffer,
 };
@@ -208,7 +208,7 @@ impl TestApp {
         }
 
         let fingerprint = self
-            .import_key(ImportKey {
+            .import_wallet(ImportWallet {
                 name: "Alice".to_string(),
                 key: mnemonic.to_string(),
                 derivation_index: 0,
