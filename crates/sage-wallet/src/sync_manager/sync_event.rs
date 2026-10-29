@@ -1,5 +1,5 @@
 use chia_wallet_sdk::prelude::*;
-use sage_database::OfferStatus;
+use sage_database::{OfferStatus, VaultState};
 use std::net::IpAddr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,6 +23,12 @@ pub enum SyncEvent {
         status: OfferStatus,
     },
     PuzzleBatchSynced,
+    /// A tracked vault's state changed, for example because recovery was started, cancelled or
+    /// finished, or the vault was melted.
+    VaultStateChanged {
+        launcher_id: Bytes32,
+        state: VaultState,
+    },
     CatInfo,
     DidInfo,
     NftData,

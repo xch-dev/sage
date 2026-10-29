@@ -1,6 +1,8 @@
 use std::{collections::HashSet, sync::Arc, time::Duration};
 
-use chia_wallet_sdk::{chia::protocol::CoinStateFilters, prelude::*};
+use chia_wallet_sdk::{
+    chia::protocol::CoinStateFilters, prelude::*, puzzles::SINGLETON_LAUNCHER_HASH,
+};
 use sage_database::DatabaseTx;
 use tokio::{
     sync::{Mutex, mpsc},
@@ -8,7 +10,10 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use crate::{SyncCommand, Wallet, WalletError, WalletKind, WalletPeer};
+use crate::{
+    SyncCommand, VaultStateChanges, Wallet, WalletError, WalletKind, WalletPeer,
+    insert_vault_addresses,
+};
 
 use super::{PeerState, SyncEvent};
 
@@ -65,6 +70,23 @@ pub async fn sync_wallet(
     )
     .await?;
 
+    // Vaults are followed from their launcher, which was usually created and spent long before the
+    // last peak, so launchers that haven't been synced yet are synced from the start of the chain.
+    // Once a launcher is synced, its vault's coins are subscribed to by coin ID like other coins.
+    let launcher_ids = wallet.db.unsynced_vault_launcher_ids().await?;
+
+    sync_coin_ids(
+        &wallet,
+        &peer,
+        None,
+        wallet.genesis_challenge,
+        launcher_ids,
+        sync_sender.clone(),
+        command_sender.clone(),
+        false,
+    )
+    .await?;
+
     for batch in p2_puzzle_hashes.chunks(1000) {
         sync_puzzle_hashes(
             &wallet,
@@ -94,21 +116,30 @@ pub async fn sync_wallet(
     loop {
         let mut tx = wallet.db.tx().await?;
         let derivations = auto_insert_unhardened_derivations(&wallet, &mut tx).await?;
+        let vault_addresses = insert_vault_addresses(&mut tx).await?;
         let next_index = tx.derivation_index(false).await?;
         tx.commit().await?;
 
-        if derivations.is_empty() {
+        if derivations.is_empty() && vault_addresses.is_empty() {
             break;
         }
 
-        info!("Inserted {} derivations", derivations.len());
+        if !derivations.is_empty() {
+            info!("Inserted {} derivations", derivations.len());
 
-        sync_sender
-            .send(SyncEvent::DerivationIndex { next_index })
-            .await
-            .ok();
+            sync_sender
+                .send(SyncEvent::DerivationIndex { next_index })
+                .await
+                .ok();
+        }
 
-        for batch in derivations.chunks(1000) {
+        if !vault_addresses.is_empty() {
+            info!("Inserted {} vault addresses", vault_addresses.len());
+        }
+
+        let puzzle_hashes = [derivations, vault_addresses].concat();
+
+        for batch in puzzle_hashes.chunks(1000) {
             sync_puzzle_hashes(
                 &wallet,
                 &peer,
@@ -251,8 +282,11 @@ pub async fn incremental_sync(
 ) -> Result<(), WalletError> {
     let mut tx = wallet.db.tx().await?;
     let mut confirmed_transactions = HashSet::new();
+    let mut vault_states = VaultStateChanges::default();
 
     for &coin_state in &coin_states {
+        let coin_id = coin_state.coin.coin_id();
+
         if let Some(height) = coin_state.created_height {
             tx.insert_height(height).await?;
         }
@@ -261,7 +295,18 @@ pub async fn incremental_sync(
             tx.insert_height(height).await?;
         }
 
+        // A spend of a vault coin, or a reorg which undoes one, can change the vault's state.
+        vault_states.record_coin(&mut tx, coin_id).await?;
+
         tx.insert_coin(coin_state).await?;
+
+        // A tracked vault's launcher belongs to the vault, so that the puzzle queue finds the
+        // vault's eve coin by syncing the launcher's children.
+        if coin_state.coin.puzzle_hash == SINGLETON_LAUNCHER_HASH.into()
+            && tx.is_vault(coin_id).await?
+        {
+            tx.update_coin(coin_id, coin_id, Bytes32::default()).await?;
+        }
 
         if tx
             .is_custody_p2_puzzle_hash(coin_state.coin.puzzle_hash)
@@ -280,6 +325,9 @@ pub async fn incremental_sync(
             // rather than letting it look unspent until its own coin state arrives. Other inputs
             // of our mempool items can't be assumed spent, since a different spend bundle may
             // have created this coin.
+            vault_states
+                .record_coin(&mut tx, coin_state.coin.parent_coin_info)
+                .await?;
             tx.mark_coin_spent(coin_state.coin.parent_coin_info, height)
                 .await?;
 
@@ -302,12 +350,15 @@ pub async fn incremental_sync(
     }
 
     let mut new_derivations = Vec::new();
+    let mut new_vault_addresses = Vec::new();
 
     if derive_automatically {
         new_derivations = auto_insert_unhardened_derivations(wallet, &mut tx).await?;
+        new_vault_addresses = insert_vault_addresses(&mut tx).await?;
     }
 
     let next_index = tx.derivation_index(false).await?;
+    let vault_events = vault_states.events(&mut tx).await?;
 
     tx.commit().await?;
 
@@ -315,12 +366,20 @@ pub async fn incremental_sync(
         sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
     }
 
+    for event in vault_events {
+        sync_sender.send(event).await.ok();
+    }
+
     if !new_derivations.is_empty() {
         sync_sender
             .send(SyncEvent::DerivationIndex { next_index })
             .await
             .ok();
+    }
 
+    new_derivations.extend(new_vault_addresses);
+
+    if !new_derivations.is_empty() {
         // The sync manager calls this inline while handling a CoinStateUpdate, and it is the
         // only reader of `command_sender`. Awaiting a send on a full channel here would wait for
         // a reader that is blocked on this very send, freezing sync (and every RPC that sends a
