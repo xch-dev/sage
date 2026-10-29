@@ -129,17 +129,23 @@ impl PuzzleQueue {
                             .await?;
 
                         let Some(kind) = item.kind.filter(|_| !is_custody_p2_puzzle_hash) else {
+                            // A child at one of our own puzzle hashes isn't in the database yet,
+                            // but syncing that puzzle hash delivers it, so it's left for then.
+                            if !is_root {
+                                continue;
+                            }
+
                             warn!(
                                 "Retroactively inserting XCH coin that should have already been synced: {coin_id}"
                             );
 
-                            self.db
-                                .update_coin(
-                                    coin_id,
-                                    Bytes32::default(),
-                                    item.coin_state.coin.puzzle_hash,
-                                )
-                                .await?;
+                            // This goes through the open transaction, which holds the write lock.
+                            tx.update_coin(
+                                coin_id,
+                                Bytes32::default(),
+                                item.coin_state.coin.puzzle_hash,
+                            )
+                            .await?;
                             send_events = true;
                             continue;
                         };
