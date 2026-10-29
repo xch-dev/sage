@@ -172,7 +172,7 @@ impl Sage {
         let fingerprint = master_pk.get_fingerprint();
 
         if let Some(existing) = self.wallet_entry(fingerprint) {
-            return Err(if existing.kind.is_bls() {
+            return Err(if matches!(existing.kind, WalletKind::Bls) {
                 Error::WalletExists(fingerprint)
             } else {
                 Error::FingerprintCollision(fingerprint)
@@ -290,7 +290,7 @@ impl Sage {
         // part of the wallet.
         let owns_key = self
             .wallet_entry(req.fingerprint)
-            .is_some_and(|wallet| wallet.kind.is_bls());
+            .is_some_and(|wallet| matches!(wallet.kind, WalletKind::Bls));
 
         self.wallet_config
             .wallets

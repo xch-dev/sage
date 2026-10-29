@@ -636,10 +636,9 @@ impl Sage {
     /// wallet with the same fingerprint, but other wallets will be able to use keys too, such as
     /// vaults with signers.
     pub fn is_key_used(&self, fingerprint: u32) -> bool {
-        self.wallet_config
-            .wallets
-            .iter()
-            .any(|wallet| wallet.kind.is_bls() && wallet.fingerprint == fingerprint)
+        self.wallet_config.wallets.iter().any(|wallet| {
+            matches!(wallet.kind, ConfigWalletKind::Bls) && wallet.fingerprint == fingerprint
+        })
     }
 
     /// Determines how the wallet with this fingerprint is opened, for every kind of wallet.

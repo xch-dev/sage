@@ -9,7 +9,7 @@ use chia_wallet_sdk::{
 };
 use sage_database::{DatabaseTx, Derivation};
 
-use crate::WalletError;
+use crate::{WalletError, WalletKind};
 
 use super::Wallet;
 
@@ -55,7 +55,7 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<Bytes32>, WalletError> {
-        if !self.kind.is_bls() {
+        if !matches!(self.kind, WalletKind::Bls { .. }) {
             return Err(WalletError::DerivationsNotSupported);
         }
 

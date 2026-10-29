@@ -44,7 +44,7 @@ pub struct Wallet {
     /// What the wallet is made of. Its fields are stored alongside the wallet's own, under a
     /// `type` key, so `type` and the fields of each kind can't be used by the wallet. They're
     /// omitted for BLS wallets, which every wallet was before other kinds existed.
-    #[serde(flatten, skip_serializing_if = "WalletKind::is_bls")]
+    #[serde(flatten, skip_serializing_if = "is_default")]
     pub kind: WalletKind,
 }
 
@@ -71,12 +71,6 @@ pub enum WalletKind {
         #[specta(type = Vec<String>)]
         p2_puzzle_hashes: Vec<Bytes32>,
     },
-}
-
-impl WalletKind {
-    pub fn is_bls(&self) -> bool {
-        matches!(self, Self::Bls)
-    }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -126,6 +120,11 @@ impl Wallet {
     pub fn delta_sync(&self, defaults: &WalletDefaults) -> bool {
         self.delta_sync.unwrap_or(defaults.delta_sync)
     }
+}
+
+// BLS wallets are the default kind, so their `type` is left out.
+fn is_default<T: Default + PartialEq>(value: &T) -> bool {
+    *value == T::default()
 }
 
 impl Default for Wallet {

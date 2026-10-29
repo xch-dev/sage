@@ -8,7 +8,7 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use crate::{SyncCommand, Wallet, WalletError, WalletPeer};
+use crate::{SyncCommand, Wallet, WalletError, WalletKind, WalletPeer};
 
 use super::{PeerState, SyncEvent};
 
@@ -62,7 +62,7 @@ pub async fn sync_wallet(
     }
 
     // Only BLS wallets derive addresses. Other kinds sync just the puzzle hashes stored for them.
-    while wallet.kind.is_bls() {
+    while wallet.kind.intermediate_pk().is_some() {
         let mut tx = wallet.db.tx().await?;
         let derivations = auto_insert_unhardened_derivations(&wallet, &mut tx).await?;
         let next_index = tx.derivation_index(false).await?;
@@ -270,7 +270,7 @@ pub async fn incremental_sync(
 
     let mut new_derivations = Vec::new();
 
-    if derive_automatically && wallet.kind.is_bls() {
+    if derive_automatically && matches!(wallet.kind, WalletKind::Bls { .. }) {
         new_derivations = auto_insert_unhardened_derivations(wallet, &mut tx).await?;
     }
 
@@ -378,8 +378,6 @@ mod tests {
     use sage_database::{Database, SharedDatabase};
     use sqlx::{SqlitePool, migrate};
     use tokio::time::timeout;
-
-    use crate::WalletKind;
 
     use super::*;
 

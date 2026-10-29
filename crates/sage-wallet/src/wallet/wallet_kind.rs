@@ -13,10 +13,6 @@ pub enum WalletKind {
 }
 
 impl WalletKind {
-    pub fn is_bls(&self) -> bool {
-        matches!(self, Self::Bls { .. })
-    }
-
     /// The unhardened intermediate key, if this wallet derives its addresses.
     pub fn intermediate_pk(&self) -> Option<PublicKey> {
         match self {

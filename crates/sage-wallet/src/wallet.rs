@@ -78,7 +78,7 @@ impl Wallet {
     /// Only BLS wallets know the puzzle reveals of their coins. Vault spends aren't supported
     /// yet, and watch wallets can never spend.
     fn ensure_spendable(&self) -> Result<(), WalletError> {
-        if self.kind.is_bls() {
+        if matches!(self.kind, WalletKind::Bls { .. }) {
             Ok(())
         } else {
             Err(WalletError::WalletKindNotSupported)
