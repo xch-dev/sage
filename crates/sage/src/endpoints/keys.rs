@@ -31,6 +31,12 @@ use crate::{Error, Result, Sage};
 
 impl Sage {
     pub async fn login(&mut self, req: Login) -> Result<LoginResponse> {
+        // The keychain can hold keys that aren't wallets, so a fingerprint isn't necessarily one.
+        // It's checked before it's saved, since a saved fingerprint is opened on every start.
+        if self.wallet_entry(req.fingerprint).is_none() {
+            return Err(Error::UnknownFingerprint);
+        }
+
         self.config.global.fingerprint = Some(req.fingerprint);
         self.save_config()?;
         self.switch_wallet().await?;

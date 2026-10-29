@@ -1,7 +1,9 @@
 use anyhow::Result;
 use bip39::Mnemonic;
 use chia_wallet_sdk::prelude::*;
-use sage_api::{DeleteWallet, GetKey, GetKeys, GetWallet, GetWallets, ImportWallet, WalletKind};
+use sage_api::{
+    DeleteWallet, GetKey, GetKeys, GetWallet, GetWallets, ImportWallet, Login, WalletKind,
+};
 use serde_json::{Value, json};
 
 use super::TestApp;
@@ -194,6 +196,25 @@ async fn reimporting_restores_a_wallet_whose_key_is_missing() -> Result<()> {
             .expect("key is missing")
             .has_secrets
     );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn logging_into_a_key_that_is_not_a_wallet_fails() -> Result<()> {
+    let app = TestApp::new().await?;
+
+    let master_pk = SecretKey::from_seed(&[8; 32]).public_key();
+    let fingerprint = app.sage.lock().await.keychain.add_public_key(&master_pk)?;
+
+    let error = app
+        .login(Login { fingerprint })
+        .await
+        .expect_err("a key that isn't a wallet can't be logged into");
+    assert!(error.to_string().contains("Unknown fingerprint"), "{error}");
+
+    // Nothing is saved, so the next start doesn't try to open it.
+    assert_eq!(app.sage.lock().await.config.global.fingerprint, None);
 
     Ok(())
 }
