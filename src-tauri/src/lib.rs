@@ -567,6 +567,45 @@ mod tests {
         assert_eq!(load_data_store_identifier(dir.path()).unwrap(), identifier);
     }
 
+    /// The main webview can only call commands that `main-host.toml` allows, and a command
+    /// it isn't allowed to call fails without an error Sage can show. So every command has
+    /// to be listed there, and listed names have to still exist.
+    #[test]
+    fn main_host_allows_every_command() {
+        let commands: Vec<&str> = include_str!("lib.rs")
+            .lines()
+            .filter_map(|line| line.trim().strip_prefix("commands::"))
+            .filter_map(|line| line.strip_suffix(','))
+            .collect();
+
+        let permissions = include_str!("../permissions/main-host.toml");
+        let allowed: Vec<&str> = permissions
+            .split_once("commands.allow = [")
+            .and_then(|(_, rest)| rest.split_once(']'))
+            .expect("main-host.toml allows commands")
+            .0
+            .split(',')
+            .map(|name| name.trim().trim_matches('"'))
+            .filter(|name| !name.is_empty())
+            .collect();
+
+        assert!(!commands.is_empty());
+
+        for command in &commands {
+            assert!(
+                allowed.contains(command),
+                "`{command}` is missing from main-host.toml"
+            );
+        }
+
+        for name in &allowed {
+            assert!(
+                name.starts_with("apps_") || commands.contains(name),
+                "`{name}` in main-host.toml isn't a command"
+            );
+        }
+    }
+
     #[test]
     fn tauri_identifier_matches_default_sage_root() {
         let config: serde_json::Value =
