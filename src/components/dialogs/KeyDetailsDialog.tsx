@@ -2,7 +2,7 @@ import { commands, KeyInfo, SecretKeyInfo, WalletInfo } from '@/bindings';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { Trans } from '@lingui/react/macro';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Spoiler } from 'spoiled';
 import { useTheme } from 'theme-o-rama';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -24,6 +24,12 @@ export function KeyDetailsDialog({
   const { currentTheme } = useTheme();
   const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
 
+  // A successful prompt changes `promptIfEnabled`, which mustn't fetch the secrets again.
+  const promptRef = useRef(promptIfEnabled);
+  useEffect(() => {
+    promptRef.current = promptIfEnabled;
+  }, [promptIfEnabled]);
+
   const fingerprint = keyInfo?.fingerprint ?? null;
   const hasSecrets = keyInfo?.has_secrets ?? false;
 
@@ -35,7 +41,7 @@ export function KeyDetailsDialog({
     let cancelled = false;
 
     (async () => {
-      if (!(await promptIfEnabled())) return;
+      if (!(await promptRef.current())) return;
 
       commands
         .getSecretKey({ fingerprint })
@@ -48,7 +54,7 @@ export function KeyDetailsDialog({
     return () => {
       cancelled = true;
     };
-  }, [fingerprint, hasSecrets, promptIfEnabled, addError]);
+  }, [fingerprint, hasSecrets, addError]);
 
   const spoilerTheme = currentTheme?.mostLike ?? 'light';
 
