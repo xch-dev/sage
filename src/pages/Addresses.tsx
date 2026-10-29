@@ -2,6 +2,7 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { PasteInput } from '@/components/PasteInput';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { WatchedAddressesCard } from '@/components/WatchedAddressesCard';
 import { SignMessageDialog } from '@/components/dialogs/SignMessageDialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ContactsView } from '@/components/contacts/ContactsView';
 import { ResolvedHandlesView } from '@/components/contacts/ResolvedHandlesView';
 import { CustomError } from '@/contexts/ErrorContext';
+import { useWallet } from '@/contexts/WalletContext';
 import { useDerivationState } from '@/hooks/useDerivationState';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
@@ -45,6 +47,7 @@ export default function Addresses() {
       : 'receive';
 
   const { addError } = useErrors();
+  const { isWatchOnly } = useWallet();
   const walletState = useWalletState();
   const ticker = walletState.sync.unit.ticker;
   const [hardened, setHardened] = useState(false);
@@ -102,7 +105,7 @@ export default function Addresses() {
   return (
     <>
       <Header title={title} alwaysShowChildren>
-        {tab === 'receive' && (
+        {tab === 'receive' && !isWatchOnly && (
           <Button variant='outline' onClick={() => openSignMessage('')}>
             <SignatureIcon className='h-4 w-4 mr-2' aria-hidden='true' />
             <Trans>Sign Message</Trans>
@@ -134,13 +137,24 @@ export default function Addresses() {
             <Card>
               <CardHeader>
                 <CardTitle className='text-lg font-medium'>
-                  <Trans>Fresh Address</Trans>
+                  {isWatchOnly ? (
+                    <Trans>Receive Address</Trans>
+                  ) : (
+                    <Trans>Fresh Address</Trans>
+                  )}
                 </CardTitle>
                 <CardDescription>
-                  <Trans>
-                    The wallet generates a new address after each transaction.
-                    Old ones stay valid.
-                  </Trans>
+                  {isWatchOnly ? (
+                    <Trans>
+                      The first address this wallet watches. Funds sent here
+                      can&apos;t be spent from Sage.
+                    </Trans>
+                  ) : (
+                    <Trans>
+                      The wallet generates a new address after each transaction.
+                      Old ones stay valid.
+                    </Trans>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -209,34 +223,38 @@ export default function Addresses() {
               </CardContent>
             </Card>
 
-            <Card className='max-w-full'>
-              <CardHeader>
-                <CardTitle className='text-lg font-medium'>
-                  <Trans>All Addresses</Trans>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className='flex items-center gap-2 mb-4'>
-                  <label htmlFor='hardened'>
-                    <Trans>Show hardened addresses</Trans>
-                  </label>
-                  <Switch
-                    id='hardened'
-                    checked={hardened}
-                    onCheckedChange={(value) => setHardened(value)}
-                  />
-                </div>
+            {isWatchOnly ? (
+              <WatchedAddressesCard />
+            ) : (
+              <Card className='max-w-full'>
+                <CardHeader>
+                  <CardTitle className='text-lg font-medium'>
+                    <Trans>All Addresses</Trans>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className='flex items-center gap-2 mb-4'>
+                    <label htmlFor='hardened'>
+                      <Trans>Show hardened addresses</Trans>
+                    </label>
+                    <Switch
+                      id='hardened'
+                      checked={hardened}
+                      onCheckedChange={(value) => setHardened(value)}
+                    />
+                  </div>
 
-                <AddressList
-                  derivations={derivations}
-                  currentPage={currentPage}
-                  totalPages={pageCount}
-                  setCurrentPage={setCurrentPage}
-                  totalDerivations={totalDerivations}
-                  onSignMessage={openSignMessage}
-                />
-              </CardContent>
-            </Card>
+                  <AddressList
+                    derivations={derivations}
+                    currentPage={currentPage}
+                    totalPages={pageCount}
+                    setCurrentPage={setCurrentPage}
+                    totalDerivations={totalDerivations}
+                    onSignMessage={openSignMessage}
+                  />
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value='contacts' className='mt-4'>

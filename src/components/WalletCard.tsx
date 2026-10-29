@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import { watchedAddresses } from '@/lib/walletKind';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { t } from '@lingui/core/macro';
@@ -211,6 +212,7 @@ export function WalletCard({
   }
 
   const networkId = info.network_id;
+  const watched = watchedAddresses(info);
 
   return (
     <>
@@ -356,7 +358,14 @@ export function WalletCard({
         <CardContent className='p-0 px-5 pb-5'>
           <div className='flex items-center justify-between'>
             <span className='text-muted-foreground'>{info.fingerprint}</span>
-            {keyInfo === undefined ? null : keyInfo?.has_secrets ? (
+            {watched ? (
+              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
+                <EyeIcon className='h-4 w-4' />
+                <span>
+                  <Trans>Watch</Trans>
+                </span>
+              </div>
+            ) : keyInfo === undefined ? null : keyInfo?.has_secrets ? (
               <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
                 <FlameIcon className='h-4 w-4' />
                 <span>
@@ -397,11 +406,19 @@ export function WalletCard({
               <Trans>Permanently Delete</Trans>
             </DialogTitle>
             <DialogDescription>
-              <Trans>
-                Are you sure you want to delete this wallet? This cannot be
-                undone, and all funds will be lost unless you have saved your
-                mnemonic phrase.
-              </Trans>
+              {watched ? (
+                <Trans>
+                  Are you sure you want to delete this wallet? Its addresses and
+                  their funds aren&apos;t affected, and you can watch them again
+                  later.
+                </Trans>
+              ) : (
+                <Trans>
+                  Are you sure you want to delete this wallet? This cannot be
+                  undone, and all funds will be lost unless you have saved your
+                  mnemonic phrase.
+                </Trans>
+              )}
             </DialogDescription>
           </DialogHeader>
           {keyInfo && (
@@ -514,6 +531,21 @@ export function WalletCard({
                 <p className='break-all text-sm text-muted-foreground'>
                   {keyInfo.public_key}
                 </p>
+              </div>
+            )}
+            {watched && (
+              <div>
+                <h3 className='font-semibold'>
+                  <Trans>Watched Addresses</Trans>
+                </h3>
+                {watched.map((address) => (
+                  <p
+                    key={address}
+                    className='break-all text-sm text-muted-foreground'
+                  >
+                    {address}
+                  </p>
+                ))}
               </div>
             )}
             {secrets && (

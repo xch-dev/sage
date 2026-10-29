@@ -1367,6 +1367,8 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   const [key, setKey] = useState<KeyInfo | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  // Watch wallets only know their addresses, so they have no change or derivations.
+  const isWatch = wallet?.type === 'watch';
   const [localName, setLocalName] = useState<string>('');
   const [localChangeAddress, setLocalChangeAddress] = useState('');
   const [networks, setNetworks] = useState<Network[]>([]);
@@ -1623,43 +1625,47 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
           )}
         </SettingItem>
 
-        <SettingItem
-          label={t`Change Address`}
-          description={t`Set a specific address to send change to`}
-          control={<div />}
-        >
-          <div className='mt-3'>
-            <PasteInput
-              placeholder={t`Enter change address`}
-              value={localChangeAddress}
-              onChange={(event) => setLocalChangeAddress(event.target.value)}
-              onBlur={() => {
-                saveChangeAddress(localChangeAddress);
-              }}
-              onEndIconClick={handleScanOrPasteChangeAddress}
-              onScanImage={handleScanImageChangeAddress}
-            />
-          </div>
-        </SettingItem>
+        {!isWatch && (
+          <SettingItem
+            label={t`Change Address`}
+            description={t`Set a specific address to send change to`}
+            control={<div />}
+          >
+            <div className='mt-3'>
+              <PasteInput
+                placeholder={t`Enter change address`}
+                value={localChangeAddress}
+                onChange={(event) => setLocalChangeAddress(event.target.value)}
+                onBlur={() => {
+                  saveChangeAddress(localChangeAddress);
+                }}
+                onEndIconClick={handleScanOrPasteChangeAddress}
+                onScanImage={handleScanImageChangeAddress}
+              />
+            </div>
+          </SettingItem>
+        )}
       </SettingsSection>
 
       <SettingsSection title={t`Syncing`}>
-        <SettingItem
-          label={t`Derivation Index`}
-          description={t`The number of addresses managed by this wallet`}
-          control={
-            <div className='flex items-center gap-3'>
-              <span className='text-md'>{derivationIndex}</span>
-              <Button
-                variant='secondary'
-                size='sm'
-                onClick={() => setDeriveOpen(true)}
-              >
-                <Trans>Increase</Trans>
-              </Button>
-            </div>
-          }
-        />
+        {!isWatch && (
+          <SettingItem
+            label={t`Derivation Index`}
+            description={t`The number of addresses managed by this wallet`}
+            control={
+              <div className='flex items-center gap-3'>
+                <span className='text-md'>{derivationIndex}</span>
+                <Button
+                  variant='secondary'
+                  size='sm'
+                  onClick={() => setDeriveOpen(true)}
+                >
+                  <Trans>Increase</Trans>
+                </Button>
+              </div>
+            }
+          />
+        )}
 
         <SettingItem
           label={t`Resync`}
