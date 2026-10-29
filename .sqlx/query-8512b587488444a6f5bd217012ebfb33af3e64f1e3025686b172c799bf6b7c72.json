@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4) AND is_synced = FALSE",
+  "query": "SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4, 5)",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "9f901a44a2edfc93906b5483bbd5c486e618af5eb1d93776e2d1b0c5124fab90"
+  "hash": "8512b587488444a6f5bd217012ebfb33af3e64f1e3025686b172c799bf6b7c72"
 }
