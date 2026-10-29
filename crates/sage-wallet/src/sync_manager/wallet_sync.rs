@@ -522,6 +522,10 @@ mod tests {
             wallet.spend(&mut ctx, Vec::new(), &[]).await,
             Err(WalletError::WatchOnly)
         ));
+        assert!(matches!(
+            wallet.finalize_clawback(Vec::new(), 0).await,
+            Err(WalletError::WatchOnly)
+        ));
 
         Ok(())
     }

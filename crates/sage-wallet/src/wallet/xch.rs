@@ -128,6 +128,9 @@ impl Wallet {
         coin_ids: Vec<Bytes32>,
         fee: u64,
     ) -> Result<Vec<CoinSpend>, WalletError> {
+        // Without a fee, this doesn't go through the usual spend path, so it's checked here.
+        self.ensure_spendable()?;
+
         let coin_ids = dedup_coin_ids(coin_ids);
         let mut ctx = SpendContext::new();
 
