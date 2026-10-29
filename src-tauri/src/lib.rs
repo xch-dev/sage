@@ -567,40 +567,54 @@ mod tests {
         assert_eq!(load_data_store_identifier(dir.path()).unwrap(), identifier);
     }
 
-    /// The main webview can only call commands that `main-host.toml` allows, and a command
-    /// it isn't allowed to call fails without an error Sage can show. So every command has
-    /// to be listed there, and listed names have to still exist.
+    /// The commands a permission file allows.
+    fn allowed_commands(permissions: &str) -> Vec<String> {
+        let permissions: toml::Value = toml::from_str(permissions).unwrap();
+
+        permissions["permission"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|permission| permission["commands"]["allow"].as_array().unwrap())
+            .map(|command| command.as_str().unwrap().to_string())
+            .collect()
+    }
+
+    /// Webviews can only call commands that a permission allows, and a command they aren't
+    /// allowed to call fails without an error Sage can show. So every registered command has to
+    /// be allowed for the main webview, or for app webviews in `bridge.toml`, and the names the
+    /// main webview is allowed to call have to still exist.
     #[test]
-    fn main_host_allows_every_command() {
+    fn permissions_allow_every_command() {
         let commands: Vec<&str> = include_str!("lib.rs")
             .lines()
-            .filter_map(|line| line.trim().strip_prefix("commands::"))
+            .map(str::trim)
+            .filter_map(|line| {
+                line.strip_prefix("commands::")
+                    .or_else(|| line.strip_prefix("apps::"))
+            })
             .filter_map(|line| line.strip_suffix(','))
             .collect();
 
-        let permissions = include_str!("../permissions/main-host.toml");
-        let allowed: Vec<&str> = permissions
-            .split_once("commands.allow = [")
-            .and_then(|(_, rest)| rest.split_once(']'))
-            .expect("main-host.toml allows commands")
-            .0
-            .split(',')
-            .map(|name| name.trim().trim_matches('"'))
-            .filter(|name| !name.is_empty())
-            .collect();
+        let main_host = allowed_commands(include_str!("../permissions/main-host.toml"));
+        let bridge = allowed_commands(include_str!("../permissions/bridge.toml"));
 
-        assert!(!commands.is_empty());
+        assert!(commands.contains(&"get_wallets"));
+        assert!(commands.contains(&"apps_list_installed_apps"));
 
         for command in &commands {
             assert!(
-                allowed.contains(command),
-                "`{command}` is missing from main-host.toml"
+                main_host
+                    .iter()
+                    .chain(&bridge)
+                    .any(|allowed| allowed == command),
+                "`{command}` isn't allowed in any permission file"
             );
         }
 
-        for name in &allowed {
+        for name in &main_host {
             assert!(
-                name.starts_with("apps_") || commands.contains(name),
+                commands.contains(&name.as_str()),
                 "`{name}` in main-host.toml isn't a command"
             );
         }
