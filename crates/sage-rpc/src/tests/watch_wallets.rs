@@ -7,6 +7,7 @@ use sage_api::{
     GetNfts, GetOptions, GetSyncStatus, GetWallet, GetWalletAddress, ImportWatchWallet,
     IncreaseDerivationIndex, IssueCat, Login, MintOption, NftSortMode, OptionAsset, OptionFilter,
     OptionSortMode, RemoveWatchAddresses, SendXch, SignCoinSpends, TransferNfts, WalletKind,
+    wallet_connect::SignMessageByAddress,
 };
 use sage_wallet::SyncEvent;
 use tokio::time::sleep;
@@ -334,6 +335,18 @@ async fn watch_wallets_are_read_only() -> Result<()> {
         })
         .await
         .expect_err("watch wallets can't sign");
+    assert!(error.to_string().contains("Watch-only"), "{error}");
+
+    let error = app
+        .sage
+        .lock()
+        .await
+        .sign_message_by_address(SignMessageByAddress {
+            message: hex::encode("hello"),
+            address: alice_address.clone(),
+        })
+        .await
+        .expect_err("watch wallets can't sign messages");
     assert!(error.to_string().contains("Watch-only"), "{error}");
 
     let error = app

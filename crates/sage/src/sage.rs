@@ -684,6 +684,13 @@ impl Sage {
         }
     }
 
+    /// Whether the open wallet is a watch wallet, which can't create or sign transactions.
+    pub fn is_watch_only(&self) -> bool {
+        self.wallet
+            .as_ref()
+            .is_some_and(|wallet| matches!(wallet.kind, WalletKind::Watch))
+    }
+
     /// The secret key that signs for the wallet. Watch wallets never have one, and cold BLS
     /// wallets only have their public key.
     pub(crate) fn master_secret_key(&self, wallet: &Wallet) -> Result<SecretKey> {

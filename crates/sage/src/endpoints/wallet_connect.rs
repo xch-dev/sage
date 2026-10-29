@@ -189,12 +189,13 @@ impl Sage {
     ) -> Result<SignMessageWithPublicKeyResponse> {
         let wallet = self.wallet()?;
 
+        // Checked first, so watch wallets get a clear error rather than an unknown key.
+        let master_sk = self.master_secret_key(&wallet)?;
+
         let public_key = parse_public_key(req.public_key)?;
         let Some(info) = wallet.db.derivation(public_key).await? else {
             return Err(Error::InvalidKey);
         };
-
-        let master_sk = self.master_secret_key(&wallet)?;
 
         let secret_key = if info.is_hardened {
             master_to_wallet_hardened(&master_sk, info.derivation_index)
@@ -220,6 +221,9 @@ impl Sage {
     ) -> Result<SignMessageByAddressResponse> {
         let wallet = self.wallet()?;
 
+        // Checked first, so watch wallets get a clear error rather than an unknown key.
+        let master_sk = self.master_secret_key(&wallet)?;
+
         let p2_puzzle_hash = self.parse_address(req.address)?;
         let Some(public_key) = wallet.db.public_key(p2_puzzle_hash).await? else {
             return Err(Error::InvalidKey);
@@ -228,8 +232,6 @@ impl Sage {
         let Some(info) = wallet.db.derivation(public_key).await? else {
             return Err(Error::InvalidKey);
         };
-
-        let master_sk = self.master_secret_key(&wallet)?;
 
         let secret_key = if info.is_hardened {
             master_to_wallet_hardened(&master_sk, info.derivation_index)
