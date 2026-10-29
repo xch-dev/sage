@@ -28,7 +28,7 @@ use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
     ParsedNftMetadata, Transaction, TransactionCoin,
 };
-use sage_wallet::WalletKind;
+use sage_wallet::{WalletKind, p2_singleton_puzzle_hash};
 
 impl Sage {
     pub fn get_version(&self, _req: GetVersion) -> Result<GetVersionResponse> {
@@ -92,6 +92,8 @@ impl Sage {
                 .watched_p2_puzzle_hashes(wallet.fingerprint)
                 .and_then(|p2_puzzle_hashes| p2_puzzle_hashes.first().copied())
                 .ok_or(Error::NoWatchAddresses)?,
+            // A vault receives at its first address, which never changes.
+            WalletKind::Vault { launcher_id } => p2_singleton_puzzle_hash(launcher_id, 0),
         };
 
         let receive_address =

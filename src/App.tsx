@@ -58,6 +58,7 @@ import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
+import Vault from './pages/Vault';
 import { AppsProvider } from '@/contexts/AppsContext.tsx';
 import { HandleChangeDialog } from '@/components/HandleChangeDialog';
 import { RustThemeSync } from '@/components/RustThemeSync.tsx';
@@ -127,6 +128,9 @@ const router = createHashRouter(
       </Route>
       <Route path='/addresses' element={<Wallet />}>
         <Route path='' element={<Addresses />} />
+      </Route>
+      <Route path='/vault' element={<Wallet />}>
+        <Route path='' element={<Vault />} />
       </Route>
       <Route path='/options' element={<Wallet />}>
         <Route path='' element={<OptionList />} />

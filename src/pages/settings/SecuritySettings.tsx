@@ -19,6 +19,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import { usesKey } from '@/lib/walletKind';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
@@ -103,12 +104,10 @@ function KeySettings() {
     refresh();
   }, [refresh]);
 
-  // A BLS key belongs to the BLS wallet with the same fingerprint.
+  // A BLS key belongs to the BLS wallet with the same fingerprint, or to the
+  // vaults it signs for.
   const walletFor = (key: KeyInfo) =>
-    wallets?.find(
-      (wallet) =>
-        wallet.fingerprint === key.fingerprint && wallet.kind === 'bls',
-    ) ?? null;
+    wallets?.find((wallet) => usesKey(wallet, key.fingerprint)) ?? null;
 
   const deleteKey = async () => {
     if (!deleting) return;

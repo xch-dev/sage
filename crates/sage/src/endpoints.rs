@@ -7,5 +7,6 @@ mod offers;
 mod settings;
 mod themes;
 mod transactions;
+mod vaults;
 mod wallet_connect;
 mod xchandles;

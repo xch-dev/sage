@@ -25,4 +25,11 @@ pub enum WalletKind {
         /// The addresses being watched. The first one is the receive address
         addresses: Vec<String>,
     },
+    /// A vault, which is followed from its launcher. It's read-only until it can spend
+    Vault {
+        /// The vault's launcher id, in hex
+        launcher_id: String,
+        /// The fingerprints of the keychain keys that sign for the vault
+        signers: Vec<u32>,
+    },
 }

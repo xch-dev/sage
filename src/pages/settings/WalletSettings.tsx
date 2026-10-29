@@ -62,8 +62,10 @@ export function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const { wallet: activeWallet, setWallet: setActiveWallet } = useWallet();
 
   const [wallet, setWallet] = useState<Wallet | null>(null);
-  // Watch wallets only know their addresses, so they have no change address.
-  const { isWatchOnly } = useWallet();
+  // Watch and vault wallets have no change address, since they don't derive
+  // addresses.
+  const { isWatchOnly: isWatch, isVault } = useWallet();
+  const isWatchOnly = isWatch || isVault;
   const [localName, setLocalName] = useState<string>('');
   const [localChangeAddress, setLocalChangeAddress] = useState('');
   const [networks, setNetworks] = useState<Network[]>([]);
@@ -297,8 +299,10 @@ export function WalletSyncSettings({ fingerprint }: { fingerprint: number }) {
   const [key, setKey] = useState<KeyInfo | null>(null);
   // Holds the wallet's Delta Sync override.
   const [wallet, setWallet] = useState<Wallet | null>(null);
-  // Watch wallets only know their addresses, so they have no derivations.
-  const { isWatchOnly } = useWallet();
+  // Watch and vault wallets have no derivations, since they don't derive
+  // addresses.
+  const { isWatchOnly: isWatch, isVault } = useWallet();
+  const isWatchOnly = isWatch || isVault;
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [resyncOpen, setResyncOpen] = useState(false);
