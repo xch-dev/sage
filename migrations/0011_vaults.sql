@@ -1,25 +1,24 @@
 /*
  * Vaults are an asset with kind = 4, whose hash is the launcher id.
  *
- * custody_hash is the singleton's current inner puzzle hash, and amount its current amount, both
- * as last seen on chain. The vault's layout is the vault_configs row with the same custody_hash,
- * if one is known.
+ * vault_coins are the coins of a vault singleton's lineage, from the eve coin to the current one.
+ * They belong to the vault's asset, and have no p2 puzzle, so they're never part of a balance. The
+ * launcher coin belongs to the vault's asset too, so that its children are synced, but has no row
+ * here.
  *
- * States:
- * Active = 0
- * RecoveryPending = 1
- * Melted = 2
+ * custody_hash is the singleton's inner puzzle hash. It's NULL for an eve coin whose launcher
+ * didn't reveal a memo, until the coin is spent and reveals its inner puzzle. The vault's state is
+ * derived from its lineage, so that it follows the coins when a reorg undoes a spend, and its
+ * layout is the vault_configs row with the same custody_hash, if one is known.
  */
-CREATE TABLE vaults (
+CREATE TABLE vault_coins (
   id INTEGER NOT NULL PRIMARY KEY,
-  asset_id INTEGER NOT NULL UNIQUE,
-  custody_hash BLOB NOT NULL,
-  amount BLOB NOT NULL,
-  state INTEGER NOT NULL,
-  FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+  coin_id INTEGER NOT NULL UNIQUE,
+  custody_hash BLOB,
+  FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_vaults_custody_hash ON vaults(custody_hash);
+CREATE INDEX idx_vault_coins_custody_hash ON vault_coins(custody_hash);
 
 /*
  * A vault layout, which rebuilds the singleton inner puzzle hash custody_hash. The custody hash

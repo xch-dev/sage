@@ -9,9 +9,8 @@ use chia_wallet_sdk::{
 use sqlx::{SqlitePool, migrate, raw_sql, sqlite::SqlitePoolOptions};
 
 use crate::{
-    Asset, AssetKind, CoinKind, Database, NftUpdaterKind, P2Puzzle, VaultConfig, VaultConfigRow,
-    VaultConfigSource, VaultLayout, VaultMember, VaultRecoveryConfig, VaultRow, VaultSigners,
-    VaultState,
+    AssetKind, CoinKind, Database, NftUpdaterKind, P2Puzzle, VaultConfig, VaultConfigRow,
+    VaultConfigSource, VaultLayout, VaultMember, VaultRecoveryConfig, VaultSigners, VaultState,
 };
 
 fn encode<T: ToClvm<Allocator>>(value: &T) -> Vec<u8> {
@@ -156,21 +155,6 @@ async fn migrated_db() -> anyhow::Result<Database> {
     Ok(Database::new(pool))
 }
 
-fn vault_asset(launcher_id: Bytes32) -> Asset {
-    Asset {
-        hash: launcher_id,
-        name: None,
-        ticker: None,
-        precision: 1,
-        icon_url: None,
-        description: None,
-        is_sensitive_content: false,
-        is_visible: true,
-        hidden_puzzle_hash: None,
-        kind: AssetKind::Vault,
-    }
-}
-
 #[tokio::test]
 async fn vaults_migration_keeps_existing_coins() -> anyhow::Result<()> {
     let pool = SqlitePoolOptions::new()
@@ -222,9 +206,8 @@ async fn vaults_migration_keeps_existing_coins() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
-async fn stores_vaults_and_configs() -> anyhow::Result<()> {
+async fn stores_vault_configs() -> anyhow::Result<()> {
     let db = migrated_db().await?;
-    let launcher_id = Bytes32::new([1; 32]);
 
     let config = VaultConfig {
         custody: VaultSigners::new(
@@ -270,23 +253,11 @@ async fn stores_vaults_and_configs() -> anyhow::Result<()> {
         source: VaultConfigSource::ConfigFile,
     };
 
-    let vault = VaultRow {
-        launcher_id,
-        custody_hash: recovery.custody_hash,
-        amount: 3,
-        state: VaultState::RecoveryPending,
-    };
-
     let mut tx = db.tx().await?;
-    tx.insert_asset(vault_asset(launcher_id)).await?;
-    tx.upsert_vault(vault).await?;
     tx.insert_vault_config(&custody).await?;
     tx.insert_vault_config(&recovery).await?;
     tx.commit().await?;
 
-    assert_eq!(db.asset_kind(launcher_id).await?, Some(AssetKind::Vault));
-    assert_eq!(db.vault(launcher_id).await?, Some(vault));
-    assert_eq!(db.vaults().await?, [vault]);
     assert_eq!(
         db.vault_config(custody.custody_hash).await?,
         Some(custody.clone())
@@ -297,14 +268,6 @@ async fn stores_vaults_and_configs() -> anyhow::Result<()> {
     );
     assert_eq!(db.vault_config(Bytes32::default()).await?, None);
 
-    // Updating the vault replaces its state.
-    let melted = VaultRow {
-        state: VaultState::Melted,
-        ..vault
-    };
-    let mut tx = db.tx().await?;
-    tx.upsert_vault(melted).await?;
-
     // Reinserting a config replaces its members.
     let replaced = VaultConfigRow {
         layout: VaultLayout::Custody(VaultConfig {
@@ -313,14 +276,175 @@ async fn stores_vaults_and_configs() -> anyhow::Result<()> {
         }),
         ..custody
     };
+    let mut tx = db.tx().await?;
     tx.insert_vault_config(&replaced).await?;
     tx.commit().await?;
 
-    assert_eq!(db.vault(launcher_id).await?, Some(melted));
     assert_eq!(
         db.vault_config(replaced.custody_hash).await?,
         Some(replaced)
     );
+
+    Ok(())
+}
+
+/// Inserts a vault coin, along with the height and timestamp of the block it was created in.
+async fn insert_vault_coin(
+    db: &Database,
+    launcher_id: Bytes32,
+    coin: Coin,
+    custody_hash: Option<Bytes32>,
+    created_height: Option<u32>,
+) -> anyhow::Result<()> {
+    if let Some(height) = created_height {
+        db.insert_block(
+            height,
+            Bytes32::default(),
+            Some(i64::from(height) * 100),
+            false,
+        )
+        .await?;
+    }
+
+    let mut tx = db.tx().await?;
+    tx.insert_coin(CoinState::new(coin, None, created_height))
+        .await?;
+    tx.update_coin(coin.coin_id(), launcher_id, Bytes32::default())
+        .await?;
+    tx.insert_vault_coin(coin.coin_id(), custody_hash).await?;
+    tx.commit().await?;
+
+    Ok(())
+}
+
+async fn set_coin_state(
+    db: &Database,
+    coin: Coin,
+    created_height: Option<u32>,
+    spent_height: Option<u32>,
+) -> anyhow::Result<()> {
+    let mut tx = db.tx().await?;
+    if let Some(height) = spent_height {
+        tx.insert_height(height).await?;
+    }
+    tx.insert_coin(CoinState::new(coin, spent_height, created_height))
+        .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+#[tokio::test]
+async fn vault_state_follows_lineage() -> anyhow::Result<()> {
+    let db = migrated_db().await?;
+    let launcher_id = Bytes32::new([1; 32]);
+    let custody_hash = Bytes32::new([2; 32]);
+    let recovery_hash = Bytes32::new([3; 32]);
+
+    assert_eq!(db.vault_status(launcher_id).await?, None);
+
+    let mut tx = db.tx().await?;
+    tx.insert_vault(launcher_id).await?;
+    tx.insert_vault_config(&VaultConfigRow {
+        custody_hash: recovery_hash,
+        layout: VaultLayout::Recovery(VaultRecoveryConfig {
+            custody: VaultSigners::new(vec![VaultMember::bls(BlsPair::new(1).pk)], 1),
+            recovery_timelock: 60,
+            version: VaultVersion::ForceSingletonRecreation,
+            recovery_custody_hash: Bytes32::new([4; 32]),
+            amount: 1,
+        }),
+        source: VaultConfigSource::Memo,
+    })
+    .await?;
+    tx.commit().await?;
+
+    assert_eq!(db.asset_kind(launcher_id).await?, Some(AssetKind::Vault));
+    assert_eq!(db.vault_launcher_ids().await?, [launcher_id]);
+    assert_eq!(db.unsynced_vault_launcher_ids().await?, [launcher_id]);
+
+    let status = db.vault_status(launcher_id).await?.unwrap();
+    assert_eq!(status.state, VaultState::Unsynced);
+    assert_eq!(status.coin, None);
+
+    // The eve coin's custody isn't known until it's spent, or its launcher reveals it.
+    let eve = Coin::new(launcher_id, Bytes32::new([5; 32]), 1);
+    insert_vault_coin(&db, launcher_id, eve, None, Some(10)).await?;
+
+    assert!(db.unsynced_vault_launcher_ids().await?.is_empty());
+    let status = db.vault_status(launcher_id).await?.unwrap();
+    assert_eq!(status.state, VaultState::Active);
+    assert_eq!(status.coin.unwrap().coin, eve);
+    assert_eq!(status.config, None);
+
+    let mut tx = db.tx().await?;
+    tx.insert_vault_coin(eve.coin_id(), Some(custody_hash))
+        .await?;
+    tx.insert_vault_coin(eve.coin_id(), None).await?;
+    tx.commit().await?;
+    assert_eq!(
+        db.vault_status(launcher_id)
+            .await?
+            .unwrap()
+            .coin
+            .unwrap()
+            .custody_hash,
+        Some(custody_hash)
+    );
+
+    // Starting recovery, and then recreating the vault while it's pending, keeps the time it
+    // started.
+    set_coin_state(&db, eve, Some(10), Some(11)).await?;
+    let started = Coin::new(eve.coin_id(), Bytes32::new([6; 32]), 1);
+    insert_vault_coin(&db, launcher_id, started, Some(recovery_hash), Some(11)).await?;
+    set_coin_state(&db, started, Some(11), Some(12)).await?;
+    let recreated = Coin::new(started.coin_id(), Bytes32::new([6; 32]), 3);
+    insert_vault_coin(&db, launcher_id, recreated, Some(recovery_hash), Some(12)).await?;
+
+    let status = db.vault_status(launcher_id).await?.unwrap();
+    assert_eq!(
+        status.state,
+        VaultState::RecoveryPending {
+            started_at: Some(1100)
+        }
+    );
+    assert_eq!(status.coin.unwrap().coin, recreated);
+    assert_eq!(status.config.unwrap().custody_hash, recovery_hash);
+    assert_eq!(
+        db.vault_coins(launcher_id)
+            .await?
+            .into_iter()
+            .map(|row| row.coin)
+            .collect::<Vec<_>>(),
+        [eve, started, recreated]
+    );
+
+    // A reorg which undoes the recreation makes its parent current again.
+    set_coin_state(&db, started, Some(11), None).await?;
+    set_coin_state(&db, recreated, None, None).await?;
+    assert_eq!(
+        db.vault_status(launcher_id)
+            .await?
+            .unwrap()
+            .coin
+            .unwrap()
+            .coin,
+        started
+    );
+
+    // A spent coin is current until its children are synced. Without a singleton child, the vault
+    // was melted.
+    set_coin_state(&db, started, Some(11), Some(13)).await?;
+    let status = db.vault_status(launcher_id).await?.unwrap();
+    assert!(matches!(status.state, VaultState::RecoveryPending { .. }));
+
+    let mut tx = db.tx().await?;
+    tx.set_children_synced(started.coin_id()).await?;
+    tx.delete_coin(recreated.coin_id()).await?;
+    tx.commit().await?;
+
+    let status = db.vault_status(launcher_id).await?.unwrap();
+    assert_eq!(status.state, VaultState::Melted);
+    assert_eq!(status.coin.unwrap().coin, started);
 
     Ok(())
 }
@@ -443,7 +567,7 @@ async fn vault_coins_and_subscriptions() -> anyhow::Result<()> {
 
     let mut tx = db.tx().await?;
     tx.insert_height(10).await?;
-    tx.insert_asset(vault_asset(launcher_id)).await?;
+    tx.insert_vault(launcher_id).await?;
     tx.insert_p2_singleton_p2_puzzle(p2_singleton).await?;
     tx.insert_p2_conditions_or_singleton_p2_puzzle(p2_conditions, None)
         .await?;
