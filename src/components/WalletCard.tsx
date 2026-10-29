@@ -53,7 +53,8 @@ import { loginAndUpdateState, logoutAndUpdateState } from '../state';
 interface WalletCardProps {
   draggable?: boolean;
   info: WalletInfo;
-  /** The keychain entry of the wallet's key. */
+  /** The keychain entry of the wallet's key, `null` if it has none, or `undefined`
+   *  while the keychain is loading. */
   keyInfo: KeyInfo | null | undefined;
   wallets: WalletInfo[];
   setWallets: (wallets: WalletInfo[]) => void;
@@ -348,7 +349,7 @@ export function WalletCard({
         <CardContent className='p-0 px-5 pb-5'>
           <div className='flex items-center justify-between'>
             <span className='text-muted-foreground'>{info.fingerprint}</span>
-            {keyInfo?.has_secrets ? (
+            {keyInfo === undefined ? null : keyInfo?.has_secrets ? (
               <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
                 <FlameIcon className='h-4 w-4' />
                 <span>

@@ -47,7 +47,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       .then((data) => {
         if (!cancelled) setLoadedKey({ fingerprint, key: data.key });
       })
-      .catch(addError);
+      .catch((error) => {
+        // Without its key, the wallet is treated as read-only rather than hot.
+        if (!cancelled) setLoadedKey({ fingerprint, key: null });
+        addError(error);
+      });
 
     return () => {
       cancelled = true;

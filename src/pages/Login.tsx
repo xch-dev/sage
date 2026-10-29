@@ -38,6 +38,10 @@ export default function Login() {
   const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
   const keychain = useKeys();
 
+  // Unknown until the keychain loads, so cards don't show hot wallets as cold.
+  const keyFor = (fingerprint: number) =>
+    keychain === null ? undefined : (keychain.get(fingerprint) ?? null);
+
   useEffect(() => {
     commands
       .getWallets({})
@@ -153,7 +157,7 @@ export default function Login() {
                       draggable
                       key={wallet.fingerprint}
                       info={wallet}
-                      keyInfo={keychain.get(wallet.fingerprint)}
+                      keyInfo={keyFor(wallet.fingerprint)}
                       wallets={wallets}
                       setWallets={setWallets}
                     />
@@ -164,7 +168,7 @@ export default function Login() {
                 {activeId && activeWallet && (
                   <WalletCard
                     info={activeWallet}
-                    keyInfo={keychain.get(activeWallet.fingerprint)}
+                    keyInfo={keyFor(activeWallet.fingerprint)}
                     wallets={wallets}
                     setWallets={setWallets}
                   />

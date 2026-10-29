@@ -2,11 +2,11 @@ import { commands, KeyInfo } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { useEffect, useState } from 'react';
 
-/** The public information of every key in the keychain, by fingerprint. A BLS
- *  wallet's key has the same fingerprint as the wallet. */
+/** The public information of every key in the keychain, by fingerprint, or `null`
+ *  until it has loaded. A BLS wallet's key has the same fingerprint as the wallet. */
 export function useKeys() {
   const { addError } = useErrors();
-  const [keys, setKeys] = useState<Map<number, KeyInfo>>(new Map());
+  const [keys, setKeys] = useState<Map<number, KeyInfo> | null>(null);
 
   useEffect(() => {
     commands
