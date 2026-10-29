@@ -71,9 +71,9 @@ export default function ConfirmationDialog({
 
   const { addError } = useErrors();
   const { promptIfEnabled } = useBiometric();
-  const { isReadOnly, isTransactionDisabled } = useWallet();
+  const { isReadOnly, allowUnsigned } = useWallet();
 
-  const isColdWalletUnsignedMode = isReadOnly && !isTransactionDisabled;
+  const isColdWalletUnsignedMode = isReadOnly && allowUnsigned;
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);

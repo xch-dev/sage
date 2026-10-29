@@ -15,14 +15,11 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ContactsView } from '@/components/contacts/ContactsView';
 import { ResolvedHandlesView } from '@/components/contacts/ResolvedHandlesView';
-import { AddressItem } from '@/components/AddressItem';
 import { CustomError } from '@/contexts/ErrorContext';
-import { useWallet } from '@/contexts/WalletContext';
 import { useDerivationState } from '@/hooks/useDerivationState';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { xchandlesEnabled } from '@/lib/features';
-import { walletKindName } from '@/lib/walletKind';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { CheckIcon, SignatureIcon, XCircleIcon } from 'lucide-react';
@@ -48,12 +45,6 @@ export default function Addresses() {
       : 'receive';
 
   const { addError } = useErrors();
-  const { wallet } = useWallet();
-  const kind = wallet ? walletKindName(wallet.kind) : 'bls';
-  const watchedAddresses =
-    wallet && wallet.kind !== 'bls' && 'watch' in wallet.kind
-      ? wallet.kind.watch.addresses
-      : [];
   const walletState = useWalletState();
   const ticker = walletState.sync.unit.ticker;
   const [hardened, setHardened] = useState(false);
@@ -143,26 +134,13 @@ export default function Addresses() {
             <Card>
               <CardHeader>
                 <CardTitle className='text-lg font-medium'>
-                  {kind === 'bls' ? (
-                    <Trans>Fresh Address</Trans>
-                  ) : (
-                    <Trans>Receive Address</Trans>
-                  )}
+                  <Trans>Fresh Address</Trans>
                 </CardTitle>
                 <CardDescription>
-                  {kind === 'vault' ? (
-                    <Trans>
-                      A vault always receives at the same address, which stays
-                      the same if its keys change.
-                    </Trans>
-                  ) : kind === 'watch' ? (
-                    <Trans>The first address this wallet is watching.</Trans>
-                  ) : (
-                    <Trans>
-                      The wallet generates a new address after each transaction.
-                      Old ones stay valid.
-                    </Trans>
-                  )}
+                  <Trans>
+                    The wallet generates a new address after each transaction.
+                    Old ones stay valid.
+                  </Trans>
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -231,57 +209,34 @@ export default function Addresses() {
               </CardContent>
             </Card>
 
-            {kind === 'bls' && (
-              <Card className='max-w-full'>
-                <CardHeader>
-                  <CardTitle className='text-lg font-medium'>
-                    <Trans>All Addresses</Trans>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='flex items-center gap-2 mb-4'>
-                    <label htmlFor='hardened'>
-                      <Trans>Show hardened addresses</Trans>
-                    </label>
-                    <Switch
-                      id='hardened'
-                      checked={hardened}
-                      onCheckedChange={(value) => setHardened(value)}
-                    />
-                  </div>
-
-                  <AddressList
-                    derivations={derivations}
-                    currentPage={currentPage}
-                    totalPages={pageCount}
-                    setCurrentPage={setCurrentPage}
-                    totalDerivations={totalDerivations}
-                    onSignMessage={openSignMessage}
+            <Card className='max-w-full'>
+              <CardHeader>
+                <CardTitle className='text-lg font-medium'>
+                  <Trans>All Addresses</Trans>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className='flex items-center gap-2 mb-4'>
+                  <label htmlFor='hardened'>
+                    <Trans>Show hardened addresses</Trans>
+                  </label>
+                  <Switch
+                    id='hardened'
+                    checked={hardened}
+                    onCheckedChange={(value) => setHardened(value)}
                   />
-                </CardContent>
-              </Card>
-            )}
+                </div>
 
-            {kind === 'watch' && (
-              <Card className='max-w-full'>
-                <CardHeader>
-                  <CardTitle className='text-lg font-medium'>
-                    <Trans>Watched Addresses</Trans>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className='flex flex-col gap-2'>
-                  {watchedAddresses.map((address) => (
-                    <AddressItem
-                      key={address}
-                      address={address}
-                      label={t`Watched address`}
-                      hideLabel={true}
-                      truncateMiddle={true}
-                    />
-                  ))}
-                </CardContent>
-              </Card>
-            )}
+                <AddressList
+                  derivations={derivations}
+                  currentPage={currentPage}
+                  totalPages={pageCount}
+                  setCurrentPage={setCurrentPage}
+                  totalDerivations={totalDerivations}
+                  onSignMessage={openSignMessage}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value='contacts' className='mt-4'>

@@ -4009,11 +4009,10 @@ status: OfferRecordStatus;
 handle_nfts?: OfferHandleNft[] }
 export type Wallet = 
 /**
- * What the wallet is made of. Its fields are stored alongside the wallet's own, under a
- * `type` key, so `type` and the fields of each kind can't be used by the wallet. They're
- * omitted for BLS wallets, which every wallet was before other kinds existed.
+ * What the wallet is made of. It's stored alongside the wallet's own fields, under a `type`
+ * key, which is omitted for BLS wallets since every wallet was one before kinds existed.
  */
-({ type: "bls" } | { type: "vault"; launcher_id: string } | { type: "watch"; p2_puzzle_hashes: string[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
+({ type: "bls" }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
 export type WalletInfo = { name: string; fingerprint: number; kind: WalletKind; network_id: string; emoji: string | null }
 /**
@@ -4024,23 +4023,7 @@ export type WalletKind =
  * A BLS key, whose addresses are derived from its master public key. The key is in the
  * keychain under the wallet's fingerprint
  */
-"bls" | 
-/**
- * A vault singleton
- */
-{ vault: { 
-/**
- * The hex encoded launcher ID of the vault
- */
-launcher_id: string } } | 
-/**
- * A read-only list of addresses, whose puzzle reveals are unknown
- */
-{ watch: { 
-/**
- * The addresses being watched. The first one is the receive address
- */
-addresses: string[] } }
+"bls"
 export type WindowTargetParams = { windowLabel: string }
 /**
  * The XCHandles deployment used to resolve handles on a network.

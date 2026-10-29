@@ -641,13 +641,13 @@ impl Sage {
         })
     }
 
-    /// Determines how the wallet with this fingerprint is opened, for every kind of wallet.
+    /// Determines how the wallet with this fingerprint is opened.
     pub fn wallet_kind(&self, fingerprint: u32) -> Result<WalletKind> {
         let wallet = self
             .wallet_entry(fingerprint)
             .ok_or(Error::UnknownFingerprint)?;
 
-        Ok(match &wallet.kind {
+        Ok(match wallet.kind {
             ConfigWalletKind::Bls => {
                 let master_pk = self
                     .keychain
@@ -656,18 +656,6 @@ impl Sage {
 
                 WalletKind::Bls {
                     intermediate_pk: master_to_wallet_unhardened_intermediate(&master_pk),
-                }
-            }
-            ConfigWalletKind::Vault { launcher_id } => WalletKind::Vault {
-                launcher_id: *launcher_id,
-            },
-            ConfigWalletKind::Watch { p2_puzzle_hashes } => {
-                if p2_puzzle_hashes.is_empty() {
-                    return Err(Error::NoWatchAddresses);
-                }
-
-                WalletKind::Watch {
-                    p2_puzzle_hashes: p2_puzzle_hashes.clone(),
                 }
             }
         })
@@ -936,42 +924,6 @@ mod tests {
         assert!(sage.keychain.contains(key));
         assert!(matches!(
             sage.wallet_kind(key),
-            Err(Error::UnknownFingerprint)
-        ));
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_wallet_config_defines_wallet_kinds() -> Result<()> {
-        let dir = TempDir::new()?;
-        drop(load(dir.path())?);
-
-        let launcher_id = Bytes32::new([1; 32]);
-        let watched = Bytes32::new([2; 32]);
-
-        fs::write(
-            dir.path().join("wallets.toml"),
-            format!(
-                "version = 1\n\n\
-                 [[wallets]]\nname = \"Vault\"\nfingerprint = 1\n\
-                 type = \"vault\"\nlauncher_id = \"{launcher_id}\"\n\n\
-                 [[wallets]]\nname = \"Watch\"\nfingerprint = 2\n\
-                 type = \"watch\"\np2_puzzle_hashes = [\"{watched}\"]\n\n\
-                 [[wallets]]\nname = \"Missing key\"\nfingerprint = 3\n"
-            ),
-        )?;
-
-        let sage = load(dir.path())?;
-        assert_eq!(sage.wallet_kind(1)?, WalletKind::Vault { launcher_id });
-        assert_eq!(
-            sage.wallet_kind(2)?,
-            WalletKind::Watch {
-                p2_puzzle_hashes: vec![watched]
-            }
-        );
-        assert!(matches!(
-            sage.wallet_kind(3),
             Err(Error::UnknownFingerprint)
         ));
 

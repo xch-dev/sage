@@ -1,6 +1,6 @@
 mod contacts;
 mod recipients;
-mod wallet_kinds;
+mod wallets;
 
 use std::{
     collections::HashMap,

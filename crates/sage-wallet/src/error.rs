@@ -72,12 +72,6 @@ pub enum WalletError {
     #[error("Insufficient derivations")]
     InsufficientDerivations,
 
-    #[error("This kind of wallet doesn't derive addresses")]
-    DerivationsNotSupported,
-
-    #[error("This kind of wallet can't create transactions")]
-    WalletKindNotSupported,
-
     #[error("Missing secret key")]
     UnknownPublicKey,
 

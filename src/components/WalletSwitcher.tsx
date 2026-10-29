@@ -1,5 +1,4 @@
 import { commands, WalletInfo } from '@/bindings';
-import { WalletKindBadge } from '@/components/WalletKindBadge';
 import { MigrationDialog } from '@/components/dialogs/MigrationDialog';
 import {
   DropdownMenu,
@@ -17,7 +16,6 @@ import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useErrors } from '@/hooks/useErrors';
-import { useKeys } from '@/hooks/useKeys';
 import { clearState, loginAndUpdateState, logoutAndUpdateState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -40,7 +38,6 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
   const { setWallet, setIsSwitching, isSwitching } = useWallet();
   const { addError } = useErrors();
   const [wallets, setWallets] = useState<WalletInfo[]>([]);
-  const keychain = useKeys();
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -274,7 +271,7 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
                   key={w.fingerprint}
                   onClick={() => handleSwitchWallet(w.fingerprint)}
                   disabled={isSwitching}
-                  className='grid grid-cols-[auto_1fr_auto] items-center gap-3 cursor-pointer'
+                  className='grid grid-cols-[auto_1fr] items-center gap-3 cursor-pointer'
                 >
                   <div className='w-6 flex items-center justify-center'>
                     {w.emoji ? (
@@ -293,11 +290,6 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
                     )}
                   </div>
                   <span className='truncate'>{w.name}</span>
-                  <WalletKindBadge
-                    wallet={w}
-                    keyInfo={keychain.get(w.fingerprint)}
-                    iconOnly
-                  />
                 </DropdownMenuItem>
               ))}
             </div>
@@ -381,7 +373,7 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
                 key={w.fingerprint}
                 onClick={() => handleSwitchWallet(w.fingerprint)}
                 disabled={isSwitching}
-                className='grid grid-cols-[auto_1fr_auto] items-center gap-3 cursor-pointer'
+                className='grid grid-cols-[auto_1fr] items-center gap-3 cursor-pointer'
               >
                 <div className='w-6 flex items-center justify-center'>
                   {w.emoji ? (
@@ -400,11 +392,6 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
                   )}
                 </div>
                 <span className='truncate'>{w.name}</span>
-                <WalletKindBadge
-                  wallet={w}
-                  keyInfo={keychain.get(w.fingerprint)}
-                  iconOnly
-                />
               </DropdownMenuItem>
             ))}
           </div>

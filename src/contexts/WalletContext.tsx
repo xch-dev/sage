@@ -4,24 +4,20 @@ import { useAddressContactsLifecycle } from '@/hooks/useAddressContacts';
 import { useAddressHandlesLifecycle } from '@/hooks/useAddressHandles';
 import { useErrors } from '@/hooks/useErrors';
 import { useColdWalletUnsigned } from '@/hooks/useColdWalletUnsigned';
-import { canBuildUnsigned, canSign, walletKindName } from '@/lib/walletKind';
 import { fetchState, initializeWalletState } from '@/state';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 interface WalletContextType {
   wallet: WalletInfo | null;
   setWallet: (wallet: WalletInfo | null) => void;
-  /** The keychain entry of the wallet, if it's a BLS wallet. */
-  walletKey: KeyInfo | null;
   isSwitching: boolean;
   setIsSwitching: (isSwitching: boolean) => void;
-  /** True when the wallet can't sign (cold BLS, vault or watch wallet). */
+  /** True when the wallet has no signing keys (cold/watch-only wallet). */
   isReadOnly: boolean;
   /** True when the user has opted in to building unsigned transactions on cold wallets. */
   allowUnsigned: boolean;
-  /** True when transaction-initiating UI should be disabled. Read-only wallets can
-   *  still build unsigned transactions if `allowUnsigned` is set, except watch and
-   *  vault wallets, which can't build them at all. */
+  /** True when transaction-initiating UI should be disabled.
+   *  Equivalent to `isReadOnly && !allowUnsigned`. */
   isTransactionDisabled: boolean;
 }
 
@@ -36,14 +32,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const { allowUnsigned } = useColdWalletUnsigned();
 
   const fingerprint = wallet?.fingerprint ?? null;
-  const isBls = wallet !== null && walletKindName(wallet.kind) === 'bls';
   const [loadedKey, setLoadedKey] = useState<{
     fingerprint: number;
     key: KeyInfo | null;
   } | null>(null);
 
   useEffect(() => {
-    if (fingerprint === null || !isBls) return;
+    if (fingerprint === null) return;
 
     let cancelled = false;
 
@@ -57,18 +52,16 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [fingerprint, isBls, addError]);
+  }, [fingerprint, addError]);
 
   const isKeyLoaded =
     loadedKey !== null && loadedKey.fingerprint === fingerprint;
-  const walletKey = isBls && isKeyLoaded ? loadedKey.key : null;
 
-  // While a BLS wallet's key is loading, it isn't treated as read-only, so that the
+  // While the wallet's key is loading, it isn't treated as read-only, so that the
   // read-only banner doesn't flash for hot wallets.
   const isReadOnly =
-    wallet !== null && !(isBls && !isKeyLoaded) && !canSign(wallet, walletKey);
-  const isTransactionDisabled =
-    isReadOnly && !(allowUnsigned && canBuildUnsigned(wallet));
+    wallet !== null && isKeyLoaded && loadedKey.key?.has_secrets !== true;
+  const isTransactionDisabled = isReadOnly && !allowUnsigned;
 
   useAddressHandlesLifecycle(wallet?.fingerprint ?? null);
   useAddressContactsLifecycle(wallet?.fingerprint ?? null);
@@ -97,7 +90,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       value={{
         wallet,
         setWallet,
-        walletKey,
         isSwitching,
         setIsSwitching,
         isReadOnly,

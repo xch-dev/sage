@@ -8,7 +8,7 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use crate::{SyncCommand, Wallet, WalletError, WalletKind, WalletPeer};
+use crate::{SyncCommand, Wallet, WalletError, WalletPeer};
 
 use super::{PeerState, SyncEvent};
 
@@ -61,8 +61,7 @@ pub async fn sync_wallet(
         .await?;
     }
 
-    // Only BLS wallets derive addresses. Other kinds sync just the puzzle hashes stored for them.
-    while wallet.kind.intermediate_pk().is_some() {
+    loop {
         let mut tx = wallet.db.tx().await?;
         let derivations = auto_insert_unhardened_derivations(&wallet, &mut tx).await?;
         let next_index = tx.derivation_index(false).await?;
@@ -270,7 +269,7 @@ pub async fn incremental_sync(
 
     let mut new_derivations = Vec::new();
 
-    if derive_automatically && matches!(wallet.kind, WalletKind::Bls { .. }) {
+    if derive_automatically {
         new_derivations = auto_insert_unhardened_derivations(wallet, &mut tx).await?;
     }
 
@@ -372,17 +371,19 @@ pub async fn add_new_subscriptions(
 
 #[cfg(test)]
 mod tests {
-    use chia_wallet_sdk::{
-        chia::bls::master_to_wallet_unhardened_intermediate, driver::P2Singleton,
-    };
+    use chia_wallet_sdk::chia::bls::master_to_wallet_unhardened_intermediate;
     use sage_database::{Database, SharedDatabase};
     use sqlx::{SqlitePool, migrate};
     use tokio::time::timeout;
 
+    use crate::WalletKind;
+
     use super::*;
 
-    async fn test_wallet(name: &str, kind: WalletKind) -> anyhow::Result<Wallet> {
-        let pool = SqlitePool::connect(&format!("file:{name}?mode=memory&cache=shared")).await?;
+    #[tokio::test]
+    async fn incremental_sync_does_not_wait_on_a_full_command_queue() -> anyhow::Result<()> {
+        let pool = SqlitePool::connect("file:incremental_sync_full_queue?mode=memory&cache=shared")
+            .await?;
         migrate!("../../migrations").run(&pool).await?;
         let db = Database::new(pool);
         db.run_rust_migrations("TXCH".to_string()).await?;
@@ -390,27 +391,18 @@ mod tests {
         let shared_pool = SqlitePool::connect("sqlite::memory:").await?;
         migrate!("../../migrations").run(&shared_pool).await?;
 
-        Ok(Wallet::new(
+        let pk = BlsPair::default().sk.public_key();
+        let wallet = Wallet::new(
             db,
             SharedDatabase::new(shared_pool),
-            1,
-            kind,
-            TESTNET11_CONSTANTS.genesis_challenge,
-            AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-            None,
-        ))
-    }
-
-    #[tokio::test]
-    async fn incremental_sync_does_not_wait_on_a_full_command_queue() -> anyhow::Result<()> {
-        let pk = BlsPair::default().sk.public_key();
-        let wallet = test_wallet(
-            "incremental_sync_full_queue",
+            pk.get_fingerprint(),
             WalletKind::Bls {
                 intermediate_pk: master_to_wallet_unhardened_intermediate(&pk),
             },
-        )
-        .await?;
+            TESTNET11_CONSTANTS.genesis_challenge,
+            AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
+            None,
+        );
 
         // The sync manager is the queue's only reader, so while it runs incremental_sync
         // nothing drains the queue. A full queue must not stop it.
@@ -436,71 +428,6 @@ mod tests {
             timeout(Duration::from_secs(10), command_receiver.recv()).await?,
             Some(SyncCommand::SubscribePuzzles { puzzle_hashes }) if !puzzle_hashes.is_empty()
         ));
-
-        Ok(())
-    }
-
-    fn non_bls_kinds() -> [(&'static str, WalletKind, Bytes32); 2] {
-        let launcher_id = Bytes32::new([1; 32]);
-        let watch = Bytes32::new([2; 32]);
-
-        [
-            (
-                "vault",
-                WalletKind::Vault { launcher_id },
-                P2Singleton::new(launcher_id, 0).tree_hash().into(),
-            ),
-            (
-                "watch",
-                WalletKind::Watch {
-                    p2_puzzle_hashes: vec![watch, Bytes32::new([3; 32])],
-                },
-                watch,
-            ),
-        ]
-    }
-
-    #[tokio::test]
-    async fn non_bls_wallets_never_derive() -> anyhow::Result<()> {
-        for (name, kind, receive_p2_puzzle_hash) in non_bls_kinds() {
-            let wallet = test_wallet(&format!("non_bls_never_derive_{name}"), kind).await?;
-
-            let (command_sender, mut command_receiver) = mpsc::channel(10);
-            let (event_sender, mut event_receiver) = mpsc::channel(10);
-
-            incremental_sync(&wallet, Vec::new(), true, &event_sender, &command_sender).await?;
-
-            assert!(command_receiver.try_recv().is_err(), "{name} subscribed");
-            assert!(event_receiver.try_recv().is_err(), "{name} sent an event");
-            assert_eq!(wallet.db.max_derivation_index(false).await?, None);
-            assert!(wallet.db.custody_p2_puzzle_hashes().await?.is_empty());
-
-            let mut tx = wallet.db.tx().await?;
-            assert!(matches!(
-                wallet.insert_unhardened_derivations(&mut tx, 0..10).await,
-                Err(WalletError::DerivationsNotSupported)
-            ));
-            assert!(matches!(
-                auto_insert_unhardened_derivations(&wallet, &mut tx).await,
-                Err(WalletError::DerivationsNotSupported)
-            ));
-            tx.commit().await?;
-
-            assert!(matches!(
-                wallet.p2_puzzle_hashes(1, false, true).await,
-                Err(WalletError::DerivationsNotSupported)
-            ));
-            assert_eq!(
-                wallet.change_p2_puzzle_hash().await?,
-                receive_p2_puzzle_hash
-            );
-
-            let mut ctx = SpendContext::new();
-            assert!(matches!(
-                wallet.spend(&mut ctx, Vec::new(), &[]).await,
-                Err(WalletError::WalletKindNotSupported)
-            ));
-        }
 
         Ok(())
     }

@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { WalletKindBadge } from '@/components/WalletKindBadge';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { useSortable } from '@dnd-kit/sortable';
@@ -32,10 +31,12 @@ import {
   CopyIcon,
   EraserIcon,
   EyeIcon,
+  FlameIcon,
   LogInIcon,
   MoreVerticalIcon,
   PenIcon,
   RefreshCcw,
+  SnowflakeIcon,
   TrashIcon,
   WalletIcon,
 } from 'lucide-react';
@@ -52,7 +53,7 @@ import { loginAndUpdateState, logoutAndUpdateState } from '../state';
 interface WalletCardProps {
   draggable?: boolean;
   info: WalletInfo;
-  /** The keychain entry of a BLS wallet. */
+  /** The keychain entry of the wallet's key. */
   keyInfo: KeyInfo | null | undefined;
   wallets: WalletInfo[];
   setWallets: (wallets: WalletInfo[]) => void;
@@ -347,7 +348,21 @@ export function WalletCard({
         <CardContent className='p-0 px-5 pb-5'>
           <div className='flex items-center justify-between'>
             <span className='text-muted-foreground'>{info.fingerprint}</span>
-            <WalletKindBadge wallet={info} keyInfo={keyInfo} />
+            {keyInfo?.has_secrets ? (
+              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
+                <FlameIcon className='h-4 w-4' />
+                <span>
+                  <Trans>Hot</Trans>
+                </span>
+              </div>
+            ) : (
+              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
+                <SnowflakeIcon className='h-4 w-4' />
+                <span>
+                  <Trans>Cold</Trans>
+                </span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -469,31 +484,6 @@ export function WalletCard({
                 <p className='break-all text-sm text-muted-foreground'>
                   {keyInfo.public_key}
                 </p>
-              </div>
-            )}
-            {info.kind !== 'bls' && 'vault' in info.kind && (
-              <div>
-                <h3 className='font-semibold'>
-                  <Trans>Launcher ID</Trans>
-                </h3>
-                <p className='break-all text-sm text-muted-foreground'>
-                  {info.kind.vault.launcher_id}
-                </p>
-              </div>
-            )}
-            {info.kind !== 'bls' && 'watch' in info.kind && (
-              <div>
-                <h3 className='font-semibold'>
-                  <Trans>Addresses</Trans>
-                </h3>
-                {info.kind.watch.addresses.map((address) => (
-                  <p
-                    key={address}
-                    className='break-all text-sm text-muted-foreground'
-                  >
-                    {address}
-                  </p>
-                ))}
               </div>
             )}
             {secrets && (
