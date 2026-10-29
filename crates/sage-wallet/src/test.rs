@@ -191,6 +191,54 @@ impl TestWallet {
         Ok(test)
     }
 
+    /// Stops syncing the wallet, as if it were closed. Its database is kept.
+    pub async fn stop_sync(&mut self) -> anyhow::Result<()> {
+        self.sender
+            .send(SyncCommand::SwitchWallet {
+                wallet: None,
+                delta_sync: self.options.delta_sync,
+            })
+            .await?;
+
+        self.consume_until(|event| matches!(event, SyncEvent::WalletChanged { fingerprint: None }))
+            .await;
+
+        Ok(())
+    }
+
+    /// Starts syncing the wallet again with its existing database, as if it were reopened.
+    pub async fn restart_sync(&mut self) -> anyhow::Result<()> {
+        let state = Arc::new(Mutex::new(PeerState::default()));
+
+        let (mut sync_manager, sender, events) = SyncManager::new(
+            self.options,
+            state.clone(),
+            Some(self.wallet.clone()),
+            TESTNET11.clone(),
+            Connector::Plain,
+        );
+
+        let (peer, receiver) = self.sim.connect_raw().await?;
+
+        assert!(
+            sync_manager
+                .try_add_peer(peer.clone(), receiver, true, false)
+                .await
+        );
+
+        tokio::spawn(sync_manager.sync());
+
+        self.peer = peer;
+        self.sender = sender;
+        self.events = events;
+        self.state = state;
+
+        self.consume_until(|event| matches!(event, SyncEvent::Subscribed))
+            .await;
+
+        Ok(())
+    }
+
     pub async fn resync(&mut self) -> anyhow::Result<()> {
         *self = Self::with_sim(self.sim.clone(), 0, self.index, self.options).await?;
         Ok(())
