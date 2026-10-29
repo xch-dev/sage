@@ -156,6 +156,12 @@ impl SyncManager {
 
                     self.clear_subscriptions().await;
                     self.abort_wallet_tasks();
+
+                    // Queued subscriptions belong to the previous wallet. Syncing them under the
+                    // new one would put its coin states in the wrong database.
+                    self.pending_coin_subscriptions.clear();
+                    self.pending_puzzle_subscriptions.clear();
+
                     self.wallet = wallet;
                     self.options.delta_sync = delta_sync;
 
@@ -673,5 +679,64 @@ impl SyncManager {
                 info!("Refreshed query planner statistics after initial sync");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chia_wallet_sdk::client::Connector;
+    use sage_config::TESTNET11;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn switching_wallets_drops_pending_subscriptions() -> anyhow::Result<()> {
+        let options = SyncOptions {
+            target_peers: 0,
+            discover_peers: false,
+            dns_batch_size: 0,
+            connection_batch_size: 0,
+            max_peer_age_seconds: 0,
+            delta_sync: true,
+            puzzle_batch_size_per_peer: 0,
+            timeouts: Timeouts::default(),
+            testing: true,
+        };
+
+        let (mut manager, sender, _events) = SyncManager::new(
+            options,
+            Arc::new(Mutex::new(PeerState::default())),
+            None,
+            TESTNET11.clone(),
+            Connector::Plain,
+        );
+
+        sender
+            .send(SyncCommand::SubscribeCoins {
+                coin_ids: vec![Bytes32::new([1; 32])],
+            })
+            .await?;
+        sender
+            .send(SyncCommand::SubscribePuzzles {
+                puzzle_hashes: vec![Bytes32::new([2; 32])],
+            })
+            .await?;
+        manager.process_commands().await;
+
+        assert_eq!(manager.pending_coin_subscriptions.len(), 1);
+        assert_eq!(manager.pending_puzzle_subscriptions.len(), 1);
+
+        sender
+            .send(SyncCommand::SwitchWallet {
+                wallet: None,
+                delta_sync: true,
+            })
+            .await?;
+        manager.process_commands().await;
+
+        assert!(manager.pending_coin_subscriptions.is_empty());
+        assert!(manager.pending_puzzle_subscriptions.is_empty());
+
+        Ok(())
     }
 }
