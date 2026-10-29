@@ -125,6 +125,9 @@ pub enum Error {
     #[error("Key {0} is used by a wallet, so it can only be removed by deleting the wallet")]
     KeyInUse(u32),
 
+    #[error("A different key with fingerprint {0} is already in the keychain")]
+    KeyConflict(u32),
+
     #[error("Not logged in")]
     NotLoggedIn,
 
@@ -368,6 +371,7 @@ impl Error {
             | Self::InvalidKey
             | Self::WalletExists(..)
             | Self::KeyInUse(..)
+            | Self::KeyConflict(..)
             | Self::InvalidMnemonic(..)
             | Self::TryFromSlice(..)
             | Self::TryFromInt(..)

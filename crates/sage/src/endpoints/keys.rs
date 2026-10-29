@@ -406,7 +406,7 @@ impl Sage {
     }
 
     /// Adds a BLS key to the keychain, and returns whether the keychain changed. A key that's
-    /// already there is kept, unless this adds secrets that it doesn't have yet.
+    /// already there is kept, unless this adds a secret key or mnemonic that it doesn't have.
     fn store_key(
         &mut self,
         master_pk: &PublicKey,
@@ -417,24 +417,52 @@ impl Sage {
         let fingerprint = master_pk.get_fingerprint();
         let store_secrets = save_secrets && master_sk.is_some();
 
-        if self.keychain.contains(fingerprint)
-            && (!store_secrets || self.keychain.has_secret_key(fingerprint))
-        {
-            return Ok(false);
-        }
+        // Fingerprints are only 32 bits, so a different key can have the same one. Replacing the
+        // stored key with it would silently change the wallet that uses it.
+        let existing = match self.keychain.extract_public_key(fingerprint)? {
+            Some(existing_pk) if existing_pk != *master_pk => {
+                return Err(Error::KeyConflict(fingerprint));
+            }
+            Some(_) => {
+                let (existing_mnemonic, existing_sk) =
+                    self.keychain.extract_secrets(fingerprint, b"")?;
+
+                let adds_secrets = store_secrets
+                    && (existing_sk.is_none()
+                        || (mnemonic.is_some() && existing_mnemonic.is_none()));
+
+                if !adds_secrets {
+                    return Ok(false);
+                }
+
+                Some(existing_sk)
+            }
+            None => None,
+        };
 
         self.keychain.remove(fingerprint);
 
-        match (mnemonic, master_sk) {
-            (Some(mnemonic), _) if store_secrets => {
-                self.keychain.add_mnemonic(mnemonic, b"")?;
-            }
+        let stored = match (mnemonic, master_sk) {
+            (Some(mnemonic), _) if store_secrets => self.keychain.add_mnemonic(mnemonic, b""),
             (None, Some(master_sk)) if store_secrets => {
-                self.keychain.add_secret_key(master_sk, b"")?;
+                self.keychain.add_secret_key(master_sk, b"")
             }
-            _ => {
-                self.keychain.add_public_key(master_pk)?;
+            _ => self.keychain.add_public_key(master_pk),
+        };
+
+        // If the new entry can't be stored, the old one is put back rather than lost.
+        if let Err(error) = stored {
+            match existing {
+                Some(Some(existing_sk)) => {
+                    self.keychain.add_secret_key(&existing_sk, b"")?;
+                }
+                Some(None) => {
+                    self.keychain.add_public_key(master_pk)?;
+                }
+                None => {}
             }
+
+            return Err(error.into());
         }
 
         Ok(true)

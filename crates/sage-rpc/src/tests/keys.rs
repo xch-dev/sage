@@ -2,7 +2,8 @@ use anyhow::Result;
 use bip39::Mnemonic;
 use chia_wallet_sdk::prelude::*;
 use sage_api::{
-    AddKey, DeleteKey, DeleteWallet, GetKey, GetKeys, GetWallets, ImportWallet, KeyKind,
+    AddKey, DeleteKey, DeleteWallet, GetKey, GetKeys, GetSecretKey, GetWallets, ImportWallet,
+    KeyKind,
 };
 
 use super::TestApp;
@@ -110,6 +111,53 @@ async fn wallet_keys_follow_their_wallets() -> Result<()> {
         .await
         .expect_err("the key is gone");
     assert!(error.to_string().contains("Unknown fingerprint"), "{error}");
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn a_mnemonic_can_be_added_to_a_stored_secret_key() -> Result<()> {
+    let app = TestApp::new().await?;
+
+    let mnemonic = mnemonic(9);
+    let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
+
+    let fingerprint = app
+        .add_key(AddKey {
+            key: hex::encode(master_sk.to_bytes()),
+        })
+        .await?
+        .fingerprint;
+    assert_eq!(fingerprint, master_sk.public_key().get_fingerprint());
+
+    let secrets = app
+        .get_secret_key(GetSecretKey { fingerprint })
+        .await?
+        .secrets
+        .expect("secrets are missing");
+    assert_eq!(secrets.mnemonic, None);
+
+    // The mnemonic of a key stored as a raw secret key is still worth keeping, for backups.
+    app.add_key(AddKey {
+        key: mnemonic.to_string(),
+    })
+    .await?;
+
+    let secrets = app
+        .get_secret_key(GetSecretKey { fingerprint })
+        .await?
+        .secrets
+        .expect("secrets are missing");
+    assert_eq!(secrets.mnemonic, Some(mnemonic.to_string()));
+
+    // With both stored, there's nothing left to add.
+    let error = app
+        .add_key(AddKey {
+            key: hex::encode(master_sk.to_bytes()),
+        })
+        .await
+        .expect_err("the key already exists");
+    assert!(error.to_string().contains("Key already exists"), "{error}");
 
     Ok(())
 }
