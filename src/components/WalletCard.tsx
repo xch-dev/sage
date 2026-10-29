@@ -419,7 +419,8 @@ export function WalletCard({
               {!deleteKeys && (
                 <p className='text-sm text-muted-foreground'>
                   <Trans>
-                    Its keys will stay under Settings, in the Keys tab.
+                    Its keys will stay in the keychain, under Advanced in
+                    Settings.
                   </Trans>
                 </p>
               )}

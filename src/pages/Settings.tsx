@@ -151,13 +151,6 @@ export default function Settings() {
                   </TabsTrigger>
 
                   <TabsTrigger
-                    value='keys'
-                    className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
-                  >
-                    <Trans>Keys</Trans>
-                  </TabsTrigger>
-
-                  <TabsTrigger
                     value='network'
                     className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
                   >
@@ -207,10 +200,6 @@ export default function Settings() {
                 )}
               </TabsContent>
 
-              <TabsContent value='keys'>
-                <KeySettings />
-              </TabsContent>
-
               <TabsContent value='network'>
                 <NetworkSettings />
               </TabsContent>
@@ -218,6 +207,7 @@ export default function Settings() {
               <TabsContent value='advanced'>
                 <div className='grid gap-4'>
                   <ColdWalletSettings />
+                  <KeySettings />
                   {!isMobile && <RpcSettings />}
                   <LogViewer />
                 </div>
