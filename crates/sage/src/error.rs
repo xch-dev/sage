@@ -131,6 +131,18 @@ pub enum Error {
     #[error("Key {0} is already in the keychain")]
     KeyExists(u32),
 
+    #[error("Fingerprint {0} is already used by a different kind of wallet")]
+    FingerprintCollision(u32),
+
+    #[error("No free fingerprint could be found for this wallet")]
+    NoFreeFingerprint,
+
+    #[error("A watch wallet needs at least one address")]
+    NoWatchAddresses,
+
+    #[error("Wallet {0} isn't a watch wallet")]
+    NotWatchWallet(u32),
+
     #[error("Not logged in")]
     NotLoggedIn,
 
@@ -355,7 +367,9 @@ impl Error {
             | Self::Driver(..)
             | Self::Timeout(..)
             | Self::NotInitialized
-            | Self::InvalidConfig { .. } => ErrorKind::Internal,
+            | Self::InvalidConfig { .. }
+            | Self::FingerprintCollision(..)
+            | Self::NoFreeFingerprint => ErrorKind::Internal,
             Self::AlreadyRunning => ErrorKind::AlreadyRunning,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
@@ -376,6 +390,8 @@ impl Error {
             | Self::KeyInUse(..)
             | Self::KeyConflict(..)
             | Self::KeyExists(..)
+            | Self::NoWatchAddresses
+            | Self::NotWatchWallet(..)
             | Self::InvalidMnemonic(..)
             | Self::TryFromSlice(..)
             | Self::TryFromInt(..)

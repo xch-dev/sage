@@ -75,6 +75,14 @@ impl Wallet {
         }
     }
 
+    /// Watch wallets don't know the puzzle reveals of their coins, so they can't spend them.
+    fn ensure_spendable(&self) -> Result<(), WalletError> {
+        match self.kind {
+            WalletKind::Bls { .. } => Ok(()),
+            WalletKind::Watch => Err(WalletError::WatchOnly),
+        }
+    }
+
     async fn select_xch_coins(
         &self,
         amount: u64,
@@ -125,6 +133,8 @@ impl Wallet {
         ctx: &mut SpendContext,
         selected_coin_ids: &[Bytes32],
     ) -> Result<Spends, WalletError> {
+        self.ensure_spendable()?;
+
         let change_p2_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let mut spends = Spends::new(change_p2_puzzle_hash);
@@ -215,6 +225,8 @@ impl Wallet {
         actions: &[Action],
         excluded_coin_ids: &[Bytes32],
     ) -> Result<(), WalletError> {
+        self.ensure_spendable()?;
+
         let mut deltas = Deltas::from_actions(actions);
 
         deltas.update(Id::Xch).input += spends.xch.selected_amount();
@@ -331,6 +343,8 @@ impl Wallet {
         deltas: &Deltas,
         spends: Spends,
     ) -> Result<Outputs, WalletError> {
+        self.ensure_spendable()?;
+
         let mut p2_puzzles = IndexMap::new();
 
         for p2_puzzle_hash in spends.p2_puzzle_hashes() {
@@ -439,6 +453,7 @@ impl Wallet {
                                     spend.finish().into_iter().collect(),
                                 ),
                             )?,
+                        P2Puzzle::External => return Err(WalletError::WatchOnly),
                     }
                 }
                 SpendKind::Settlement(spend) => SettlementLayer

@@ -8,26 +8,29 @@ use chia_wallet_sdk::{
             master_to_wallet_unhardened_intermediate,
         },
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
+        sha2::Sha256,
     },
     prelude::*,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    AddKey, AddKeyResponse, DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse,
-    DeleteWallet, DeleteWalletResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey,
-    GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey, GetSecretKeyResponse, GetWallet,
-    GetWalletAddress, GetWalletAddressResponse, GetWalletResponse, GetWallets, GetWalletsResponse,
-    ImportWallet, ImportWalletResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout,
-    LogoutResponse, RenameWallet, RenameWalletResponse, Resync, ResyncResponse, SecretKeyInfo,
-    SetWalletEmoji, SetWalletEmojiResponse, WalletInfo, WalletKind as ApiWalletKind,
+    AddKey, AddKeyResponse, AddWatchAddresses, AddWatchAddressesResponse, DeleteDatabase,
+    DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse, DeleteWallet, DeleteWalletResponse,
+    GenerateMnemonic, GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse,
+    GetSecretKey, GetSecretKeyResponse, GetWallet, GetWalletAddress, GetWalletAddressResponse,
+    GetWalletResponse, GetWallets, GetWalletsResponse, ImportWallet, ImportWalletResponse,
+    ImportWatchWallet, ImportWatchWalletResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout,
+    LogoutResponse, RemoveWatchAddresses, RemoveWatchAddressesResponse, RenameWallet,
+    RenameWalletResponse, Resync, ResyncResponse, SecretKeyInfo, SetWalletEmoji,
+    SetWalletEmojiResponse, WalletInfo, WalletKind as ApiWalletKind,
 };
 use sage_config::{Wallet, WalletKind as ConfigWalletKind};
 use sage_database::{Database, Derivation};
-use sage_wallet::WalletKind;
+use sage_wallet::{SyncCommand, WalletKind};
 use sqlx::query;
 
-use crate::{Error, Result, Sage};
+use crate::{Error, Result, Sage, assign_fingerprint, watch_p2_puzzles};
 
 impl Sage {
     pub async fn login(&mut self, req: Login) -> Result<LoginResponse> {
@@ -140,11 +143,14 @@ impl Sage {
 
         // A wallet whose key is missing from the keychain, such as after restoring an older
         // `keys.bin`, is hidden from the wallet list. Importing its key again restores it.
-        let restoring = match self.wallet_entry(fingerprint) {
-            Some(_) if self.keychain.contains(fingerprint) => {
+        let restoring = match self.wallet_entry(fingerprint).map(|wallet| &wallet.kind) {
+            Some(ConfigWalletKind::Watch { .. }) => {
+                return Err(Error::FingerprintCollision(fingerprint));
+            }
+            Some(ConfigWalletKind::Bls) if self.keychain.contains(fingerprint) => {
                 return Err(Error::WalletExists(fingerprint));
             }
-            Some(_) => true,
+            Some(ConfigWalletKind::Bls) => true,
             None => false,
         };
 
@@ -319,7 +325,7 @@ impl Sage {
         };
 
         Ok(GetWalletResponse {
-            wallet: self.wallet_info(wallet),
+            wallet: self.wallet_info(wallet)?,
         })
     }
 
@@ -338,12 +344,13 @@ impl Sage {
     }
 
     pub fn get_wallets(&self, _req: GetWallets) -> Result<GetWalletsResponse> {
-        let wallets = self
-            .wallet_config
-            .wallets
-            .iter()
-            .filter_map(|wallet| self.wallet_info(wallet))
-            .collect();
+        let mut wallets = Vec::new();
+
+        for wallet in &self.wallet_config.wallets {
+            if let Some(info) = self.wallet_info(wallet)? {
+                wallets.push(info);
+            }
+        }
 
         Ok(GetWalletsResponse { wallets })
     }
@@ -384,24 +391,218 @@ impl Sage {
 
     /// Describes a wallet. Returns `None` for a BLS wallet whose key is missing from the
     /// keychain.
-    fn wallet_info(&self, wallet: &Wallet) -> Option<WalletInfo> {
-        let kind = match wallet.kind {
+    fn wallet_info(&self, wallet: &Wallet) -> Result<Option<WalletInfo>> {
+        let network_id = wallet.network.clone().unwrap_or_else(|| self.network_id());
+
+        let kind = match &wallet.kind {
             ConfigWalletKind::Bls => {
                 if !self.keychain.contains(wallet.fingerprint) {
-                    return None;
+                    return Ok(None);
                 }
 
                 ApiWalletKind::Bls
             }
+            ConfigWalletKind::Watch { p2_puzzle_hashes } => {
+                let prefix = self.network_prefix(&network_id);
+
+                ApiWalletKind::Watch {
+                    addresses: p2_puzzle_hashes
+                        .iter()
+                        .map(|&p2_puzzle_hash| {
+                            Ok(Address::new(p2_puzzle_hash, prefix.clone()).encode()?)
+                        })
+                        .collect::<Result<_>>()?,
+                }
+            }
         };
 
-        Some(WalletInfo {
+        Ok(Some(WalletInfo {
             name: wallet.name.clone(),
             fingerprint: wallet.fingerprint,
             kind,
-            network_id: wallet.network.clone().unwrap_or_else(|| self.network_id()),
+            network_id,
             emoji: wallet.emoji.clone(),
-        })
+        }))
+    }
+
+    /// The address prefix of a network, falling back to the active network's.
+    fn network_prefix(&self, network_id: &str) -> String {
+        self.network_list
+            .by_name(network_id)
+            .unwrap_or_else(|| self.network())
+            .prefix()
+    }
+
+    pub async fn import_watch_wallet(
+        &mut self,
+        req: ImportWatchWallet,
+    ) -> Result<ImportWatchWalletResponse> {
+        let p2_puzzle_hashes = parse_watch_addresses(req.addresses, &self.network().prefix())?;
+
+        if p2_puzzle_hashes.is_empty() {
+            return Err(Error::NoWatchAddresses);
+        }
+
+        let sorted = sorted_set(&p2_puzzle_hashes);
+
+        if let Some(existing) = self.wallet_config.wallets.iter().find(|wallet| {
+            matches!(&wallet.kind, ConfigWalletKind::Watch { p2_puzzle_hashes } if sorted_set(p2_puzzle_hashes) == sorted)
+        }) {
+            return Err(Error::WalletExists(existing.fingerprint));
+        }
+
+        // A watch wallet has no key to take a fingerprint from, so it's hashed from the set of
+        // addresses it's imported with. It stays the same when addresses are added or removed.
+        let mut hasher = Sha256::new();
+        for p2_puzzle_hash in &sorted {
+            hasher.update(p2_puzzle_hash);
+        }
+        let seed = hasher.finalize();
+
+        let fingerprint =
+            assign_fingerprint(&seed, |fingerprint| self.fingerprint_taken(fingerprint))
+                .ok_or(Error::NoFreeFingerprint)?;
+
+        self.wallet_config.wallets.push(Wallet {
+            name: req.name,
+            fingerprint,
+            // Addresses belong to one network, so the wallet stays on the one it was imported on.
+            network: Some(self.network().name.clone()),
+            emoji: req.emoji,
+            kind: ConfigWalletKind::Watch { p2_puzzle_hashes },
+            ..Default::default()
+        });
+
+        if req.login {
+            self.config.global.fingerprint = Some(fingerprint);
+        }
+
+        self.save_config()?;
+
+        if req.login {
+            self.switch_wallet().await?;
+        }
+
+        Ok(ImportWatchWalletResponse { fingerprint })
+    }
+
+    pub async fn add_watch_addresses(
+        &mut self,
+        req: AddWatchAddresses,
+    ) -> Result<AddWatchAddressesResponse> {
+        let prefix = self.watch_wallet_prefix(req.fingerprint)?;
+        let new = parse_watch_addresses(req.addresses, &prefix)?;
+
+        let p2_puzzle_hashes = self.watch_wallet_mut(req.fingerprint)?;
+
+        for p2_puzzle_hash in new {
+            if !p2_puzzle_hashes.contains(&p2_puzzle_hash) {
+                p2_puzzle_hashes.push(p2_puzzle_hash);
+            }
+        }
+
+        self.save_config()?;
+        self.update_watched_p2_puzzles(req.fingerprint).await?;
+
+        Ok(AddWatchAddressesResponse {})
+    }
+
+    pub async fn remove_watch_addresses(
+        &mut self,
+        req: RemoveWatchAddresses,
+    ) -> Result<RemoveWatchAddressesResponse> {
+        let prefix = self.watch_wallet_prefix(req.fingerprint)?;
+        let removed = parse_watch_addresses(req.addresses, &prefix)?;
+
+        let p2_puzzle_hashes = self.watch_wallet_mut(req.fingerprint)?;
+
+        let remaining: Vec<Bytes32> = p2_puzzle_hashes
+            .iter()
+            .copied()
+            .filter(|p2_puzzle_hash| !removed.contains(p2_puzzle_hash))
+            .collect();
+
+        if remaining.is_empty() {
+            return Err(Error::NoWatchAddresses);
+        }
+
+        *p2_puzzle_hashes = remaining;
+
+        self.save_config()?;
+        self.update_watched_p2_puzzles(req.fingerprint).await?;
+
+        Ok(RemoveWatchAddressesResponse {})
+    }
+
+    /// The address prefix of a watch wallet's network.
+    fn watch_wallet_prefix(&self, fingerprint: u32) -> Result<String> {
+        let wallet = self
+            .wallet_entry(fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        if !matches!(wallet.kind, ConfigWalletKind::Watch { .. }) {
+            return Err(Error::NotWatchWallet(fingerprint));
+        }
+
+        let network_id = wallet.network.clone().unwrap_or_else(|| self.network_id());
+
+        Ok(self.network_prefix(&network_id))
+    }
+
+    fn watch_wallet_mut(&mut self, fingerprint: u32) -> Result<&mut Vec<Bytes32>> {
+        let wallet = self
+            .wallet_config
+            .wallets
+            .iter_mut()
+            .find(|wallet| wallet.fingerprint == fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        match &mut wallet.kind {
+            ConfigWalletKind::Watch { p2_puzzle_hashes } => Ok(p2_puzzle_hashes),
+            ConfigWalletKind::Bls => Err(Error::NotWatchWallet(fingerprint)),
+        }
+    }
+
+    /// Brings the open watch wallet's database in line with `wallets.toml`, and subscribes to
+    /// newly watched puzzle hashes, so they sync without a full resync. Other wallets catch up
+    /// the next time they're opened.
+    async fn update_watched_p2_puzzles(&self, fingerprint: u32) -> Result<()> {
+        let Some(wallet) = self
+            .wallet
+            .as_ref()
+            .filter(|wallet| wallet.fingerprint == fingerprint)
+        else {
+            return Ok(());
+        };
+
+        let p2_puzzle_hashes = self
+            .watched_p2_puzzle_hashes(fingerprint)
+            .ok_or(Error::NotWatchWallet(fingerprint))?;
+
+        let added = watch_p2_puzzles(&wallet.db, p2_puzzle_hashes).await?;
+
+        if !added.is_empty() {
+            self.command_sender
+                .send(SyncCommand::SubscribePuzzles {
+                    puzzle_hashes: added,
+                })
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    /// Whether a new wallet without a BLS key can't use this fingerprint. Besides existing
+    /// wallets, this avoids keys in the keychain, whose wallets would use their fingerprint,
+    /// and databases left behind by wallets that are no longer listed.
+    fn fingerprint_taken(&self, fingerprint: u32) -> bool {
+        self.wallet_entry(fingerprint).is_some()
+            || self.keychain.contains(fingerprint)
+            || self
+                .path
+                .join("wallets")
+                .join(fingerprint.to_string())
+                .exists()
     }
 
     /// Adds a BLS key to the keychain, and returns whether the keychain changed. A key that's
@@ -506,7 +707,7 @@ impl Sage {
         &self,
         req: GetWalletAddress,
     ) -> Result<GetWalletAddressResponse> {
-        let WalletKind::Bls { intermediate_pk } = self.wallet_kind(req.fingerprint)?;
+        let kind = self.wallet_kind(req.fingerprint)?;
 
         // Return the change_address override directly if one is configured
         let wallet_cfg = self
@@ -529,6 +730,18 @@ impl Sage {
             .ok_or(Error::UnknownFingerprint)?;
 
         let prefix = network.prefix();
+
+        let WalletKind::Bls { intermediate_pk } = kind else {
+            let p2_puzzle_hash = self
+                .watched_p2_puzzle_hashes(req.fingerprint)
+                .and_then(|p2_puzzle_hashes| p2_puzzle_hashes.first().copied())
+                .ok_or(Error::NoWatchAddresses)?;
+
+            return Ok(GetWalletAddressResponse {
+                address: Address::new(p2_puzzle_hash, prefix).encode()?,
+            });
+        };
+
         // Try to read the current receive address from the wallet's DB
         let p2_puzzle_hash = self
             .address_from_db(req.fingerprint, &req.network_id, false)
@@ -628,4 +841,30 @@ fn parse_key(key: &str) -> Result<ParsedKey> {
         master_sk,
         mnemonic,
     })
+}
+
+fn sorted_set(p2_puzzle_hashes: &[Bytes32]) -> Vec<Bytes32> {
+    let mut sorted = p2_puzzle_hashes.to_vec();
+    sorted.sort_unstable();
+    sorted.dedup();
+    sorted
+}
+
+/// Decodes addresses for a watch wallet, without duplicates and in the order given.
+fn parse_watch_addresses(addresses: Vec<String>, prefix: &str) -> Result<Vec<Bytes32>> {
+    let mut p2_puzzle_hashes = Vec::new();
+
+    for address in addresses {
+        let address = Address::decode(address.trim())?;
+
+        if address.prefix != prefix {
+            return Err(Error::AddressPrefix(address.prefix));
+        }
+
+        if !p2_puzzle_hashes.contains(&address.puzzle_hash) {
+            p2_puzzle_hashes.push(address.puzzle_hash);
+        }
+    }
+
+    Ok(p2_puzzle_hashes)
 }

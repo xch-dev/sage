@@ -638,3 +638,101 @@ pub struct DeleteUserTheme {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DeleteUserThemeResponse {}
+
+/// Import a watch-only wallet from addresses
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Import a read-only wallet that watches one or more addresses on the active network. Its balances, assets and history are synced, but it can't create or sign transactions, since the puzzle reveals of its coins are unknown. Optionally logs in automatically."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ImportWatchWallet {
+    /// Display name for the wallet
+    pub name: String,
+    /// Addresses to watch, on the active network. The first one is the receive address
+    pub addresses: Vec<String>,
+    /// Whether to automatically login after import
+    #[serde(default = "yes")]
+    #[cfg_attr(feature = "openapi", schema(default = true))]
+    pub login: bool,
+    /// Optional emoji identifier
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub emoji: Option<String>,
+}
+
+/// Response with the imported watch wallet's fingerprint
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ImportWatchWalletResponse {
+    /// Fingerprint assigned to the wallet. It's derived from its addresses, since it has no key
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+}
+
+/// Watch more addresses in a watch wallet
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Add addresses to a watch wallet. If it's the active wallet, they're synced right away, without a full resync. Addresses it already watches are ignored."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct AddWatchAddresses {
+    /// Fingerprint of the watch wallet
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+    /// Addresses to watch, on the wallet's network
+    pub addresses: Vec<String>,
+}
+
+/// Response for adding watched addresses
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct AddWatchAddressesResponse {}
+
+/// Stop watching addresses in a watch wallet
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Remove addresses from a watch wallet, along with the coins synced for them. A watch wallet must keep at least one address."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct RemoveWatchAddresses {
+    /// Fingerprint of the watch wallet
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+    /// Addresses to stop watching
+    pub addresses: Vec<String>,
+}
+
+/// Response for removing watched addresses
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct RemoveWatchAddressesResponse {}

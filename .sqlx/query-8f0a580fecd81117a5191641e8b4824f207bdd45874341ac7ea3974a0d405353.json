@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "8f0a580fecd81117a5191641e8b4824f207bdd45874341ac7ea3974a0d405353"
+}

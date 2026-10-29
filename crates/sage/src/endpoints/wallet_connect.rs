@@ -19,7 +19,9 @@ use sage_api::{
     },
 };
 use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, DeserializePrimitive, P2Puzzle};
-use sage_wallet::{Status, SyncCommand, Transaction, insert_transaction, submit_to_peers};
+use sage_wallet::{
+    Status, SyncCommand, Transaction, WalletError, insert_transaction, submit_to_peers,
+};
 use tracing::{debug, info, warn};
 
 use crate::{
@@ -122,6 +124,7 @@ impl Sage {
                 P2Puzzle::Arbor(key) => {
                     P2DelegatedConditionsLayer::new(key).construct_puzzle(&mut ctx)?
                 }
+                P2Puzzle::External => return Err(WalletError::WatchOnly.into()),
             };
 
             let (puzzle, proof) = match req.kind {
@@ -191,11 +194,7 @@ impl Sage {
             return Err(Error::InvalidKey);
         };
 
-        let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
-        else {
-            return Err(Error::NoSigningKey);
-        };
+        let master_sk = self.master_secret_key(&wallet)?;
 
         let secret_key = if info.is_hardened {
             master_to_wallet_hardened(&master_sk, info.derivation_index)
@@ -230,11 +229,7 @@ impl Sage {
             return Err(Error::InvalidKey);
         };
 
-        let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
-        else {
-            return Err(Error::NoSigningKey);
-        };
+        let master_sk = self.master_secret_key(&wallet)?;
 
         let secret_key = if info.is_hardened {
             master_to_wallet_hardened(&master_sk, info.derivation_index)

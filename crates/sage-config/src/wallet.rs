@@ -1,4 +1,6 @@
+use chia_wallet_sdk::prelude::*;
 use serde::{Deserialize, Serialize};
+use serde_with::{hex::Hex, serde_as};
 use specta::Type;
 
 /// The current version of `wallets.toml`. Files written before it had a version are version 0.
@@ -46,37 +48,56 @@ pub struct Wallet {
 }
 
 /// The kind of a wallet. A BLS wallet's key is stored in the keychain under the wallet's
-/// fingerprint.
+/// fingerprint. A watch wallet has no key, and is defined entirely here.
 ///
 /// It's read through [`RawWalletKind`], since a flattened field can't have a default, and a
 /// missing `type` means BLS. BLS wallets are written without a `type`, in JSON as well as TOML,
 /// so TypeScript code should check for the other kinds rather than for `type: "bls"`.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(tag = "type", rename_all = "snake_case", from = "RawWalletKind")]
+#[serde_as]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(tag = "type", rename_all = "snake_case", try_from = "RawWalletKind")]
 pub enum WalletKind {
     #[default]
     Bls,
+    /// The p2 puzzle hashes being watched. The first one is the wallet's receive address.
+    Watch {
+        #[serde_as(as = "Vec<Hex>")]
+        #[specta(type = Vec<String>)]
+        p2_puzzle_hashes: Vec<Bytes32>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum WalletKindTag {
     Bls,
+    Watch,
 }
 
 /// The fields of every kind of wallet, which are checked against the `type` when converting
 /// to a [`WalletKind`].
+#[serde_as]
 #[derive(Debug, Deserialize)]
 struct RawWalletKind {
     #[serde(rename = "type")]
     tag: Option<WalletKindTag>,
+    #[serde_as(as = "Option<Vec<Hex>>")]
+    #[serde(default)]
+    p2_puzzle_hashes: Option<Vec<Bytes32>>,
 }
 
-impl From<RawWalletKind> for WalletKind {
-    fn from(raw: RawWalletKind) -> Self {
-        match raw.tag.unwrap_or(WalletKindTag::Bls) {
+impl TryFrom<RawWalletKind> for WalletKind {
+    type Error = &'static str;
+
+    fn try_from(raw: RawWalletKind) -> Result<Self, Self::Error> {
+        Ok(match raw.tag.unwrap_or(WalletKindTag::Bls) {
             WalletKindTag::Bls => Self::Bls,
-        }
+            WalletKindTag::Watch => Self::Watch {
+                p2_puzzle_hashes: raw
+                    .p2_puzzle_hashes
+                    .ok_or("a watch wallet needs `p2_puzzle_hashes`")?,
+            },
+        })
     }
 }
 
@@ -206,6 +227,54 @@ mod tests {
     }
 
     #[test]
+    fn test_watch_wallet() {
+        let config = Wallet {
+            change_address: None,
+            kind: WalletKind::Watch {
+                p2_puzzle_hashes: vec![Bytes32::new([2; 32]), Bytes32::new([3; 32])],
+            },
+            ..default()
+        };
+        check(
+            config,
+            &expect![[r#"
+                version = 1
+
+                [defaults]
+                delta_sync = true
+
+                [[wallets]]
+                name = "Main"
+                fingerprint = 1000000
+                type = "watch"
+                p2_puzzle_hashes = [
+                    "0202020202020202020202020202020202020202020202020202020202020202",
+                    "0303030303030303030303030303030303030303030303030303030303030303",
+                ]
+            "#]],
+            &expect![[r#"
+                {
+                  "version": 1,
+                  "defaults": {
+                    "delta_sync": true
+                  },
+                  "wallets": [
+                    {
+                      "name": "Main",
+                      "fingerprint": 1000000,
+                      "delta_sync": null,
+                      "type": "watch",
+                      "p2_puzzle_hashes": [
+                        "0202020202020202020202020202020202020202020202020202020202020202",
+                        "0303030303030303030303030303030303030303030303030303030303030303"
+                      ]
+                    }
+                  ]
+                }"#]],
+        );
+    }
+
+    #[test]
     fn test_unversioned_wallet_config() {
         let config: WalletConfig =
             toml::from_str("[[wallets]]\nname = \"Main\"\nfingerprint = 1000000\n")
@@ -232,5 +301,14 @@ mod tests {
             "[[wallets]]\nname = \"Bad\"\nfingerprint = 1\ntype = \"other\"\n",
         );
         assert!(result.is_err());
+
+        let result = toml::from_str::<WalletConfig>(
+            "[[wallets]]\nname = \"Bad\"\nfingerprint = 1\ntype = \"watch\"\n",
+        );
+        let message = result.expect_err("missing fields should fail").to_string();
+        assert!(
+            message.contains("a watch wallet needs `p2_puzzle_hashes`"),
+            "{message}"
+        );
     }
 }

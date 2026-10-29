@@ -175,11 +175,7 @@ impl Sage {
             .make_offer(offered, requested, req.expires_at_second)
             .await?;
 
-        let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
-        else {
-            return Err(Error::NoSigningKey);
-        };
+        let master_sk = self.master_secret_key(&wallet)?;
 
         let offer = wallet
             .sign_transaction(
@@ -236,11 +232,7 @@ impl Sage {
 
         let taken = wallet.take_offer(offer, fee).await?;
 
-        let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
-        else {
-            return Err(Error::NoSigningKey);
-        };
+        let master_sk = self.master_secret_key(&wallet)?;
 
         let TakenOffer {
             offer,

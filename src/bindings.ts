@@ -29,6 +29,15 @@ async generateMnemonic(req: GenerateMnemonic) : Promise<GenerateMnemonicResponse
 async importWallet(req: ImportWallet) : Promise<ImportWalletResponse> {
     return await TAURI_INVOKE("import_wallet", { req });
 },
+async importWatchWallet(req: ImportWatchWallet) : Promise<ImportWatchWalletResponse> {
+    return await TAURI_INVOKE("import_watch_wallet", { req });
+},
+async addWatchAddresses(req: AddWatchAddresses) : Promise<AddWatchAddressesResponse> {
+    return await TAURI_INVOKE("add_watch_addresses", { req });
+},
+async removeWatchAddresses(req: RemoveWatchAddresses) : Promise<RemoveWatchAddressesResponse> {
+    return await TAURI_INVOKE("remove_watch_addresses", { req });
+},
 async deleteWallet(req: DeleteWallet) : Promise<DeleteWalletResponse> {
     return await TAURI_INVOKE("delete_wallet", { req });
 },
@@ -582,6 +591,22 @@ export type AddPeer = {
  * IP address or hostname with port
  */
 ip: string }
+/**
+ * Watch more addresses in a watch wallet
+ */
+export type AddWatchAddresses = { 
+/**
+ * Fingerprint of the watch wallet
+ */
+fingerprint: number; 
+/**
+ * Addresses to watch, on the wallet's network
+ */
+addresses: string[] }
+/**
+ * Response for adding watched addresses
+ */
+export type AddWatchAddressesResponse = Record<string, never>
 /**
  * The contacts which name an address
  */
@@ -2554,6 +2579,34 @@ export type ImportWalletResponse = {
  */
 fingerprint: number }
 /**
+ * Import a watch-only wallet from addresses
+ */
+export type ImportWatchWallet = { 
+/**
+ * Display name for the wallet
+ */
+name: string; 
+/**
+ * Addresses to watch, on the active network. The first one is the receive address
+ */
+addresses: string[]; 
+/**
+ * Whether to automatically login after import
+ */
+login?: boolean; 
+/**
+ * Optional emoji identifier
+ */
+emoji?: string | null }
+/**
+ * Response with the imported watch wallet's fingerprint
+ */
+export type ImportWatchWalletResponse = { 
+/**
+ * Fingerprint assigned to the wallet. It's derived from its addresses, since it has no key
+ */
+fingerprint: number }
+/**
  * Increase the derivation index to generate more addresses
  */
 export type IncreaseDerivationIndex = { 
@@ -3226,6 +3279,22 @@ ip: string;
  * Whether to ban the peer from reconnecting
  */
 ban: boolean }
+/**
+ * Stop watching addresses in a watch wallet
+ */
+export type RemoveWatchAddresses = { 
+/**
+ * Fingerprint of the watch wallet
+ */
+fingerprint: number; 
+/**
+ * Addresses to stop watching
+ */
+addresses: string[] }
+/**
+ * Response for removing watched addresses
+ */
+export type RemoveWatchAddressesResponse = Record<string, never>
 /**
  * Rename a wallet
  */
@@ -4055,7 +4124,11 @@ export type Wallet =
  * What the wallet is made of. It's stored alongside the wallet's own fields, under a `type`
  * key, which is omitted for BLS wallets since every wallet was one before kinds existed.
  */
-({ type: "bls" }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
+({ type: "bls" } | 
+/**
+ * The p2 puzzle hashes being watched. The first one is the wallet's receive address.
+ */
+{ type: "watch"; p2_puzzle_hashes: string[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
 export type WalletInfo = { name: string; fingerprint: number; kind: WalletKind; network_id: string; emoji: string | null }
 /**
@@ -4066,7 +4139,15 @@ export type WalletKind =
  * A BLS key, whose addresses are derived from its master public key. The key is in the
  * keychain under the wallet's fingerprint
  */
-"bls"
+"bls" | 
+/**
+ * A read-only list of addresses, whose puzzle reveals are unknown
+ */
+{ watch: { 
+/**
+ * The addresses being watched. The first one is the receive address
+ */
+addresses: string[] } }
 export type WindowTargetParams = { windowLabel: string }
 /**
  * The XCHandles deployment used to resolve handles on a network.

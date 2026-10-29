@@ -8,7 +8,7 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use crate::{SyncCommand, Wallet, WalletError, WalletPeer};
+use crate::{SyncCommand, Wallet, WalletError, WalletKind, WalletPeer};
 
 use super::{PeerState, SyncEvent};
 
@@ -313,6 +313,11 @@ async fn auto_insert_unhardened_derivations(
     wallet: &Wallet,
     tx: &mut DatabaseTx<'_>,
 ) -> Result<Vec<Bytes32>, WalletError> {
+    // Only BLS wallets derive addresses. Watch wallets sync just their external p2 puzzles.
+    if !matches!(wallet.kind, WalletKind::Bls { .. }) {
+        return Ok(Vec::new());
+    }
+
     let mut derivations = Vec::new();
     let mut next_index = tx.derivation_index(false).await?;
 
@@ -376,8 +381,6 @@ mod tests {
     use sqlx::{SqlitePool, migrate};
     use tokio::time::timeout;
 
-    use crate::WalletKind;
-
     use super::*;
 
     #[tokio::test]
@@ -427,6 +430,69 @@ mod tests {
         assert!(matches!(
             timeout(Duration::from_secs(10), command_receiver.recv()).await?,
             Some(SyncCommand::SubscribePuzzles { puzzle_hashes }) if !puzzle_hashes.is_empty()
+        ));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn watch_wallets_never_derive_or_spend() -> anyhow::Result<()> {
+        let pool = SqlitePool::connect("file:watch_never_derives?mode=memory&cache=shared").await?;
+        migrate!("../../migrations").run(&pool).await?;
+        let db = Database::new(pool);
+        db.run_rust_migrations("TXCH".to_string()).await?;
+
+        let shared_pool = SqlitePool::connect("sqlite::memory:").await?;
+        migrate!("../../migrations").run(&shared_pool).await?;
+
+        let watched = Bytes32::new([2; 32]);
+        let mut tx = db.tx().await?;
+        tx.insert_external_p2_puzzle(watched).await?;
+        tx.commit().await?;
+
+        let wallet = Wallet::new(
+            db,
+            SharedDatabase::new(shared_pool),
+            1,
+            WalletKind::Watch,
+            TESTNET11_CONSTANTS.genesis_challenge,
+            AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
+            None,
+        );
+
+        // Watched puzzle hashes count as the wallet's own, so they're synced.
+        assert_eq!(wallet.db.custody_p2_puzzle_hashes().await?, [watched]);
+        assert!(wallet.db.is_custody_p2_puzzle_hash(watched).await?);
+
+        let (command_sender, mut command_receiver) = mpsc::channel(10);
+        let (event_sender, mut event_receiver) = mpsc::channel(10);
+
+        incremental_sync(&wallet, Vec::new(), true, &event_sender, &command_sender).await?;
+
+        assert!(command_receiver.try_recv().is_err(), "it subscribed");
+        assert!(event_receiver.try_recv().is_err(), "it sent an event");
+        assert_eq!(wallet.db.max_derivation_index(false).await?, None);
+
+        let mut tx = wallet.db.tx().await?;
+        assert!(matches!(
+            wallet.insert_unhardened_derivations(&mut tx, 0..10).await,
+            Err(WalletError::DerivationsNotSupported)
+        ));
+        tx.commit().await?;
+
+        assert!(matches!(
+            wallet.p2_puzzle_hashes(1, false, true).await,
+            Err(WalletError::DerivationsNotSupported)
+        ));
+        assert!(matches!(
+            wallet.change_p2_puzzle_hash().await,
+            Err(WalletError::WatchOnly)
+        ));
+
+        let mut ctx = SpendContext::new();
+        assert!(matches!(
+            wallet.spend(&mut ctx, Vec::new(), &[]).await,
+            Err(WalletError::WatchOnly)
         ));
 
         Ok(())

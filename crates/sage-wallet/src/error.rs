@@ -72,6 +72,12 @@ pub enum WalletError {
     #[error("Insufficient derivations")]
     InsufficientDerivations,
 
+    #[error("This kind of wallet doesn't derive addresses")]
+    DerivationsNotSupported,
+
+    #[error("Watch-only wallets can't create or sign transactions")]
+    WatchOnly,
+
     #[error("Missing secret key")]
     UnknownPublicKey,
 

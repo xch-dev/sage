@@ -5,4 +5,7 @@ use chia_wallet_sdk::prelude::*;
 pub enum WalletKind {
     /// A BLS key, whose standard addresses are derived from the unhardened intermediate key.
     Bls { intermediate_pk: PublicKey },
+    /// A list of watched p2 puzzle hashes, stored in the database as external p2 puzzles. Their
+    /// puzzle reveals are unknown, so the wallet can't derive addresses or spend.
+    Watch,
 }

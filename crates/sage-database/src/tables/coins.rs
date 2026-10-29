@@ -513,7 +513,7 @@ async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Byte
         "
         SELECT coin_hash FROM wallet_coins
         WHERE spent_height IS NULL
-        AND (asset_id != 0 OR p2_puzzle_kind != 0)
+        AND (asset_id != 0 OR p2_puzzle_kind NOT IN (0, 4))
         "
     )
     .fetch_all(conn)

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT coin_hash FROM wallet_coins\n        WHERE spent_height IS NULL\n        AND (asset_id != 0 OR p2_puzzle_kind != 0)\n        ",
+  "query": "\n        SELECT coin_hash FROM wallet_coins\n        WHERE spent_height IS NULL\n        AND (asset_id != 0 OR p2_puzzle_kind NOT IN (0, 4))\n        ",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "a5f50b4a6c72d804c5fb0139b5d804e8f59f2e47bde3dafdd78d72a0987f41a7"
+  "hash": "732e6579ddc46a4f6e307d9516c9191343ac6764959b2d7388b7f2fcf25831ef"
 }

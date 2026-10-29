@@ -7,7 +7,7 @@ use anyhow::{Context, Result, anyhow, bail};
 use clap::{Args, Subcommand};
 use sage_api::{
     Amount, GetCats, GetSyncStatus, GetToken, GetWallet, HandleConfirmation, RecipientError,
-    RecipientErrorKind, SendCat, SendXch, SignCoinSpends, TransactionResponse, Unit,
+    RecipientErrorKind, SendCat, SendXch, SignCoinSpends, TransactionResponse, Unit, WalletKind,
 };
 use sage_client::{Client, SageRpcError};
 use serde::{Deserialize, Serialize};
@@ -116,6 +116,9 @@ async fn status(client: &Client, json: bool) -> Result<()> {
     };
 
     println!("Wallet:   {} ({})", wallet.name, wallet.fingerprint);
+    if matches!(wallet.kind, WalletKind::Watch { .. }) {
+        println!("Kind:     watch-only");
+    }
     println!("Network:  {}", wallet.network_id);
     println!(
         "Balance:  {} {} spendable",

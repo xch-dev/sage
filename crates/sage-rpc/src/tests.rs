@@ -2,6 +2,7 @@ mod contacts;
 mod keys;
 mod recipients;
 mod wallets;
+mod watch_wallets;
 
 use std::{
     collections::HashMap,
