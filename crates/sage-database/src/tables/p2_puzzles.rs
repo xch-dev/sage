@@ -142,9 +142,22 @@ impl Database {
         external_p2_puzzle_hashes(&self.pool).await
     }
 
-    /// Watched puzzle hashes that no coins have been synced for yet.
-    pub async fn unsynced_external_p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
-        unsynced_external_p2_puzzle_hashes(&self.pool).await
+    /// Custody puzzle hashes that haven't been synced from the start of the chain to the end yet.
+    pub async fn unsynced_custody_p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
+        unsynced_custody_p2_puzzle_hashes(&self.pool).await
+    }
+
+    /// Marks puzzle hashes as synced from the start of the chain to the end.
+    pub async fn mark_p2_puzzles_synced(&self, p2_puzzle_hashes: &[Bytes32]) -> Result<()> {
+        let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+
+        for &p2_puzzle_hash in p2_puzzle_hashes {
+            mark_p2_puzzle_synced(&mut *tx, p2_puzzle_hash).await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(())
     }
 }
 
@@ -520,19 +533,29 @@ async fn external_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<
         .collect()
 }
 
-async fn unsynced_external_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+async fn unsynced_custody_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4) AND is_synced = FALSE")
+        .fetch_all(conn)
+        .await?
+        .into_iter()
+        .map(|row| row.hash.convert())
+        .collect()
+}
+
+async fn mark_p2_puzzle_synced(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<()> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
     query!(
-        "
-        SELECT hash FROM p2_puzzles
-        WHERE kind = 4
-        AND NOT EXISTS (SELECT 1 FROM coins WHERE coins.p2_puzzle_id = p2_puzzles.id)
-        "
+        "UPDATE p2_puzzles SET is_synced = TRUE WHERE hash = ?",
+        p2_puzzle_hash
     )
-    .fetch_all(conn)
-    .await?
-    .into_iter()
-    .map(|row| row.hash.convert())
-    .collect()
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }
 
 async fn insert_external_p2_puzzle(

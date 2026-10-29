@@ -22,12 +22,11 @@ pub async fn sync_wallet(
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
-    // Watched puzzle hashes without any coins may have been added since the last sync, such as
-    // while the wallet was closed, so they're synced from the start rather than the last peak.
-    // One that never had coins is cheap to check again.
+    // Puzzle hashes that haven't been fully synced yet, such as ones added while the wallet was
+    // closed or whose sync was interrupted, are synced from the start rather than the last peak.
     let unsynced: HashSet<Bytes32> = wallet
         .db
-        .unsynced_external_p2_puzzle_hashes()
+        .unsynced_custody_p2_puzzle_hashes()
         .await?
         .into_iter()
         .collect();
@@ -232,6 +231,10 @@ async fn sync_puzzle_hashes(
             break;
         }
     }
+
+    // Only once every page has been synced. Puzzle hashes synced from the last peak were already
+    // synced before, so marking them again changes nothing.
+    wallet.db.mark_p2_puzzles_synced(puzzle_hashes).await?;
 
     Ok(())
 }
@@ -491,6 +494,20 @@ mod tests {
         // Watched puzzle hashes count as the wallet's own, so they're synced.
         assert_eq!(wallet.db.custody_p2_puzzle_hashes().await?, [watched]);
         assert!(wallet.db.is_custody_p2_puzzle_hash(watched).await?);
+
+        // Until it's been synced from the start to the end, it's synced from the start.
+        assert_eq!(
+            wallet.db.unsynced_custody_p2_puzzle_hashes().await?,
+            [watched]
+        );
+        wallet.db.mark_p2_puzzles_synced(&[watched]).await?;
+        assert!(
+            wallet
+                .db
+                .unsynced_custody_p2_puzzle_hashes()
+                .await?
+                .is_empty()
+        );
 
         let (command_sender, mut command_receiver) = mpsc::channel(10);
         let (event_sender, mut event_receiver) = mpsc::channel(10);

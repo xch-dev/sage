@@ -580,3 +580,63 @@ async fn addresses_added_while_closed_sync_when_opened() -> Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn an_interrupted_sync_is_resumed_from_the_start() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let (alice, expected, addresses) = alice_with_assets(&mut app).await?;
+
+    let watch = app
+        .import_watch_wallet(import(vec![addresses[0].clone()]))
+        .await?
+        .fingerprint;
+    app.consume_until(|event| matches!(event, SyncEvent::Subscribed))
+        .await;
+    wait_for_holdings(&mut app, &expected).await?;
+
+    // As if syncing the address from the start had stopped partway: its latest coins are
+    // missing, and it isn't marked as synced.
+    app.login(Login { fingerprint: alice }).await?;
+    {
+        let p2_puzzle_hash = Address::decode(&addresses[0])?.puzzle_hash.to_vec();
+        let pool = app.sage.lock().await.connect_to_database(watch).await?;
+
+        sqlx::query(
+            "
+            DELETE FROM coins WHERE id IN (
+                SELECT coins.id FROM coins
+                INNER JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id
+                WHERE p2_puzzles.hash = ?
+                ORDER BY coins.created_height DESC
+                LIMIT 2
+            )
+            ",
+        )
+        .bind(&p2_puzzle_hash)
+        .execute(&pool)
+        .await?;
+
+        sqlx::query("UPDATE p2_puzzles SET is_synced = FALSE WHERE hash = ?")
+            .bind(&p2_puzzle_hash)
+            .execute(&pool)
+            .await?;
+    }
+
+    // The wallet resumes from its last peak, except for the address, which is synced again.
+    app.login(Login { fingerprint: watch }).await?;
+    assert!(
+        app.sage
+            .lock()
+            .await
+            .wallet()?
+            .db
+            .latest_peak()
+            .await?
+            .is_some(),
+        "the watch wallet should resume from its last peak"
+    );
+    wait_for_holdings(&mut app, &expected).await?;
+
+    Ok(())
+}
