@@ -1275,22 +1275,17 @@ function KeySettings() {
                             <Trans>Details</Trans>
                           </span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className='cursor-pointer text-red-600 focus:text-red-500'
-                          disabled={wallet !== null}
-                          onClick={() => setDeleting(key)}
-                        >
-                          <TrashIcon className='mr-2 h-4 w-4' />
-                          <span>
-                            {wallet ? (
-                              <Trans>
-                                Delete the wallet to remove this key
-                              </Trans>
-                            ) : (
+                        {!wallet && (
+                          <DropdownMenuItem
+                            className='cursor-pointer text-red-600 focus:text-red-500'
+                            onClick={() => setDeleting(key)}
+                          >
+                            <TrashIcon className='mr-2 h-4 w-4' />
+                            <span>
                               <Trans>Delete</Trans>
-                            )}
-                          </span>
-                        </DropdownMenuItem>
+                            </span>
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>
