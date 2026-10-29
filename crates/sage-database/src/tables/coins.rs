@@ -508,12 +508,14 @@ async fn insert_lineage_proof(
     Ok(())
 }
 
+/// Unspent coins that are subscribed to by coin ID. XCH coins at public key (0), arbor (3) and
+/// external (4) puzzles are left out, since sync subscribes to those puzzle hashes.
 async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
     query!(
         "
         SELECT coin_hash FROM wallet_coins
         WHERE spent_height IS NULL
-        AND (asset_id != 0 OR p2_puzzle_kind NOT IN (0, 4))
+        AND (asset_id != 0 OR p2_puzzle_kind NOT IN (0, 3, 4))
         "
     )
     .fetch_all(conn)
