@@ -4,7 +4,7 @@ import { useAddressContactsLifecycle } from '@/hooks/useAddressContacts';
 import { useAddressHandlesLifecycle } from '@/hooks/useAddressHandles';
 import { useErrors } from '@/hooks/useErrors';
 import { useColdWalletUnsigned } from '@/hooks/useColdWalletUnsigned';
-import { watchedAddresses } from '@/lib/walletKind';
+import { vaultInfo, watchedAddresses } from '@/lib/walletKind';
 import { fetchState, initializeWalletState } from '@/state';
 import { createContext, useContext, useEffect, useState } from 'react';
 
@@ -18,6 +18,8 @@ interface WalletContextType {
   /** True for watch wallets, which only know addresses, so they can't even build
    *  unsigned transactions. */
   isWatchOnly: boolean;
+  /** True for vault wallets, which can't build transactions yet. */
+  isVault: boolean;
   /** True when the user has opted in to building unsigned transactions on cold wallets. */
   allowUnsigned: boolean;
   /** True when transaction-initiating UI should be disabled. Cold wallets can
@@ -37,8 +39,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const { allowUnsigned } = useColdWalletUnsigned();
 
   const isWatchOnly = watchedAddresses(wallet) !== null;
-  // Watch wallets have no key in the keychain.
-  const fingerprint = isWatchOnly ? null : (wallet?.fingerprint ?? null);
+  const isVault = vaultInfo(wallet) !== null;
+  // Watch and vault wallets have no key of their own in the keychain.
+  const fingerprint =
+    isWatchOnly || isVault ? null : (wallet?.fingerprint ?? null);
   const [loadedKey, setLoadedKey] = useState<{
     fingerprint: number;
     key: KeyInfo | null;
@@ -72,8 +76,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   // read-only banner doesn't flash for hot wallets.
   const isReadOnly =
     wallet !== null &&
-    (isWatchOnly || (isKeyLoaded && loadedKey.key?.has_secrets !== true));
-  const isTransactionDisabled = isReadOnly && (isWatchOnly || !allowUnsigned);
+    (isWatchOnly ||
+      isVault ||
+      (isKeyLoaded && loadedKey.key?.has_secrets !== true));
+  const isTransactionDisabled =
+    isReadOnly && (isWatchOnly || isVault || !allowUnsigned);
 
   useAddressHandlesLifecycle(wallet?.fingerprint ?? null);
   useAddressContactsLifecycle(wallet?.fingerprint ?? null);
@@ -106,6 +113,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         setIsSwitching,
         isReadOnly,
         isWatchOnly,
+        isVault,
         allowUnsigned,
         isTransactionDisabled,
       }}

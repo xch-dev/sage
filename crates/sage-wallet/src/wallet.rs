@@ -76,10 +76,12 @@ impl Wallet {
     }
 
     /// Watch wallets don't know the puzzle reveals of their coins, so they can't spend them.
+    /// Vault wallets can't spend yet.
     fn ensure_spendable(&self) -> Result<(), WalletError> {
         match self.kind {
             WalletKind::Bls { .. } => Ok(()),
             WalletKind::Watch => Err(WalletError::WatchOnly),
+            WalletKind::Vault { .. } => Err(WalletError::VaultSpendNotSupported),
         }
     }
 

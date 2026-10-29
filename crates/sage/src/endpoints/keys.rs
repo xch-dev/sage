@@ -1,4 +1,4 @@
-use std::{fs, str::FromStr};
+use std::fs;
 
 use bip39::Mnemonic;
 use chia_wallet_sdk::{
@@ -27,10 +27,10 @@ use sage_api::{
 };
 use sage_config::{Wallet, WalletKind as ConfigWalletKind};
 use sage_database::{Database, Derivation};
-use sage_wallet::{SyncCommand, WalletKind};
+use sage_wallet::{SyncCommand, WalletKind, p2_singleton_puzzle_hash};
 use sqlx::query;
 
-use crate::{Error, Result, Sage, assign_fingerprint, watch_p2_puzzles};
+use crate::{Error, ParsedKey, Result, Sage, assign_fingerprint, parse_key, watch_p2_puzzles};
 
 impl Sage {
     pub async fn login(&mut self, req: Login) -> Result<LoginResponse> {
@@ -144,7 +144,7 @@ impl Sage {
         // A wallet whose key is missing from the keychain, such as after restoring an older
         // `keys.bin`, is hidden from the wallet list. Importing its key again restores it.
         let restoring = match self.wallet_entry(fingerprint).map(|wallet| &wallet.kind) {
-            Some(ConfigWalletKind::Watch { .. }) => {
+            Some(ConfigWalletKind::Watch { .. } | ConfigWalletKind::Vault { .. }) => {
                 return Err(Error::FingerprintCollision(fingerprint));
             }
             Some(ConfigWalletKind::Bls) if self.keychain.contains(fingerprint) => {
@@ -251,18 +251,28 @@ impl Sage {
     }
 
     pub fn delete_wallet(&mut self, req: DeleteWallet) -> Result<DeleteWalletResponse> {
-        // Only a BLS wallet's key belongs to it. A key without a wallet isn't removed here.
-        let owns_key = self
+        // A BLS wallet's key belongs to it, and a vault's signers' keys belong to the vault. A key
+        // without a wallet isn't removed here.
+        let owned_keys = match self
             .wallet_entry(req.fingerprint)
-            .is_some_and(|wallet| matches!(wallet.kind, ConfigWalletKind::Bls));
+            .map(|wallet| &wallet.kind)
+        {
+            Some(ConfigWalletKind::Bls) => vec![req.fingerprint],
+            Some(ConfigWalletKind::Vault { signers, .. }) => signers.clone(),
+            Some(ConfigWalletKind::Watch { .. }) | None => Vec::new(),
+        };
 
         self.wallet_config
             .wallets
             .retain(|wallet| wallet.fingerprint != req.fingerprint);
 
         // Keys are kept if another wallet still uses them, or if the caller asked to keep them.
-        if req.delete_keys && owns_key && !self.is_key_used(req.fingerprint) {
-            self.keychain.remove(req.fingerprint);
+        if req.delete_keys {
+            for fingerprint in owned_keys {
+                if !self.is_key_used(fingerprint) {
+                    self.keychain.remove(fingerprint);
+                }
+            }
         }
 
         if self.config.global.fingerprint == Some(req.fingerprint) {
@@ -414,6 +424,13 @@ impl Sage {
                         .collect::<Result<_>>()?,
                 }
             }
+            ConfigWalletKind::Vault {
+                launcher_id,
+                signers,
+            } => ApiWalletKind::Vault {
+                launcher_id: hex::encode(launcher_id),
+                signers: signers.clone(),
+            },
         };
 
         Ok(Some(WalletInfo {
@@ -540,7 +557,9 @@ impl Sage {
 
         match &mut wallet.kind {
             ConfigWalletKind::Watch { p2_puzzle_hashes } => Ok(p2_puzzle_hashes),
-            ConfigWalletKind::Bls => Err(Error::NotWatchWallet(fingerprint)),
+            ConfigWalletKind::Bls | ConfigWalletKind::Vault { .. } => {
+                Err(Error::NotWatchWallet(fingerprint))
+            }
         }
     }
 
@@ -576,7 +595,7 @@ impl Sage {
     /// Whether a new wallet without a BLS key can't use this fingerprint. Besides existing
     /// wallets, this avoids keys in the keychain, whose wallets would use their fingerprint,
     /// and databases left behind by wallets that are no longer listed.
-    fn fingerprint_taken(&self, fingerprint: u32) -> bool {
+    pub(crate) fn fingerprint_taken(&self, fingerprint: u32) -> bool {
         self.wallet_entry(fingerprint).is_some()
             || self.keychain.contains(fingerprint)
             || self
@@ -588,7 +607,7 @@ impl Sage {
 
     /// Adds a BLS key to the keychain, and returns whether the keychain changed. A key that's
     /// already there is kept, unless this adds a secret key or mnemonic that it doesn't have.
-    fn store_key(
+    pub(crate) fn store_key(
         &mut self,
         master_pk: &PublicKey,
         master_sk: Option<&SecretKey>,
@@ -697,6 +716,13 @@ impl Sage {
 
         let prefix = network.prefix();
 
+        // A vault receives at its first address, which never changes.
+        if let WalletKind::Vault { launcher_id } = kind {
+            return Ok(GetWalletAddressResponse {
+                address: Address::new(p2_singleton_puzzle_hash(launcher_id, 0), prefix).encode()?,
+            });
+        }
+
         // Watch wallets don't make change, so a change address doesn't replace their first
         // watched address.
         let WalletKind::Bls { intermediate_pk } = kind else {
@@ -765,65 +791,6 @@ impl Sage {
         let index = tx.unused_derivation_index(hardened).await?;
         Ok(tx.custody_p2_puzzle_hash(index, hardened).await.ok())
     }
-}
-
-/// A BLS key given as a mnemonic, or a hex encoded secret or public key.
-struct ParsedKey {
-    master_pk: PublicKey,
-    master_sk: Option<SecretKey>,
-    mnemonic: Option<Mnemonic>,
-}
-
-fn parse_key(key: &str) -> Result<ParsedKey> {
-    let mut key_hex = key;
-
-    if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
-        key_hex = &key_hex[2..];
-    }
-
-    let (master_pk, master_sk, mnemonic) = if let Ok(bytes) = hex::decode(key_hex) {
-        if let Ok(master_pk) = bytes.clone().try_into() {
-            (PublicKey::from_bytes(&master_pk)?, None, None)
-        } else if let Ok(master_sk) = bytes.try_into() {
-            let master_sk = SecretKey::from_bytes(&master_sk)?;
-            (master_sk.public_key(), Some(master_sk), None)
-        } else {
-            return Err(Error::InvalidKey);
-        }
-    } else {
-        let words: Vec<&str> = key.split_whitespace().collect();
-        let word_count = words.len();
-
-        if word_count != 12 && word_count != 24 {
-            return Err(Error::InvalidMnemonic(format!(
-                "Expected 12 or 24 words, but got {word_count}."
-            )));
-        }
-
-        let mnemonic = Mnemonic::from_str(key).map_err(|e| match e {
-            bip39::Error::BadWordCount(count) => {
-                Error::InvalidMnemonic(format!("Expected 12 or 24 words, but got {count}."))
-            }
-            bip39::Error::UnknownWord(idx) => Error::InvalidMnemonic(format!(
-                "Word #{} ({}) is not a valid BIP39 word.",
-                idx + 1,
-                words.get(idx).copied().unwrap_or("unknown"),
-            )),
-            bip39::Error::InvalidChecksum => Error::InvalidMnemonic(
-                "Invalid checksum. Please verify all words are correct and in the right order."
-                    .to_string(),
-            ),
-            _ => Error::InvalidMnemonic(format!("Invalid mnemonic: {e}")),
-        })?;
-        let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
-        (master_sk.public_key(), Some(master_sk), Some(mnemonic))
-    };
-
-    Ok(ParsedKey {
-        master_pk,
-        master_sk,
-        mnemonic,
-    })
 }
 
 fn sorted_set(p2_puzzle_hashes: &[Bytes32]) -> Vec<Bytes32> {

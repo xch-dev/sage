@@ -23,7 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
-import { watchedAddresses } from '@/lib/walletKind';
+import { vaultInfo, watchedAddresses } from '@/lib/walletKind';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { t } from '@lingui/core/macro';
@@ -33,6 +33,7 @@ import {
   CopyIcon,
   EraserIcon,
   EyeIcon,
+  Landmark,
   FlameIcon,
   LogInIcon,
   MoreVerticalIcon,
@@ -213,6 +214,7 @@ export function WalletCard({
 
   const networkId = info.network_id;
   const watched = watchedAddresses(info);
+  const vault = vaultInfo(info);
 
   return (
     <>
@@ -365,6 +367,13 @@ export function WalletCard({
                   <Trans>Watch</Trans>
                 </span>
               </div>
+            ) : vault ? (
+              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
+                <Landmark className='h-4 w-4' />
+                <span>
+                  <Trans>Vault</Trans>
+                </span>
+              </div>
             ) : keyInfo === undefined ? null : keyInfo?.has_secrets ? (
               <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
                 <FlameIcon className='h-4 w-4' />
@@ -412,6 +421,12 @@ export function WalletCard({
                   their funds aren&apos;t affected, and you can watch them again
                   later.
                 </Trans>
+              ) : vault ? (
+                <Trans>
+                  Are you sure you want to delete this wallet? The vault and its
+                  funds aren&apos;t affected, and you can import it again later.
+                  Without its signers&apos; keys, it can&apos;t be spent from.
+                </Trans>
               ) : (
                 <Trans>
                   Are you sure you want to delete this wallet? This cannot be
@@ -421,7 +436,7 @@ export function WalletCard({
               )}
             </DialogDescription>
           </DialogHeader>
-          {keyInfo && (
+          {(keyInfo || (vault && vault.signers.length > 0)) && (
             <div className='flex flex-col gap-1'>
               <div className='flex items-center gap-2'>
                 <Switch
@@ -532,6 +547,30 @@ export function WalletCard({
                   {keyInfo.public_key}
                 </p>
               </div>
+            )}
+            {vault && (
+              <>
+                <div>
+                  <h3 className='font-semibold'>
+                    <Trans>Launcher ID</Trans>
+                  </h3>
+                  <p className='break-all text-sm text-muted-foreground'>
+                    {vault.launcherId}
+                  </p>
+                </div>
+                <div>
+                  <h3 className='font-semibold'>
+                    <Trans>Signers</Trans>
+                  </h3>
+                  <p className='break-all text-sm text-muted-foreground'>
+                    {vault.signers.length > 0 ? (
+                      vault.signers.join(', ')
+                    ) : (
+                      <Trans>None</Trans>
+                    )}
+                  </p>
+                </div>
+              </>
             )}
             {watched && (
               <div>
