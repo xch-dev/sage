@@ -1162,8 +1162,6 @@ function RpcSettings() {
   );
 }
 
-/** The keys in the keychain. Wallets add and remove their own keys, so this is
- *  only needed for lower level access, such as keys that aren't wallets. */
 function keyKindName(kind: KeyInfo['kind']) {
   switch (kind) {
     case 'bls':
@@ -1171,11 +1169,16 @@ function keyKindName(kind: KeyInfo['kind']) {
   }
 }
 
+/** The keys in the keychain. Wallets add and remove their own keys, so this is
+ *  only needed for lower level access, such as keys that aren't wallets. */
 function KeySettings() {
   const { addError } = useErrors();
+  const { promptIfEnabled } = useBiometric();
 
   const [keys, setKeys] = useState<KeyInfo[] | null>(null);
-  const [wallets, setWallets] = useState<WalletInfo[]>([]);
+  // Until the wallets load, it isn't known which keys they use.
+  const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
+  const [pendingDelete, setPendingDelete] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [details, setDetails] = useState<KeyInfo | null>(null);
   const [deleting, setDeleting] = useState<KeyInfo | null>(null);
@@ -1198,19 +1201,24 @@ function KeySettings() {
 
   // A BLS key belongs to the BLS wallet with the same fingerprint.
   const walletFor = (key: KeyInfo) =>
-    wallets.find(
+    wallets?.find(
       (wallet) =>
         wallet.fingerprint === key.fingerprint && wallet.kind === 'bls',
     ) ?? null;
 
-  const deleteKey = () => {
-    if (!deleting) return;
+  const deleteKey = async () => {
+    if (!deleting || !(await promptIfEnabled())) return;
+
+    setPendingDelete(true);
 
     commands
       .deleteKey({ fingerprint: deleting.fingerprint })
       .then(refresh)
       .catch(addError)
-      .finally(() => setDeleting(null));
+      .finally(() => {
+        setPendingDelete(false);
+        setDeleting(null);
+      });
   };
 
   return (
@@ -1275,7 +1283,7 @@ function KeySettings() {
                             <Trans>Details</Trans>
                           </span>
                         </DropdownMenuItem>
-                        {!wallet && (
+                        {wallets !== null && !wallet && (
                           <DropdownMenuItem
                             className='cursor-pointer text-red-600 focus:text-red-500'
                             onClick={() => setDeleting(key)}
@@ -1332,7 +1340,11 @@ function KeySettings() {
             <Button variant='outline' onClick={() => setDeleting(null)}>
               <Trans>Cancel</Trans>
             </Button>
-            <Button variant='destructive' onClick={deleteKey}>
+            <Button
+              variant='destructive'
+              onClick={deleteKey}
+              disabled={pendingDelete}
+            >
               <Trans>Delete</Trans>
             </Button>
           </DialogFooter>
