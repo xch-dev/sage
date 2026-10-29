@@ -9,7 +9,7 @@ macro_rules! define_bridge_capabilities {
     (
         $visibility:vis enum $name:ident {
             $(
-                $variant:ident => $key:expr
+                $variant:ident => $key:literal $(| $alias:literal)*
             ),* $(,)?
         }
     ) => {
@@ -28,7 +28,7 @@ macro_rules! define_bridge_capabilities {
         )]
         $visibility enum $name {
             $(
-                #[serde(rename = $key)]
+                #[serde(rename = $key $(, alias = $alias)*)]
                 #[specta(rename = $key)]
                 $variant,
             )*
@@ -47,7 +47,7 @@ macro_rules! define_bridge_capabilities {
 
             pub fn from_key(key: &str) -> Option<Self> {
                 match key {
-                    $($key => Some(Self::$variant),)*
+                    $($key $(| $alias)* => Some(Self::$variant),)*
                     _ => None,
                 }
             }
@@ -75,7 +75,8 @@ define_bridge_capabilities! {
         AppRequestNetworkWhitelistGrant => "app.request_network_whitelist_grant",
         AppRequestPermissionGrants => "app.request_permission_grants",
 
-        WalletGetWallet => "wallet.get_wallet",
+        // Renamed from `wallet.get_key`, which apps installed before then were granted.
+        WalletGetWallet => "wallet.get_wallet" | "wallet.get_key",
         WalletGetSecretKey => "wallet.get_secret_key",
         WalletSendXch => "wallet.send_xch",
         WalletSendXchAutoSubmit => "wallet.send_xch_auto_submit",
@@ -208,6 +209,20 @@ mod tests {
                 panic!("test requires at least one capability with shared_with_app = false")
             })
             .capability()
+    }
+
+    #[test]
+    fn renamed_capabilities_keep_their_old_keys() -> anyhow::Result<()> {
+        let old: UserBridgeCapability = serde_json::from_str("\"wallet.get_key\"")?;
+
+        assert_eq!(old, UserBridgeCapability::WalletGetWallet);
+        assert_eq!(
+            UserBridgeCapability::from_key("wallet.get_key"),
+            Some(UserBridgeCapability::WalletGetWallet)
+        );
+        assert_eq!(serde_json::to_string(&old)?, "\"wallet.get_wallet\"");
+
+        Ok(())
     }
 
     #[test]
