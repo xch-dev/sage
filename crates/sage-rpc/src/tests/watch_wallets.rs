@@ -112,6 +112,29 @@ async fn wait_for_holdings(app: &mut TestApp, expected: &Holdings) -> Result<()>
     );
 }
 
+/// Waits for every puzzle hash of the open wallet to be marked as fully synced, which happens
+/// just after its last page of coins is stored.
+async fn wait_for_synced(app: &mut TestApp) -> Result<()> {
+    for _ in 0..100 {
+        while app.events.try_recv().is_ok() {}
+
+        let wallet = app.sage.lock().await.wallet()?;
+
+        if wallet
+            .db
+            .unsynced_custody_p2_puzzle_hashes()
+            .await?
+            .is_empty()
+        {
+            return Ok(());
+        }
+
+        sleep(Duration::from_millis(100)).await;
+    }
+
+    bail!("the wallet's puzzle hashes were never marked as synced");
+}
+
 /// A BLS wallet holding XCH, a CAT, a DID, an NFT and an option. Returns its fingerprint, its
 /// holdings and the addresses it has derived.
 async fn alice_with_assets(app: &mut TestApp) -> Result<(u32, Holdings, Vec<String>)> {
@@ -578,6 +601,9 @@ async fn addresses_added_while_closed_sync_when_opened() -> Result<()> {
     );
     wait_for_holdings(&mut app, &expected).await?;
 
+    // Once it's synced again, it's marked as synced, so the next open resumes from the peak.
+    wait_for_synced(&mut app).await?;
+
     Ok(())
 }
 
@@ -637,6 +663,9 @@ async fn an_interrupted_sync_is_resumed_from_the_start() -> Result<()> {
         "the watch wallet should resume from its last peak"
     );
     wait_for_holdings(&mut app, &expected).await?;
+
+    // Once it's synced again, it's marked as synced, so the next open resumes from the peak.
+    wait_for_synced(&mut app).await?;
 
     Ok(())
 }
