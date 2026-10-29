@@ -304,11 +304,17 @@ impl DatabaseTx<'_> {
         .execute(&mut *self.tx)
         .await?;
 
-        let members = custody.members.iter().map(|member| (false, member)).chain(
-            recovery
-                .into_iter()
-                .flat_map(|recovery| recovery.members.iter().map(|member| (true, member))),
-        );
+        // The members are collected first, so that no borrowing iterator is held across an await.
+        let members: Vec<(bool, VaultMember)> = custody
+            .members
+            .iter()
+            .map(|&member| (false, member))
+            .chain(
+                recovery
+                    .into_iter()
+                    .flat_map(|recovery| recovery.members.iter().map(|&member| (true, member))),
+            )
+            .collect();
 
         for (is_recovery, member) in members {
             let kind = member.kind();
