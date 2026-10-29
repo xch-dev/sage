@@ -644,7 +644,7 @@ pub struct DeleteUserThemeResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Authentication & Keys",
-        description = "Import a read-only wallet that watches one or more addresses on the active network. Its balances, assets and history are synced, but it can't create or sign transactions, since the puzzle reveals of its coins are unknown. Optionally logs in automatically."
+        description = "Import a read-only wallet that watches one or more addresses. Their prefix isn't checked, since the wallet's network decides how they're shown, so addresses for another network can be imported before switching the wallet to it. Its balances, assets and history are synced, but it can't create or sign transactions, since the puzzle reveals of its coins are unknown. Optionally logs in automatically."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -653,7 +653,7 @@ pub struct DeleteUserThemeResponse {}
 pub struct ImportWatchWallet {
     /// Display name for the wallet
     pub name: String,
-    /// Addresses to watch, on the active network. The first one is the receive address
+    /// Addresses to watch, on any network. The first one is the receive address
     pub addresses: Vec<String>,
     /// Whether to automatically login after import
     #[serde(default = "yes")]
@@ -694,7 +694,7 @@ pub struct AddWatchAddresses {
     /// Fingerprint of the watch wallet
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
     pub fingerprint: u32,
-    /// Addresses to watch, on the wallet's network
+    /// Addresses to watch, on any network
     pub addresses: Vec<String>,
 }
 

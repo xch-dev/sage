@@ -486,15 +486,28 @@ async fn rejects_invalid_watch_wallets() -> Result<()> {
     let alice = app.setup_bls(0).await?;
     let alice_address = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
 
-    // Mainnet addresses don't belong on testnet11.
+    // Addresses for another network can be imported, and are shown on the wallet's network
+    // until it's switched.
     let mainnet = Address::new(Bytes32::new([1; 32]), "xch".to_string()).encode()?;
-    let error = app
-        .import_watch_wallet(import(vec![mainnet]))
-        .await
-        .expect_err("the prefix doesn't match the network");
-    assert!(
-        error.to_string().contains("Wrong address prefix"),
-        "{error}"
+    let other = app
+        .import_watch_wallet(ImportWatchWallet {
+            login: false,
+            ..import(vec![mainnet])
+        })
+        .await?
+        .fingerprint;
+    let wallet = app
+        .get_wallet(GetWallet {
+            fingerprint: Some(other),
+        })
+        .await?
+        .wallet
+        .expect("watch wallet is missing");
+    assert_eq!(
+        wallet.kind,
+        WalletKind::Watch {
+            addresses: vec![Address::new(Bytes32::new([1; 32]), "txch".to_string()).encode()?]
+        }
     );
 
     let error = app

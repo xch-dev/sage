@@ -118,9 +118,9 @@ export function ImportWatchWalletForm() {
               </FormControl>
               <FormDescription>
                 <Trans>
-                  Enter one or more addresses on the current network, separated
-                  by spaces, commas or new lines. The first one is shown as the
-                  receive address. You can add or remove addresses later.
+                  Enter one or more addresses, separated by spaces, commas or
+                  new lines. The first one is shown as the receive address. You
+                  can add or remove addresses later.
                 </Trans>
               </FormDescription>
               <FormMessage />

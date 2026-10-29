@@ -600,7 +600,7 @@ export type AddWatchAddresses = {
  */
 fingerprint: number; 
 /**
- * Addresses to watch, on the wallet's network
+ * Addresses to watch, on any network
  */
 addresses: string[] }
 /**
@@ -2587,7 +2587,7 @@ export type ImportWatchWallet = {
  */
 name: string; 
 /**
- * Addresses to watch, on the active network. The first one is the receive address
+ * Addresses to watch, on any network. The first one is the receive address
  */
 addresses: string[]; 
 /**

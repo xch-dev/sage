@@ -437,7 +437,7 @@ impl Sage {
         &mut self,
         req: ImportWatchWallet,
     ) -> Result<ImportWatchWalletResponse> {
-        let p2_puzzle_hashes = parse_watch_addresses(req.addresses, &self.network().prefix())?;
+        let p2_puzzle_hashes = parse_watch_addresses(req.addresses)?;
 
         if p2_puzzle_hashes.is_empty() {
             return Err(Error::NoWatchAddresses);
@@ -488,8 +488,7 @@ impl Sage {
         &mut self,
         req: AddWatchAddresses,
     ) -> Result<AddWatchAddressesResponse> {
-        let prefix = self.watch_wallet_prefix(req.fingerprint)?;
-        let new = parse_watch_addresses(req.addresses, &prefix)?;
+        let new = parse_watch_addresses(req.addresses)?;
 
         let p2_puzzle_hashes = self.watch_wallet_mut(req.fingerprint)?;
 
@@ -509,8 +508,7 @@ impl Sage {
         &mut self,
         req: RemoveWatchAddresses,
     ) -> Result<RemoveWatchAddressesResponse> {
-        let prefix = self.watch_wallet_prefix(req.fingerprint)?;
-        let removed = parse_watch_addresses(req.addresses, &prefix)?;
+        let removed = parse_watch_addresses(req.addresses)?;
 
         let p2_puzzle_hashes = self.watch_wallet_mut(req.fingerprint)?;
 
@@ -530,21 +528,6 @@ impl Sage {
         self.update_watched_p2_puzzles(req.fingerprint).await?;
 
         Ok(RemoveWatchAddressesResponse {})
-    }
-
-    /// The address prefix of a watch wallet's network.
-    fn watch_wallet_prefix(&self, fingerprint: u32) -> Result<String> {
-        let wallet = self
-            .wallet_entry(fingerprint)
-            .ok_or(Error::UnknownFingerprint)?;
-
-        if !matches!(wallet.kind, ConfigWalletKind::Watch { .. }) {
-            return Err(Error::NotWatchWallet(fingerprint));
-        }
-
-        let network_id = wallet.network.clone().unwrap_or_else(|| self.network_id());
-
-        Ok(self.network_prefix(&network_id))
     }
 
     fn watch_wallet_mut(&mut self, fingerprint: u32) -> Result<&mut Vec<Bytes32>> {
@@ -850,16 +833,14 @@ fn sorted_set(p2_puzzle_hashes: &[Bytes32]) -> Vec<Bytes32> {
     sorted
 }
 
-/// Decodes addresses for a watch wallet, without duplicates and in the order given.
-fn parse_watch_addresses(addresses: Vec<String>, prefix: &str) -> Result<Vec<Bytes32>> {
+/// Decodes addresses for a watch wallet, without duplicates and in the order given. Their prefix
+/// isn't checked: only the puzzle hashes are stored, and the wallet's network decides how they're
+/// shown, so addresses for another network can be imported before switching the wallet to it.
+fn parse_watch_addresses(addresses: Vec<String>) -> Result<Vec<Bytes32>> {
     let mut p2_puzzle_hashes = Vec::new();
 
     for address in addresses {
         let address = Address::decode(address.trim())?;
-
-        if address.prefix != prefix {
-            return Err(Error::AddressPrefix(address.prefix));
-        }
 
         if !p2_puzzle_hashes.contains(&address.puzzle_hash) {
             p2_puzzle_hashes.push(address.puzzle_hash);
