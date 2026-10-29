@@ -156,3 +156,44 @@ async fn deleting_a_wallet_can_keep_its_key() -> Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn reimporting_restores_a_wallet_whose_key_is_missing() -> Result<()> {
+    let app = TestApp::new().await?;
+
+    let mnemonic = Mnemonic::from_entropy(&[7; 16])?;
+    let import = |name: &str| ImportWallet {
+        name: name.to_string(),
+        key: mnemonic.to_string(),
+        derivation_index: 0,
+        hardened: None,
+        unhardened: None,
+        save_secrets: true,
+        login: false,
+        emoji: None,
+    };
+
+    let fingerprint = app.import_wallet(import("Original")).await?.fingerprint;
+
+    // Without its key, such as after restoring an older keychain, the wallet is hidden.
+    app.sage.lock().await.keychain.remove(fingerprint);
+    assert!(app.get_wallets(GetWallets {}).await?.wallets.is_empty());
+
+    assert_eq!(
+        app.import_wallet(import("Again")).await?.fingerprint,
+        fingerprint
+    );
+
+    let wallets = app.get_wallets(GetWallets {}).await?.wallets;
+    assert_eq!(wallets.len(), 1);
+    assert_eq!(wallets[0].name, "Original");
+    assert!(
+        app.get_key(GetKey { fingerprint })
+            .await?
+            .key
+            .expect("key is missing")
+            .has_secrets
+    );
+
+    Ok(())
+}

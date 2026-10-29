@@ -171,9 +171,15 @@ impl Sage {
 
         let fingerprint = master_pk.get_fingerprint();
 
-        if self.wallet_entry(fingerprint).is_some() {
-            return Err(Error::WalletExists(fingerprint));
-        }
+        // A wallet whose key is missing from the keychain, such as after restoring an older
+        // `keys.bin`, is hidden from the wallet list. Importing its key again restores it.
+        let restoring = match self.wallet_entry(fingerprint) {
+            Some(_) if self.keychain.contains(fingerprint) => {
+                return Err(Error::WalletExists(fingerprint));
+            }
+            Some(_) => true,
+            None => false,
+        };
 
         // The keychain can hold keys that aren't wallets, so the key may already be there. It's
         // reused, unless this import adds secrets that the keychain doesn't have yet.
@@ -197,12 +203,15 @@ impl Sage {
             }
         }
 
-        self.wallet_config.wallets.push(Wallet {
-            name: req.name,
-            fingerprint,
-            emoji: req.emoji,
-            ..Default::default()
-        });
+        if !restoring {
+            self.wallet_config.wallets.push(Wallet {
+                name: req.name,
+                fingerprint,
+                emoji: req.emoji,
+                ..Default::default()
+            });
+        }
+
         self.config.global.fingerprint = Some(fingerprint);
 
         self.save_keychain()?;
