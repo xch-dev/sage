@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT hash FROM p2_puzzles\n        WHERE kind = 4\n        AND NOT EXISTS (SELECT 1 FROM coins WHERE coins.p2_puzzle_id = p2_puzzles.id)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "931176317e08a3e8d581357e40b68595067b94a76d893174c7511cc9767a64ab"
+}

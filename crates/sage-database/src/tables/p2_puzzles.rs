@@ -141,6 +141,11 @@ impl Database {
     pub async fn external_p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
         external_p2_puzzle_hashes(&self.pool).await
     }
+
+    /// Watched puzzle hashes that no coins have been synced for yet.
+    pub async fn unsynced_external_p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
+        unsynced_external_p2_puzzle_hashes(&self.pool).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -513,6 +518,21 @@ async fn external_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<
         .into_iter()
         .map(|row| row.hash.convert())
         .collect()
+}
+
+async fn unsynced_external_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    query!(
+        "
+        SELECT hash FROM p2_puzzles
+        WHERE kind = 4
+        AND NOT EXISTS (SELECT 1 FROM coins WHERE coins.p2_puzzle_id = p2_puzzles.id)
+        "
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| row.hash.convert())
+    .collect()
 }
 
 async fn insert_external_p2_puzzle(

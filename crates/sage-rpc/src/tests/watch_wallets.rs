@@ -8,6 +8,7 @@ use sage_api::{
     IncreaseDerivationIndex, IssueCat, Login, MintOption, NftSortMode, OptionAsset, OptionFilter,
     OptionSortMode, RemoveWatchAddresses, SendXch, SignCoinSpends, TransferNfts, WalletKind,
 };
+use sage_wallet::SyncEvent;
 use tokio::time::sleep;
 
 use super::{TestApp, mint_mutable_nft};
@@ -170,6 +171,49 @@ async fn alice_with_assets(app: &mut TestApp) -> Result<(u32, Holdings, Vec<Stri
     Ok((alice, holdings, addresses))
 }
 
+/// Like [`alice_with_assets`], but with the NFT moved to an address of its own. Returns Alice's
+/// fingerprint, her holdings, the NFT's address and the rest of her addresses.
+async fn alice_with_nft_apart(app: &mut TestApp) -> Result<(u32, Holdings, String, Vec<String>)> {
+    let (alice, expected, addresses) = alice_with_assets(app).await?;
+
+    // Everything is at Alice's first address, so the NFT is moved to an address of its own.
+    let nft_address = addresses[5].clone();
+    app.transfer_nfts(TransferNfts {
+        nft_ids: expected.nfts.clone(),
+        address: nft_address.clone(),
+        fee: Amount::u64(0),
+        clawback: None,
+        auto_submit: true,
+        confirmed_handles: Vec::new(),
+    })
+    .await?;
+    app.wait_for_coins().await;
+
+    let nfts = app
+        .get_nfts(GetNfts {
+            collection_id: None,
+            minter_did_id: None,
+            owner_did_id: None,
+            name: None,
+            offset: 0,
+            limit: 100,
+            sort_mode: NftSortMode::Name,
+            include_hidden: true,
+        })
+        .await?
+        .nfts;
+    assert_eq!(nfts[0].address, nft_address);
+    let expected = holdings(app).await?;
+
+    let others: Vec<String> = addresses
+        .iter()
+        .filter(|address| **address != nft_address)
+        .cloned()
+        .collect();
+
+    Ok((alice, expected, nft_address, others))
+}
+
 fn import(addresses: Vec<String>) -> ImportWatchWallet {
     ImportWatchWallet {
         name: "Watch".to_string(),
@@ -312,42 +356,8 @@ async fn watch_wallets_are_read_only() -> Result<()> {
 async fn addresses_can_be_added_and_removed() -> Result<()> {
     let mut app = TestApp::new().await?;
 
-    let (_alice, expected, addresses) = alice_with_assets(&mut app).await?;
-
-    // Everything is at Alice's first address, so the NFT is moved to an address of its own.
-    let nft_address = addresses[5].clone();
-    app.transfer_nfts(TransferNfts {
-        nft_ids: expected.nfts.clone(),
-        address: nft_address.clone(),
-        fee: Amount::u64(0),
-        clawback: None,
-        auto_submit: true,
-        confirmed_handles: Vec::new(),
-    })
-    .await?;
-    app.wait_for_coins().await;
-
-    let nfts = app
-        .get_nfts(GetNfts {
-            collection_id: None,
-            minter_did_id: None,
-            owner_did_id: None,
-            name: None,
-            offset: 0,
-            limit: 100,
-            sort_mode: NftSortMode::Name,
-            include_hidden: true,
-        })
-        .await?
-        .nfts;
-    assert_eq!(nfts[0].address, nft_address);
-    let expected = holdings(&app).await?;
-
-    let others: Vec<String> = addresses
-        .iter()
-        .filter(|address| **address != nft_address)
-        .cloned()
-        .collect();
+    let (_alice, expected, nft_address, others) = alice_with_nft_apart(&mut app).await?;
+    let addresses_len = others.len() + 1;
 
     // Without the NFT's address, the wallet doesn't hold the NFT.
     let watch = app
@@ -379,7 +389,7 @@ async fn addresses_can_be_added_and_removed() -> Result<()> {
     let WalletKind::Watch { addresses: watched } = wallet.kind else {
         bail!("expected a watch wallet");
     };
-    assert_eq!(watched.len(), addresses.len());
+    assert_eq!(watched.len(), addresses_len);
     assert_eq!(watched.last(), Some(&nft_address));
 
     // Removing it again drops the NFT.
@@ -474,6 +484,59 @@ async fn rejects_invalid_watch_wallets() -> Result<()> {
         .is_none()
     );
     assert_eq!(app.get_keys(GetKeys {}).await?.keys.len(), 1);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn addresses_added_while_closed_sync_when_opened() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let (alice, expected, addresses) = alice_with_assets(&mut app).await?;
+
+    // The watch wallet starts with an address Alice never used, so it holds nothing and none of
+    // its coins lead to hers.
+    let unused = addresses.last().expect("Alice has addresses").clone();
+    let watch = app
+        .import_watch_wallet(import(vec![unused]))
+        .await?
+        .fingerprint;
+    app.consume_until(|event| matches!(event, SyncEvent::Subscribed))
+        .await;
+    wait_for_holdings(
+        &mut app,
+        &Holdings {
+            xch: Some(0),
+            cats: Vec::new(),
+            nfts: Vec::new(),
+            dids: Vec::new(),
+            options: Vec::new(),
+        },
+    )
+    .await?;
+
+    // Alice's address is added while another wallet is open. Opening the watch wallet again only
+    // syncs from its last peak, but the new address still needs its whole history.
+    app.login(Login { fingerprint: alice }).await?;
+    app.add_watch_addresses(AddWatchAddresses {
+        fingerprint: watch,
+        addresses: vec![addresses[0].clone()],
+    })
+    .await?;
+
+    app.login(Login { fingerprint: watch }).await?;
+    assert!(
+        app.sage
+            .lock()
+            .await
+            .wallet()?
+            .db
+            .latest_peak()
+            .await?
+            .is_some(),
+        "the watch wallet should resume from its last peak"
+    );
+    wait_for_holdings(&mut app, &expected).await?;
 
     Ok(())
 }

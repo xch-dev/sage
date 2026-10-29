@@ -22,7 +22,22 @@ pub async fn sync_wallet(
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
-    let p2_puzzle_hashes = wallet.db.custody_p2_puzzle_hashes().await?;
+    // Watched puzzle hashes without any coins may have been added since the last sync, such as
+    // while the wallet was closed, so they're synced from the start rather than the last peak.
+    // One that never had coins is cheap to check again.
+    let unsynced: HashSet<Bytes32> = wallet
+        .db
+        .unsynced_external_p2_puzzle_hashes()
+        .await?
+        .into_iter()
+        .collect();
+
+    let (unsynced, p2_puzzle_hashes): (Vec<Bytes32>, Vec<Bytes32>) = wallet
+        .db
+        .custody_p2_puzzle_hashes()
+        .await?
+        .into_iter()
+        .partition(|p2_puzzle_hash| unsynced.contains(p2_puzzle_hash));
 
     let (start_height, start_header_hash) = if delta_sync {
         wallet.db.latest_peak().await?
@@ -54,6 +69,19 @@ pub async fn sync_wallet(
             &peer,
             start_height,
             start_header_hash,
+            batch,
+            sync_sender.clone(),
+            command_sender.clone(),
+        )
+        .await?;
+    }
+
+    for batch in unsynced.chunks(1000) {
+        sync_puzzle_hashes(
+            &wallet,
+            &peer,
+            None,
+            wallet.genesis_challenge,
             batch,
             sync_sender.clone(),
             command_sender.clone(),
