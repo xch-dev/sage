@@ -169,25 +169,18 @@ export default function ImportWallet() {
                       name='emoji'
                       render={({ field }) => (
                         <FormItem>
-                          <label htmlFor='emoji' className='space-y-0.5'>
-                            <FormLabel>
-                              <Trans>Wallet Emoji (Optional)</Trans>
-                            </FormLabel>
-                            <FormControl>
-                              <div className='flex items-center gap-2'>
-                                <EmojiPicker
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  placeholder={t`Choose an emoji`}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormDescription>
-                              <Trans>
-                                Choose an emoji to easily identify your wallet
-                              </Trans>
-                            </FormDescription>
-                          </label>
+                          <FormLabel>
+                            <Trans>Wallet Emoji (Optional)</Trans>
+                          </FormLabel>
+                          <FormControl>
+                            <div className='flex items-center gap-2'>
+                              <EmojiPicker
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder={t`Choose an emoji`}
+                              />
+                            </div>
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
