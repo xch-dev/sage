@@ -707,6 +707,26 @@ impl Sage {
     ) -> Result<GetWalletAddressResponse> {
         let kind = self.wallet_kind(req.fingerprint)?;
 
+        let network = self
+            .network_list
+            .by_name(&req.network_id)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        let prefix = network.prefix();
+
+        // Watch wallets don't make change, so a change address doesn't replace their first
+        // watched address.
+        let WalletKind::Bls { intermediate_pk } = kind else {
+            let p2_puzzle_hash = self
+                .watched_p2_puzzle_hashes(req.fingerprint)
+                .and_then(|p2_puzzle_hashes| p2_puzzle_hashes.first().copied())
+                .ok_or(Error::NoWatchAddresses)?;
+
+            return Ok(GetWalletAddressResponse {
+                address: Address::new(p2_puzzle_hash, prefix).encode()?,
+            });
+        };
+
         // Return the change_address override directly if one is configured
         let wallet_cfg = self
             .wallet_config
@@ -721,24 +741,6 @@ impl Sage {
                 address: change_address.clone(),
             });
         }
-
-        let network = self
-            .network_list
-            .by_name(&req.network_id)
-            .ok_or(Error::UnknownFingerprint)?;
-
-        let prefix = network.prefix();
-
-        let WalletKind::Bls { intermediate_pk } = kind else {
-            let p2_puzzle_hash = self
-                .watched_p2_puzzle_hashes(req.fingerprint)
-                .and_then(|p2_puzzle_hashes| p2_puzzle_hashes.first().copied())
-                .ok_or(Error::NoWatchAddresses)?;
-
-            return Ok(GetWalletAddressResponse {
-                address: Address::new(p2_puzzle_hash, prefix).encode()?,
-            });
-        };
 
         // Try to read the current receive address from the wallet's DB
         let p2_puzzle_hash = self

@@ -6,8 +6,8 @@ use sage_api::{
     AddWatchAddresses, Amount, CreateDid, DeleteWallet, GetCats, GetDerivations, GetDids, GetKeys,
     GetNfts, GetOptions, GetSyncStatus, GetWallet, GetWalletAddress, ImportWatchWallet,
     IncreaseDerivationIndex, IssueCat, Login, MintOption, NftSortMode, OptionAsset, OptionFilter,
-    OptionSortMode, RemoveWatchAddresses, SendXch, SignCoinSpends, TransferNfts, WalletKind,
-    wallet_connect::SignMessageByAddress,
+    OptionSortMode, RemoveWatchAddresses, SendXch, SetChangeAddress, SignCoinSpends, TransferNfts,
+    WalletKind, wallet_connect::SignMessageByAddress,
 };
 use sage_wallet::SyncEvent;
 use tokio::time::sleep;
@@ -291,6 +291,22 @@ async fn watch_wallets_are_read_only() -> Result<()> {
         app.get_sync_status(GetSyncStatus {}).await?.receive_address,
         alice_address
     );
+    assert_eq!(
+        app.get_wallet_address(GetWalletAddress {
+            fingerprint: watch,
+            network_id: "testnet11".to_string(),
+        })
+        .await?
+        .address,
+        alice_address
+    );
+
+    // A change address doesn't replace it, since watch wallets don't make change.
+    app.set_change_address(SetChangeAddress {
+        fingerprint: watch,
+        change_address: Some(Address::new(Bytes32::new([3; 32]), "txch".to_string()).encode()?),
+    })
+    .await?;
     assert_eq!(
         app.get_wallet_address(GetWalletAddress {
             fingerprint: watch,
