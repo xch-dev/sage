@@ -247,6 +247,17 @@ async fn watched_addresses_show_their_holdings() -> Result<()> {
     // A watch wallet has no key, so the keychain only holds Alice's key.
     assert_eq!(app.get_keys(GetKeys {}).await?.keys.len(), 1);
 
+    // Like other wallets, it follows the default network unless it's overridden, so the same
+    // puzzle hashes can be watched on another network.
+    assert_eq!(
+        app.sage
+            .lock()
+            .await
+            .wallet_entry(watch)
+            .map(|wallet| wallet.network.clone()),
+        Some(None)
+    );
+
     Ok(())
 }
 

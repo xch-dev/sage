@@ -466,8 +466,6 @@ impl Sage {
         self.wallet_config.wallets.push(Wallet {
             name: req.name,
             fingerprint,
-            // Addresses belong to one network, so the wallet stays on the one it was imported on.
-            network: Some(self.network().name.clone()),
             emoji: req.emoji,
             kind: ConfigWalletKind::Watch { p2_puzzle_hashes },
             ..Default::default()
