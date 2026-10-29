@@ -538,13 +538,10 @@ export type AddContactResponse = { contact: ContactRecord }
  */
 export type AddKey = { 
 /**
- * Mnemonic phrase, or hex encoded secret or public key
+ * Mnemonic phrase, or hex encoded secret or public key. A mnemonic or secret key is stored
+ * with its secret key
  */
-key: string; 
-/**
- * Whether to store the secret key, if one is given
- */
-save_secrets?: boolean }
+key: string }
 /**
  * Response with the added key
  */

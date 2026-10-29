@@ -448,12 +448,7 @@ impl Sage {
             mnemonic,
         } = parse_key(&req.key)?;
 
-        if !self.store_key(
-            &master_pk,
-            master_sk.as_ref(),
-            mnemonic.as_ref(),
-            req.save_secrets,
-        )? {
+        if !self.store_key(&master_pk, master_sk.as_ref(), mnemonic.as_ref(), true)? {
             return Err(KeychainError::KeyExists.into());
         }
 

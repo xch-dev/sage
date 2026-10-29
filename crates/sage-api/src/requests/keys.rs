@@ -441,12 +441,9 @@ pub struct GetKeyResponse {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AddKey {
-    /// Mnemonic phrase, or hex encoded secret or public key
+    /// Mnemonic phrase, or hex encoded secret or public key. A mnemonic or secret key is stored
+    /// with its secret key
     pub key: String,
-    /// Whether to store the secret key, if one is given
-    #[serde(default = "yes")]
-    #[cfg_attr(feature = "openapi", schema(default = true))]
-    pub save_secrets: bool,
 }
 
 /// Response with the added key

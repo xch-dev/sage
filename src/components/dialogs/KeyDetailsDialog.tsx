@@ -86,6 +86,18 @@ export function KeyDetailsDialog({
                 {keyInfo.public_key}
               </p>
             </div>
+            {!hasSecrets && (
+              <div>
+                <h3 className='font-semibold'>
+                  <Trans>Secret Key</Trans>
+                </h3>
+                <p className='text-sm text-muted-foreground'>
+                  <Trans>
+                    Not stored. Only the public key is in the keychain.
+                  </Trans>
+                </p>
+              </div>
+            )}
             {secrets && (
               <>
                 <div>

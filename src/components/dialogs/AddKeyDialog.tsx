@@ -15,7 +15,6 @@ import {
 } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { LoadingButton } from '../ui/loading-button';
-import { Switch } from '../ui/switch';
 import { Textarea } from '../ui/textarea';
 
 export interface AddKeyDialogProps {
@@ -27,16 +26,13 @@ export interface AddKeyDialogProps {
 export function AddKeyDialog({ open, setOpen, onAdded }: AddKeyDialogProps) {
   const { addError } = useErrors();
   const keyId = useId();
-  const saveSecretsId = useId();
 
   const [key, setKey] = useState('');
-  const [saveSecrets, setSaveSecrets] = useState(true);
   const [pending, setPending] = useState(false);
 
   const close = () => {
     setOpen(false);
     setKey('');
-    setSaveSecrets(true);
   };
 
   const submit = async () => {
@@ -45,7 +41,6 @@ export function AddKeyDialog({ open, setOpen, onAdded }: AddKeyDialogProps) {
     try {
       const { fingerprint } = await commands.addKey({
         key: key.trim(),
-        save_secrets: saveSecrets,
       });
       onAdded(fingerprint);
       close();
@@ -65,7 +60,8 @@ export function AddKeyDialog({ open, setOpen, onAdded }: AddKeyDialogProps) {
           </DialogTitle>
           <DialogDescription>
             <Trans>
-              Add a key to the keychain without creating a wallet for it. To use
+              Add a key to the keychain without creating a wallet for it. A
+              mnemonic or secret key is stored along with its public key. To use
               a key as a wallet, import it as a wallet instead.
             </Trans>
           </DialogDescription>
@@ -88,17 +84,6 @@ export function AddKeyDialog({ open, setOpen, onAdded }: AddKeyDialogProps) {
               onChange={(event) => setKey(event.target.value)}
             />
           </div>
-
-          <div className='flex items-center gap-2'>
-            <Switch
-              id={saveSecretsId}
-              checked={saveSecrets}
-              onCheckedChange={setSaveSecrets}
-            />
-            <Label htmlFor={saveSecretsId}>
-              <Trans>Save the secret key, if one is given</Trans>
-            </Label>
-          </div>
         </div>
 
         <DialogFooter>
@@ -110,7 +95,7 @@ export function AddKeyDialog({ open, setOpen, onAdded }: AddKeyDialogProps) {
             disabled={!key.trim()}
             onClick={submit}
           >
-            <Trans>Add Key</Trans>
+            <Trans>Add</Trans>
           </LoadingButton>
         </DialogFooter>
       </DialogContent>

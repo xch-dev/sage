@@ -23,6 +23,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput, IntegerInput } from '@/components/ui/masked-input';
@@ -66,6 +73,7 @@ import {
   DownloadIcon,
   EyeIcon,
   LoaderCircleIcon,
+  MoreVerticalIcon,
   PlusIcon,
   TrashIcon,
   WalletIcon,
@@ -1156,6 +1164,13 @@ function RpcSettings() {
 
 /** The keys in the keychain. Wallets add and remove their own keys, so this is
  *  only needed for lower level access, such as keys that aren't wallets. */
+function keyKindName(kind: KeyInfo['kind']) {
+  switch (kind) {
+    case 'bls':
+      return 'BLS';
+  }
+}
+
 function KeySettings() {
   const { addError } = useErrors();
 
@@ -1211,7 +1226,7 @@ function KeySettings() {
               onClick={() => setAddOpen(true)}
             >
               <PlusIcon className='h-4 w-4 mr-2' aria-hidden='true' />
-              <Trans>Add Key</Trans>
+              <Trans>Add</Trans>
             </Button>
           }
         />
@@ -1224,45 +1239,61 @@ function KeySettings() {
 
         {keys?.map((key) => {
           const wallet = walletFor(key);
+          const fingerprint = key.fingerprint;
+          const walletName = wallet?.name;
 
           return (
             <SettingItem
-              key={key.fingerprint}
-              label={t`BLS key ${key.fingerprint}`}
+              key={fingerprint}
+              label={fingerprint.toString()}
               description={
-                wallet ? t`Used by ${wallet.name}` : t`Not used by a wallet`
+                walletName ? t`Used by ${walletName}` : t`Not used by a wallet`
               }
               control={
                 <div className='flex items-center gap-2'>
-                  <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
-                    {key.has_secrets ? (
-                      <Trans>Secret key</Trans>
-                    ) : (
-                      <Trans>Public key only</Trans>
-                    )}
+                  <div className='inline-flex items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
+                    {keyKindName(key.kind)}
                   </div>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    aria-label={t`Key details`}
-                    onClick={() => setDetails(key)}
-                  >
-                    <EyeIcon className='h-4 w-4' aria-hidden='true' />
-                  </Button>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    aria-label={t`Delete key`}
-                    title={
-                      wallet
-                        ? t`Delete the wallet to remove its key`
-                        : undefined
-                    }
-                    disabled={wallet !== null}
-                    onClick={() => setDeleting(key)}
-                  >
-                    <TrashIcon className='h-4 w-4' aria-hidden='true' />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        aria-label={t`Key actions`}
+                      >
+                        <MoreVerticalIcon className='h-5 w-5' />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align='end'>
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem
+                          className='cursor-pointer'
+                          onClick={() => setDetails(key)}
+                        >
+                          <EyeIcon className='mr-2 h-4 w-4' />
+                          <span>
+                            <Trans>Details</Trans>
+                          </span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className='cursor-pointer text-red-600 focus:text-red-500'
+                          disabled={wallet !== null}
+                          onClick={() => setDeleting(key)}
+                        >
+                          <TrashIcon className='mr-2 h-4 w-4' />
+                          <span>
+                            {wallet ? (
+                              <Trans>
+                                Delete the wallet to remove this key
+                              </Trans>
+                            ) : (
+                              <Trans>Delete</Trans>
+                            )}
+                          </span>
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               }
             />

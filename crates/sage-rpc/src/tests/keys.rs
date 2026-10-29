@@ -35,7 +35,6 @@ async fn adds_and_deletes_keys_without_wallets() -> Result<()> {
     let fingerprint = app
         .add_key(AddKey {
             key: hex::encode(master_pk.to_bytes()),
-            save_secrets: true,
         })
         .await?
         .fingerprint;
@@ -55,7 +54,6 @@ async fn adds_and_deletes_keys_without_wallets() -> Result<()> {
 
     app.add_key(AddKey {
         key: mnemonic.to_string(),
-        save_secrets: true,
     })
     .await?;
     assert!(
@@ -69,7 +67,6 @@ async fn adds_and_deletes_keys_without_wallets() -> Result<()> {
     let error = app
         .add_key(AddKey {
             key: mnemonic.to_string(),
-            save_secrets: true,
         })
         .await
         .expect_err("the key already exists");
