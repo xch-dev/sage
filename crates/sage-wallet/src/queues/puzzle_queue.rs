@@ -124,8 +124,9 @@ impl PuzzleQueue {
                             continue;
                         }
 
-                        let is_custody_p2_puzzle_hash =
-                            tx.is_custody_p2_puzzle_hash(coin_id).await?;
+                        let is_custody_p2_puzzle_hash = tx
+                            .is_custody_p2_puzzle_hash(item.coin_state.coin.puzzle_hash)
+                            .await?;
 
                         let Some(kind) = item.kind.filter(|_| !is_custody_p2_puzzle_hash) else {
                             warn!(
