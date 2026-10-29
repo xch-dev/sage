@@ -1,4 +1,4 @@
-use chia_wallet_sdk::prelude::*;
+use chia_wallet_sdk::{chia::puzzle_types::singleton::SingletonArgs, prelude::*};
 use sqlx::{SqliteExecutor, query};
 
 use crate::{Asset, AssetKind, Convert, Database, DatabaseTx, Result, VaultConfigRow, VaultLayout};
@@ -37,7 +37,7 @@ pub struct VaultCoinRow {
 pub struct VaultStatus {
     pub launcher_id: Bytes32,
     /// The latest coin of the vault's lineage. Once the vault is melted, this is the coin that was
-    /// melted.
+    /// melted. Its custody hash is filled in from a matching config, if its own is unknown.
     pub coin: Option<VaultCoinRow>,
     /// The config which rebuilds the current coin's custody hash, if one is known.
     pub config: Option<VaultConfigRow>,
@@ -239,6 +239,15 @@ async fn vault_coins(
     .collect()
 }
 
+async fn vault_config_custody_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    query!("SELECT custody_hash FROM vault_configs")
+        .fetch_all(conn)
+        .await?
+        .into_iter()
+        .map(|row| row.custody_hash.convert())
+        .collect()
+}
+
 async fn vault_status(
     tx: &mut DatabaseTx<'_>,
     launcher_id: Bytes32,
@@ -264,7 +273,19 @@ async fn vault_status(
         }));
     };
 
-    let coin = coins[index];
+    let mut coin = coins[index];
+
+    // An unspent eve coin's custody hash isn't revealed without a memo, but a config imported from
+    // a file can still be matched against its puzzle hash.
+    if coin.custody_hash.is_none() {
+        coin.custody_hash = vault_config_custody_hashes(&mut *tx.tx)
+            .await?
+            .into_iter()
+            .find(|&custody_hash| {
+                SingletonArgs::curry_tree_hash(launcher_id, custody_hash.into())
+                    == coin.coin.puzzle_hash.into()
+            });
+    }
 
     let config = match coin.custody_hash {
         Some(custody_hash) => tx.vault_config(custody_hash).await?,

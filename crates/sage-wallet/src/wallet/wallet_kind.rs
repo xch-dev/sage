@@ -8,4 +8,7 @@ pub enum WalletKind {
     /// A list of watched p2 puzzle hashes, stored in the database as external p2 puzzles. Their
     /// puzzle reveals are unknown, so the wallet can't derive addresses or spend.
     Watch,
+    /// A vault, which is followed from its launcher. Its addresses are its P2 singleton puzzle
+    /// hashes, which don't change when its custody does. It can't spend yet.
+    Vault { launcher_id: Bytes32 },
 }

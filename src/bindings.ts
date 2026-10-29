@@ -38,6 +38,24 @@ async addWatchAddresses(req: AddWatchAddresses) : Promise<AddWatchAddressesRespo
 async removeWatchAddresses(req: RemoveWatchAddresses) : Promise<RemoveWatchAddressesResponse> {
     return await TAURI_INVOKE("remove_watch_addresses", { req });
 },
+async importVault(req: ImportVault) : Promise<ImportVaultResponse> {
+    return await TAURI_INVOKE("import_vault", { req });
+},
+async getVault(req: GetVault) : Promise<GetVaultResponse> {
+    return await TAURI_INVOKE("get_vault", { req });
+},
+async attachVaultSigner(req: AttachVaultSigner) : Promise<AttachVaultSignerResponse> {
+    return await TAURI_INVOKE("attach_vault_signer", { req });
+},
+async exportVaultConfig(req: ExportVaultConfig) : Promise<ExportVaultConfigResponse> {
+    return await TAURI_INVOKE("export_vault_config", { req });
+},
+async importVaultConfig(req: ImportVaultConfig) : Promise<ImportVaultConfigResponse> {
+    return await TAURI_INVOKE("import_vault_config", { req });
+},
+async findVault(req: FindVault) : Promise<FindVaultResponse> {
+    return await TAURI_INVOKE("find_vault", { req });
+},
 async deleteWallet(req: DeleteWallet) : Promise<DeleteWalletResponse> {
     return await TAURI_INVOKE("delete_wallet", { req });
 },
@@ -670,6 +688,34 @@ fee: Amount;
  */
 auto_submit?: boolean }
 /**
+ * Attach a key that signs for a vault
+ */
+export type AttachVaultSigner = { 
+/**
+ * Fingerprint of the vault wallet
+ */
+fingerprint: number; 
+/**
+ * The signer's mnemonic, or its secret key in hex
+ */
+key: string }
+/**
+ * Response with the attached signer
+ */
+export type AttachVaultSignerResponse = { 
+/**
+ * Fingerprint of the signer's key in the keychain
+ */
+fingerprint: number; 
+/**
+ * Whether the key is a custody member
+ */
+custody: boolean; 
+/**
+ * Whether the key is a recovery member
+ */
+recovery: boolean }
+/**
  * Automatically combine CAT coins
  */
 export type AutoCombineCat = { 
@@ -1243,6 +1289,18 @@ network_id: string;
  * The contacts, sorted by name
  */
 contacts: ContactEntry[] }
+/**
+ * Export the open vault wallet's config file
+ */
+export type ExportVaultConfig = Record<string, never>
+/**
+ * Response with the vault config file
+ */
+export type ExportVaultConfigResponse = { 
+/**
+ * The config file, as JSON
+ */
+config: string }
 export type FeeAction = { 
 /**
  * The fee amount, in mojos
@@ -1280,6 +1338,18 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
+/**
+ * Find the vault that owns an address
+ */
+export type FindVault = { address: string }
+/**
+ * Response with the vault that owns the address, if one was found
+ */
+export type FindVaultResponse = { 
+/**
+ * The vault's launcher id, in hex
+ */
+launcher_id: string | null }
 /**
  * Generate a new mnemonic phrase for wallet creation
  */
@@ -2191,6 +2261,14 @@ export type GetUserThemesResponse = {
  */
 themes: string[] }
 /**
+ * Get the open vault wallet's vault
+ */
+export type GetVault = Record<string, never>
+/**
+ * Response with the open vault
+ */
+export type GetVaultResponse = { vault: VaultRecord }
+/**
  * Get the wallet version
  */
 export type GetVersion = Record<string, never>
@@ -2534,6 +2612,59 @@ export type ImportOfferResponse = {
  * ID of the imported offer
  */
 offer_id: string }
+/**
+ * Import an existing vault as a wallet
+ */
+export type ImportVault = { 
+/**
+ * Display name for the wallet
+ */
+name: string; 
+/**
+ * The vault's launcher id, in hex
+ */
+launcher_id?: string | null; 
+/**
+ * An address the vault has spent from
+ */
+address?: string | null; 
+/**
+ * A vault config file, as exported by Sage or Chia Cloud Wallet
+ */
+config?: string | null; 
+/**
+ * Whether to automatically login after import
+ */
+login?: boolean; 
+/**
+ * Optional emoji identifier
+ */
+emoji?: string | null }
+/**
+ * Import a config file for the open vault wallet
+ */
+export type ImportVaultConfig = { 
+/**
+ * The config file, as JSON
+ */
+config: string }
+/**
+ * Response for importing a vault config file
+ */
+export type ImportVaultConfigResponse = Record<string, never>
+/**
+ * Response with the imported vault wallet's fingerprint
+ */
+export type ImportVaultResponse = { 
+/**
+ * Fingerprint assigned to the wallet. It's derived from the launcher id, since a vault has no
+ * key of its own
+ */
+fingerprint: number; 
+/**
+ * The vault's launcher id, in hex
+ */
+launcher_id: string }
 /**
  * Import a BLS wallet from a key
  */
@@ -4078,6 +4209,111 @@ export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: s
 export type UserSageAppSource = { kind: "zip" } | { kind: "url"; app_url: SageAppUrl }
 export type UserSageAppView = { common: SageAppCommonView; source: UserSageAppSource; pendingUpdate?: UserSageAppPendingUpdateView | null }
 /**
+ * A vault's layout, which rebuilds its custody hash
+ */
+export type VaultConfigRecord = { version: VaultPuzzleVersion; source: VaultConfigSource; 
+/**
+ * The members which can spend the vault
+ */
+custody: VaultSignersRecord; 
+/**
+ * The members which can start recovery. While recovery is pending, these are the members of
+ * the config from before it started
+ */
+recovery: VaultSignersRecord | null; 
+/**
+ * How long recovery takes to finish, in seconds
+ */
+recovery_timelock: number; 
+/**
+ * The custody hash which the vault moves to once recovery finishes, while it's pending
+ */
+recovery_custody_hash: string | null }
+export type VaultConfigSource = 
+/**
+ * Decoded from a memo on chain
+ */
+"memo" | 
+/**
+ * Imported from a config file
+ */
+"config_file" | "unknown"
+export type VaultMemberKind = "bls" | "secp256r1" | "secp256k1" | "passkey" | 
+/**
+ * Another vault
+ */
+"vault" | 
+/**
+ * A member whose puzzle isn't known, only its hash
+ */
+"custom"
+export type VaultMemberRecord = { kind: VaultMemberKind; 
+/**
+ * The member's public key, or the launcher id of a vault member, in hex
+ */
+key: string; fast_forward: boolean; 
+/**
+ * The fingerprint of the keychain key that signs as this member, if one is attached
+ */
+signer_fingerprint: number | null }
+export type VaultPuzzleVersion = "legacy" | "force_singleton_recreation"
+/**
+ * A vault, along with its current config and the keys that sign for it
+ */
+export type VaultRecord = { 
+/**
+ * The vault's launcher id, in hex
+ */
+launcher_id: string; state: VaultState; 
+/**
+ * When recovery was started, in unix seconds, while it's pending and the block's timestamp
+ * is known
+ */
+recovery_started_at: number | null; 
+/**
+ * The id of the vault's latest singleton coin, once it's been synced
+ */
+coin_id: string | null; 
+/**
+ * The inner puzzle hash of the vault's latest coin, if it's known
+ */
+custody_hash: string | null; 
+/**
+ * The config which rebuilds the custody hash, if it's known. Without it, the vault's balances
+ * are still shown, but its signers can't be checked
+ */
+config: VaultConfigRecord | null; 
+/**
+ * The keychain keys that sign for the vault
+ */
+signers: VaultSignerRecord[] }
+/**
+ * A keychain key which signs for a vault
+ */
+export type VaultSignerRecord = { fingerprint: number; 
+/**
+ * Whether the key is a custody member, which can spend the vault
+ */
+custody: boolean; 
+/**
+ * Whether the key is a recovery member, which can start recovery
+ */
+recovery: boolean }
+/**
+ * The members of a vault's custody or recovery, of which `threshold` must sign
+ */
+export type VaultSignersRecord = { threshold: number; members: VaultMemberRecord[] }
+export type VaultState = 
+/**
+ * None of the vault's coins have been synced yet
+ */
+"unsynced" | "active" | 
+/**
+ * Recovery has started, and the vault moves to its recovery custody once the timelock
+ * expires, unless its current custody cancels it first
+ */
+"recovery_pending" | "melted"
+/**
  * View coin spends without signing
  */
 export type ViewCoinSpends = { 
@@ -4128,7 +4364,12 @@ export type Wallet =
 /**
  * The p2 puzzle hashes being watched. The first one is the wallet's receive address.
  */
-{ type: "watch"; p2_puzzle_hashes: string[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
+{ type: "watch"; p2_puzzle_hashes: string[] } | 
+/**
+ * A vault, and the fingerprints of the keychain keys that sign for it as custody or recovery
+ * members. A vault without signers is read-only.
+ */
+{ type: "vault"; launcher_id: string; signers: number[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
 export type WalletInfo = { name: string; fingerprint: number; kind: WalletKind; network_id: string; emoji: string | null }
 /**
@@ -4147,7 +4388,19 @@ export type WalletKind =
 /**
  * The addresses being watched. The first one is the receive address
  */
-addresses: string[] } }
+addresses: string[] } } | 
+/**
+ * A vault, which is followed from its launcher. It's read-only until it can spend
+ */
+{ vault: { 
+/**
+ * The vault's launcher id, in hex
+ */
+launcher_id: string; 
+/**
+ * The fingerprints of the keychain keys that sign for the vault
+ */
+signers: number[] } }
 export type WindowTargetParams = { windowLabel: string }
 /**
  * The XCHandles deployment used to resolve handles on a network.

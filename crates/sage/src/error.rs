@@ -17,7 +17,9 @@ use sage_api::{ErrorKind, HandleErrorCode, RecipientError};
 use sage_assets::UriError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::{SyncCommand, WalletError, XchandlesApiError, XchandlesError};
+use sage_wallet::{
+    SyncCommand, VaultConfigFileError, WalletError, XchandlesApiError, XchandlesError,
+};
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
 use tokio::{sync::mpsc::error::SendError, time::error::Elapsed};
@@ -142,6 +144,39 @@ pub enum Error {
 
     #[error("Wallet {0} isn't a watch wallet")]
     NotWatchWallet(u32),
+
+    #[error("Wallet {0} isn't a vault")]
+    NotVaultWallet(u32),
+
+    #[error(
+        "Import a vault from one of its launcher id, an address it has spent from, or a config file"
+    )]
+    VaultImportSource,
+
+    #[error("No vault with launcher id {0} was found on chain")]
+    VaultNotFound(Bytes32),
+
+    #[error(
+        "No coins have been spent from this address yet, so the vault it belongs to can't be found. You can watch the address instead, until the vault spends from it."
+    )]
+    VaultAddressNeverSpent,
+
+    #[error("The coins spent from this address weren't spent by a vault")]
+    NotVaultAddress,
+
+    #[error(
+        "The vault config doesn't match the vault on chain. The vault may have changed since the config was exported, for example by recovery, or the config may have been modified."
+    )]
+    VaultConfigMismatch,
+
+    #[error("The vault's config isn't known yet. Import its config file first.")]
+    VaultConfigUnknown,
+
+    #[error("Key {0} isn't a custody or recovery member of this vault")]
+    NotVaultMember(u32),
+
+    #[error("{0}")]
+    VaultConfigFile(#[from] VaultConfigFileError),
 
     #[error("Not logged in")]
     NotLoggedIn,
@@ -385,7 +420,8 @@ impl Error {
             | Self::MissingNft(..)
             | Self::MissingOption(..)
             | Self::MissingOffer(..)
-            | Self::MissingContact(..) => ErrorKind::NotFound,
+            | Self::MissingContact(..)
+            | Self::VaultNotFound(..) => ErrorKind::NotFound,
             Self::Bls(..)
             | Self::Hex(..)
             | Self::InvalidKey
@@ -395,6 +431,14 @@ impl Error {
             | Self::KeyExists(..)
             | Self::NoWatchAddresses
             | Self::NotWatchWallet(..)
+            | Self::NotVaultWallet(..)
+            | Self::VaultImportSource
+            | Self::VaultAddressNeverSpent
+            | Self::NotVaultAddress
+            | Self::VaultConfigMismatch
+            | Self::VaultConfigUnknown
+            | Self::NotVaultMember(..)
+            | Self::VaultConfigFile(..)
             | Self::InvalidMnemonic(..)
             | Self::TryFromSlice(..)
             | Self::TryFromInt(..)

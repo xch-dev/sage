@@ -57,6 +57,7 @@ import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { getConsoleLogs } from '@/lib/consoleCapture';
 import { exportText, ExportType } from '@/lib/exportText';
 import { offersEnabled } from '@/lib/features';
+import { usesKey } from '@/lib/walletKind';
 import {
   clearState,
   fetchState,
@@ -1199,12 +1200,10 @@ function KeySettings() {
     refresh();
   }, [refresh]);
 
-  // A BLS key belongs to the BLS wallet with the same fingerprint.
+  // A BLS key belongs to the BLS wallet with the same fingerprint, or to the
+  // vaults it signs for.
   const walletFor = (key: KeyInfo) =>
-    wallets?.find(
-      (wallet) =>
-        wallet.fingerprint === key.fingerprint && wallet.kind === 'bls',
-    ) ?? null;
+    wallets?.find((wallet) => usesKey(wallet, key.fingerprint)) ?? null;
 
   const deleteKey = async () => {
     if (!deleting) return;
@@ -1367,8 +1366,9 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   const [key, setKey] = useState<KeyInfo | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
-  // Watch wallets only know their addresses, so they have no change or derivations.
-  const isWatch = wallet?.type === 'watch';
+  // Watch and vault wallets have no change setting or derivations, since they
+  // don't derive addresses.
+  const isWatch = wallet?.type === 'watch' || wallet?.type === 'vault';
   const [localName, setLocalName] = useState<string>('');
   const [localChangeAddress, setLocalChangeAddress] = useState('');
   const [networks, setNetworks] = useState<Network[]>([]);

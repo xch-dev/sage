@@ -164,12 +164,27 @@ async fn process_shared(
         }
     }
 
-    if method.requires_signing() && app_state.lock().await.is_watch_only() {
-        return Ok(RustBridgeInvokeResult::error(
-            &request.id,
-            "watch_only",
-            "Watch-only wallets can't create or sign transactions",
-        ));
+    if method.requires_signing() {
+        let (is_watch_only, is_vault) = {
+            let state = app_state.lock().await;
+            (state.is_watch_only(), state.is_vault())
+        };
+
+        if is_watch_only {
+            return Ok(RustBridgeInvokeResult::error(
+                &request.id,
+                "watch_only",
+                "Watch-only wallets can't create or sign transactions",
+            ));
+        }
+
+        if is_vault {
+            return Ok(RustBridgeInvokeResult::error(
+                &request.id,
+                "vault_unsupported",
+                "Vaults can't create or sign transactions yet",
+            ));
+        }
     }
 
     match method
