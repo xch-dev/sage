@@ -24,6 +24,12 @@ pub async fn sync_wallet(
 
     // Puzzle hashes that haven't been fully synced yet, such as ones added while the wallet was
     // closed or whose sync was interrupted, are synced from the start rather than the last peak.
+    //
+    // Puzzle hashes can be added while this runs, so the custody list is read first. One added
+    // in between isn't in it, so it's left unsynced for the subscription that adds it, rather
+    // than being synced from the last peak and marked synced.
+    let custody_p2_puzzle_hashes = wallet.db.custody_p2_puzzle_hashes().await?;
+
     let unsynced: HashSet<Bytes32> = wallet
         .db
         .unsynced_custody_p2_puzzle_hashes()
@@ -31,10 +37,7 @@ pub async fn sync_wallet(
         .into_iter()
         .collect();
 
-    let (unsynced, p2_puzzle_hashes): (Vec<Bytes32>, Vec<Bytes32>) = wallet
-        .db
-        .custody_p2_puzzle_hashes()
-        .await?
+    let (unsynced, p2_puzzle_hashes): (Vec<Bytes32>, Vec<Bytes32>) = custody_p2_puzzle_hashes
         .into_iter()
         .partition(|p2_puzzle_hash| unsynced.contains(p2_puzzle_hash));
 
