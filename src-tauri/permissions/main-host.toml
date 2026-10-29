@@ -17,6 +17,8 @@ commands.allow = [
     "set_wallet_emoji",
     "get_wallet",
     "get_key",
+    "add_key",
+    "delete_key",
     "get_secret_key",
     "get_wallet_address",
     "send_xch",
