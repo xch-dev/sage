@@ -1207,9 +1207,15 @@ function KeySettings() {
     ) ?? null;
 
   const deleteKey = async () => {
-    if (!deleting || !(await promptIfEnabled())) return;
+    if (!deleting) return;
 
+    // Set before the prompt, so the button can't be pressed again while it's open.
     setPendingDelete(true);
+
+    if (!(await promptIfEnabled())) {
+      setPendingDelete(false);
+      return;
+    }
 
     commands
       .deleteKey({ fingerprint: deleting.fingerprint })
