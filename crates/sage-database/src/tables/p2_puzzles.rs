@@ -1,5 +1,8 @@
 use chia_wallet_sdk::{
-    driver::{Clawback as ClawbackV1, ClawbackV2, OptionType, OptionUnderlying},
+    driver::{
+        Clawback as ClawbackV1, ClawbackV2, OptionType, OptionUnderlying, P2ConditionsOrSingleton,
+        P2ConditionsOrSingletonVersion, P2Singleton,
+    },
     prelude::*,
     types::puzzles::P2DelegatedConditionsArgs,
 };
@@ -15,6 +18,10 @@ pub enum P2PuzzleKind {
     Arbor,
     /// A puzzle hash that's watched, whose puzzle reveal is unknown.
     External,
+    /// A vault address, spent by a message from the vault singleton.
+    P2Singleton,
+    /// A coin locked to a fixed set of conditions, which the vault can also spend.
+    P2ConditionsOrSingleton,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -25,6 +32,15 @@ pub enum P2Puzzle {
     Arbor(PublicKey),
     /// A watched puzzle hash. Its coins can't be spent, since the puzzle reveal is unknown.
     External,
+    P2Singleton(P2Singleton),
+    P2ConditionsOrSingleton(ConditionsOrSingleton),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ConditionsOrSingleton {
+    pub p2: P2ConditionsOrSingleton,
+    /// The version of the fixed path, which is only known once its conditions are revealed.
+    pub version: Option<P2ConditionsOrSingletonVersion>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -118,7 +134,26 @@ impl Database {
                 Ok(P2Puzzle::Arbor(key))
             }
             P2PuzzleKind::External => Ok(P2Puzzle::External),
+            P2PuzzleKind::P2Singleton => Ok(P2Puzzle::P2Singleton(
+                p2_singleton(&self.pool, puzzle_hash).await?,
+            )),
+            P2PuzzleKind::P2ConditionsOrSingleton => Ok(P2Puzzle::P2ConditionsOrSingleton(
+                p2_conditions_or_singleton(&self.pool, puzzle_hash).await?,
+            )),
         }
+    }
+
+    /// The fixed conditions of a P2 conditions or singleton puzzle, if they've been revealed.
+    pub async fn p2_conditions_or_singleton_conditions(
+        &self,
+        p2_puzzle_hash: Bytes32,
+    ) -> Result<Option<Program>> {
+        p2_conditions_or_singleton_conditions(&self.pool, p2_puzzle_hash).await
+    }
+
+    /// The P2 singleton puzzle hashes of a vault, ordered by nonce.
+    pub async fn p2_singleton_puzzle_hashes(&self, launcher_id: Bytes32) -> Result<Vec<Bytes32>> {
+        p2_singleton_puzzle_hashes(&self.pool, launcher_id).await
     }
 
     pub async fn derivation(&self, public_key: PublicKey) -> Result<Option<Derivation>> {
@@ -225,10 +260,26 @@ impl DatabaseTx<'_> {
     pub async fn delete_external_p2_puzzle(&mut self, p2_puzzle_hash: Bytes32) -> Result<()> {
         delete_external_p2_puzzle(&mut *self.tx, p2_puzzle_hash).await
     }
+
+    /// Inserts a vault address. It isn't marked as synced, so it's synced from the start of the
+    /// chain.
+    pub async fn insert_p2_singleton_p2_puzzle(&mut self, p2_singleton: P2Singleton) -> Result<()> {
+        insert_p2_singleton_p2_puzzle(&mut *self.tx, p2_singleton).await
+    }
+
+    /// Inserts a P2 conditions or singleton puzzle. If its fixed conditions are passed, they're
+    /// stored along with their version, including for a puzzle that already exists.
+    pub async fn insert_p2_conditions_or_singleton_p2_puzzle(
+        &mut self,
+        p2: P2ConditionsOrSingleton,
+        conditions: Option<(P2ConditionsOrSingletonVersion, Program)>,
+    ) -> Result<()> {
+        insert_p2_conditions_or_singleton_p2_puzzle(&mut *self.tx, p2, conditions).await
+    }
 }
 
 async fn custody_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
-    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4)")
+    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4, 5)")
         .fetch_all(conn)
         .await?
         .into_iter()
@@ -263,7 +314,7 @@ async fn is_custody_p2_puzzle_hash(
     let puzzle_hash = puzzle_hash.as_ref();
 
     Ok(query!(
-        "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind IN (0, 3, 4)",
+        "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind IN (0, 3, 4, 5)",
         puzzle_hash
     )
     .fetch_one(conn)
@@ -534,7 +585,7 @@ async fn external_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<
 }
 
 async fn unsynced_custody_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
-    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4) AND is_synced = FALSE")
+    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4, 5) AND is_synced = FALSE")
         .fetch_all(conn)
         .await?
         .into_iter()
@@ -597,6 +648,180 @@ async fn delete_external_p2_puzzle(
     Ok(())
 }
 
+async fn insert_p2_singleton_p2_puzzle(
+    conn: impl SqliteExecutor<'_>,
+    p2_singleton: P2Singleton,
+) -> Result<()> {
+    let p2_puzzle_hash = p2_singleton.tree_hash().to_vec();
+    let launcher_id = p2_singleton.launcher_id.as_ref();
+    let nonce: i64 = p2_singleton.nonce.try_into()?;
+
+    query!(
+        "
+        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 5);
+
+        INSERT OR IGNORE INTO p2_singletons (p2_puzzle_id, launcher_id, nonce)
+        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?, ?);
+        ",
+        p2_puzzle_hash,
+        p2_puzzle_hash,
+        launcher_id,
+        nonce,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn insert_p2_conditions_or_singleton_p2_puzzle(
+    conn: impl SqliteExecutor<'_>,
+    p2: P2ConditionsOrSingleton,
+    conditions: Option<(P2ConditionsOrSingletonVersion, Program)>,
+) -> Result<()> {
+    let p2_puzzle_hash = p2.tree_hash().to_vec();
+    let launcher_id = p2.launcher_id.as_ref();
+    let nonce: i64 = p2.nonce.try_into()?;
+    let fixed_conditions_hash = p2.fixed_conditions_hash.as_ref();
+    let version = conditions.as_ref().map(|(version, _)| match version {
+        P2ConditionsOrSingletonVersion::Legacy => 0,
+        P2ConditionsOrSingletonVersion::FixedPuzzleMember => 1,
+    });
+    let conditions = conditions
+        .as_ref()
+        .map(|(_, conditions)| conditions.as_slice());
+
+    query!(
+        "
+        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 6);
+
+        INSERT INTO p2_conditions_or_singletons (
+            p2_puzzle_id, launcher_id, nonce, fixed_conditions_hash, version, conditions
+        )
+        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?, ?, ?, ?, ?)
+        ON CONFLICT(p2_puzzle_id) DO UPDATE SET
+            version = COALESCE(excluded.version, version),
+            conditions = COALESCE(excluded.conditions, conditions);
+        ",
+        p2_puzzle_hash,
+        p2_puzzle_hash,
+        launcher_id,
+        nonce,
+        fixed_conditions_hash,
+        version,
+        conditions,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn p2_singleton(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<P2Singleton> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    let row = query!(
+        "
+        SELECT launcher_id, nonce
+        FROM p2_puzzles
+        INNER JOIN p2_singletons ON p2_singletons.p2_puzzle_id = p2_puzzles.id
+        WHERE p2_puzzles.hash = ?
+        ",
+        p2_puzzle_hash
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(P2Singleton::new(
+        row.launcher_id.convert()?,
+        row.nonce.try_into()?,
+    ))
+}
+
+async fn p2_singleton_puzzle_hashes(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+) -> Result<Vec<Bytes32>> {
+    let launcher_id = launcher_id.as_ref();
+
+    query!(
+        "
+        SELECT hash
+        FROM p2_puzzles
+        INNER JOIN p2_singletons ON p2_singletons.p2_puzzle_id = p2_puzzles.id
+        WHERE p2_singletons.launcher_id = ?
+        ORDER BY p2_singletons.nonce ASC
+        ",
+        launcher_id
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| row.hash.convert())
+    .collect()
+}
+
+async fn p2_conditions_or_singleton(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<ConditionsOrSingleton> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    let row = query!(
+        "
+        SELECT launcher_id, nonce, fixed_conditions_hash, version
+        FROM p2_puzzles
+        INNER JOIN p2_conditions_or_singletons
+            ON p2_conditions_or_singletons.p2_puzzle_id = p2_puzzles.id
+        WHERE p2_puzzles.hash = ?
+        ",
+        p2_puzzle_hash
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok(ConditionsOrSingleton {
+        p2: P2ConditionsOrSingleton::new(
+            row.launcher_id.convert()?,
+            row.nonce.try_into()?,
+            row.fixed_conditions_hash.convert()?,
+        ),
+        version: row
+            .version
+            .map(|version| match version {
+                0 => Ok(P2ConditionsOrSingletonVersion::Legacy),
+                1 => Ok(P2ConditionsOrSingletonVersion::FixedPuzzleMember),
+                _ => Err(DatabaseError::InvalidEnumVariant),
+            })
+            .transpose()?,
+    })
+}
+
+async fn p2_conditions_or_singleton_conditions(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<Option<Program>> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    Ok(query!(
+        "
+        SELECT conditions
+        FROM p2_puzzles
+        INNER JOIN p2_conditions_or_singletons
+            ON p2_conditions_or_singletons.p2_puzzle_id = p2_puzzles.id
+        WHERE p2_puzzles.hash = ?
+        ",
+        p2_puzzle_hash
+    )
+    .fetch_optional(conn)
+    .await?
+    .and_then(|row| row.conditions)
+    .map(Program::from))
+}
+
 async fn p2_puzzle_kind(
     conn: impl SqliteExecutor<'_>,
     p2_puzzle_hash: Bytes32,
@@ -613,6 +838,8 @@ async fn p2_puzzle_kind(
         2 => P2PuzzleKind::Option,
         3 => P2PuzzleKind::Arbor,
         4 => P2PuzzleKind::External,
+        5 => P2PuzzleKind::P2Singleton,
+        6 => P2PuzzleKind::P2ConditionsOrSingleton,
         _ => return Err(DatabaseError::InvalidEnumVariant),
     })
 }

@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT launcher_id, nonce, fixed_conditions_hash, version\n        FROM p2_puzzles\n        INNER JOIN p2_conditions_or_singletons\n            ON p2_conditions_or_singletons.p2_puzzle_id = p2_puzzles.id\n        WHERE p2_puzzles.hash = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "launcher_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "nonce",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "fixed_conditions_hash",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "version",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "0771ed12ab5d357f12edd1369f749cbb5975bd4f984443bbc065e701e96ff613"
+}

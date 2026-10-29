@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT custody_hash, amount, state\n        FROM vaults\n        INNER JOIN assets ON assets.id = vaults.asset_id\n        WHERE assets.hash = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "custody_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "state",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "805b58671e0a644cabcd7b806b12265903433ead7804d8741eca9c7b68a63387"
+}
