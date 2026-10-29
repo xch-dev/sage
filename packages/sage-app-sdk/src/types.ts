@@ -51,7 +51,7 @@ export type SageWalletClient = {
   getPublicKeys(
     input?: Generated.WalletGetPublicKeysParams,
   ): Promise<Generated.WalletGetPublicKeysResult>;
-  getKey(): Promise<Generated.GetKeyResponse>;
+  getWallet(): Promise<Generated.GetWalletResponse>;
   getSecretKey(): Promise<Generated.GetSecretKeyResponse>;
 
   getSyncStatus(): Promise<Generated.GetSyncStatusResponse>;

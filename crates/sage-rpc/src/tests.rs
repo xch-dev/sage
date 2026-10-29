@@ -1,5 +1,8 @@
 mod contacts;
+mod keys;
 mod recipients;
+mod wallets;
+mod watch_wallets;
 
 use std::{
     collections::HashMap,
@@ -33,9 +36,9 @@ use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
     Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CreateDid, CreateTransaction, GetDids,
-    GetHandle, GetHandles, GetKey, GetNft, GetNftMetadataUpdater, GetOffers, GetPeers,
-    GetSyncStatus, GetVersion, HandleFilterMode, HandleStatus, HandleVerification, Id as ApiId,
-    ImportKey, ImportOffer, Login, LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind,
+    GetHandle, GetHandles, GetNft, GetNftMetadataUpdater, GetOffers, GetPeers, GetSyncStatus,
+    GetVersion, GetWallet, HandleFilterMode, HandleStatus, HandleVerification, Id as ApiId,
+    ImportOffer, ImportWallet, Login, LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind,
     NftUriKind, OfferAmount, OfferAsset, ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction,
     ViewOffer,
 };
@@ -207,7 +210,7 @@ impl TestApp {
         }
 
         let fingerprint = self
-            .import_key(ImportKey {
+            .import_wallet(ImportWallet {
                 name: "Alice".to_string(),
                 key: mnemonic.to_string(),
                 derivation_index: 0,
@@ -278,13 +281,13 @@ async fn test_initial_state() -> Result<()> {
 
     let fingerprint = app.setup_bls(0).await?;
 
-    let key = app
-        .get_key(GetKey { fingerprint: None })
+    let wallet = app
+        .get_wallet(GetWallet { fingerprint: None })
         .await?
-        .key
+        .wallet
         .expect("should be logged in");
 
-    assert_eq!(key.fingerprint, fingerprint);
+    assert_eq!(wallet.fingerprint, fingerprint);
 
     let peers = app.get_peers(GetPeers {}).await?.peers;
 

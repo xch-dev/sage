@@ -26,29 +26,50 @@ async resync(req: Resync) : Promise<ResyncResponse> {
 async generateMnemonic(req: GenerateMnemonic) : Promise<GenerateMnemonicResponse> {
     return await TAURI_INVOKE("generate_mnemonic", { req });
 },
-async importKey(req: ImportKey) : Promise<ImportKeyResponse> {
-    return await TAURI_INVOKE("import_key", { req });
+async importWallet(req: ImportWallet) : Promise<ImportWalletResponse> {
+    return await TAURI_INVOKE("import_wallet", { req });
 },
-async deleteKey(req: DeleteKey) : Promise<DeleteKeyResponse> {
-    return await TAURI_INVOKE("delete_key", { req });
+async importWatchWallet(req: ImportWatchWallet) : Promise<ImportWatchWalletResponse> {
+    return await TAURI_INVOKE("import_watch_wallet", { req });
+},
+async addWatchAddresses(req: AddWatchAddresses) : Promise<AddWatchAddressesResponse> {
+    return await TAURI_INVOKE("add_watch_addresses", { req });
+},
+async removeWatchAddresses(req: RemoveWatchAddresses) : Promise<RemoveWatchAddressesResponse> {
+    return await TAURI_INVOKE("remove_watch_addresses", { req });
+},
+async deleteWallet(req: DeleteWallet) : Promise<DeleteWalletResponse> {
+    return await TAURI_INVOKE("delete_wallet", { req });
 },
 async deleteDatabase(req: DeleteDatabase) : Promise<DeleteDatabaseResponse> {
     return await TAURI_INVOKE("delete_database", { req });
 },
-async renameKey(req: RenameKey) : Promise<RenameKeyResponse> {
-    return await TAURI_INVOKE("rename_key", { req });
-},
-async getKeys(req: GetKeys) : Promise<GetKeysResponse> {
-    return await TAURI_INVOKE("get_keys", { req });
+async renameWallet(req: RenameWallet) : Promise<RenameWalletResponse> {
+    return await TAURI_INVOKE("rename_wallet", { req });
 },
 async setWalletEmoji(req: SetWalletEmoji) : Promise<SetWalletEmojiResponse> {
     return await TAURI_INVOKE("set_wallet_emoji", { req });
 },
-async getKey(req: GetKey) : Promise<GetKeyResponse> {
-    return await TAURI_INVOKE("get_key", { req });
+async getWallet(req: GetWallet) : Promise<GetWalletResponse> {
+    return await TAURI_INVOKE("get_wallet", { req });
+},
+async getWallets(req: GetWallets) : Promise<GetWalletsResponse> {
+    return await TAURI_INVOKE("get_wallets", { req });
 },
 async getWalletAddress(req: GetWalletAddress) : Promise<GetWalletAddressResponse> {
     return await TAURI_INVOKE("get_wallet_address", { req });
+},
+async getKey(req: GetKey) : Promise<GetKeyResponse> {
+    return await TAURI_INVOKE("get_key", { req });
+},
+async getKeys(req: GetKeys) : Promise<GetKeysResponse> {
+    return await TAURI_INVOKE("get_keys", { req });
+},
+async addKey(req: AddKey) : Promise<AddKeyResponse> {
+    return await TAURI_INVOKE("add_key", { req });
+},
+async deleteKey(req: DeleteKey) : Promise<DeleteKeyResponse> {
+    return await TAURI_INVOKE("delete_key", { req });
 },
 async getSecretKey(req: GetSecretKey) : Promise<GetSecretKeyResponse> {
     return await TAURI_INVOKE("get_secret_key", { req });
@@ -522,6 +543,23 @@ recipient: string; note?: string | null }
  */
 export type AddContactResponse = { contact: ContactRecord }
 /**
+ * Add a key to the keychain
+ */
+export type AddKey = { 
+/**
+ * Mnemonic phrase, or hex encoded secret or public key. A mnemonic or secret key is stored
+ * with its secret key
+ */
+key: string }
+/**
+ * Response with the added key
+ */
+export type AddKeyResponse = { 
+/**
+ * Fingerprint of the key
+ */
+fingerprint: number }
+/**
  * Add a URI to an NFT
  */
 export type AddNftUri = { 
@@ -553,6 +591,22 @@ export type AddPeer = {
  * IP address or hostname with port
  */
 ip: string }
+/**
+ * Watch more addresses in a watch wallet
+ */
+export type AddWatchAddresses = { 
+/**
+ * Fingerprint of the watch wallet
+ */
+fingerprint: number; 
+/**
+ * Addresses to watch, on any network
+ */
+addresses: string[] }
+/**
+ * Response for adding watched addresses
+ */
+export type AddWatchAddressesResponse = Record<string, never>
 /**
  * The contacts which name an address
  */
@@ -1090,15 +1144,15 @@ network: string }
  */
 export type DeleteDatabaseResponse = Record<string, never>
 /**
- * Delete a wallet key
+ * Remove a key from the keychain
  */
 export type DeleteKey = { 
 /**
- * Wallet fingerprint to delete
+ * Key fingerprint
  */
 fingerprint: number }
 /**
- * Response for key deletion
+ * Response for key removal
  */
 export type DeleteKeyResponse = Record<string, never>
 /**
@@ -1122,6 +1176,23 @@ export type DeleteUserTheme = {
  */
 nft_id: string }
 export type DeleteUserThemeResponse = Record<string, never>
+/**
+ * Delete a wallet
+ */
+export type DeleteWallet = { 
+/**
+ * Wallet fingerprint to delete
+ */
+fingerprint: number; 
+/**
+ * Whether to also remove the keys the wallet uses from the keychain, such as a BLS
+ * wallet's own key. Keys that another wallet still uses are kept regardless
+ */
+delete_keys?: boolean }
+/**
+ * Response for wallet deletion
+ */
+export type DeleteWalletResponse = Record<string, never>
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
@@ -1530,13 +1601,13 @@ handles: HandleRecord[];
  */
 total: number }
 /**
- * Get a specific wallet key
+ * Get a specific key from the keychain
  */
 export type GetKey = { 
 /**
- * Wallet fingerprint (uses currently logged in if null)
+ * Key fingerprint
  */
-fingerprint?: number | null }
+fingerprint: number }
 /**
  * Response with key information
  */
@@ -1546,15 +1617,15 @@ export type GetKeyResponse = {
  */
 key: KeyInfo | null }
 /**
- * List all wallet keys
+ * List all keys in the keychain
  */
 export type GetKeys = Record<string, never>
 /**
- * Response with all wallet keys
+ * Response with all keys in the keychain
  */
 export type GetKeysResponse = { 
 /**
- * List of wallet keys
+ * List of keys
  */
 keys: KeyInfo[] }
 /**
@@ -2132,6 +2203,14 @@ export type GetVersionResponse = {
  */
 version: string }
 /**
+ * Get a specific wallet
+ */
+export type GetWallet = { 
+/**
+ * Wallet fingerprint (uses currently logged in if null)
+ */
+fingerprint?: number | null }
+/**
  * Get the receive address for any wallet without switching sessions
  */
 export type GetWalletAddress = { 
@@ -2151,6 +2230,26 @@ export type GetWalletAddressResponse = {
  * The wallet's current receive address
  */
 address: string }
+/**
+ * Response with wallet information
+ */
+export type GetWalletResponse = { 
+/**
+ * Wallet information if found
+ */
+wallet: WalletInfo | null }
+/**
+ * List all wallets
+ */
+export type GetWallets = Record<string, never>
+/**
+ * Response with all wallets
+ */
+export type GetWalletsResponse = { 
+/**
+ * List of wallets
+ */
+wallets: WalletInfo[] }
 export type GetXchUsdPrice = Record<string, never>
 export type GetXchUsdPriceResponse = { usd: number }
 /**
@@ -2420,15 +2519,31 @@ added: ContactRecord[];
  */
 skipped: SkippedContact[] }
 /**
- * Import a wallet key
+ * Import an offer
  */
-export type ImportKey = { 
+export type ImportOffer = { 
+/**
+ * Offer string to import
+ */
+offer: string }
+/**
+ * Response with imported offer ID
+ */
+export type ImportOfferResponse = { 
+/**
+ * ID of the imported offer
+ */
+offer_id: string }
+/**
+ * Import a BLS wallet from a key
+ */
+export type ImportWallet = { 
 /**
  * Display name for the wallet
  */
 name: string; 
 /**
- * Mnemonic phrase or private key
+ * Mnemonic phrase, or hex encoded private or public key
  */
 key: string; 
 /**
@@ -2456,29 +2571,41 @@ login?: boolean;
  */
 emoji?: string | null }
 /**
- * Response with imported key fingerprint
+ * Response with the imported wallet's fingerprint
  */
-export type ImportKeyResponse = { 
+export type ImportWalletResponse = { 
 /**
- * Fingerprint of the imported key
+ * Fingerprint of the imported wallet, which is also its key's fingerprint
  */
 fingerprint: number }
 /**
- * Import an offer
+ * Import a watch-only wallet from addresses
  */
-export type ImportOffer = { 
+export type ImportWatchWallet = { 
 /**
- * Offer string to import
+ * Display name for the wallet
  */
-offer: string }
+name: string; 
 /**
- * Response with imported offer ID
+ * Addresses to watch, on any network. The first one is the receive address
  */
-export type ImportOfferResponse = { 
+addresses: string[]; 
 /**
- * ID of the imported offer
+ * Whether to automatically login after import
  */
-offer_id: string }
+login?: boolean; 
+/**
+ * Optional emoji identifier
+ */
+emoji?: string | null }
+/**
+ * Response with the imported watch wallet's fingerprint
+ */
+export type ImportWatchWalletResponse = { 
+/**
+ * Fingerprint assigned to the wallet. It's derived from its addresses, since it has no key
+ */
+fingerprint: number }
 /**
  * Increase the derivation index to generate more addresses
  */
@@ -2544,8 +2671,26 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
-export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; network_id: string; emoji: string | null }
-export type KeyKind = "bls"
+/**
+ * Public information about a key in the keychain
+ */
+export type KeyInfo = { fingerprint: number; kind: KeyKind; 
+/**
+ * The hex encoded public key. For BLS keys, this is the master public key
+ */
+public_key: string; 
+/**
+ * Whether the keychain holds the secret key, rather than only the public key
+ */
+has_secrets: boolean }
+/**
+ * The kind of a key in the keychain
+ */
+export type KeyKind = 
+/**
+ * A BLS key, which can be a wallet of its own
+ */
+"bls"
 /**
  * Lineage proof for CAT coins
  */
@@ -3135,9 +3280,25 @@ ip: string;
  */
 ban: boolean }
 /**
- * Rename a wallet key
+ * Stop watching addresses in a watch wallet
  */
-export type RenameKey = { 
+export type RemoveWatchAddresses = { 
+/**
+ * Fingerprint of the watch wallet
+ */
+fingerprint: number; 
+/**
+ * Addresses to stop watching
+ */
+addresses: string[] }
+/**
+ * Response for removing watched addresses
+ */
+export type RemoveWatchAddressesResponse = Record<string, never>
+/**
+ * Rename a wallet
+ */
+export type RenameWallet = { 
 /**
  * Wallet fingerprint
  */
@@ -3147,9 +3308,9 @@ fingerprint: number;
  */
 name: string }
 /**
- * Response for key rename
+ * Response for wallet rename
  */
-export type RenameKeyResponse = Record<string, never>
+export type RenameWalletResponse = Record<string, never>
 export type ReorderTaskbarRuntimesParams = { windowLabel: string; appIds: string[] }
 /**
  * Resolve an XCHandles handle to an address
@@ -3910,7 +4071,7 @@ visible: boolean }
  * Response after updating an option
  */
 export type UpdateOptionResponse = Record<string, never>
-export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.resolve_handle" | "wallet.get_handles" | "wallet.get_contacts" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
+export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_wallet" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.resolve_handle" | "wallet.get_handles" | "wallet.get_contacts" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
 export type UserSageAppPendingUpdateDecisionReviewView = { requiredUserGrantableCapabilities: UserBridgeCapability[]; requiredNetworkWhitelist: SageNetworkWhitelistEntry[]; requiredNetworkWhitelistByNetwork: Partial<{ [key in string]: SageNetworkWhitelistEntry[] }> }
 export type UserSageAppPendingUpdateDecisionView = { kind: "apply" } | ({ kind: "review" } & UserSageAppPendingUpdateDecisionReviewView)
 export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest; decision: UserSageAppPendingUpdateDecisionView }
@@ -3958,8 +4119,35 @@ status: OfferRecordStatus;
  * can't be taken.
  */
 handle_nfts?: OfferHandleNft[] }
-export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
+export type Wallet = 
+/**
+ * What the wallet is made of. It's stored alongside the wallet's own fields, under a `type`
+ * key, which is omitted for BLS wallets since every wallet was one before kinds existed.
+ */
+({ type: "bls" } | 
+/**
+ * The p2 puzzle hashes being watched. The first one is the wallet's receive address.
+ */
+{ type: "watch"; p2_puzzle_hashes: string[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
+export type WalletInfo = { name: string; fingerprint: number; kind: WalletKind; network_id: string; emoji: string | null }
+/**
+ * The kind of wallet, which determines how its addresses are found and whether it can sign
+ */
+export type WalletKind = 
+/**
+ * A BLS key, whose addresses are derived from its master public key. The key is in the
+ * keychain under the wallet's fingerprint
+ */
+"bls" | 
+/**
+ * A read-only list of addresses, whose puzzle reveals are unknown
+ */
+{ watch: { 
+/**
+ * The addresses being watched. The first one is the receive address
+ */
+addresses: string[] } }
 export type WindowTargetParams = { windowLabel: string }
 /**
  * The XCHandles deployment used to resolve handles on a network.

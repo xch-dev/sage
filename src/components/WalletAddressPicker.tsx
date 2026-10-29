@@ -1,4 +1,4 @@
-import { commands, KeyInfo } from '@/bindings';
+import { commands, WalletInfo } from '@/bindings';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { toCustomError } from '@/lib/errors';
@@ -21,7 +21,7 @@ interface WalletAddressPickerProps {
 export function WalletAddressPicker({ onSelect }: WalletAddressPickerProps) {
   const { wallet } = useWallet();
   const { addError } = useErrors();
-  const [otherWallets, setOtherWallets] = useState<KeyInfo[]>([]);
+  const [otherWallets, setOtherWallets] = useState<WalletInfo[]>([]);
   const [loadingFingerprint, setLoadingFingerprint] = useState<number | null>(
     null,
   );
@@ -30,13 +30,13 @@ export function WalletAddressPicker({ onSelect }: WalletAddressPickerProps) {
     if (!wallet) return;
 
     commands
-      .getKeys({})
-      .then(({ keys }) => {
+      .getWallets({})
+      .then(({ wallets }) => {
         setOtherWallets(
-          keys.filter(
-            (k) =>
-              k.fingerprint !== wallet.fingerprint &&
-              k.network_id === wallet.network_id,
+          wallets.filter(
+            (w) =>
+              w.fingerprint !== wallet.fingerprint &&
+              w.network_id === wallet.network_id,
           ),
         );
       })

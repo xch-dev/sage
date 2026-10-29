@@ -3,9 +3,9 @@ use axum::http::StatusCode;
 use chia_wallet_sdk::utils::Address;
 use sage_api::{
     AddContact, ContactEntry, ContactKind, ContactRecord, ContactSkipReason, DeleteContact,
-    DeleteKey, ExportContacts, GetContact, GetContacts, GetHandles, HandleFilterMode, HandleStatus,
-    HandleVerification, ImportContacts, Login, LookupAddressContacts, SetNetworkOverride,
-    UpdateContact,
+    DeleteWallet, ExportContacts, GetContact, GetContacts, GetHandles, HandleFilterMode,
+    HandleStatus, HandleVerification, ImportContacts, Login, LookupAddressContacts,
+    SetNetworkOverride, UpdateContact,
 };
 use sage_database::{XchandleRow, XchandleStatus};
 
@@ -670,7 +670,11 @@ async fn test_contacts_and_handles_are_shared_per_network() -> Result<()> {
     assert_eq!(names(&contacts(&app).await?), ["Bob", "Carol"]);
 
     // Deleting a wallet leaves the address book for the other wallets.
-    app.delete_key(DeleteKey { fingerprint: first }).await?;
+    app.delete_wallet(DeleteWallet {
+        fingerprint: first,
+        delete_keys: true,
+    })
+    .await?;
     app.login(Login {
         fingerprint: second,
     })

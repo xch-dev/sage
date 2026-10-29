@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fs,
     io::Write,
     path::{Path, PathBuf},
@@ -15,12 +16,16 @@ use chia_wallet_sdk::{
 use indexmap::IndexMap;
 use sage_api::{Unit, XCH};
 use sage_config::{
-    Config, Network, NetworkList, OldConfig, OldNetwork, Wallet as WalletEntry, WalletConfig,
-    is_old_config, migrate_config, migrate_networks,
+    Config, Network, NetworkList, OldConfig, OldNetwork, WALLET_CONFIG_VERSION,
+    Wallet as WalletEntry, WalletConfig, WalletKind as ConfigWalletKind, is_old_config,
+    migrate_config, migrate_networks,
 };
 use sage_database::{Database, SharedDatabase};
 use sage_keychain::Keychain;
-use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
+use sage_wallet::{
+    PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet, WalletError,
+    WalletKind,
+};
 use serde::de::DeserializeOwned;
 use sqlx::{
     ConnectOptions, SqlitePool,
@@ -108,7 +113,7 @@ impl Sage {
         if let Some(DataDirLock::Unsupported(error)) = &self.data_dir_lock {
             warn!("File locking is not supported for the data directory: {error}");
         }
-        self.recover_missing_wallets()?;
+        self.migrate_wallet_config()?;
 
         let (receiver, sync_task) = self.setup_sync_manager()?;
 
@@ -192,24 +197,20 @@ impl Sage {
         Ok(())
     }
 
-    /// Adds a wallet entry for every key in the keychain that isn't listed in `wallets.toml`.
-    /// Otherwise those keys are inaccessible, since the wallet list is driven by the config.
-    fn recover_missing_wallets(&mut self) -> Result<()> {
+    /// Upgrades `wallets.toml` to the current version.
+    fn migrate_wallet_config(&mut self) -> Result<()> {
+        if self.wallet_config.version >= WALLET_CONFIG_VERSION {
+            return Ok(());
+        }
+
+        // Before version 1, every key in the keychain was a wallet, so keys without an entry
+        // would otherwise be inaccessible. This only happens once, since the keychain can now
+        // hold keys that aren't wallets.
         let mut missing: Vec<u32> = self
             .keychain
             .fingerprints()
-            .filter(|fingerprint| {
-                !self
-                    .wallet_config
-                    .wallets
-                    .iter()
-                    .any(|wallet| wallet.fingerprint == *fingerprint)
-            })
+            .filter(|&fingerprint| self.wallet_entry(fingerprint).is_none())
             .collect();
-
-        if missing.is_empty() {
-            return Ok(());
-        }
 
         missing.sort_unstable();
 
@@ -222,6 +223,7 @@ impl Sage {
             });
         }
 
+        self.wallet_config.version = WALLET_CONFIG_VERSION;
         self.save_config()
     }
 
@@ -375,17 +377,19 @@ impl Sage {
             return Ok(());
         };
 
-        let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
-            return Err(Error::UnknownFingerprint);
-        };
-
-        let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
+        let kind = self.wallet_kind(fingerprint)?;
 
         let pool = self.connect_to_database(fingerprint).await?;
         let db = Database::new(pool);
 
         db.run_rust_migrations(self.network().ticker.clone())
             .await?;
+
+        // `wallets.toml` defines what a watch wallet watches, so the database follows it before
+        // syncing. Sync subscribes to every watched puzzle hash in the database.
+        if let Some(p2_puzzle_hashes) = self.watched_p2_puzzle_hashes(fingerprint) {
+            watch_p2_puzzles(&db, p2_puzzle_hashes).await?;
+        }
 
         let shared_db = self.connect_to_shared_database(fingerprint).await?;
 
@@ -395,7 +399,7 @@ impl Sage {
             db.clone(),
             shared_db,
             fingerprint,
-            intermediate_pk,
+            kind,
             self.network().genesis_challenge,
             AggSigConstants::new(self.network().agg_sig_me()),
             wallet_config
@@ -603,12 +607,10 @@ impl Sage {
     }
 
     pub fn wallet_config(&self) -> Option<&sage_config::Wallet> {
-        self.config.global.fingerprint.and_then(|fingerprint| {
-            self.wallet_config
-                .wallets
-                .iter()
-                .find(|w| w.fingerprint == fingerprint)
-        })
+        self.config
+            .global
+            .fingerprint
+            .and_then(|fingerprint| self.wallet_entry(fingerprint))
     }
 
     pub fn network(&self) -> &Network {
@@ -630,12 +632,87 @@ impl Sage {
         self.network().network_id()
     }
 
+    /// The entry in `wallets.toml`, which defines what kind of wallet this is.
+    pub fn wallet_entry(&self, fingerprint: u32) -> Option<&WalletEntry> {
+        self.wallet_config
+            .wallets
+            .iter()
+            .find(|wallet| wallet.fingerprint == fingerprint)
+    }
+
+    /// Whether any wallet uses the key with this fingerprint. For now that's only the BLS
+    /// wallet with the same fingerprint, but other wallets will be able to use keys too, such as
+    /// vaults with signers.
+    pub fn is_key_used(&self, fingerprint: u32) -> bool {
+        self.wallet_config.wallets.iter().any(|wallet| {
+            matches!(wallet.kind, ConfigWalletKind::Bls) && wallet.fingerprint == fingerprint
+        })
+    }
+
+    /// Determines how the wallet with this fingerprint is opened.
+    pub fn wallet_kind(&self, fingerprint: u32) -> Result<WalletKind> {
+        let wallet = self
+            .wallet_entry(fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        Ok(match &wallet.kind {
+            ConfigWalletKind::Bls => {
+                let master_pk = self
+                    .keychain
+                    .extract_public_key(fingerprint)?
+                    .ok_or(Error::UnknownFingerprint)?;
+
+                WalletKind::Bls {
+                    intermediate_pk: master_to_wallet_unhardened_intermediate(&master_pk),
+                }
+            }
+            ConfigWalletKind::Watch { p2_puzzle_hashes } => {
+                if p2_puzzle_hashes.is_empty() {
+                    return Err(Error::NoWatchAddresses);
+                }
+
+                WalletKind::Watch
+            }
+        })
+    }
+
+    /// The p2 puzzle hashes that a watch wallet watches, in order. `None` for other kinds.
+    pub fn watched_p2_puzzle_hashes(&self, fingerprint: u32) -> Option<&[Bytes32]> {
+        match &self.wallet_entry(fingerprint)?.kind {
+            ConfigWalletKind::Watch { p2_puzzle_hashes } => Some(p2_puzzle_hashes),
+            ConfigWalletKind::Bls => None,
+        }
+    }
+
+    /// Whether the open wallet is a watch wallet, which can't create or sign transactions.
+    pub fn is_watch_only(&self) -> bool {
+        self.wallet
+            .as_ref()
+            .is_some_and(|wallet| matches!(wallet.kind, WalletKind::Watch))
+    }
+
+    /// The secret key that signs for the wallet. Watch wallets never have one, and cold BLS
+    /// wallets only have their public key.
+    pub(crate) fn master_secret_key(&self, wallet: &Wallet) -> Result<SecretKey> {
+        if matches!(wallet.kind, WalletKind::Watch) {
+            return Err(WalletError::WatchOnly.into());
+        }
+
+        let (_mnemonic, Some(master_sk)) =
+            self.keychain.extract_secrets(wallet.fingerprint, b"")?
+        else {
+            return Err(Error::NoSigningKey);
+        };
+
+        Ok(master_sk)
+    }
+
     pub fn wallet(&self) -> Result<Arc<Wallet>> {
         let Some(fingerprint) = self.config.global.fingerprint else {
             return Err(Error::NotLoggedIn);
         };
 
-        if !self.keychain.contains(fingerprint) {
+        if self.wallet_entry(fingerprint).is_none() {
             return Err(Error::UnknownFingerprint);
         }
 
@@ -711,6 +788,35 @@ fn write_atomic(path: &Path, contents: impl AsRef<[u8]>) -> Result<()> {
     Ok(())
 }
 
+/// Makes the database watch exactly these p2 puzzle hashes, and returns the ones it didn't watch
+/// yet. Coins synced for puzzle hashes that are no longer watched are deleted.
+pub(crate) async fn watch_p2_puzzles(
+    db: &Database,
+    p2_puzzle_hashes: &[Bytes32],
+) -> Result<Vec<Bytes32>> {
+    let existing: HashSet<Bytes32> = db.external_p2_puzzle_hashes().await?.into_iter().collect();
+    let watched: HashSet<Bytes32> = p2_puzzle_hashes.iter().copied().collect();
+
+    let mut tx = db.tx().await?;
+
+    for &p2_puzzle_hash in existing.difference(&watched) {
+        tx.delete_external_p2_puzzle(p2_puzzle_hash).await?;
+    }
+
+    let mut added = Vec::new();
+
+    for &p2_puzzle_hash in p2_puzzle_hashes {
+        if !existing.contains(&p2_puzzle_hash) && !added.contains(&p2_puzzle_hash) {
+            tx.insert_external_p2_puzzle(p2_puzzle_hash).await?;
+            added.push(p2_puzzle_hash);
+        }
+    }
+
+    tx.commit().await?;
+
+    Ok(added)
+}
+
 #[cfg(test)]
 mod tests {
     use tempfile::TempDir;
@@ -722,7 +828,7 @@ mod tests {
         sage.writable = true;
         sage.setup_keys()?;
         sage.setup_config()?;
-        sage.recover_missing_wallets()?;
+        sage.migrate_wallet_config()?;
         Ok(sage)
     }
 
@@ -868,9 +974,33 @@ mod tests {
         assert_eq!(wallets[0].name, "Named");
         assert_eq!(wallets[1].fingerprint, lost);
 
-        // The recovered entry is saved
+        // The recovered entry is saved, along with the new version
         let text = fs::read_to_string(dir.path().join("wallets.toml"))?;
         assert!(text.contains(&lost.to_string()));
+        assert_eq!(sage.wallet_config.version, WALLET_CONFIG_VERSION);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_keys_are_only_recovered_once() -> Result<()> {
+        let dir = TempDir::new()?;
+
+        let mut sage = load(dir.path())?;
+        assert_eq!(sage.wallet_config.version, WALLET_CONFIG_VERSION);
+
+        // Once the wallet config is current, a key without a wallet isn't one.
+        let key = add_key(&mut sage, 1)?;
+        sage.save_keychain()?;
+        drop(sage);
+
+        let sage = load(dir.path())?;
+        assert!(sage.wallet_config.wallets.is_empty());
+        assert!(sage.keychain.contains(key));
+        assert!(matches!(
+            sage.wallet_kind(key),
+            Err(Error::UnknownFingerprint)
+        ));
 
         Ok(())
     }
@@ -915,6 +1045,32 @@ mod tests {
         assert!(matches!(sage.save_config(), Err(Error::NotInitialized)));
         assert!(matches!(sage.save_keychain(), Err(Error::NotInitialized)));
         assert!(!dir.path().join("wallets.toml").try_exists()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_wallet_config_defines_watch_wallets() -> Result<()> {
+        let dir = TempDir::new()?;
+        drop(load(dir.path())?);
+
+        let watched = Bytes32::new([2; 32]);
+
+        fs::write(
+            dir.path().join("wallets.toml"),
+            format!(
+                "version = 1\n\n\
+                 [[wallets]]\nname = \"Watch\"\nfingerprint = 2\n\
+                 type = \"watch\"\np2_puzzle_hashes = [\"{watched}\"]\n\n\
+                 [[wallets]]\nname = \"Empty\"\nfingerprint = 3\n\
+                 type = \"watch\"\np2_puzzle_hashes = []\n"
+            ),
+        )?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.wallet_kind(2)?, WalletKind::Watch);
+        assert_eq!(sage.watched_p2_puzzle_hashes(2), Some([watched].as_slice()));
+        assert!(matches!(sage.wallet_kind(3), Err(Error::NoWatchAddresses)));
 
         Ok(())
     }

@@ -6,8 +6,8 @@ use std::io::{self, BufRead, IsTerminal, Write};
 use anyhow::{Context, Result, anyhow, bail};
 use clap::{Args, Subcommand};
 use sage_api::{
-    Amount, GetCats, GetKey, GetSyncStatus, GetToken, HandleConfirmation, RecipientError,
-    RecipientErrorKind, SendCat, SendXch, SignCoinSpends, TransactionResponse, Unit,
+    Amount, GetCats, GetSyncStatus, GetToken, GetWallet, HandleConfirmation, RecipientError,
+    RecipientErrorKind, SendCat, SendXch, SignCoinSpends, TransactionResponse, Unit, WalletKind,
 };
 use sage_client::{Client, SageRpcError};
 use serde::{Deserialize, Serialize};
@@ -103,20 +103,23 @@ impl WalletArgs {
 }
 
 async fn status(client: &Client, json: bool) -> Result<()> {
-    let key = rpc(client.get_key(GetKey { fingerprint: None }).await)?;
+    let wallet = rpc(client.get_wallet(GetWallet { fingerprint: None }).await)?;
     let sync = rpc(client.get_sync_status(GetSyncStatus {}).await)?;
 
     if json {
-        print_json(&serde_json::json!({ "key": key.key, "sync": sync }));
+        print_json(&serde_json::json!({ "wallet": wallet.wallet, "sync": sync }));
         return Ok(());
     }
 
-    let Some(key) = key.key else {
+    let Some(wallet) = wallet.wallet else {
         bail!("No wallet is logged in");
     };
 
-    println!("Wallet:   {} ({})", key.name, key.fingerprint);
-    println!("Network:  {}", key.network_id);
+    println!("Wallet:   {} ({})", wallet.name, wallet.fingerprint);
+    if matches!(wallet.kind, WalletKind::Watch { .. }) {
+        println!("Kind:     watch-only");
+    }
+    println!("Network:  {}", wallet.network_id);
     println!(
         "Balance:  {} {} spendable",
         format_units(amount(&sync.selectable_balance)?, sync.unit.precision),

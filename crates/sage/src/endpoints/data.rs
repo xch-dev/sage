@@ -28,6 +28,7 @@ use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
     ParsedNftMetadata, Transaction, TransactionCoin,
 };
+use sage_wallet::WalletKind;
 
 impl Sage {
     pub fn get_version(&self, _req: GetVersion) -> Result<GetVersionResponse> {
@@ -85,10 +86,16 @@ impl Sage {
         let total_coins = wallet.db.total_coin_count().await?;
         let synced_coins = wallet.db.synced_coin_count().await?;
 
-        let change_p2_puzzle_hash = wallet.change_p2_puzzle_hash().await?;
+        let receive_p2_puzzle_hash = match wallet.kind {
+            WalletKind::Bls { .. } => wallet.change_p2_puzzle_hash().await?,
+            WalletKind::Watch => self
+                .watched_p2_puzzle_hashes(wallet.fingerprint)
+                .and_then(|p2_puzzle_hashes| p2_puzzle_hashes.first().copied())
+                .ok_or(Error::NoWatchAddresses)?,
+        };
 
         let receive_address =
-            Address::new(change_p2_puzzle_hash, self.network().prefix()).encode()?;
+            Address::new(receive_p2_puzzle_hash, self.network().prefix()).encode()?;
 
         let database_size = self
             .wallet_db_path(wallet.fingerprint)

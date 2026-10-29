@@ -37,14 +37,21 @@ macro_rules! sage_commands {
             commands::logout,
             commands::resync,
             commands::generate_mnemonic,
-            commands::import_key,
-            commands::delete_key,
+            commands::import_wallet,
+            commands::import_watch_wallet,
+            commands::add_watch_addresses,
+            commands::remove_watch_addresses,
+            commands::delete_wallet,
             commands::delete_database,
-            commands::rename_key,
-            commands::get_keys,
+            commands::rename_wallet,
             commands::set_wallet_emoji,
-            commands::get_key,
+            commands::get_wallet,
+            commands::get_wallets,
             commands::get_wallet_address,
+            commands::get_key,
+            commands::get_keys,
+            commands::add_key,
+            commands::delete_key,
             commands::get_secret_key,
             commands::send_xch,
             commands::bulk_send_xch,
@@ -563,6 +570,59 @@ mod tests {
         let identifier = load_data_store_identifier(dir.path()).unwrap();
 
         assert_eq!(load_data_store_identifier(dir.path()).unwrap(), identifier);
+    }
+
+    /// The commands a permission file allows.
+    fn allowed_commands(permissions: &str) -> Vec<String> {
+        let permissions: toml::Value = toml::from_str(permissions).unwrap();
+
+        permissions["permission"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|permission| permission["commands"]["allow"].as_array().unwrap())
+            .map(|command| command.as_str().unwrap().to_string())
+            .collect()
+    }
+
+    /// Webviews can only call commands that a permission allows, and a command they aren't
+    /// allowed to call fails without an error Sage can show. So every registered command has to
+    /// be allowed for the main webview, or for app webviews in `bridge.toml`, and the names the
+    /// main webview is allowed to call have to still exist.
+    #[test]
+    fn permissions_allow_every_command() {
+        let commands: Vec<&str> = include_str!("lib.rs")
+            .lines()
+            .map(str::trim)
+            .filter_map(|line| {
+                line.strip_prefix("commands::")
+                    .or_else(|| line.strip_prefix("apps::"))
+            })
+            .filter_map(|line| line.strip_suffix(','))
+            .collect();
+
+        let main_host = allowed_commands(include_str!("../permissions/main-host.toml"));
+        let bridge = allowed_commands(include_str!("../permissions/bridge.toml"));
+
+        assert!(commands.contains(&"get_wallets"));
+        assert!(commands.contains(&"apps_list_installed_apps"));
+
+        for command in &commands {
+            assert!(
+                main_host
+                    .iter()
+                    .chain(&bridge)
+                    .any(|allowed| allowed == command),
+                "`{command}` isn't allowed in any permission file"
+            );
+        }
+
+        for name in &main_host {
+            assert!(
+                commands.contains(&name.as_str()),
+                "`{name}` in main-host.toml isn't a command"
+            );
+        }
     }
 
     #[test]

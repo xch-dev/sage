@@ -1,12 +1,13 @@
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
     GetCoinsResponse, GetContacts, GetDerivations, GetDerivationsResponse, GetHandle,
-    GetHandleResponse, GetHandles, GetHandlesResponse, GetKeyResponse, GetPendingTransactions,
+    GetHandleResponse, GetHandles, GetHandlesResponse, GetPendingTransactions,
     GetPendingTransactionsResponse, GetSecretKeyResponse, GetSpendableCoinCount,
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
     GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
-    GetVersionResponse, GetXchUsdPriceResponse, LookupAddressContacts, LookupAddressHandles,
-    LookupAddressHandlesResponse, ResolveHandle, ResolveHandleResponse, TransactionResponse,
+    GetVersionResponse, GetWalletResponse, GetXchUsdPriceResponse, LookupAddressContacts,
+    LookupAddressHandles, LookupAddressHandlesResponse, ResolveHandle, ResolveHandleResponse,
+    TransactionResponse,
 };
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
@@ -64,7 +65,7 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<SetBeforeStopListenerParams>();
     types.register::<ReadyToStopParams>();
     types.register::<RuntimeAckResult>();
-    types.register::<GetKeyResponse>();
+    types.register::<GetWalletResponse>();
     types.register::<GetXchUsdPriceResponse>();
     types.register::<GetSecretKeyResponse>();
     types.register::<WalletGetPublicKeysParams>();

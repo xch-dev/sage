@@ -136,12 +136,6 @@
 | ---------- | -------------------- |
 | Capability | `wallet.get_handles` |
 
-## `wallet.getKey`
-
-| Field      | Value            |
-| ---------- | ---------------- |
-| Capability | `wallet.get_key` |
-
 ## `wallet.getPendingTransactions`
 
 | Field      | Value                             |
@@ -189,6 +183,12 @@
 | Field      | Value                |
 | ---------- | -------------------- |
 | Capability | `wallet.get_version` |
+
+## `wallet.getWallet`
+
+| Field      | Value               |
+| ---------- | ------------------- |
+| Capability | `wallet.get_wallet` |
 
 ## `wallet.getXchUsdPrice`
 

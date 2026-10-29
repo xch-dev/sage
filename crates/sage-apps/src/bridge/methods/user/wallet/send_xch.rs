@@ -221,6 +221,10 @@ impl BridgeMethod for WalletSendXch {
         true
     }
 
+    fn requires_signing(&self) -> bool {
+        true
+    }
+
     async fn handle_approved(
         &self,
         approval: &RustBridgeApprovalRequest,

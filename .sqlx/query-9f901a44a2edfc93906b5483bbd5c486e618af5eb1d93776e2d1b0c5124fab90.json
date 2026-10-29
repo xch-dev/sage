@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4) AND is_synced = FALSE",
+  "describe": {
+    "columns": [
+      {
+        "name": "hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9f901a44a2edfc93906b5483bbd5c486e618af5eb1d93776e2d1b0c5124fab90"
+}

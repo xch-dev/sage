@@ -19,7 +19,9 @@ use sage_api::{
     },
 };
 use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, DeserializePrimitive, P2Puzzle};
-use sage_wallet::{Status, SyncCommand, Transaction, insert_transaction, submit_to_peers};
+use sage_wallet::{
+    Status, SyncCommand, Transaction, WalletError, insert_transaction, submit_to_peers,
+};
 use tracing::{debug, info, warn};
 
 use crate::{
@@ -122,6 +124,7 @@ impl Sage {
                 P2Puzzle::Arbor(key) => {
                     P2DelegatedConditionsLayer::new(key).construct_puzzle(&mut ctx)?
                 }
+                P2Puzzle::External => return Err(WalletError::WatchOnly.into()),
             };
 
             let (puzzle, proof) = match req.kind {
@@ -186,15 +189,12 @@ impl Sage {
     ) -> Result<SignMessageWithPublicKeyResponse> {
         let wallet = self.wallet()?;
 
+        // Checked first, so watch wallets get a clear error rather than an unknown key.
+        let master_sk = self.master_secret_key(&wallet)?;
+
         let public_key = parse_public_key(req.public_key)?;
         let Some(info) = wallet.db.derivation(public_key).await? else {
             return Err(Error::InvalidKey);
-        };
-
-        let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
-        else {
-            return Err(Error::NoSigningKey);
         };
 
         let secret_key = if info.is_hardened {
@@ -221,6 +221,9 @@ impl Sage {
     ) -> Result<SignMessageByAddressResponse> {
         let wallet = self.wallet()?;
 
+        // Checked first, so watch wallets get a clear error rather than an unknown key.
+        let master_sk = self.master_secret_key(&wallet)?;
+
         let p2_puzzle_hash = self.parse_address(req.address)?;
         let Some(public_key) = wallet.db.public_key(p2_puzzle_hash).await? else {
             return Err(Error::InvalidKey);
@@ -228,12 +231,6 @@ impl Sage {
 
         let Some(info) = wallet.db.derivation(public_key).await? else {
             return Err(Error::InvalidKey);
-        };
-
-        let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
-        else {
-            return Err(Error::NoSigningKey);
         };
 
         let secret_key = if info.is_hardened {

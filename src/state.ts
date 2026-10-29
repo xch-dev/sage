@@ -4,7 +4,7 @@ import {
   commands,
   events,
   GetSyncStatusResponse,
-  KeyInfo,
+  WalletInfo,
 } from './bindings';
 import { CustomError } from './contexts/ErrorContext';
 import { Expiration } from './lib/expiration';
@@ -82,10 +82,10 @@ export function updateSyncStatus() {
   }
 
   updateSyncStatusPromise = commands
-    .getKey({})
-    .then((key) => {
-      // Only call getSyncStatus if key and key.key are not null
-      if (key && key.key) {
+    .getWallet({})
+    .then((data) => {
+      // Only call getSyncStatus if a wallet is logged in
+      if (data && data.wallet) {
         return commands.getSyncStatus({});
       }
       return null;
@@ -130,10 +130,10 @@ export async function loginAndUpdateState(
 }
 
 // Create a separate function to handle wallet state updates
-let setWalletState: ((wallet: KeyInfo | null) => void) | null = null;
+let setWalletState: ((wallet: WalletInfo | null) => void) | null = null;
 
 export function initializeWalletState(
-  setter: (wallet: KeyInfo | null) => void,
+  setter: (wallet: WalletInfo | null) => void,
 ) {
   setWalletState = setter;
 }
