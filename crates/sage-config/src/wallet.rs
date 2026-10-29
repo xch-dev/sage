@@ -49,11 +49,10 @@ pub struct Wallet {
 /// fingerprint.
 ///
 /// It's read through [`RawWalletKind`], since a flattened field can't have a default, and a
-/// missing `type` means BLS.
+/// missing `type` means BLS. BLS wallets are written without a `type`, in JSON as well as TOML,
+/// so TypeScript code should check for the other kinds rather than for `type: "bls"`.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(tag = "type", rename_all = "snake_case", from = "RawWalletKind")]
-// Renamed so that it doesn't clash with the API's `WalletKind` in the TypeScript bindings.
-#[specta(rename = "WalletConfigKind")]
 pub enum WalletKind {
     #[default]
     Bls,
