@@ -216,5 +216,35 @@ async fn logging_into_a_key_that_is_not_a_wallet_fails() -> Result<()> {
     // Nothing is saved, so the next start doesn't try to open it.
     assert_eq!(app.sage.lock().await.config.global.fingerprint, None);
 
+    // Neither is a wallet whose key is missing.
+    let wallet = app
+        .import_wallet(ImportWallet {
+            name: "Wallet".to_string(),
+            key: Mnemonic::from_entropy(&[9; 16])?.to_string(),
+            derivation_index: 0,
+            hardened: None,
+            unhardened: None,
+            save_secrets: true,
+            login: false,
+            emoji: None,
+        })
+        .await?
+        .fingerprint;
+    {
+        let mut sage = app.sage.lock().await;
+        sage.keychain.remove(wallet);
+        // Importing it selected it, so that's undone to see whether logging in saves it.
+        sage.config.global.fingerprint = None;
+    }
+
+    let error = app
+        .login(Login {
+            fingerprint: wallet,
+        })
+        .await
+        .expect_err("a wallet without its key can't be logged into");
+    assert!(error.to_string().contains("Unknown fingerprint"), "{error}");
+    assert_eq!(app.sage.lock().await.config.global.fingerprint, None);
+
     Ok(())
 }
