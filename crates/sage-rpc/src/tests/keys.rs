@@ -71,7 +71,10 @@ async fn adds_and_deletes_keys_without_wallets() -> Result<()> {
         })
         .await
         .expect_err("the key already exists");
-    assert!(error.to_string().contains("Key already exists"), "{error}");
+    assert!(
+        error.to_string().contains("is already in the keychain"),
+        "{error}"
+    );
 
     app.delete_key(DeleteKey { fingerprint }).await?;
     assert!(app.get_keys(GetKeys {}).await?.keys.is_empty());
@@ -157,7 +160,10 @@ async fn a_mnemonic_can_be_added_to_a_stored_secret_key() -> Result<()> {
         })
         .await
         .expect_err("the key already exists");
-    assert!(error.to_string().contains("Key already exists"), "{error}");
+    assert!(
+        error.to_string().contains("is already in the keychain"),
+        "{error}"
+    );
 
     Ok(())
 }

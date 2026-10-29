@@ -24,7 +24,6 @@ use sage_api::{
 };
 use sage_config::{Wallet, WalletKind as ConfigWalletKind};
 use sage_database::{Database, Derivation};
-use sage_keychain::KeychainError;
 use sage_wallet::WalletKind;
 use sqlx::query;
 
@@ -477,7 +476,7 @@ impl Sage {
         } = parse_key(&req.key)?;
 
         if !self.store_key(&master_pk, master_sk.as_ref(), mnemonic.as_ref(), true)? {
-            return Err(KeychainError::KeyExists.into());
+            return Err(Error::KeyExists(master_pk.get_fingerprint()));
         }
 
         self.save_keychain()?;

@@ -128,6 +128,9 @@ pub enum Error {
     #[error("A different key with fingerprint {0} is already in the keychain")]
     KeyConflict(u32),
 
+    #[error("Key {0} is already in the keychain")]
+    KeyExists(u32),
+
     #[error("Not logged in")]
     NotLoggedIn,
 
@@ -372,6 +375,7 @@ impl Error {
             | Self::WalletExists(..)
             | Self::KeyInUse(..)
             | Self::KeyConflict(..)
+            | Self::KeyExists(..)
             | Self::InvalidMnemonic(..)
             | Self::TryFromSlice(..)
             | Self::TryFromInt(..)
