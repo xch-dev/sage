@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 6);\n\n        INSERT INTO p2_conditions_or_singletons (\n            p2_puzzle_id, launcher_id, nonce, fixed_conditions_hash, version, conditions\n        )\n        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?, ?, ?, ?, ?)\n        ON CONFLICT(p2_puzzle_id) DO UPDATE SET\n            version = COALESCE(excluded.version, version),\n            conditions = COALESCE(excluded.conditions, conditions);\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "1c0d326ae55763573e107e314305e782c2888d9423148a41c340534663e560c3"
+}

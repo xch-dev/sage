@@ -16,6 +16,7 @@ pub enum CoinKind {
     Did,
     Nft,
     Option,
+    Vault,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -237,6 +238,7 @@ impl Database {
             AssetKind::Nft => CoinKind::Nft,
             AssetKind::Did => CoinKind::Did,
             AssetKind::Option => CoinKind::Option,
+            AssetKind::Vault => CoinKind::Vault,
         }))
     }
 }
@@ -508,14 +510,23 @@ async fn insert_lineage_proof(
     Ok(())
 }
 
-/// Unspent coins that are subscribed to by coin ID. XCH coins at public key (0), arbor (3) and
-/// external (4) puzzles are left out, since sync subscribes to those puzzle hashes.
+/// Unspent coins that are subscribed to by coin ID. XCH coins at public key (0), arbor (3),
+/// external (4) and P2 singleton (5) puzzles are left out, since sync subscribes to those puzzle
+/// hashes.
+///
+/// Vault singletons are always followed by coin ID, since their puzzle hash changes along with
+/// their custody. They're included whether or not they have a p2 puzzle.
 async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
     query!(
         "
         SELECT coin_hash FROM wallet_coins
         WHERE spent_height IS NULL
-        AND (asset_id != 0 OR p2_puzzle_kind NOT IN (0, 3, 4))
+        AND (asset_id != 0 OR p2_puzzle_kind NOT IN (0, 3, 4, 5))
+        UNION
+        SELECT coins.hash AS coin_hash FROM coins
+        INNER JOIN assets ON assets.id = coins.asset_id
+        WHERE coins.spent_height IS NULL
+        AND assets.kind = 4
         "
     )
     .fetch_all(conn)
@@ -888,6 +899,7 @@ async fn coin_kind(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Op
         AssetKind::Nft => CoinKind::Nft,
         AssetKind::Did => CoinKind::Did,
         AssetKind::Option => CoinKind::Option,
+        AssetKind::Vault => CoinKind::Vault,
     }))
 }
 

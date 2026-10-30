@@ -174,6 +174,12 @@ pub enum DatabaseError {
 
     #[error("Public key not found for puzzle hash")]
     PublicKeyNotFound,
+
+    #[error("Invalid public key")]
+    InvalidPublicKey,
+
+    #[error("Invalid vault config")]
+    InvalidVaultConfig,
 }
 
 pub(crate) type Result<T> = std::result::Result<T, DatabaseError>;

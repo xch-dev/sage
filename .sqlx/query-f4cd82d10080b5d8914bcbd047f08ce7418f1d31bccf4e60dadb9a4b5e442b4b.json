@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT coin_hash FROM wallet_coins\n        WHERE spent_height IS NULL\n        AND (asset_id != 0 OR p2_puzzle_kind NOT IN (0, 3, 4, 5))\n        UNION\n        SELECT coins.hash AS coin_hash FROM coins\n        INNER JOIN assets ON assets.id = coins.asset_id\n        WHERE coins.spent_height IS NULL\n        AND assets.kind = 4\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "coin_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f4cd82d10080b5d8914bcbd047f08ce7418f1d31bccf4e60dadb9a4b5e442b4b"
+}

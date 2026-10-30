@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            coins.parent_coin_hash, coins.puzzle_hash, coins.amount, coins.created_height,\n            coins.spent_height, coins.is_children_synced, vault_coins.custody_hash,\n            blocks.timestamp AS created_timestamp\n        FROM vault_coins\n        INNER JOIN coins ON coins.id = vault_coins.coin_id\n        INNER JOIN assets ON assets.id = coins.asset_id\n        LEFT JOIN blocks ON blocks.height = coins.created_height\n        WHERE assets.hash = ?\n        ORDER BY coins.created_height IS NULL ASC, coins.created_height ASC, vault_coins.id ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "parent_coin_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "puzzle_hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "created_height",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "spent_height",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_children_synced",
+        "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "custody_hash",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "created_timestamp",
+        "ordinal": 7,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "bd3428e3b913715163515aeac4930de5f7597e2f7627986f01902cd56bfef1a8"
+}

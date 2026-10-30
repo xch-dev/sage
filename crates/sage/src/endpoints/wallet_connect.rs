@@ -125,6 +125,9 @@ impl Sage {
                     P2DelegatedConditionsLayer::new(key).construct_puzzle(&mut ctx)?
                 }
                 P2Puzzle::External => return Err(WalletError::WatchOnly.into()),
+                P2Puzzle::P2Singleton(_) | P2Puzzle::P2ConditionsOrSingleton(_) => {
+                    return Err(WalletError::VaultSpendNotSupported.into());
+                }
             };
 
             let (puzzle, proof) = match req.kind {
