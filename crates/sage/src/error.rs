@@ -176,6 +176,9 @@ pub enum Error {
     #[error("Invalid option contract id: {0}")]
     InvalidOptionId(String),
 
+    #[error("Invalid vault id: {0}")]
+    InvalidVaultId(String),
+
     #[error("Invalid collection id: {0}")]
     InvalidCollectionId(String),
 
@@ -403,6 +406,7 @@ impl Error {
             | Self::InvalidDidId(..)
             | Self::InvalidNftId(..)
             | Self::InvalidOptionId(..)
+            | Self::InvalidVaultId(..)
             | Self::InvalidCollectionId(..)
             | Self::InvalidCoinId(..)
             | Self::InvalidHash(..)
