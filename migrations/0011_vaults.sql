@@ -30,7 +30,8 @@ CREATE INDEX idx_vault_coins_custody_hash ON vault_coins(custody_hash);
  *
  * Sources:
  * Memo = 0 (decoded from a CHIP-0043 memo, and verified against the custody hash)
- * ConfigFile = 1
+ * Reconstructed = 1 (rebuilt from the vault's spends and its recovery key, and verified against the
+ *   custody hash)
  * Unknown = 2
  *
  * A config in the recovery state has no recovery members or threshold. Instead, it has the custody

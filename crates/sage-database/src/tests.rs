@@ -250,7 +250,7 @@ async fn stores_vault_configs() -> anyhow::Result<()> {
             recovery_custody_hash: Bytes32::new([7; 32]),
             amount: 1,
         }),
-        source: VaultConfigSource::ConfigFile,
+        source: VaultConfigSource::Reconstructed,
     };
 
     let mut tx = db.tx().await?;

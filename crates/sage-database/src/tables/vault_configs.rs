@@ -197,7 +197,9 @@ impl VaultLayout {
 pub enum VaultConfigSource {
     /// Decoded from a CHIP-0043 memo, which was verified against the custody hash.
     Memo,
-    ConfigFile,
+    /// Rebuilt from what the vault's spends reveal and its recovery key, which was verified against
+    /// the custody hash.
+    Reconstructed,
     Unknown,
 }
 
@@ -205,7 +207,7 @@ impl Convert<VaultConfigSource> for i64 {
     fn convert(self) -> Result<VaultConfigSource> {
         Ok(match self {
             0 => VaultConfigSource::Memo,
-            1 => VaultConfigSource::ConfigFile,
+            1 => VaultConfigSource::Reconstructed,
             2 => VaultConfigSource::Unknown,
             _ => return Err(DatabaseError::InvalidEnumVariant),
         })
