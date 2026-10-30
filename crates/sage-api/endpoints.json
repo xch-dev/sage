@@ -12,6 +12,7 @@
   "attach_vault_signer": true,
   "export_vault_config": true,
   "import_vault_config": true,
+  "rebuild_vault_config": true,
   "find_vault": true,
   "delete_wallet": false,
   "delete_database": false,

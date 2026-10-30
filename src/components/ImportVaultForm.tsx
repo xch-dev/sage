@@ -13,8 +13,14 @@ import { Input } from '@/components/ui/input';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { VaultRecoveryFields } from '@/components/VaultRecoveryFields';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
+import {
+  EMPTY_RECOVERY,
+  RecoveryInput,
+  vaultRecoveryKeys,
+} from '@/lib/vaultRecovery';
 import { fetchState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -32,7 +38,9 @@ interface ImportVaultFormProps {
 }
 
 /** Imports an existing vault as a read-only wallet, from its launcher id, an
- *  address it has spent from, or a config file. */
+ *  address it has spent from, or a config file. A vault without memos needs its
+ *  config file, or its recovery keys with its launcher id or address, unless
+ *  it has no recovery. */
 export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
   const navigate = useNavigate();
   const { addError } = useErrors();
@@ -40,6 +48,11 @@ export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
   const [pending, setPending] = useState(false);
   const [source, setSource] = useState<VaultSource>('launcher_id');
   const fileRef = useRef<HTMLInputElement>(null);
+  const [recoveryInput, setRecoveryInput] =
+    useState<RecoveryInput>(EMPTY_RECOVERY);
+  // A config file already has the recovery keys and timelock.
+  const recovery =
+    source === 'config' ? null : vaultRecoveryKeys(recoveryInput);
 
   const formSchema = z.object({
     name: z.string().min(1),
@@ -59,6 +72,8 @@ export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
   };
 
   const submit = (values: z.infer<typeof formSchema>) => {
+    if (recovery === undefined) return;
+
     setPending(true);
 
     const value = values.value.trim();
@@ -69,6 +84,7 @@ export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
         launcher_id: source === 'launcher_id' ? value : null,
         address: source === 'address' ? value : null,
         config: source === 'config' ? value : null,
+        recovery,
         emoji: values.emoji || null,
       })
       .then(async () => {
@@ -195,7 +211,7 @@ export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
           )}
         />
 
-        {source === 'config' && (
+        {source === 'config' ? (
           <button
             type='button'
             className='text-sm underline text-muted-foreground'
@@ -203,13 +219,18 @@ export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
           >
             <Trans>Choose a file</Trans>
           </button>
+        ) : (
+          <VaultRecoveryFields
+            value={recoveryInput}
+            onChange={setRecoveryInput}
+          />
         )}
 
         <LoadingButton
           type='submit'
           loading={pending}
           loadingText={t`Importing`}
-          disabled={!form.formState.isValid}
+          disabled={!form.formState.isValid || recovery === undefined}
         >
           <Trans>Import</Trans>
         </LoadingButton>

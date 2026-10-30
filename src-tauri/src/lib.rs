@@ -46,6 +46,7 @@ macro_rules! sage_commands {
             commands::attach_vault_signer,
             commands::export_vault_config,
             commands::import_vault_config,
+            commands::rebuild_vault_config,
             commands::find_vault,
             commands::delete_wallet,
             commands::delete_database,

@@ -28,13 +28,19 @@ import {
 } from '@/components/ui/dialog';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Textarea } from '@/components/ui/textarea';
+import { VaultRecoveryFields } from '@/components/VaultRecoveryFields';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { ExportType, exportText } from '@/lib/exportText';
+import {
+  EMPTY_RECOVERY,
+  RecoveryInput,
+  vaultRecoveryKeys,
+} from '@/lib/vaultRecovery';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { Download, KeyRound, Upload } from 'lucide-react';
+import { Download, KeyRound, RotateCcw, Upload } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
@@ -126,6 +132,12 @@ export default function Vault() {
   const [key, setKey] = useState('');
   const [attaching, setAttaching] = useState(false);
   const configRef = useRef<HTMLInputElement>(null);
+  const [rebuildOpen, setRebuildOpen] = useState(false);
+  const [recoveryInput, setRecoveryInput] =
+    useState<RecoveryInput>(EMPTY_RECOVERY);
+  const [rebuilding, setRebuilding] = useState(false);
+  // Without recovery keys, the vault is rebuilt as one without recovery.
+  const recovery = vaultRecoveryKeys(recoveryInput);
 
   const refresh = useCallback(() => {
     commands
@@ -177,6 +189,25 @@ export default function Vault() {
       refresh();
     } catch (error) {
       addError(error as CustomError);
+    }
+  };
+
+  const rebuildConfig = async () => {
+    if (recovery === undefined) return;
+
+    setRebuilding(true);
+
+    try {
+      await commands.rebuildVaultConfig({ recovery });
+      toast.success(t`Vault config rebuilt`);
+
+      setRecoveryInput(EMPTY_RECOVERY);
+      setRebuildOpen(false);
+      refresh();
+    } catch (error) {
+      addError(error as CustomError);
+    } finally {
+      setRebuilding(false);
     }
   };
 
@@ -288,6 +319,8 @@ export default function Vault() {
               {config ? (
                 config.source === 'config_file' ? (
                   <Trans>Imported from a config file.</Trans>
+                ) : config.source === 'reconstructed' ? (
+                  <Trans>Rebuilt from the vault&apos;s spends.</Trans>
                 ) : (
                   <Trans>Read from the vault&apos;s memos on chain.</Trans>
                 )
@@ -295,7 +328,8 @@ export default function Vault() {
                 <Trans>
                   This vault&apos;s config isn&apos;t known, since it has no
                   memos on chain. Its balances are still shown, but its signers
-                  can&apos;t be checked until you import its config file.
+                  can&apos;t be checked until you import its config file, or
+                  rebuild its config from its spends.
                 </Trans>
               )}
             </CardDescription>
@@ -336,13 +370,22 @@ export default function Vault() {
                   <Trans>Export Config</Trans>
                 </Button>
               ) : (
-                <Button
-                  variant='outline'
-                  onClick={() => configRef.current?.click()}
-                >
-                  <Upload className='h-4 w-4 mr-2' aria-hidden='true' />
-                  <Trans>Import Config File</Trans>
-                </Button>
+                <>
+                  <Button
+                    variant='outline'
+                    onClick={() => configRef.current?.click()}
+                  >
+                    <Upload className='h-4 w-4 mr-2' aria-hidden='true' />
+                    <Trans>Import Config File</Trans>
+                  </Button>
+                  <Button
+                    variant='outline'
+                    onClick={() => setRebuildOpen(true)}
+                  >
+                    <RotateCcw className='h-4 w-4 mr-2' aria-hidden='true' />
+                    <Trans>Rebuild Config</Trans>
+                  </Button>
+                </>
               )}
             </div>
           </CardContent>
@@ -400,6 +443,41 @@ export default function Vault() {
           </CardContent>
         </Card>
       </Container>
+
+      <Dialog open={rebuildOpen} onOpenChange={setRebuildOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Rebuild Config</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              <Trans>
+                A spend through the vault&apos;s custody reveals its custody
+                members. If the vault has recovery, its recovery keys, threshold
+                and timelock rebuild the rest. An M of N custody is only known
+                once each of its members has signed a spend.
+              </Trans>
+            </DialogDescription>
+          </DialogHeader>
+          <VaultRecoveryFields
+            value={recoveryInput}
+            onChange={setRecoveryInput}
+          />
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setRebuildOpen(false)}>
+              <Trans>Cancel</Trans>
+            </Button>
+            <LoadingButton
+              loading={rebuilding}
+              loadingText={t`Rebuilding`}
+              disabled={recovery === undefined}
+              onClick={rebuildConfig}
+            >
+              <Trans>Rebuild</Trans>
+            </LoadingButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={attachOpen} onOpenChange={setAttachOpen}>
         <DialogContent>

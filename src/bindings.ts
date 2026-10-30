@@ -53,6 +53,9 @@ async exportVaultConfig(req: ExportVaultConfig) : Promise<ExportVaultConfigRespo
 async importVaultConfig(req: ImportVaultConfig) : Promise<ImportVaultConfigResponse> {
     return await TAURI_INVOKE("import_vault_config", { req });
 },
+async rebuildVaultConfig(req: RebuildVaultConfig) : Promise<RebuildVaultConfigResponse> {
+    return await TAURI_INVOKE("rebuild_vault_config", { req });
+},
 async findVault(req: FindVault) : Promise<FindVaultResponse> {
     return await TAURI_INVOKE("find_vault", { req });
 },
@@ -1347,7 +1350,7 @@ export type FindVault = { address: string }
  */
 export type FindVaultResponse = { 
 /**
- * The vault's launcher id, in hex
+ * The vault's launcher id, as a `vault1` id
  */
 launcher_id: string | null }
 /**
@@ -2621,7 +2624,7 @@ export type ImportVault = {
  */
 name: string; 
 /**
- * The vault's launcher id, in hex
+ * The vault's launcher id, as a `vault1` id or in hex
  */
 launcher_id?: string | null; 
 /**
@@ -2632,6 +2635,11 @@ address?: string | null;
  * A vault config file, as exported by Sage or Chia Cloud Wallet
  */
 config?: string | null; 
+/**
+ * The vault's recovery keys, to rebuild its config from its spends if it has no memos. It can't
+ * be given with a config file
+ */
+recovery?: VaultRecoveryKeys | null; 
 /**
  * Whether to automatically login after import
  */
@@ -2662,7 +2670,7 @@ export type ImportVaultResponse = {
  */
 fingerprint: number; 
 /**
- * The vault's launcher id, in hex
+ * The vault's launcher id, as a `vault1` id
  */
 launcher_id: string }
 /**
@@ -3336,6 +3344,28 @@ pages_vacuumed: number;
  * Number of WAL pages checkpointed
  */
 wal_pages_checkpointed: number }
+/**
+ * Rebuild the open vault wallet's config from its spends
+ */
+export type RebuildVaultConfig = { 
+/**
+ * The vault's recovery keys, if it has recovery
+ */
+recovery?: VaultRecoveryKeys | null }
+/**
+ * Response with the rebuilt config's recovery threshold and timelock
+ */
+export type RebuildVaultConfigResponse = { 
+/**
+ * How many recovery members must sign, which was found if it wasn't given, or none if the
+ * vault has no recovery
+ */
+recovery_threshold: number | null; 
+/**
+ * The recovery timelock in seconds, which was found if it wasn't given, or none if the vault
+ * has no recovery
+ */
+recovery_timelock: number | null }
 /**
  * A recipient which couldn't be used, so the transaction wasn't created
  */
@@ -4241,7 +4271,11 @@ export type VaultConfigSource =
 /**
  * Imported from a config file
  */
-"config_file" | "unknown"
+"config_file" | 
+/**
+ * Rebuilt from the vault's spends and its recovery key
+ */
+"reconstructed" | "unknown"
 export type VaultMemberKind = "bls" | "secp256r1" | "secp256k1" | "passkey" | 
 /**
  * Another vault
@@ -4266,7 +4300,7 @@ export type VaultPuzzleVersion = "legacy" | "force_singleton_recreation"
  */
 export type VaultRecord = { 
 /**
- * The vault's launcher id, in hex
+ * The vault's launcher id, as a `vault1` id
  */
 launcher_id: string; state: VaultState; 
 /**
@@ -4291,6 +4325,24 @@ config: VaultConfigRecord | null;
  * The keychain keys that sign for the vault
  */
 signers: VaultSignerRecord[] }
+/**
+ * A vault's recovery keys, which identify the recovery side of a vault without memos
+ */
+export type VaultRecoveryKeys = { 
+/**
+ * The key of every recovery member: a public key in hex (BLS, secp256r1, secp256k1, or a
+ * passkey), a BLS mnemonic or secret key, whose master public key is used, or the `vault1` id of
+ * a vault. Secrets aren't stored
+ */
+keys: string[]; 
+/**
+ * How many recovery members must sign. Every threshold is tried if it isn't given
+ */
+threshold?: number | null; 
+/**
+ * The recovery timelock in seconds. Common timelocks are tried if it isn't given
+ */
+timelock?: number | null }
 /**
  * A keychain key which signs for a vault
  */

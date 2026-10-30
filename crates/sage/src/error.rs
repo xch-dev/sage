@@ -18,7 +18,8 @@ use sage_assets::UriError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
 use sage_wallet::{
-    SyncCommand, VaultConfigFileError, WalletError, XchandlesApiError, XchandlesError,
+    SyncCommand, VaultConfigFileError, VaultHistoryError, WalletError, XchandlesApiError,
+    XchandlesError,
 };
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
@@ -149,7 +150,7 @@ pub enum Error {
     NotVaultWallet(u32),
 
     #[error(
-        "Import a vault from one of its launcher id, an address it has spent from, or a config file"
+        "Import a vault from one of its launcher id, an address it has spent from, or a config file. Recovery keys can only be given with a launcher id or address."
     )]
     VaultImportSource,
 
@@ -169,14 +170,30 @@ pub enum Error {
     )]
     VaultConfigMismatch,
 
-    #[error("The vault's config isn't known yet. Import its config file first.")]
+    #[error(
+        "The vault's config isn't known yet. Import its config file, or rebuild it from the vault's spends, first."
+    )]
     VaultConfigUnknown,
+
+    #[error(
+        "Invalid recovery key. Enter its public key in hex, the mnemonic or secret key of a BLS key, or the vault1 id of a vault."
+    )]
+    InvalidRecoveryKey,
+
+    #[error("The recovery timelock must be at least one second")]
+    InvalidRecoveryTimelock,
+
+    #[error("The recovery threshold must be between 1 and the number of recovery keys")]
+    InvalidRecoveryThreshold,
 
     #[error("Key {0} isn't a custody or recovery member of this vault")]
     NotVaultMember(u32),
 
     #[error("{0}")]
     VaultConfigFile(#[from] VaultConfigFileError),
+
+    #[error("{0}")]
+    VaultHistory(VaultHistoryError),
 
     #[error("Not logged in")]
     NotLoggedIn,
@@ -437,8 +454,12 @@ impl Error {
             | Self::NotVaultAddress
             | Self::VaultConfigMismatch
             | Self::VaultConfigUnknown
+            | Self::InvalidRecoveryKey
+            | Self::InvalidRecoveryTimelock
+            | Self::InvalidRecoveryThreshold
             | Self::NotVaultMember(..)
             | Self::VaultConfigFile(..)
+            | Self::VaultHistory(..)
             | Self::InvalidMnemonic(..)
             | Self::TryFromSlice(..)
             | Self::TryFromInt(..)
@@ -496,6 +517,15 @@ impl Error {
             error if error.is_unavailable() => HandleErrorCode::Unavailable,
             _ => HandleErrorCode::VerificationFailed,
         })
+    }
+}
+
+impl From<VaultHistoryError> for Error {
+    fn from(error: VaultHistoryError) -> Self {
+        match error {
+            VaultHistoryError::Wallet(error) => Self::Wallet(error),
+            error => Self::VaultHistory(error),
+        }
     }
 }
 
