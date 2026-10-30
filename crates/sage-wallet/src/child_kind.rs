@@ -1,15 +1,33 @@
 use chia_wallet_sdk::{
-    chia::puzzle_types::{LineageProof, Proof},
-    driver::{Clawback as ClawbackV1, ClawbackV2},
+    chia::puzzle_types::{
+        LineageProof, Proof,
+        singleton::{LauncherSolution, SingletonArgs},
+    },
+    clvm_utils::{tree_hash_atom, tree_hash_pair},
+    driver::{Clawback as ClawbackV1, ClawbackV2, Layer, SingletonLayer},
     prelude::*,
-    puzzles::SINGLETON_LAUNCHER_HASH,
+    puzzles::{DELEGATED_PUZZLE_FEEDER_HASH, SINGLETON_LAUNCHER_HASH},
+    types::puzzles::{INDEX_WRAPPER_HASH, IndexWrapperArgs},
 };
 use sage_database::{
     NftUpdaterKindExt, ParsedNftMetadata, SerializePrimitive, SerializedDidInfo, SerializedNftInfo,
 };
 use tracing::{debug_span, warn};
 
-use crate::WalletError;
+use crate::{WalletError, vault_memo_list_custody_hash};
+
+/// The memos of a coin locked to a fixed set of conditions or a vault, such as an offer's pre-split
+/// coin, which are `(vault_address, (conditions, ...))`.
+///
+/// Memos are untrusted, so the coin's puzzle hash must be rebuilt from the vault that owns the
+/// address and the conditions, before the coin is treated as the vault's.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FixedConditionsMemo {
+    pub vault_p2_puzzle_hash: Bytes32,
+    pub conditions: Program,
+    /// The tree hash of the quoted conditions, which is the fixed path's delegated puzzle hash.
+    pub quoted_conditions_hash: Bytes32,
+}
 
 #[derive(Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
@@ -26,6 +44,7 @@ pub enum ChildKind {
         info: CatInfo,
         lineage_proof: LineageProof,
         clawback: Option<ClawbackV2>,
+        fixed_conditions: Option<FixedConditionsMemo>,
     },
     Did {
         info: SerializedDidInfo,
@@ -42,6 +61,24 @@ pub enum ChildKind {
         info: OptionInfo,
         lineage_proof: LineageProof,
         clawback: Option<ClawbackV2>,
+    },
+    /// A singleton whose inner puzzle is a MIPS tree, such as a vault. It's only relevant if its
+    /// launcher id is a tracked vault.
+    Vault {
+        launcher_id: Bytes32,
+        /// The singleton's inner puzzle hash. It's only unknown for an eve coin whose launcher
+        /// didn't reveal a memo for it.
+        custody_hash: Option<Bytes32>,
+        /// The lineage proof, whose inner puzzle hash is the parent's custody hash. Eve coins don't
+        /// have one, since their parent is the launcher.
+        lineage_proof: Option<LineageProof>,
+        /// The CHIP-0043 memo list attached to the coin's creation, which may reveal its config.
+        memo_list: Option<Program>,
+    },
+    /// An XCH coin locked to a fixed set of conditions or a vault, such as an offer's pre-split
+    /// coin.
+    ConditionsOrSingleton {
+        fixed_conditions: FixedConditionsMemo,
     },
 }
 
@@ -177,10 +214,17 @@ impl ChildKind {
                 let clawback = parse_clawback_unchecked(allocator, &create_coin, true)
                     .filter(|clawback| clawback.tree_hash() == cat.info.p2_puzzle_hash.into());
 
+                let fixed_conditions = if clawback.is_none() {
+                    parse_fixed_conditions_memo(allocator, &create_coin)
+                } else {
+                    None
+                };
+
                 return Ok(Self::Cat {
                     info: cat.info,
                     lineage_proof,
                     clawback,
+                    fixed_conditions,
                 });
             }
 
@@ -336,6 +380,15 @@ impl ChildKind {
                 // If the coin is not an option contract, continue parsing.
                 Ok(None) => {}
             }
+
+            match parse_vault_child(allocator, parent_coin, parent_puzzle, parent_solution, coin) {
+                Err(error) => {
+                    warn!("Invalid vault: {}", error);
+                    return Ok(Self::Unknown);
+                }
+                Ok(Some(vault)) => return Ok(vault),
+                Ok(None) => {}
+            }
         }
 
         if let Some(clawback) = parse_clawback_unchecked(allocator, &create_coin, false)
@@ -365,13 +418,28 @@ impl ChildKind {
             return Ok(Self::ClawbackV1 { info });
         }
 
+        if let Some(fixed_conditions) = parse_fixed_conditions_memo(allocator, &create_coin) {
+            return Ok(Self::ConditionsOrSingleton { fixed_conditions });
+        }
+
         Ok(Self::Unknown)
     }
 
     pub fn custody_p2_puzzle_hashes(&self) -> Vec<Bytes32> {
         match self {
             // TODO: Should we add the puzzle hash of the coin as a candidate?
-            Self::Launcher | Self::Unknown => vec![],
+            // Vaults are relevant if their launcher id is tracked, rather than by puzzle hash.
+            Self::Launcher | Self::Unknown | Self::Vault { .. } => vec![],
+            Self::ConditionsOrSingleton { fixed_conditions } => {
+                vec![fixed_conditions.vault_p2_puzzle_hash]
+            }
+            // A CAT locked to fixed conditions or a vault is the vault's, once its puzzle hash has
+            // been checked against the vault address in its memos.
+            Self::Cat {
+                info: CatInfo { p2_puzzle_hash, .. },
+                fixed_conditions: Some(fixed_conditions),
+                ..
+            } => vec![*p2_puzzle_hash, fixed_conditions.vault_p2_puzzle_hash],
             Self::Clawback { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
             Self::ClawbackV1 { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
             Self::Cat {
@@ -401,7 +469,10 @@ impl ChildKind {
 
     pub fn receiver_custody_p2_puzzle_hash(&self) -> Option<Bytes32> {
         match self {
-            Self::Launcher | Self::Unknown => None,
+            Self::Launcher | Self::Unknown | Self::Vault { .. } => None,
+            Self::ConditionsOrSingleton { fixed_conditions } => {
+                Some(fixed_conditions.vault_p2_puzzle_hash)
+            }
             Self::Clawback { info } => Some(info.receiver_puzzle_hash),
             Self::ClawbackV1 { info } => Some(info.receiver_puzzle_hash),
             Self::Cat { info, clawback, .. } => clawback
@@ -432,8 +503,157 @@ impl ChildKind {
                 | Self::Did { .. }
                 | Self::Nft { .. }
                 | Self::Option { .. }
+                | Self::Vault { .. }
+                | Self::ConditionsOrSingleton { .. }
         )
     }
+
+    /// The launcher id of a vault singleton, which is relevant if the vault is tracked.
+    pub fn vault_launcher_id(&self) -> Option<Bytes32> {
+        match self {
+            Self::Vault { launcher_id, .. } => Some(*launcher_id),
+            _ => None,
+        }
+    }
+}
+
+/// Parses a vault singleton from its parent, which is either its launcher or the previous vault
+/// coin. The SDK can't parse vaults yet, so this follows the vault's spend instead: the odd coin
+/// created by its inner puzzle is the next vault coin, and its puzzle hash is the next custody
+/// hash.
+fn parse_vault_child(
+    allocator: &mut Allocator,
+    parent_coin: Coin,
+    parent_puzzle: Puzzle,
+    parent_solution: NodePtr,
+    coin: Coin,
+) -> Result<Option<ChildKind>, WalletError> {
+    if parent_puzzle.curried_puzzle_hash() == SINGLETON_LAUNCHER_HASH.into() {
+        let Ok(solution) = LauncherSolution::<NodePtr>::from_clvm(allocator, parent_solution)
+        else {
+            return Ok(None);
+        };
+
+        if solution.singleton_puzzle_hash != coin.puzzle_hash || solution.amount != coin.amount {
+            return Ok(None);
+        }
+
+        let launcher_id = parent_coin.coin_id();
+
+        // The eve coin's inner puzzle isn't revealed until it's spent, but the memo in the
+        // launcher's solution claims one, which is only trusted if it matches the puzzle hash.
+        let custody_hash = vault_memo_list_custody_hash(allocator, solution.key_value_list).filter(
+            |&custody_hash| {
+                SingletonArgs::curry_tree_hash(launcher_id, custody_hash.into())
+                    == coin.puzzle_hash.into()
+            },
+        );
+
+        let memo_list = match custody_hash {
+            Some(_) => Some(Program::from_clvm(allocator, solution.key_value_list)?),
+            None => None,
+        };
+
+        return Ok(Some(ChildKind::Vault {
+            launcher_id,
+            custody_hash,
+            lineage_proof: None,
+            memo_list,
+        }));
+    }
+
+    let Some(singleton) = SingletonLayer::<Puzzle>::parse_puzzle(allocator, parent_puzzle)? else {
+        return Ok(None);
+    };
+
+    if !is_mips_top_level(allocator, singleton.inner_puzzle) {
+        return Ok(None);
+    }
+
+    let solution = SingletonLayer::<Puzzle>::parse_solution(allocator, parent_solution)?;
+    let output = run_puzzle(
+        allocator,
+        singleton.inner_puzzle.ptr(),
+        solution.inner_solution,
+    )?;
+    let conditions = Vec::<Condition>::from_clvm(allocator, output)?;
+
+    // The singleton layer only allows one odd child, which is the next singleton coin.
+    let Some(create_coin) = conditions
+        .into_iter()
+        .filter_map(Condition::into_create_coin)
+        .find(|create_coin| create_coin.amount % 2 == 1)
+    else {
+        return Ok(None);
+    };
+
+    if create_coin.amount != coin.amount
+        || SingletonArgs::curry_tree_hash(singleton.launcher_id, create_coin.puzzle_hash.into())
+            != coin.puzzle_hash.into()
+    {
+        return Ok(None);
+    }
+
+    let memo_list = match create_coin.memos {
+        Memos::Some(memos) => Some(Program::from_clvm(allocator, memos)?),
+        Memos::None => None,
+    };
+
+    Ok(Some(ChildKind::Vault {
+        launcher_id: singleton.launcher_id,
+        custody_hash: Some(create_coin.puzzle_hash),
+        lineage_proof: Some(LineageProof {
+            parent_parent_coin_info: parent_coin.parent_coin_info,
+            parent_inner_puzzle_hash: singleton.inner_puzzle.curried_puzzle_hash().into(),
+            parent_amount: parent_coin.amount,
+        }),
+        memo_list,
+    }))
+}
+
+/// Whether a singleton's inner puzzle is the top level of a MIPS tree, as vaults are.
+fn is_mips_top_level(allocator: &Allocator, puzzle: Puzzle) -> bool {
+    let Some(curried) = puzzle.as_curried() else {
+        return false;
+    };
+
+    if curried.mod_hash != INDEX_WRAPPER_HASH {
+        return false;
+    }
+
+    let Ok(args) = IndexWrapperArgs::<NodePtr, NodePtr>::from_clvm(allocator, curried.args) else {
+        return false;
+    };
+
+    Puzzle::parse(allocator, args.inner_puzzle)
+        .as_curried()
+        .is_some_and(|inner| inner.mod_hash == DELEGATED_PUZZLE_FEEDER_HASH.into())
+}
+
+/// Parses the `(vault_address, (conditions, ...))` memos of a coin locked to a fixed set of
+/// conditions or a vault, without checking them.
+fn parse_fixed_conditions_memo(
+    allocator: &Allocator,
+    create_coin: &CreateCoin<NodePtr>,
+) -> Option<FixedConditionsMemo> {
+    let Memos::Some(memos) = create_coin.memos else {
+        return None;
+    };
+
+    let (vault_p2_puzzle_hash, (conditions, _)) =
+        <(Bytes32, (NodePtr, NodePtr))>::from_clvm(allocator, memos).ok()?;
+
+    // The fixed conditions must be a list of conditions, which rules out other memo formats.
+    Vec::<Condition>::from_clvm(allocator, conditions).ok()?;
+
+    let conditions_hash = tree_hash(allocator, conditions);
+    let quoted_conditions_hash = tree_hash_pair(tree_hash_atom(&[1]), conditions_hash).into();
+
+    Some(FixedConditionsMemo {
+        vault_p2_puzzle_hash,
+        conditions: Program::from_clvm(allocator, conditions).ok()?,
+        quoted_conditions_hash,
+    })
 }
 
 fn parse_clawback_unchecked(

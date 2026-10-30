@@ -70,6 +70,10 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
+    pub async fn vault_launcher_ids(&mut self) -> Result<Vec<Bytes32>> {
+        vault_launcher_ids(&mut *self.tx).await
+    }
+
     pub async fn is_vault(&mut self, launcher_id: Bytes32) -> Result<bool> {
         is_vault(&mut *self.tx, launcher_id).await
     }
@@ -96,7 +100,8 @@ impl DatabaseTx<'_> {
         vault_launcher_id(&mut *self.tx, coin_id).await
     }
 
-    /// Adds a coin to a vault's lineage. A known custody hash is never replaced by an unknown one.
+    /// Adds a coin to a vault's lineage, if the coin is known. A known custody hash is never
+    /// replaced by an unknown one.
     pub async fn insert_vault_coin(
         &mut self,
         coin_id: Bytes32,
@@ -180,12 +185,12 @@ async fn insert_vault_coin(
     query!(
         "
         INSERT INTO vault_coins (coin_id, custody_hash)
-        VALUES ((SELECT id FROM coins WHERE hash = ?), ?)
+        SELECT id, ? FROM coins WHERE hash = ?
         ON CONFLICT(coin_id) DO UPDATE SET
             custody_hash = COALESCE(excluded.custody_hash, custody_hash)
         ",
-        coin_id,
-        custody_hash
+        custody_hash,
+        coin_id
     )
     .execute(conn)
     .await?;

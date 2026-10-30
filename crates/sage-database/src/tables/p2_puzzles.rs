@@ -261,6 +261,20 @@ impl DatabaseTx<'_> {
         delete_external_p2_puzzle(&mut *self.tx, p2_puzzle_hash).await
     }
 
+    /// The vault address with the puzzle hash, if it's one of ours.
+    pub async fn p2_singleton(&mut self, p2_puzzle_hash: Bytes32) -> Result<Option<P2Singleton>> {
+        optional_p2_singleton(&mut *self.tx, p2_puzzle_hash).await
+    }
+
+    /// The highest nonce of a vault's addresses, and the highest nonce of an address that has
+    /// received a coin, if any.
+    pub async fn p2_singleton_nonces(
+        &mut self,
+        launcher_id: Bytes32,
+    ) -> Result<(Option<u32>, Option<u32>)> {
+        p2_singleton_nonces(&mut *self.tx, launcher_id).await
+    }
+
     /// Inserts a vault address. It isn't marked as synced, so it's synced from the start of the
     /// chain.
     pub async fn insert_p2_singleton_p2_puzzle(&mut self, p2_singleton: P2Singleton) -> Result<()> {
@@ -739,6 +753,56 @@ async fn p2_singleton(
         row.launcher_id.convert()?,
         row.nonce.try_into()?,
     ))
+}
+
+async fn optional_p2_singleton(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<Option<P2Singleton>> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    query!(
+        "
+        SELECT launcher_id, nonce
+        FROM p2_puzzles
+        INNER JOIN p2_singletons ON p2_singletons.p2_puzzle_id = p2_puzzles.id
+        WHERE p2_puzzles.hash = ?
+        ",
+        p2_puzzle_hash
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| {
+        Ok(P2Singleton::new(
+            row.launcher_id.convert()?,
+            row.nonce.try_into()?,
+        ))
+    })
+    .transpose()
+}
+
+async fn p2_singleton_nonces(
+    conn: impl SqliteExecutor<'_>,
+    launcher_id: Bytes32,
+) -> Result<(Option<u32>, Option<u32>)> {
+    let launcher_id = launcher_id.as_ref();
+
+    let row = query!(
+        "
+        SELECT
+            MAX(p2_singletons.nonce) AS \"max_nonce?: i64\",
+            MAX(CASE WHEN EXISTS (
+                SELECT 1 FROM coins WHERE coins.p2_puzzle_id = p2_singletons.p2_puzzle_id
+            ) THEN p2_singletons.nonce END) AS \"max_used_nonce?: i64\"
+        FROM p2_singletons
+        WHERE p2_singletons.launcher_id = ?
+        ",
+        launcher_id
+    )
+    .fetch_one(conn)
+    .await?;
+
+    Ok((row.max_nonce.convert()?, row.max_used_nonce.convert()?))
 }
 
 async fn p2_singleton_puzzle_hashes(
