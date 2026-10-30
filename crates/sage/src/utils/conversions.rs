@@ -43,9 +43,14 @@ pub fn encode_asset_id(hash: Bytes32, kind: AssetKind) -> Result<Option<String>>
             AssetKind::Nft => Address::new(hash, "nft".to_string()).encode()?,
             AssetKind::Did => Address::new(hash, "did:chia:".to_string()).encode()?,
             AssetKind::Option => Address::new(hash, "option".to_string()).encode()?,
-            AssetKind::Vault => Address::new(hash, "vault".to_string()).encode()?,
+            AssetKind::Vault => encode_vault_id(hash)?,
         })
     })
+}
+
+/// Encodes a vault's launcher id as a `vault` bech32m id.
+pub fn encode_vault_id(launcher_id: Bytes32) -> Result<String> {
+    Ok(Address::new(launcher_id, "vault".to_string()).encode()?)
 }
 
 pub fn encode_asset_kind(kind: AssetKind) -> sage_api::AssetKind {
