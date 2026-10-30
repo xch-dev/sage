@@ -154,7 +154,7 @@ pub enum Error {
     VaultImportSource,
 
     #[error("No vault with launcher id {0} was found on chain")]
-    VaultNotFound(Bytes32),
+    VaultNotFound(String),
 
     #[error(
         "No coins have been spent from this address yet, so the vault it belongs to can't be found. You can watch the address instead, until the vault spends from it."

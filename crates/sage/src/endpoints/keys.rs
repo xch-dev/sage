@@ -33,7 +33,10 @@ use sage_database::{Database, Derivation};
 use sage_wallet::{SyncCommand, WalletKind, p2_singleton_puzzle_hash};
 use sqlx::query;
 
-use crate::{Error, ParsedKey, Result, Sage, assign_fingerprint, parse_key, watch_p2_puzzles};
+use crate::{
+    Error, ParsedKey, Result, Sage, assign_fingerprint, encode_vault_id, parse_key,
+    watch_p2_puzzles,
+};
 
 impl Sage {
     pub async fn login(&mut self, req: Login) -> Result<LoginResponse> {
@@ -432,7 +435,7 @@ impl Sage {
                 launcher_id,
                 signers,
             } => ApiWalletKind::Vault {
-                launcher_id: hex::encode(launcher_id),
+                launcher_id: encode_vault_id(*launcher_id)?,
                 signers: signers.clone(),
             },
         };

@@ -159,7 +159,7 @@ export default function Vault() {
       if (
         await exportText(
           data.config,
-          `vault-config-${vault.launcher_id.slice(0, 8)}`,
+          `vault-config-${vault.launcher_id.slice(6, 14)}`,
           ExportType.JSON,
         )
       ) {
