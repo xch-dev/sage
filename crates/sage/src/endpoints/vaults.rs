@@ -19,12 +19,14 @@ use sage_wallet::{
     parse_vault_config_file, track_vault, vault_config_file, vault_hashes,
 };
 
-use crate::{Error, ParsedKey, Result, Sage, assign_fingerprint, parse_key};
+use crate::{
+    Error, ParsedKey, Result, Sage, assign_fingerprint, encode_vault_id, parse_key, parse_vault_id,
+};
 
 impl Sage {
     pub async fn import_vault(&mut self, req: ImportVault) -> Result<ImportVaultResponse> {
         let (launcher_id, config_file) = match (req.launcher_id, req.address, req.config) {
-            (Some(launcher_id), None, None) => (parse_launcher_id(&launcher_id)?, None),
+            (Some(launcher_id), None, None) => (parse_vault_id(launcher_id)?, None),
             (None, Some(address), None) => {
                 let p2_puzzle_hash = self.parse_address(address)?;
                 (self.find_vault_by_address(p2_puzzle_hash).await?, None)
@@ -91,7 +93,7 @@ impl Sage {
 
         Ok(ImportVaultResponse {
             fingerprint,
-            launcher_id: hex::encode(launcher_id),
+            launcher_id: encode_vault_id(launcher_id)?,
         })
     }
 
@@ -131,13 +133,14 @@ impl Sage {
 
         Ok(GetVaultResponse {
             vault: VaultRecord {
-                launcher_id: hex::encode(launcher_id),
+                launcher_id: encode_vault_id(launcher_id)?,
                 state,
                 recovery_started_at,
                 coin_id: coin.map(|row| hex::encode(row.coin.coin_id())),
                 custody_hash: coin.and_then(|row| row.custody_hash).map(hex::encode),
                 config: config
-                    .map(|config| config_record(&config, pre_recovery.as_ref(), &signers)),
+                    .map(|config| config_record(&config, pre_recovery.as_ref(), &signers))
+                    .transpose()?,
                 signers: signer_records,
             },
         })
@@ -244,7 +247,7 @@ impl Sage {
         let p2_puzzle_hash = Address::decode(req.address.trim())?.puzzle_hash;
 
         let launcher_id = match self.find_vault_by_address(p2_puzzle_hash).await {
-            Ok(launcher_id) => Some(hex::encode(launcher_id)),
+            Ok(launcher_id) => Some(encode_vault_id(launcher_id)?),
             Err(Error::VaultAddressNeverSpent | Error::NotVaultAddress) => None,
             Err(error) => return Err(error),
         };
@@ -300,9 +303,10 @@ impl Sage {
             .acquire_peer()
             .ok_or(Error::NoPeers)?;
 
-        fetch_latest_vault_coin(&peer, launcher_id, self.network().genesis_challenge)
-            .await?
-            .ok_or(Error::VaultNotFound(launcher_id))
+        match fetch_latest_vault_coin(&peer, launcher_id, self.network().genesis_challenge).await? {
+            Some(coin_state) => Ok(coin_state),
+            None => Err(Error::VaultNotFound(encode_vault_id(launcher_id)?)),
+        }
     }
 
     async fn find_vault_by_address(&self, p2_puzzle_hash: Bytes32) -> Result<Bytes32> {
@@ -320,16 +324,6 @@ impl Sage {
             VaultAddressLookup::NotVault => Err(Error::NotVaultAddress),
         }
     }
-}
-
-fn parse_launcher_id(launcher_id: &str) -> Result<Bytes32> {
-    let stripped = launcher_id.strip_prefix("0x").unwrap_or(launcher_id).trim();
-
-    let bytes: [u8; 32] = hex::decode(stripped)?
-        .try_into()
-        .map_err(|_| Error::InvalidHash(launcher_id.to_string()))?;
-
-    Ok(bytes.into())
 }
 
 /// The one config of a file's candidates which rebuilds the vault coin's puzzle hash.
@@ -417,7 +411,7 @@ fn config_record(
     config: &VaultConfigRow,
     pre_recovery: Option<&VaultConfig>,
     signers: &[(u32, PublicKey)],
-) -> VaultConfigRecord {
+) -> Result<VaultConfigRecord> {
     let (custody, recovery, recovery_timelock, version, recovery_custody_hash) =
         match &config.layout {
             VaultLayout::Custody(config) => (
@@ -436,7 +430,7 @@ fn config_record(
             ),
         };
 
-    VaultConfigRecord {
+    Ok(VaultConfigRecord {
         version: match version {
             VaultVersion::Legacy => VaultPuzzleVersion::Legacy,
             VaultVersion::ForceSingletonRecreation => VaultPuzzleVersion::ForceSingletonRecreation,
@@ -446,18 +440,20 @@ fn config_record(
             VaultConfigSource::ConfigFile => ApiVaultConfigSource::ConfigFile,
             VaultConfigSource::Unknown => ApiVaultConfigSource::Unknown,
         },
-        custody: signers_record(custody, signers),
-        recovery: recovery.map(|recovery| signers_record(recovery, signers)),
+        custody: signers_record(custody, signers)?,
+        recovery: recovery
+            .map(|recovery| signers_record(recovery, signers))
+            .transpose()?,
         recovery_timelock,
         recovery_custody_hash,
-    }
+    })
 }
 
 fn signers_record(
     vault_signers: &VaultSigners,
     signers: &[(u32, PublicKey)],
-) -> VaultSignersRecord {
-    VaultSignersRecord {
+) -> Result<VaultSignersRecord> {
+    Ok(VaultSignersRecord {
         threshold: vault_signers.threshold.try_into().unwrap_or(u32::MAX),
         members: vault_signers
             .members
@@ -501,7 +497,7 @@ fn signers_record(
                         fast_forward,
                     } => (
                         VaultMemberKind::Vault,
-                        hex::encode(launcher_id),
+                        encode_vault_id(*launcher_id)?,
                         *fast_forward,
                     ),
                     VaultMember::Custom { puzzle_hash } => {
@@ -517,13 +513,13 @@ fn signers_record(
                     _ => None,
                 };
 
-                VaultMemberRecord {
+                Ok(VaultMemberRecord {
                     kind,
                     key,
                     fast_forward,
                     signer_fingerprint,
-                }
+                })
             })
-            .collect(),
-    }
+            .collect::<Result<_>>()?,
+    })
 }

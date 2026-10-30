@@ -148,6 +148,12 @@ async fn wait_for_vault(
     bail!("timed out waiting for the vault, which is {last:?}");
 }
 
+fn vault_id(launcher_id: Bytes32) -> String {
+    Address::new(launcher_id, "vault".to_string())
+        .encode()
+        .expect("should encode")
+}
+
 fn import(
     launcher_id: Option<Bytes32>,
     address: Option<String>,
@@ -155,7 +161,7 @@ fn import(
 ) -> ImportVault {
     ImportVault {
         name: "Vault".to_string(),
-        launcher_id: launcher_id.map(hex::encode),
+        launcher_id: launcher_id.map(vault_id),
         address,
         config,
         login: true,
@@ -182,7 +188,7 @@ async fn test_import_vault_by_launcher_id() -> Result<()> {
     let response = app
         .import_vault(import(Some(launcher_id), None, None))
         .await?;
-    assert_eq!(response.launcher_id, hex::encode(launcher_id));
+    assert_eq!(response.launcher_id, vault_id(launcher_id));
 
     // The vault's config is decoded from the memo in its launcher's solution.
     let record = wait_for_vault(&mut app, |vault| vault.state == VaultState::Active).await?;
@@ -237,7 +243,7 @@ async fn test_import_vault_by_launcher_id() -> Result<()> {
     assert_eq!(
         wallet.kind,
         WalletKind::Vault {
-            launcher_id: hex::encode(launcher_id),
+            launcher_id: vault_id(launcher_id),
             signers: Vec::new(),
         }
     );
@@ -302,7 +308,7 @@ async fn test_import_vault_by_address() -> Result<()> {
     let vault = spend_from_address(&app, &vault, &config, &custody.sk).await?;
 
     let response = app.import_vault(import(None, Some(address), None)).await?;
-    assert_eq!(response.launcher_id, hex::encode(launcher_id));
+    assert_eq!(response.launcher_id, vault_id(launcher_id));
 
     let record = wait_for_vault(&mut app, |record| {
         record.coin_id == Some(hex::encode(vault.coin.coin_id()))
@@ -526,7 +532,7 @@ async fn test_attach_vault_signers() -> Result<()> {
     assert_eq!(
         wallet.kind,
         WalletKind::Vault {
-            launcher_id: hex::encode(launcher_id),
+            launcher_id: vault_id(launcher_id),
             signers: vec![
                 custody.public_key().get_fingerprint(),
                 recovery.pk.get_fingerprint()
