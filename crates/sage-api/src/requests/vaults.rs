@@ -7,7 +7,7 @@ use crate::VaultRecord;
     feature = "openapi",
     crate::openapi_attr(
         tag = "Vaults",
-        description = "Import an existing vault, minted by Sage or Chia Cloud Wallet, as a read-only wallet. A vault can't be found from a key, so it's imported from exactly one of its launcher id, an address it has already spent from, or a config file. A config file is only accepted if it rebuilds the vault's custody on chain. Without one, the vault's config is read from the memos on chain, if it has them. Needs a connected peer. Optionally logs in automatically."
+        description = "Import an existing vault, minted by Sage or Chia Cloud Wallet, as a read-only wallet. A vault can't be found from a key, so it's imported from exactly one of its launcher id, an address it has already spent from, or a config file. A config file is only accepted if it rebuilds the vault's custody on chain. Otherwise, the vault's config is read from the memos on chain, if it has them. For a vault without memos, its config is rebuilt from what its spends reveal. A vault without recovery needs nothing else, but a vault with recovery needs its recovery keys, given with its launcher id or address. The recovery threshold and timelock are searched for if they aren't given. Needs a connected peer. Optionally logs in automatically."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,7 +16,7 @@ use crate::VaultRecord;
 pub struct ImportVault {
     /// Display name for the wallet
     pub name: String,
-    /// The vault's launcher id, in hex
+    /// The vault's launcher id, as a `vault1` id or in hex
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub launcher_id: Option<String>,
@@ -28,6 +28,11 @@ pub struct ImportVault {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub config: Option<String>,
+    /// The vault's recovery keys, to rebuild its config from its spends if it has no memos. It can't
+    /// be given with a config file
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub recovery: Option<VaultRecoveryKeys>,
     /// Whether to automatically login after import
     #[serde(default = "yes")]
     #[cfg_attr(feature = "openapi", schema(default = true))]
@@ -48,8 +53,27 @@ pub struct ImportVaultResponse {
     /// key of its own
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
     pub fingerprint: u32,
-    /// The vault's launcher id, in hex
+    /// The vault's launcher id, as a `vault1` id
     pub launcher_id: String,
+}
+
+/// A vault's recovery keys, which identify the recovery side of a vault without memos
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct VaultRecoveryKeys {
+    /// The key of every recovery member: a public key in hex (BLS, secp256r1, secp256k1, or a
+    /// passkey), a BLS mnemonic or secret key, whose master public key is used, or the `vault1` id of
+    /// a vault. Secrets aren't stored
+    pub keys: Vec<String>,
+    /// How many recovery members must sign. Every threshold is tried if it isn't given
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub threshold: Option<u32>,
+    /// The recovery timelock in seconds. Common timelocks are tried if it isn't given
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub timelock: Option<u64>,
 }
 
 /// Get the open vault wallet's vault
@@ -153,6 +177,38 @@ pub struct ImportVaultConfig {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ImportVaultConfigResponse {}
 
+/// Rebuild the open vault wallet's config from its spends
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Vaults",
+        description = "Rebuild the config of the open vault wallet, for a vault without memos on chain. A spend through the vault's custody reveals its custody members. That's the whole config of a vault without recovery. For a vault with recovery, its recovery keys, threshold and timelock rebuild the rest, and the config is checked against the vault's custody hash. An M of N custody is only known once each of its members has signed a spend. Needs a connected peer."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct RebuildVaultConfig {
+    /// The vault's recovery keys, if it has recovery
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub recovery: Option<VaultRecoveryKeys>,
+}
+
+/// Response with the rebuilt config's recovery threshold and timelock
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Vaults"))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct RebuildVaultConfigResponse {
+    /// How many recovery members must sign, which was found if it wasn't given, or none if the
+    /// vault has no recovery
+    pub recovery_threshold: Option<u32>,
+    /// The recovery timelock in seconds, which was found if it wasn't given, or none if the vault
+    /// has no recovery
+    pub recovery_timelock: Option<u64>,
+}
+
 /// Find the vault that owns an address
 #[cfg_attr(
     feature = "openapi",
@@ -174,7 +230,7 @@ pub struct FindVault {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct FindVaultResponse {
-    /// The vault's launcher id, in hex
+    /// The vault's launcher id, as a `vault1` id
     pub launcher_id: Option<String>,
 }
 

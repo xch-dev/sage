@@ -24,6 +24,19 @@ pub async fn fetch_latest_vault_coin(
     launcher_id: Bytes32,
     genesis_challenge: Bytes32,
 ) -> Result<Option<CoinState>, WalletError> {
+    Ok(fetch_vault_lineage(peer, launcher_id, genesis_challenge)
+        .await?
+        .and_then(|lineage| lineage.last().copied()))
+}
+
+/// Follows a vault from its launcher, returning each of its singleton coins in order, from the eve
+/// coin to the latest coin. Returns `None` if the launcher doesn't exist or hasn't created a
+/// singleton yet.
+pub async fn fetch_vault_lineage(
+    peer: &WalletPeer,
+    launcher_id: Bytes32,
+    genesis_challenge: Bytes32,
+) -> Result<Option<Vec<CoinState>>, WalletError> {
     let Some(launcher) = peer
         .fetch_optional_coin(launcher_id, genesis_challenge)
         .await?
@@ -35,11 +48,11 @@ pub async fn fetch_latest_vault_coin(
         return Ok(None);
     }
 
-    let mut latest = None;
+    let mut lineage = Vec::new();
     let mut coin_id = launcher_id;
 
     while let Some(child) = peer.try_fetch_singleton_child(coin_id).await? {
-        latest = Some(child);
+        lineage.push(child);
 
         if child.spent_height.is_none() {
             break;
@@ -48,7 +61,7 @@ pub async fn fetch_latest_vault_coin(
         coin_id = child.coin.coin_id();
     }
 
-    Ok(latest)
+    Ok((!lineage.is_empty()).then_some(lineage))
 }
 
 /// What was found about the vault that owns an address.
