@@ -24,7 +24,7 @@ use sage_database::{Database, SharedDatabase};
 use sage_keychain::Keychain;
 use sage_wallet::{
     PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet, WalletError,
-    WalletKind,
+    WalletKind, track_vault,
 };
 use serde::de::DeserializeOwned;
 use sqlx::{
@@ -391,6 +391,13 @@ impl Sage {
             watch_p2_puzzles(&db, p2_puzzle_hashes).await?;
         }
 
+        // A vault wallet tracks its vault, which sync follows from its launcher.
+        if let WalletKind::Vault { launcher_id } = kind {
+            let mut tx = db.tx().await?;
+            track_vault(&mut tx, launcher_id).await?;
+            tx.commit().await?;
+        }
+
         let shared_db = self.connect_to_shared_database(fingerprint).await?;
 
         let wallet_config = self.wallet_config().cloned().unwrap_or_default();
@@ -640,13 +647,17 @@ impl Sage {
             .find(|wallet| wallet.fingerprint == fingerprint)
     }
 
-    /// Whether any wallet uses the key with this fingerprint. For now that's only the BLS
-    /// wallet with the same fingerprint, but other wallets will be able to use keys too, such as
-    /// vaults with signers.
+    /// Whether any wallet uses the key with this fingerprint: the BLS wallet with the same
+    /// fingerprint, or a vault that it signs for.
     pub fn is_key_used(&self, fingerprint: u32) -> bool {
-        self.wallet_config.wallets.iter().any(|wallet| {
-            matches!(wallet.kind, ConfigWalletKind::Bls) && wallet.fingerprint == fingerprint
-        })
+        self.wallet_config
+            .wallets
+            .iter()
+            .any(|wallet| match &wallet.kind {
+                ConfigWalletKind::Bls => wallet.fingerprint == fingerprint,
+                ConfigWalletKind::Watch { .. } => false,
+                ConfigWalletKind::Vault { signers, .. } => signers.contains(&fingerprint),
+            })
     }
 
     /// Determines how the wallet with this fingerprint is opened.
@@ -673,6 +684,9 @@ impl Sage {
 
                 WalletKind::Watch
             }
+            ConfigWalletKind::Vault { launcher_id, .. } => WalletKind::Vault {
+                launcher_id: *launcher_id,
+            },
         })
     }
 
@@ -680,7 +694,7 @@ impl Sage {
     pub fn watched_p2_puzzle_hashes(&self, fingerprint: u32) -> Option<&[Bytes32]> {
         match &self.wallet_entry(fingerprint)?.kind {
             ConfigWalletKind::Watch { p2_puzzle_hashes } => Some(p2_puzzle_hashes),
-            ConfigWalletKind::Bls => None,
+            ConfigWalletKind::Bls | ConfigWalletKind::Vault { .. } => None,
         }
     }
 
@@ -691,11 +705,21 @@ impl Sage {
             .is_some_and(|wallet| matches!(wallet.kind, WalletKind::Watch))
     }
 
+    /// Whether the open wallet is a vault, which can't sign yet.
+    pub fn is_vault(&self) -> bool {
+        self.wallet
+            .as_ref()
+            .is_some_and(|wallet| matches!(wallet.kind, WalletKind::Vault { .. }))
+    }
+
     /// The secret key that signs for the wallet. Watch wallets never have one, and cold BLS
-    /// wallets only have their public key.
+    /// wallets only have their public key. Vaults sign with their signers' keys, which isn't
+    /// supported yet.
     pub(crate) fn master_secret_key(&self, wallet: &Wallet) -> Result<SecretKey> {
-        if matches!(wallet.kind, WalletKind::Watch) {
-            return Err(WalletError::WatchOnly.into());
+        match wallet.kind {
+            WalletKind::Bls { .. } => {}
+            WalletKind::Watch => return Err(WalletError::WatchOnly.into()),
+            WalletKind::Vault { .. } => return Err(WalletError::VaultSpendNotSupported.into()),
         }
 
         let (_mnemonic, Some(master_sk)) =

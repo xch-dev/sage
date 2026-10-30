@@ -6,6 +6,7 @@ mod keys;
 mod offers;
 mod settings;
 mod transactions;
+mod vaults;
 mod xchandles;
 
 pub use action_system::*;
@@ -16,6 +17,7 @@ pub use keys::*;
 pub use offers::*;
 pub use settings::*;
 pub use transactions::*;
+pub use vaults::*;
 pub use xchandles::*;
 
 pub mod wallet_connect;

@@ -1,5 +1,8 @@
 #![allow(clippy::needless_pass_by_value)]
 
+use std::str::FromStr;
+
+use bip39::Mnemonic;
 use chia_wallet_sdk::prelude::*;
 use sage_api::Amount;
 
@@ -194,6 +197,65 @@ pub fn parse_any_asset_id(input: String) -> Result<Bytes32> {
     } else {
         // Assume it's a CAT token (hex string)
         parse_asset_id(input)?
+    })
+}
+
+/// A BLS key given as a mnemonic, or a hex encoded secret or public key.
+pub struct ParsedKey {
+    pub master_pk: PublicKey,
+    pub master_sk: Option<SecretKey>,
+    pub mnemonic: Option<Mnemonic>,
+}
+
+pub fn parse_key(key: &str) -> Result<ParsedKey> {
+    let mut key_hex = key;
+
+    if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
+        key_hex = &key_hex[2..];
+    }
+
+    let (master_pk, master_sk, mnemonic) = if let Ok(bytes) = hex::decode(key_hex) {
+        if let Ok(master_pk) = bytes.clone().try_into() {
+            (PublicKey::from_bytes(&master_pk)?, None, None)
+        } else if let Ok(master_sk) = bytes.try_into() {
+            let master_sk = SecretKey::from_bytes(&master_sk)?;
+            (master_sk.public_key(), Some(master_sk), None)
+        } else {
+            return Err(Error::InvalidKey);
+        }
+    } else {
+        let words: Vec<&str> = key.split_whitespace().collect();
+        let word_count = words.len();
+
+        if word_count != 12 && word_count != 24 {
+            return Err(Error::InvalidMnemonic(format!(
+                "Expected 12 or 24 words, but got {word_count}."
+            )));
+        }
+
+        let mnemonic = Mnemonic::from_str(key).map_err(|e| match e {
+            bip39::Error::BadWordCount(count) => {
+                Error::InvalidMnemonic(format!("Expected 12 or 24 words, but got {count}."))
+            }
+            bip39::Error::UnknownWord(idx) => Error::InvalidMnemonic(format!(
+                "Word #{} ({}) is not a valid BIP39 word.",
+                idx + 1,
+                words.get(idx).copied().unwrap_or("unknown"),
+            )),
+            bip39::Error::InvalidChecksum => Error::InvalidMnemonic(
+                "Invalid checksum. Please verify all words are correct and in the right order."
+                    .to_string(),
+            ),
+            _ => Error::InvalidMnemonic(format!("Invalid mnemonic: {e}")),
+        })?;
+        let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
+        (master_sk.public_key(), Some(master_sk), Some(mnemonic))
+    };
+
+    Ok(ParsedKey {
+        master_pk,
+        master_sk,
+        mnemonic,
     })
 }
 

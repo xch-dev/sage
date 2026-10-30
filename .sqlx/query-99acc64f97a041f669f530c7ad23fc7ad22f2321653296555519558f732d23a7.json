@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT custody_hash FROM vault_configs",
+  "describe": {
+    "columns": [
+      {
+        "name": "custody_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "99acc64f97a041f669f530c7ad23fc7ad22f2321653296555519558f732d23a7"
+}

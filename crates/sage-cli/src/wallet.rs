@@ -116,8 +116,10 @@ async fn status(client: &Client, json: bool) -> Result<()> {
     };
 
     println!("Wallet:   {} ({})", wallet.name, wallet.fingerprint);
-    if matches!(wallet.kind, WalletKind::Watch { .. }) {
-        println!("Kind:     watch-only");
+    match &wallet.kind {
+        WalletKind::Bls => {}
+        WalletKind::Watch { .. } => println!("Kind:     watch-only"),
+        WalletKind::Vault { launcher_id, .. } => println!("Kind:     vault {launcher_id}"),
     }
     println!("Network:  {}", wallet.network_id);
     println!(

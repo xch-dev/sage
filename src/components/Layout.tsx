@@ -8,7 +8,13 @@ import {
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { t } from '@lingui/core/macro';
-import { Eye, PanelLeft, PanelLeftClose, Snowflake } from 'lucide-react';
+import {
+  Eye,
+  Landmark,
+  PanelLeft,
+  PanelLeftClose,
+  Snowflake,
+} from 'lucide-react';
 import { PropsWithChildren } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Insets } from 'tauri-plugin-safe-area-insets';
@@ -23,7 +29,7 @@ function WalletTransitionWrapper({
   props,
   insets,
 }: PropsWithChildren<{ props: LayoutProps; insets: Insets }>) {
-  const { isSwitching, wallet, isReadOnly, isWatchOnly } = useWallet();
+  const { isSwitching, wallet, isReadOnly, isWatchOnly, isVault } = useWallet();
 
   // Only show content if we have a wallet or we're not switching
   // This prevents old wallet data from showing during transition
@@ -52,6 +58,17 @@ function WalletTransitionWrapper({
               aria-label={t`Watch-only wallet`}
               icon={
                 <Eye className='h-3 w-3 flex-shrink-0' aria-hidden='true' />
+              }
+            />
+          ) : isVault ? (
+            <Banner
+              message={t`Vault — spending from vaults isn't supported yet`}
+              aria-label={t`Vault`}
+              icon={
+                <Landmark
+                  className='h-3 w-3 flex-shrink-0'
+                  aria-hidden='true'
+                />
               }
             />
           ) : (

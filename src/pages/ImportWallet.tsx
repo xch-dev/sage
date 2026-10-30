@@ -1,5 +1,6 @@
 import { EmojiPicker } from '@/components/EmojiPicker';
 import Header from '@/components/Header';
+import { ImportVaultForm } from '@/components/ImportVaultForm';
 import { ImportWatchWalletForm } from '@/components/ImportWatchWalletForm';
 import SafeAreaView from '@/components/SafeAreaView';
 import {
@@ -25,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
+import { vaultsEnabled } from '@/lib/features';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -43,6 +45,8 @@ export default function ImportWallet() {
   const { setWallet } = useWallet();
 
   const [mode, setMode] = useState('key');
+  // A vault found from a watched address, which the vault form starts with.
+  const [vaultLauncherId, setVaultLauncherId] = useState<string>();
   const [advanced, setAdvanced] = useState(false);
   const [pending, setPending] = useState(false);
   const [hardened, setHardened] = useState(true);
@@ -120,6 +124,11 @@ export default function ImportWallet() {
                   A watch-only wallet shows the balances, assets and history of
                   addresses, but can&apos;t spend from them.
                 </Trans>
+              ) : mode === 'vault' ? (
+                <Trans>
+                  Import a vault made with Sage or Chia Cloud Wallet. It&apos;s
+                  read-only until you attach the keys that sign for it.
+                </Trans>
               ) : (
                 <Trans>
                   Unless you import it as a cold wallet, your seed phrase and/or
@@ -138,10 +147,28 @@ export default function ImportWallet() {
                 <TabsTrigger value='watch' className='flex-1'>
                   <Trans>Addresses</Trans>
                 </TabsTrigger>
+                {vaultsEnabled && (
+                  <TabsTrigger value='vault' className='flex-1'>
+                    <Trans>Vault</Trans>
+                  </TabsTrigger>
+                )}
               </TabsList>
               <TabsContent value='watch'>
-                <ImportWatchWalletForm />
+                <ImportWatchWalletForm
+                  onImportVault={(launcherId) => {
+                    setVaultLauncherId(launcherId);
+                    setMode('vault');
+                  }}
+                />
               </TabsContent>
+              {vaultsEnabled && (
+                <TabsContent value='vault'>
+                  <ImportVaultForm
+                    key={vaultLauncherId}
+                    launcherId={vaultLauncherId}
+                  />
+                </TabsContent>
+              )}
               <TabsContent value='key'>
                 <Form {...form}>
                   <form
