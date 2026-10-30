@@ -1,13 +1,10 @@
-use chia_wallet_sdk::{
-    chia::puzzle_types::singleton::SingletonArgs, driver::VaultVersion, prelude::*,
-};
+use chia_wallet_sdk::{driver::VaultVersion, prelude::*};
 use sage_api::{
-    AttachVaultSigner, AttachVaultSignerResponse, ExportVaultConfig, ExportVaultConfigResponse,
-    FindVault, FindVaultResponse, GetVault, GetVaultResponse, ImportVault, ImportVaultConfig,
-    ImportVaultConfigResponse, ImportVaultResponse, VaultConfigRecord,
-    VaultConfigSource as ApiVaultConfigSource, VaultMemberKind, VaultMemberRecord,
-    VaultPuzzleVersion, VaultRecord, VaultSignerRecord, VaultSignersRecord,
-    VaultState as ApiVaultState,
+    AttachVaultSigner, AttachVaultSignerResponse, FindVault, FindVaultResponse, GetVault,
+    GetVaultResponse, ImportVault, ImportVaultResponse, RebuildVaultConfig,
+    RebuildVaultConfigResponse, VaultConfigRecord, VaultConfigSource as ApiVaultConfigSource,
+    VaultMemberKind, VaultMemberRecord, VaultPuzzleVersion, VaultRecord, VaultRecoveryKey,
+    VaultSignerRecord, VaultSignersRecord, VaultState as ApiVaultState,
 };
 use sage_config::{Wallet as WalletEntry, WalletKind as ConfigWalletKind};
 use sage_database::{
@@ -15,8 +12,9 @@ use sage_database::{
     VaultSigners, VaultState,
 };
 use sage_wallet::{
-    VaultAddressLookup, WalletKind, fetch_latest_vault_coin, find_vault_by_address,
-    parse_vault_config_file, track_vault, vault_config_file, vault_hashes,
+    RecoveryKey, VaultAddressLookup, WalletKind, common_recovery_timelocks,
+    fetch_latest_vault_coin, find_vault_by_address, rebuild_vault_configs, recovery_key_members,
+    track_vault,
 };
 
 use crate::{
@@ -25,15 +23,11 @@ use crate::{
 
 impl Sage {
     pub async fn import_vault(&mut self, req: ImportVault) -> Result<ImportVaultResponse> {
-        let (launcher_id, config_file) = match (req.launcher_id, req.address, req.config) {
-            (Some(launcher_id), None, None) => (parse_vault_id(launcher_id)?, None),
-            (None, Some(address), None) => {
+        let launcher_id = match (req.launcher_id, req.address) {
+            (Some(launcher_id), None) => parse_vault_id(launcher_id)?,
+            (None, Some(address)) => {
                 let p2_puzzle_hash = self.parse_address(address)?;
-                (self.find_vault_by_address(p2_puzzle_hash).await?, None)
-            }
-            (None, None, Some(config)) => {
-                let parsed = parse_vault_config_file(&config)?;
-                (parsed.launcher_id, Some(parsed.candidates))
+                self.find_vault_by_address(p2_puzzle_hash).await?
             }
             _ => return Err(Error::VaultImportSource),
         };
@@ -44,16 +38,12 @@ impl Sage {
             return Err(Error::WalletExists(existing.fingerprint));
         }
 
-        // The vault must exist, and a config file must rebuild its custody on chain.
-        let latest = self.latest_vault_coin(launcher_id).await?;
-
-        let config = match config_file {
-            Some(candidates) => Some(matching_config(
-                launcher_id,
-                candidates,
-                latest.coin.puzzle_hash,
-            )?),
-            None => None,
+        // The vault must exist, and a recovery key must rebuild its config from its spends.
+        let configs = if let Some(recovery) = req.recovery {
+            self.rebuild_configs(launcher_id, recovery).await?
+        } else {
+            self.latest_vault_coin(launcher_id).await?;
+            Vec::new()
         };
 
         // A vault has no key to take a fingerprint from, so it's taken from its launcher id.
@@ -82,7 +72,7 @@ impl Sage {
         let db = Database::new(self.connect_to_database(fingerprint).await?);
         let mut tx = db.tx().await?;
         track_vault(&mut tx, launcher_id).await?;
-        if let Some(config) = &config {
+        for config in &configs {
             tx.insert_vault_config(config).await?;
         }
         tx.commit().await?;
@@ -204,43 +194,31 @@ impl Sage {
         })
     }
 
-    pub async fn export_vault_config(
+    pub async fn rebuild_vault_config(
         &self,
-        _req: ExportVaultConfig,
-    ) -> Result<ExportVaultConfigResponse> {
+        req: RebuildVaultConfig,
+    ) -> Result<RebuildVaultConfigResponse> {
         let wallet = self.wallet()?;
         let launcher_id = self.vault_launcher_id(wallet.fingerprint)?;
 
-        let config = latest_custody_config(&wallet.db, launcher_id)
-            .await?
-            .ok_or(Error::VaultConfigUnknown)?;
-
-        Ok(ExportVaultConfigResponse {
-            config: vault_config_file(launcher_id, &config)?,
-        })
-    }
-
-    pub async fn import_vault_config(
-        &self,
-        req: ImportVaultConfig,
-    ) -> Result<ImportVaultConfigResponse> {
-        let wallet = self.wallet()?;
-        let launcher_id = self.vault_launcher_id(wallet.fingerprint)?;
-
-        let parsed = parse_vault_config_file(&req.config)?;
-
-        if parsed.launcher_id != launcher_id {
-            return Err(Error::VaultConfigMismatch);
-        }
-
-        let latest = self.latest_vault_coin(launcher_id).await?;
-        let config = matching_config(launcher_id, parsed.candidates, latest.coin.puzzle_hash)?;
+        let configs = self.rebuild_configs(launcher_id, req.recovery).await?;
 
         let mut tx = wallet.db.tx().await?;
-        tx.insert_vault_config(&config).await?;
+        for config in &configs {
+            tx.insert_vault_config(config).await?;
+        }
         tx.commit().await?;
 
-        Ok(ImportVaultConfigResponse {})
+        // The latest config is the vault's current custody, or the closest to it.
+        let recovery_timelock = configs
+            .first()
+            .map(|config| match &config.layout {
+                VaultLayout::Custody(config) => config.recovery_timelock,
+                VaultLayout::Recovery(config) => config.recovery_timelock,
+            })
+            .ok_or(Error::VaultConfigUnknown)?;
+
+        Ok(RebuildVaultConfigResponse { recovery_timelock })
     }
 
     pub async fn find_vault(&self, req: FindVault) -> Result<FindVaultResponse> {
@@ -295,6 +273,41 @@ impl Sage {
         Ok(Database::new(self.connect_to_database(fingerprint).await?))
     }
 
+    /// Rebuilds a vault's configs from its spends and its recovery key.
+    async fn rebuild_configs(
+        &self,
+        launcher_id: Bytes32,
+        recovery: VaultRecoveryKey,
+    ) -> Result<Vec<VaultConfigRow>> {
+        let members = recovery_key_members(parse_recovery_key(&recovery.key)?);
+
+        if members.is_empty() {
+            return Err(Error::InvalidRecoveryKey);
+        }
+
+        let timelocks = match recovery.timelock {
+            Some(0) => return Err(Error::InvalidRecoveryTimelock),
+            Some(timelock) => vec![timelock],
+            None => common_recovery_timelocks(),
+        };
+
+        let peer = self
+            .peer_state
+            .lock()
+            .await
+            .acquire_peer()
+            .ok_or(Error::NoPeers)?;
+
+        Ok(rebuild_vault_configs(
+            &peer,
+            launcher_id,
+            self.network().genesis_challenge,
+            members,
+            timelocks,
+        )
+        .await?)
+    }
+
     async fn latest_vault_coin(&self, launcher_id: Bytes32) -> Result<CoinState> {
         let peer = self
             .peer_state
@@ -326,28 +339,24 @@ impl Sage {
     }
 }
 
-/// The one config of a file's candidates which rebuilds the vault coin's puzzle hash.
-fn matching_config(
-    launcher_id: Bytes32,
-    candidates: Vec<VaultConfig>,
-    puzzle_hash: Bytes32,
-) -> Result<VaultConfigRow> {
-    let mut matching = candidates.into_iter().filter_map(|config| {
-        let custody_hash = vault_hashes(&config).ok()?.custody_hash;
+/// Parses a vault's recovery key: a public key in hex, or the mnemonic or secret key of a BLS key,
+/// whose master public key is the member, as in Cloud Wallet.
+fn parse_recovery_key(key: &str) -> Result<RecoveryKey> {
+    let key = key.trim();
+    let stripped = key
+        .strip_prefix("0x")
+        .or_else(|| key.strip_prefix("0X"))
+        .unwrap_or(key);
 
-        (SingletonArgs::curry_tree_hash(launcher_id, custody_hash) == puzzle_hash.into()).then(
-            || VaultConfigRow {
-                custody_hash: custody_hash.into(),
-                layout: VaultLayout::Custody(config),
-                source: VaultConfigSource::ConfigFile,
-            },
-        )
-    });
-
-    match (matching.next(), matching.next()) {
-        (Some(config), None) => Ok(config),
-        _ => Err(Error::VaultConfigMismatch),
+    if let Ok(bytes) = hex::decode(stripped)
+        && let Ok(bytes) = <[u8; 33]>::try_from(bytes.as_slice())
+    {
+        return Ok(RecoveryKey::Secp(bytes));
     }
+
+    let ParsedKey { master_pk, .. } = parse_key(key).map_err(|_| Error::InvalidRecoveryKey)?;
+
+    Ok(RecoveryKey::Bls(master_pk))
 }
 
 /// The config of the vault's latest coin which isn't in the recovery state. While recovery is
@@ -437,7 +446,7 @@ fn config_record(
         },
         source: match config.source {
             VaultConfigSource::Memo => ApiVaultConfigSource::Memo,
-            VaultConfigSource::ConfigFile => ApiVaultConfigSource::ConfigFile,
+            VaultConfigSource::Reconstructed => ApiVaultConfigSource::Reconstructed,
             VaultConfigSource::Unknown => ApiVaultConfigSource::Unknown,
         },
         custody: signers_record(custody, signers)?,

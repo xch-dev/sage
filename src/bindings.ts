@@ -47,11 +47,8 @@ async getVault(req: GetVault) : Promise<GetVaultResponse> {
 async attachVaultSigner(req: AttachVaultSigner) : Promise<AttachVaultSignerResponse> {
     return await TAURI_INVOKE("attach_vault_signer", { req });
 },
-async exportVaultConfig(req: ExportVaultConfig) : Promise<ExportVaultConfigResponse> {
-    return await TAURI_INVOKE("export_vault_config", { req });
-},
-async importVaultConfig(req: ImportVaultConfig) : Promise<ImportVaultConfigResponse> {
-    return await TAURI_INVOKE("import_vault_config", { req });
+async rebuildVaultConfig(req: RebuildVaultConfig) : Promise<RebuildVaultConfigResponse> {
+    return await TAURI_INVOKE("rebuild_vault_config", { req });
 },
 async findVault(req: FindVault) : Promise<FindVaultResponse> {
     return await TAURI_INVOKE("find_vault", { req });
@@ -1289,18 +1286,6 @@ network_id: string;
  * The contacts, sorted by name
  */
 contacts: ContactEntry[] }
-/**
- * Export the open vault wallet's config file
- */
-export type ExportVaultConfig = Record<string, never>
-/**
- * Response with the vault config file
- */
-export type ExportVaultConfigResponse = { 
-/**
- * The config file, as JSON
- */
-config: string }
 export type FeeAction = { 
 /**
  * The fee amount, in mojos
@@ -1347,7 +1332,7 @@ export type FindVault = { address: string }
  */
 export type FindVaultResponse = { 
 /**
- * The vault's launcher id, in hex
+ * The vault's launcher id, as a `vault1` id
  */
 launcher_id: string | null }
 /**
@@ -2621,7 +2606,7 @@ export type ImportVault = {
  */
 name: string; 
 /**
- * The vault's launcher id, in hex
+ * The vault's launcher id, as a `vault1` id or in hex
  */
 launcher_id?: string | null; 
 /**
@@ -2629,9 +2614,9 @@ launcher_id?: string | null;
  */
 address?: string | null; 
 /**
- * A vault config file, as exported by Sage or Chia Cloud Wallet
+ * The vault's recovery key, to rebuild its config from its spends if it has no memos
  */
-config?: string | null; 
+recovery?: VaultRecoveryKey | null; 
 /**
  * Whether to automatically login after import
  */
@@ -2640,18 +2625,6 @@ login?: boolean;
  * Optional emoji identifier
  */
 emoji?: string | null }
-/**
- * Import a config file for the open vault wallet
- */
-export type ImportVaultConfig = { 
-/**
- * The config file, as JSON
- */
-config: string }
-/**
- * Response for importing a vault config file
- */
-export type ImportVaultConfigResponse = Record<string, never>
 /**
  * Response with the imported vault wallet's fingerprint
  */
@@ -2662,7 +2635,7 @@ export type ImportVaultResponse = {
  */
 fingerprint: number; 
 /**
- * The vault's launcher id, in hex
+ * The vault's launcher id, as a `vault1` id
  */
 launcher_id: string }
 /**
@@ -3336,6 +3309,18 @@ pages_vacuumed: number;
  * Number of WAL pages checkpointed
  */
 wal_pages_checkpointed: number }
+/**
+ * Rebuild the open vault wallet's config from its spends and its recovery key
+ */
+export type RebuildVaultConfig = { recovery: VaultRecoveryKey }
+/**
+ * Response with the rebuilt config's recovery timelock
+ */
+export type RebuildVaultConfigResponse = { 
+/**
+ * The recovery timelock in seconds, which was found if it wasn't given
+ */
+recovery_timelock: number }
 /**
  * A recipient which couldn't be used, so the transaction wasn't created
  */
@@ -4235,9 +4220,9 @@ export type VaultConfigSource =
  */
 "memo" | 
 /**
- * Imported from a config file
+ * Rebuilt from the vault's spends and its recovery key
  */
-"config_file" | "unknown"
+"reconstructed" | "unknown"
 export type VaultMemberKind = "bls" | "secp256r1" | "secp256k1" | "passkey" | 
 /**
  * Another vault
@@ -4262,7 +4247,7 @@ export type VaultPuzzleVersion = "legacy" | "force_singleton_recreation"
  */
 export type VaultRecord = { 
 /**
- * The vault's launcher id, in hex
+ * The vault's launcher id, as a `vault1` id
  */
 launcher_id: string; state: VaultState; 
 /**
@@ -4287,6 +4272,19 @@ config: VaultConfigRecord | null;
  * The keychain keys that sign for the vault
  */
 signers: VaultSignerRecord[] }
+/**
+ * A vault's recovery key, which identifies the recovery side of a vault without memos
+ */
+export type VaultRecoveryKey = { 
+/**
+ * The recovery member's public key in hex (BLS, secp256r1, secp256k1, or a passkey), or a
+ * BLS mnemonic or secret key, whose master public key is used. The secret isn't stored
+ */
+key: string; 
+/**
+ * The recovery timelock in seconds. Common timelocks are tried if it isn't given
+ */
+timelock?: number | null }
 /**
  * A keychain key which signs for a vault
  */

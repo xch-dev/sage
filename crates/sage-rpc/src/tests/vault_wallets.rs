@@ -11,12 +11,12 @@ use chia_wallet_sdk::{
 };
 use rand::Rng;
 use sage_api::{
-    AttachVaultSigner, DeleteWallet, ExportVaultConfig, GetKeys, GetSyncStatus, GetVault,
-    GetWallet, GetWalletAddress, GetWallets, ImportVault, ImportVaultConfig, Login, SendXch,
-    VaultConfigSource, VaultMemberKind, VaultRecord, VaultState, WalletKind,
+    AttachVaultSigner, DeleteWallet, GetKeys, GetSyncStatus, GetVault, GetWallet, GetWalletAddress,
+    GetWallets, ImportVault, Login, RebuildVaultConfig, SendXch, VaultConfigSource,
+    VaultMemberKind, VaultRecord, VaultRecoveryKey, VaultState, WalletKind,
 };
 use sage_database::{VaultConfig, VaultMember, VaultSigners};
-use sage_wallet::{build_vault, parse_vault_config_file, vault_config_file, vault_hashes};
+use sage_wallet::{build_vault, vault_hashes};
 use tokio::time::sleep;
 
 use super::TestApp;
@@ -157,13 +157,13 @@ fn vault_id(launcher_id: Bytes32) -> String {
 fn import(
     launcher_id: Option<Bytes32>,
     address: Option<String>,
-    config: Option<String>,
+    recovery: Option<VaultRecoveryKey>,
 ) -> ImportVault {
     ImportVault {
         name: "Vault".to_string(),
         launcher_id: launcher_id.map(vault_id),
         address,
-        config,
+        recovery,
         login: true,
         emoji: None,
     }
@@ -320,51 +320,92 @@ async fn test_import_vault_by_address() -> Result<()> {
     Ok(())
 }
 
+fn recovery_key(key: String, timelock: Option<u64>) -> VaultRecoveryKey {
+    VaultRecoveryKey { key, timelock }
+}
+
 #[tokio::test]
-async fn test_import_vault_by_config() -> Result<()> {
+async fn test_import_vault_by_recovery_key() -> Result<()> {
     let mut app = TestApp::new().await?;
 
     let custody = BlsPair::new(1);
-    let config = vault_config(custody.pk, BlsPair::new(2).pk);
+    let recovery = BlsPair::new(2);
+    let config = vault_config(custody.pk, recovery.pk);
+    let recovery_pk = hex::encode(recovery.pk.to_bytes());
 
-    // Without a memo on chain, the config file is the only way to know the vault's config.
+    // Without memos on chain, the config is rebuilt from the vault's spends and its recovery key.
     let vault = mint_vault(&app, &config, false).await?;
     let launcher_id = vault.info.launcher_id;
 
     wait_for_peer(&app).await?;
 
-    // A config which doesn't rebuild the vault on chain is rejected.
-    let wrong = vault_config(BlsPair::new(3).pk, BlsPair::new(2).pk);
+    // Until the vault is spent through its custody, its custody isn't revealed.
     let error = app
         .import_vault(import(
+            Some(launcher_id),
             None,
-            None,
-            Some(vault_config_file(launcher_id, &wrong)?),
+            Some(recovery_key(recovery_pk.clone(), None)),
         ))
         .await
-        .expect_err("the config doesn't match");
-    assert!(error.to_string().contains("doesn't match"), "{error}");
+        .expect_err("the custody hasn't been revealed");
+    assert!(error.to_string().contains("hasn't been spent"), "{error}");
 
-    let mut file: serde_json::Value =
-        serde_json::from_str(&vault_config_file(launcher_id, &config)?)?;
+    let vault = spend_from_address(&app, &vault, &config, &custody.sk).await?;
 
-    // Files without a puzzle version match either version.
-    file.as_object_mut()
-        .expect("the file is an object")
-        .remove("vaultPuzzleVersion");
+    // A key which isn't the recovery member doesn't rebuild the vault.
+    let error = app
+        .import_vault(import(
+            Some(launcher_id),
+            None,
+            Some(recovery_key(
+                hex::encode(BlsPair::new(3).pk.to_bytes()),
+                Some(60),
+            )),
+        ))
+        .await
+        .expect_err("the recovery key doesn't match");
+    assert!(error.to_string().contains("doesn't rebuild"), "{error}");
 
-    app.import_vault(import(None, None, Some(file.to_string())))
-        .await?;
+    let error = app
+        .import_vault(import(
+            Some(launcher_id),
+            None,
+            Some(recovery_key("not a key".to_string(), None)),
+        ))
+        .await
+        .expect_err("the recovery key is invalid");
+    assert!(
+        error.to_string().contains("Invalid recovery key"),
+        "{error}"
+    );
 
-    let record = wait_for_vault(&mut app, |record| record.coin_id.is_some()).await?;
+    // The recovery timelock is found among the common ones.
+    app.import_vault(import(
+        Some(launcher_id),
+        None,
+        Some(recovery_key(recovery_pk, None)),
+    ))
+    .await?;
+
+    let record = wait_for_vault(&mut app, |record| {
+        record.coin_id == Some(hex::encode(vault.coin.coin_id()))
+    })
+    .await?;
     let record_config = record.config.expect("config should be known");
-    assert_eq!(record_config.source, VaultConfigSource::ConfigFile);
-
-    // The config can be exported again, in the same format.
-    let exported = app.export_vault_config(ExportVaultConfig {}).await?.config;
-    let parsed = parse_vault_config_file(&exported)?;
-    assert_eq!(parsed.launcher_id, launcher_id);
-    assert_eq!(parsed.candidates, [config]);
+    assert_eq!(record_config.source, VaultConfigSource::Reconstructed);
+    assert_eq!(record_config.recovery_timelock, config.recovery_timelock);
+    assert_eq!(
+        record_config.custody.members[0].key,
+        hex::encode(custody.pk.to_bytes())
+    );
+    assert_eq!(
+        record_config
+            .recovery
+            .expect("recovery should be known")
+            .members[0]
+            .key,
+        hex::encode(recovery.pk.to_bytes())
+    );
 
     Ok(())
 }
@@ -374,16 +415,20 @@ async fn test_vault_without_config() -> Result<()> {
     let mut app = TestApp::new().await?;
 
     let custody = BlsPair::new(1);
-    let config = vault_config(custody.pk, BlsPair::new(2).pk);
+    let recovery = BlsPair::new(2);
+    let config = vault_config(custody.pk, recovery.pk);
     let vault = mint_vault(&app, &config, false).await?;
     let launcher_id = vault.info.launcher_id;
+
+    // A spend through the vault's custody, which reveals it.
+    let _vault = spend_from_address(&app, &vault, &config, &custody.sk).await?;
 
     let address = P2Singleton::new(launcher_id, 0).tree_hash().into();
     app.sim.lock().await.new_coin(address, 250);
 
     wait_for_peer(&app).await?;
 
-    // A vault without a memo or config file is imported read-only, with its balances.
+    // A vault without a memo is imported read-only, with its balances.
     let fingerprint = app
         .import_vault(import(Some(launcher_id), None, None))
         .await?
@@ -423,22 +468,21 @@ async fn test_vault_without_config() -> Result<()> {
         .expect_err("the config isn't known");
     assert!(error.to_string().contains("isn't known"), "{error}");
 
-    let error = app
-        .export_vault_config(ExportVaultConfig {})
-        .await
-        .expect_err("the config isn't known");
-    assert!(error.to_string().contains("isn't known"), "{error}");
-
-    // Importing its config file afterwards fills it in.
-    app.import_vault_config(ImportVaultConfig {
-        config: vault_config_file(launcher_id, &config)?,
-    })
-    .await?;
+    // Rebuilding it from the vault's spends and its recovery key afterwards fills it in.
+    let rebuilt = app
+        .rebuild_vault_config(RebuildVaultConfig {
+            recovery: VaultRecoveryKey {
+                key: hex::encode(recovery.sk.to_bytes()),
+                timelock: Some(config.recovery_timelock),
+            },
+        })
+        .await?;
+    assert_eq!(rebuilt.recovery_timelock, config.recovery_timelock);
 
     let record = app.get_vault(GetVault {}).await?.vault;
     assert_eq!(
         record.config.map(|config| config.source),
-        Some(VaultConfigSource::ConfigFile)
+        Some(VaultConfigSource::Reconstructed)
     );
 
     Ok(())

@@ -28,14 +28,19 @@ import {
 } from '@/components/ui/dialog';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Textarea } from '@/components/ui/textarea';
+import { VaultRecoveryFields } from '@/components/VaultRecoveryFields';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
-import { ExportType, exportText } from '@/lib/exportText';
+import {
+  EMPTY_TIMELOCK,
+  TimelockInput,
+  vaultRecoveryKey,
+} from '@/lib/vaultRecovery';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { Download, KeyRound, Upload } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { KeyRound, RotateCcw } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
 function stateLabel(state: VaultState): string {
@@ -125,7 +130,11 @@ export default function Vault() {
   const [attachOpen, setAttachOpen] = useState(false);
   const [key, setKey] = useState('');
   const [attaching, setAttaching] = useState(false);
-  const configRef = useRef<HTMLInputElement>(null);
+  const [rebuildOpen, setRebuildOpen] = useState(false);
+  const [recoveryKey, setRecoveryKey] = useState('');
+  const [timelock, setTimelock] = useState<TimelockInput>(EMPTY_TIMELOCK);
+  const [rebuilding, setRebuilding] = useState(false);
+  const recovery = vaultRecoveryKey(recoveryKey, timelock);
 
   const refresh = useCallback(() => {
     commands
@@ -150,33 +159,23 @@ export default function Vault() {
     };
   }, [refresh]);
 
-  const exportConfig = async () => {
-    if (!vault) return;
+  const rebuildConfig = async () => {
+    if (!recovery) return;
+
+    setRebuilding(true);
 
     try {
-      const data = await commands.exportVaultConfig({});
+      await commands.rebuildVaultConfig({ recovery });
+      toast.success(t`Vault config rebuilt`);
 
-      if (
-        await exportText(
-          data.config,
-          `vault-config-${vault.launcher_id.slice(6, 14)}`,
-          ExportType.JSON,
-        )
-      ) {
-        toast.success(t`Vault config exported`);
-      }
-    } catch (error) {
-      addError(error as CustomError);
-    }
-  };
-
-  const importConfig = async (file: File) => {
-    try {
-      await commands.importVaultConfig({ config: await file.text() });
-      toast.success(t`Vault config imported`);
+      setRecoveryKey('');
+      setTimelock(EMPTY_TIMELOCK);
+      setRebuildOpen(false);
       refresh();
     } catch (error) {
       addError(error as CustomError);
+    } finally {
+      setRebuilding(false);
     }
   };
 
@@ -223,18 +222,6 @@ export default function Vault() {
       <Header title={t`Vault`} />
 
       <Container className='flex flex-col gap-4 max-w-screen-lg'>
-        <input
-          ref={configRef}
-          type='file'
-          accept='application/json,.json'
-          className='hidden'
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = '';
-            if (file) importConfig(file);
-          }}
-        />
-
         <Card>
           <CardHeader>
             <CardTitle className='text-lg font-medium flex items-center gap-2'>
@@ -285,8 +272,10 @@ export default function Vault() {
             </CardTitle>
             <CardDescription>
               {config ? (
-                config.source === 'config_file' ? (
-                  <Trans>Imported from a config file.</Trans>
+                config.source === 'reconstructed' ? (
+                  <Trans>
+                    Rebuilt from the vault&apos;s spends and its recovery key.
+                  </Trans>
                 ) : (
                   <Trans>Read from the vault&apos;s memos on chain.</Trans>
                 )
@@ -294,7 +283,8 @@ export default function Vault() {
                 <Trans>
                   This vault&apos;s config isn&apos;t known, since it has no
                   memos on chain. Its balances are still shown, but its signers
-                  can&apos;t be checked until you import its config file.
+                  can&apos;t be checked until its config is rebuilt from its
+                  spends with its recovery key.
                 </Trans>
               )}
             </CardDescription>
@@ -321,22 +311,12 @@ export default function Vault() {
                 </p>
               </>
             )}
-            <div className='flex flex-wrap gap-2'>
-              {config ? (
-                <Button variant='outline' onClick={exportConfig}>
-                  <Download className='h-4 w-4 mr-2' aria-hidden='true' />
-                  <Trans>Export Config</Trans>
-                </Button>
-              ) : (
-                <Button
-                  variant='outline'
-                  onClick={() => configRef.current?.click()}
-                >
-                  <Upload className='h-4 w-4 mr-2' aria-hidden='true' />
-                  <Trans>Import Config File</Trans>
-                </Button>
-              )}
-            </div>
+            {!config && (
+              <Button variant='outline' onClick={() => setRebuildOpen(true)}>
+                <RotateCcw className='h-4 w-4 mr-2' aria-hidden='true' />
+                <Trans>Rebuild Config</Trans>
+              </Button>
+            )}
           </CardContent>
         </Card>
 
@@ -392,6 +372,43 @@ export default function Vault() {
           </CardContent>
         </Card>
       </Container>
+
+      <Dialog open={rebuildOpen} onOpenChange={setRebuildOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Rebuild Config</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              <Trans>
+                A spend through the vault&apos;s custody reveals its custody
+                members, and its recovery key and timelock rebuild the rest. An
+                M of N custody is only known once each of its members has signed
+                a spend.
+              </Trans>
+            </DialogDescription>
+          </DialogHeader>
+          <VaultRecoveryFields
+            recoveryKey={recoveryKey}
+            onRecoveryKeyChange={setRecoveryKey}
+            timelock={timelock}
+            onTimelockChange={setTimelock}
+          />
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setRebuildOpen(false)}>
+              <Trans>Cancel</Trans>
+            </Button>
+            <LoadingButton
+              loading={rebuilding}
+              loadingText={t`Rebuilding`}
+              disabled={!recovery}
+              onClick={rebuildConfig}
+            >
+              <Trans>Rebuild</Trans>
+            </LoadingButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={attachOpen} onOpenChange={setAttachOpen}>
         <DialogContent>

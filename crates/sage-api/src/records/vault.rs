@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct VaultRecord {
-    /// The vault's launcher id, in hex
+    /// The vault's launcher id, as a `vault1` id
     pub launcher_id: String,
     pub state: VaultState,
     /// When recovery was started, in unix seconds, while it's pending and the block's timestamp
@@ -70,8 +70,8 @@ pub enum VaultPuzzleVersion {
 pub enum VaultConfigSource {
     /// Decoded from a memo on chain
     Memo,
-    /// Imported from a config file
-    ConfigFile,
+    /// Rebuilt from the vault's spends and its recovery key
+    Reconstructed,
     Unknown,
 }
 

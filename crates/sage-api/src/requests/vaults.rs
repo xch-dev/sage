@@ -7,7 +7,7 @@ use crate::VaultRecord;
     feature = "openapi",
     crate::openapi_attr(
         tag = "Vaults",
-        description = "Import an existing vault, minted by Sage or Chia Cloud Wallet, as a read-only wallet. A vault can't be found from a key, so it's imported from exactly one of its launcher id, an address it has already spent from, or a config file. A config file is only accepted if it rebuilds the vault's custody on chain. Without one, the vault's config is read from the memos on chain, if it has them. Needs a connected peer. Optionally logs in automatically."
+        description = "Import an existing vault, minted by Sage or Chia Cloud Wallet, as a read-only wallet. A vault can't be found from a key, so it's imported from exactly one of its launcher id or an address it has already spent from. Its config is read from the memos on chain, if it has them. For a vault without memos, give its recovery key, and its config is rebuilt from what its spends reveal. The recovery timelock is searched for among common values if it isn't given. Needs a connected peer. Optionally logs in automatically."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,7 +16,7 @@ use crate::VaultRecord;
 pub struct ImportVault {
     /// Display name for the wallet
     pub name: String,
-    /// The vault's launcher id, in hex
+    /// The vault's launcher id, as a `vault1` id or in hex
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub launcher_id: Option<String>,
@@ -24,10 +24,10 @@ pub struct ImportVault {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub address: Option<String>,
-    /// A vault config file, as exported by Sage or Chia Cloud Wallet
+    /// The vault's recovery key, to rebuild its config from its spends if it has no memos
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
-    pub config: Option<String>,
+    pub recovery: Option<VaultRecoveryKey>,
     /// Whether to automatically login after import
     #[serde(default = "yes")]
     #[cfg_attr(feature = "openapi", schema(default = true))]
@@ -48,8 +48,22 @@ pub struct ImportVaultResponse {
     /// key of its own
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
     pub fingerprint: u32,
-    /// The vault's launcher id, in hex
+    /// The vault's launcher id, as a `vault1` id
     pub launcher_id: String,
+}
+
+/// A vault's recovery key, which identifies the recovery side of a vault without memos
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct VaultRecoveryKey {
+    /// The recovery member's public key in hex (BLS, secp256r1, secp256k1, or a passkey), or a
+    /// BLS mnemonic or secret key, whose master public key is used. The secret isn't stored
+    pub key: String,
+    /// The recovery timelock in seconds. Common timelocks are tried if it isn't given
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub timelock: Option<u64>,
 }
 
 /// Get the open vault wallet's vault
@@ -107,51 +121,30 @@ pub struct AttachVaultSignerResponse {
     pub recovery: bool,
 }
 
-/// Export the open vault wallet's config file
+/// Rebuild the open vault wallet's config from its spends and its recovery key
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
         tag = "Vaults",
-        description = "Export the open vault's config in the format Chia Cloud Wallet uses, so that it can be imported again, by Sage or Cloud Wallet. While recovery is pending, this is the config from before it started, which can still cancel it."
-    )
-)]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct ExportVaultConfig {}
-
-/// Response with the vault config file
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Vaults"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct ExportVaultConfigResponse {
-    /// The config file, as JSON
-    pub config: String,
-}
-
-/// Import a config file for the open vault wallet
-#[cfg_attr(
-    feature = "openapi",
-    crate::openapi_attr(
-        tag = "Vaults",
-        description = "Import a config file for the open vault wallet, such as for a vault without memos on chain. It's only accepted if it rebuilds the vault's current custody hash."
+        description = "Rebuild the config of the open vault wallet, for a vault without memos on chain. A spend through the vault's custody reveals its custody members, and the recovery key and timelock rebuild the rest, which is checked against the vault's custody hash. An M of N custody is only known once each of its members has signed a spend. Needs a connected peer."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct ImportVaultConfig {
-    /// The config file, as JSON
-    pub config: String,
+pub struct RebuildVaultConfig {
+    pub recovery: VaultRecoveryKey,
 }
 
-/// Response for importing a vault config file
+/// Response with the rebuilt config's recovery timelock
 #[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Vaults"))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct ImportVaultConfigResponse {}
+pub struct RebuildVaultConfigResponse {
+    /// The recovery timelock in seconds, which was found if it wasn't given
+    pub recovery_timelock: u64,
+}
 
 /// Find the vault that owns an address
 #[cfg_attr(
@@ -174,7 +167,7 @@ pub struct FindVault {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct FindVaultResponse {
-    /// The vault's launcher id, in hex
+    /// The vault's launcher id, as a `vault1` id
     pub launcher_id: Option<String>,
 }
 

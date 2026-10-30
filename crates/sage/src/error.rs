@@ -17,9 +17,7 @@ use sage_api::{ErrorKind, HandleErrorCode, RecipientError};
 use sage_assets::UriError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::{
-    SyncCommand, VaultConfigFileError, WalletError, XchandlesApiError, XchandlesError,
-};
+use sage_wallet::{SyncCommand, VaultHistoryError, WalletError, XchandlesApiError, XchandlesError};
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
 use tokio::{sync::mpsc::error::SendError, time::error::Elapsed};
@@ -148,9 +146,7 @@ pub enum Error {
     #[error("Wallet {0} isn't a vault")]
     NotVaultWallet(u32),
 
-    #[error(
-        "Import a vault from one of its launcher id, an address it has spent from, or a config file"
-    )]
+    #[error("Import a vault from either its launcher id or an address it has spent from")]
     VaultImportSource,
 
     #[error("No vault with launcher id {0} was found on chain")]
@@ -165,18 +161,23 @@ pub enum Error {
     NotVaultAddress,
 
     #[error(
-        "The vault config doesn't match the vault on chain. The vault may have changed since the config was exported, for example by recovery, or the config may have been modified."
+        "The vault's config isn't known yet. Rebuild it from the vault's spends with its recovery key first."
     )]
-    VaultConfigMismatch,
-
-    #[error("The vault's config isn't known yet. Import its config file first.")]
     VaultConfigUnknown,
+
+    #[error(
+        "Invalid recovery key. Enter its public key in hex, or the mnemonic or secret key of a BLS key."
+    )]
+    InvalidRecoveryKey,
+
+    #[error("The recovery timelock must be at least one second")]
+    InvalidRecoveryTimelock,
 
     #[error("Key {0} isn't a custody or recovery member of this vault")]
     NotVaultMember(u32),
 
     #[error("{0}")]
-    VaultConfigFile(#[from] VaultConfigFileError),
+    VaultHistory(VaultHistoryError),
 
     #[error("Not logged in")]
     NotLoggedIn,
@@ -435,10 +436,11 @@ impl Error {
             | Self::VaultImportSource
             | Self::VaultAddressNeverSpent
             | Self::NotVaultAddress
-            | Self::VaultConfigMismatch
             | Self::VaultConfigUnknown
+            | Self::InvalidRecoveryKey
+            | Self::InvalidRecoveryTimelock
             | Self::NotVaultMember(..)
-            | Self::VaultConfigFile(..)
+            | Self::VaultHistory(..)
             | Self::InvalidMnemonic(..)
             | Self::TryFromSlice(..)
             | Self::TryFromInt(..)
@@ -496,6 +498,15 @@ impl Error {
             error if error.is_unavailable() => HandleErrorCode::Unavailable,
             _ => HandleErrorCode::VerificationFailed,
         })
+    }
+}
+
+impl From<VaultHistoryError> for Error {
+    fn from(error: VaultHistoryError) -> Self {
+        match error {
+            VaultHistoryError::Wallet(error) => Self::Wallet(error),
+            error => Self::VaultHistory(error),
+        }
     }
 }
 
