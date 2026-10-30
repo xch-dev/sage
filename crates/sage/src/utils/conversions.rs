@@ -39,10 +39,11 @@ pub fn encode_asset_id(hash: Bytes32, kind: AssetKind) -> Result<Option<String>>
         None
     } else {
         Some(match kind {
-            AssetKind::Token | AssetKind::Vault => hex::encode(hash),
+            AssetKind::Token => hex::encode(hash),
             AssetKind::Nft => Address::new(hash, "nft".to_string()).encode()?,
             AssetKind::Did => Address::new(hash, "did:chia:".to_string()).encode()?,
             AssetKind::Option => Address::new(hash, "option".to_string()).encode()?,
+            AssetKind::Vault => Address::new(hash, "vault".to_string()).encode()?,
         })
     })
 }
