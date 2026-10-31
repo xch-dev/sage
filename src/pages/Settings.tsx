@@ -715,7 +715,8 @@ function PriceSourceSettings() {
           Sources are used in this order. For each token, the first enabled
           source with a price wins and later sources only fill gaps. Names,
           tickers and icons from a token index are shown only where a token has
-          none, and are never saved to the wallet.
+          none. Refresh Info on a token saves the label from the first enabled
+          source that has one.
         </Trans>
       </div>
 

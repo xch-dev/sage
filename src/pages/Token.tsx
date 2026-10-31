@@ -8,6 +8,7 @@ import { TokenCard } from '@/components/TokenCard';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
+import { useRefreshTokenInfo } from '@/hooks/useRefreshTokenInfo';
 import { withSuggestedLabel } from '@/lib/tokenIndex';
 import { getAssetDisplayName, toDecimal } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
@@ -41,6 +42,7 @@ export default function Token() {
   if (assetId === 'xch') assetId = null;
 
   const { addError } = useErrors();
+  const refreshTokenInfo = useRefreshTokenInfo();
   const { getBalanceInUsd, getSuggestedLabel } = usePrices();
 
   const [asset, setAsset] = useState<TokenRecord | null>(null);
@@ -102,9 +104,14 @@ export default function Token() {
   const redownload = () => {
     if (!assetId) return;
 
-    commands
-      .resyncCat({ asset_id: assetId })
-      .then(() => updateToken())
+    refreshTokenInfo(assetId)
+      .then((refreshed) => {
+        if (!refreshed) {
+          toast.info(t`No enabled source has information for this token`);
+          return;
+        }
+        updateToken();
+      })
       .catch((err) => {
         addError(err);
       });

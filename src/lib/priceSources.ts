@@ -294,3 +294,53 @@ export function firstLabel(
   }
   return null;
 }
+
+/** What Refresh Info should do for a CAT. */
+export type RefreshPlan =
+  | { kind: 'dexie' }
+  | { kind: 'index'; sourceId: string; label: TokenIndexEntry }
+  | { kind: 'none' };
+
+/**
+ * Refresh Info follows the same order as everything else: the first enabled
+ * source that can describe the CAT is the one read. Dexie is asked by the
+ * wallet itself (it saves Dexie's record); a token index answers with the
+ * label it already published, if it has one with a name. A disabled source is
+ * never contacted, and CoinGecko has no token labels.
+ */
+export function refreshPlan(
+  active: ActivePriceSource[],
+  layers: PriceLayer[],
+  assetId: string,
+): RefreshPlan {
+  const id = assetId.toLowerCase();
+
+  for (const [index, source] of active.entries()) {
+    if (source.kind === 'dexie') return { kind: 'dexie' };
+    if (source.kind !== 'index') continue;
+
+    const label = layers[index]?.labels?.[id];
+    if (label?.name) return { kind: 'index', sourceId: source.id, label };
+  }
+
+  return { kind: 'none' };
+}
+
+/**
+ * A wallet record with an index's label saved over it: each field the index
+ * has replaces the wallet's, and a field it lacks keeps the wallet's value.
+ */
+export function withRefreshedLabel<
+  T extends {
+    name: string | null;
+    ticker: string | null;
+    icon_url: string | null;
+  },
+>(record: T, label: TokenIndexEntry): T {
+  return {
+    ...record,
+    name: label.name || record.name,
+    ticker: label.ticker || record.ticker,
+    icon_url: label.iconUrl || record.icon_url,
+  };
+}

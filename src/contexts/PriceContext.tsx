@@ -8,6 +8,8 @@ import {
   firstXchUsd,
   indexLayer,
   PriceLayer,
+  RefreshPlan,
+  refreshPlan,
 } from '@/lib/priceSources';
 import {
   isIndexForNetwork,
@@ -50,6 +52,8 @@ export interface PriceContextType {
   getCatAskPriceInXch: (assetId: string) => number | null;
   /** A display-only label from a token index, for a CAT with no name. */
   getSuggestedLabel: (assetId: string | null) => TokenIndexEntry | null;
+  /** Which source Refresh Info reads for a CAT, by the user's order. */
+  getRefreshPlan: (assetId: string) => RefreshPlan;
   isLoading: boolean;
 }
 
@@ -292,6 +296,11 @@ export function PriceProvider({ children }: { children: ReactNode }) {
     [layers],
   );
 
+  const getRefreshPlan = useCallback(
+    (assetId: string) => refreshPlan(active, layers, assetId),
+    [active, layers],
+  );
+
   return (
     <PriceContext.Provider
       value={{
@@ -299,6 +308,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         getPriceInUsd,
         getCatAskPriceInXch,
         getSuggestedLabel,
+        getRefreshPlan,
         isLoading: network === null || isPriceLoading,
       }}
     >
