@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Amount, OfferRecord, OfferRecordStatus, OfferSummary, SpendBundleJson, TransactionSummary,
+    Amount, HandleConfirmation, OfferHandleNft, OfferRecord, OfferRecordStatus, OfferSummary,
+    SpendBundleJson, TransactionSummary,
 };
 
 use super::TransactionResponse;
@@ -40,6 +41,11 @@ pub struct MakeOffer {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub coin_ids: Option<Vec<String>>,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 /// Asset amount in an offer
@@ -160,6 +166,11 @@ pub struct ViewOfferResponse {
     pub offer: OfferSummary,
     /// Offer status
     pub status: OfferRecordStatus,
+    /// Offered NFTs which claim to be XCHandles handles, checked against the registry.
+    /// An offer with a pending handle transfer, or a handle which couldn't be checked,
+    /// can't be taken.
+    #[serde(default)]
+    pub handle_nfts: Vec<OfferHandleNft>,
 }
 
 /// Import an offer
@@ -196,10 +207,55 @@ pub struct ImportOfferResponse {
         description = "List all offers created by or available to this wallet."
     )
 )]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct GetOffers {}
+pub struct GetOffers {
+    /// Starting offset for pagination
+    #[serde(default)]
+    pub offset: Option<u32>,
+    /// Maximum number of offers to return (all when omitted)
+    #[serde(default)]
+    pub limit: Option<u32>,
+    /// Only return offers with this status
+    #[serde(default)]
+    pub status: Option<OfferRecordStatus>,
+    /// Search by asset name, ticker, asset/offer id, or NFT/DID/option address
+    #[serde(default)]
+    pub find_value: Option<String>,
+    /// Which side of the offer the search applies to (defaults to any)
+    #[serde(default)]
+    pub find_side: Option<OfferFindSide>,
+    /// Sort column (defaults to creation time)
+    #[serde(default)]
+    pub sort_mode: Option<OfferSortMode>,
+    /// Sort ascending (defaults to false, newest first)
+    #[serde(default)]
+    pub ascending: bool,
+}
+
+/// Which side of an offer a search matches
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum OfferFindSide {
+    #[default]
+    Any,
+    Offered,
+    Requested,
+}
+
+/// Offer list sort column
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum OfferSortMode {
+    #[default]
+    Created,
+    Expiration,
+}
 
 /// Response with list of offers
 #[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Offers"))]
@@ -209,6 +265,8 @@ pub struct GetOffers {}
 pub struct GetOffersResponse {
     /// List of offers
     pub offers: Vec<OfferRecord>,
+    /// Total number of offers matching the filters, before paging
+    pub total: u32,
 }
 
 /// Get offers for a specific asset
@@ -307,6 +365,10 @@ pub struct CancelOffer {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub coin_ids: Option<Vec<String>>,
 }
 
 pub type CancelOfferResponse = TransactionResponse;
@@ -332,6 +394,10 @@ pub struct CancelOffers {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub coin_ids: Option<Vec<String>>,
 }
 
 pub type CancelOffersResponse = TransactionResponse;

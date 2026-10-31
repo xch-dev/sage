@@ -1,4 +1,6 @@
 import Container from '@/components/Container';
+import { AddKeyDialog } from '@/components/dialogs/AddKeyDialog';
+import { KeyDetailsDialog } from '@/components/dialogs/KeyDetailsDialog';
 import { ResyncDialog } from '@/components/dialogs/ResyncDialog';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
@@ -21,6 +23,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput, IntegerInput } from '@/components/ui/masked-input';
@@ -70,7 +79,10 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   DownloadIcon,
+  EyeIcon,
   LoaderCircleIcon,
+  MoreVerticalIcon,
+  PlusIcon,
   TrashIcon,
   WalletIcon,
 } from 'lucide-react';
@@ -88,6 +100,7 @@ import {
   NetworkConfig,
   PerformDatabaseMaintenanceResponse,
   Wallet,
+  WalletInfo,
   WalletDefaults,
 } from '../bindings';
 
@@ -213,6 +226,7 @@ export default function Settings() {
               <TabsContent value='advanced'>
                 <div className='grid gap-4'>
                   <ColdWalletSettings />
+                  <KeySettings />
                   {!isMobile && <RpcSettings />}
                   <LogViewer />
                 </div>
@@ -1304,6 +1318,204 @@ function RpcSettings() {
   );
 }
 
+function keyKindName(kind: KeyInfo['kind']) {
+  switch (kind) {
+    case 'bls':
+      return 'BLS';
+  }
+}
+
+/** The keys in the keychain. Wallets add and remove their own keys, so this is
+ *  only needed for lower level access, such as keys that aren't wallets. */
+function KeySettings() {
+  const { addError } = useErrors();
+  const { promptIfEnabled } = useBiometric();
+
+  const [keys, setKeys] = useState<KeyInfo[] | null>(null);
+  // Until the wallets load, it isn't known which keys they use.
+  const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
+  const [pendingDelete, setPendingDelete] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [details, setDetails] = useState<KeyInfo | null>(null);
+  const [deleting, setDeleting] = useState<KeyInfo | null>(null);
+
+  const refresh = useCallback(() => {
+    commands
+      .getKeys({})
+      .then((data) => setKeys(data.keys))
+      .catch(addError);
+
+    commands
+      .getWallets({})
+      .then((data) => setWallets(data.wallets))
+      .catch(addError);
+  }, [addError]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  // A BLS key belongs to the BLS wallet with the same fingerprint.
+  const walletFor = (key: KeyInfo) =>
+    wallets?.find(
+      (wallet) =>
+        wallet.fingerprint === key.fingerprint && wallet.kind === 'bls',
+    ) ?? null;
+
+  const deleteKey = async () => {
+    if (!deleting) return;
+
+    // Set before the prompt, so the button can't be pressed again while it's open.
+    setPendingDelete(true);
+
+    if (!(await promptIfEnabled())) {
+      setPendingDelete(false);
+      return;
+    }
+
+    commands
+      .deleteKey({ fingerprint: deleting.fingerprint })
+      .then(refresh)
+      .catch(addError)
+      .finally(() => {
+        setPendingDelete(false);
+        setDeleting(null);
+      });
+  };
+
+  return (
+    <>
+      <SettingsSection title={t`Keys`}>
+        <SettingItem
+          label={t`Keychain`}
+          description={t`Keys are added and removed along with their wallets. Keys that aren't wallets can be managed here.`}
+          control={
+            <Button
+              variant='secondary'
+              size='sm'
+              onClick={() => setAddOpen(true)}
+            >
+              <PlusIcon className='h-4 w-4 mr-2' aria-hidden='true' />
+              <Trans>Add</Trans>
+            </Button>
+          }
+        />
+
+        {keys?.length === 0 && (
+          <div className='p-3 text-sm text-muted-foreground'>
+            <Trans>The keychain is empty.</Trans>
+          </div>
+        )}
+
+        {keys?.map((key) => {
+          const wallet = walletFor(key);
+          const fingerprint = key.fingerprint;
+          const walletName = wallet?.name;
+
+          return (
+            <SettingItem
+              key={fingerprint}
+              label={fingerprint.toString()}
+              description={
+                walletName ? t`Used by ${walletName}` : t`Not used by a wallet`
+              }
+              control={
+                <div className='flex items-center gap-2'>
+                  <div className='inline-flex items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
+                    {keyKindName(key.kind)}
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        aria-label={t`Key actions`}
+                      >
+                        <MoreVerticalIcon className='h-5 w-5' />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align='end'>
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem
+                          className='cursor-pointer'
+                          onClick={() => setDetails(key)}
+                        >
+                          <EyeIcon className='mr-2 h-4 w-4' />
+                          <span>
+                            <Trans>Details</Trans>
+                          </span>
+                        </DropdownMenuItem>
+                        {wallets !== null && !wallet && (
+                          <DropdownMenuItem
+                            className='cursor-pointer text-red-600 focus:text-red-500'
+                            onClick={() => setDeleting(key)}
+                          >
+                            <TrashIcon className='mr-2 h-4 w-4' />
+                            <span>
+                              <Trans>Delete</Trans>
+                            </span>
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              }
+            />
+          );
+        })}
+      </SettingsSection>
+
+      <AddKeyDialog open={addOpen} setOpen={setAddOpen} onAdded={refresh} />
+
+      <KeyDetailsDialog
+        keyInfo={details}
+        wallet={details ? walletFor(details) : null}
+        onClose={() => setDetails(null)}
+      />
+
+      <Dialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Delete Key</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              {deleting?.has_secrets ? (
+                <Trans>
+                  Are you sure you want to delete this key? Its secret key will
+                  be removed from this device, so make sure you have a backup.
+                  This cannot be undone.
+                </Trans>
+              ) : (
+                <Trans>
+                  Are you sure you want to delete this key? This cannot be
+                  undone.
+                </Trans>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setDeleting(null)}>
+              <Trans>Cancel</Trans>
+            </Button>
+            <Button
+              variant='destructive'
+              onClick={deleteKey}
+              disabled={pendingDelete}
+            >
+              <Trans>Delete</Trans>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const { addError } = useErrors();
 
@@ -1311,6 +1523,8 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   const [key, setKey] = useState<KeyInfo | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  // Watch wallets only know their addresses, so they have no change or derivations.
+  const isWatch = wallet?.type === 'watch';
   const [localName, setLocalName] = useState<string>('');
   const [localChangeAddress, setLocalChangeAddress] = useState('');
   const [networks, setNetworks] = useState<Network[]>([]);
@@ -1509,7 +1723,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
                 if (localName === wallet?.name) return;
 
                 commands
-                  .renameKey({
+                  .renameWallet({
                     fingerprint,
                     name: localName,
                   })
@@ -1567,43 +1781,47 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
           )}
         </SettingItem>
 
-        <SettingItem
-          label={t`Change Address`}
-          description={t`Set a specific address to send change to`}
-          control={<div />}
-        >
-          <div className='mt-3'>
-            <PasteInput
-              placeholder={t`Enter change address`}
-              value={localChangeAddress}
-              onChange={(event) => setLocalChangeAddress(event.target.value)}
-              onBlur={() => {
-                saveChangeAddress(localChangeAddress);
-              }}
-              onEndIconClick={handleScanOrPasteChangeAddress}
-              onScanImage={handleScanImageChangeAddress}
-            />
-          </div>
-        </SettingItem>
+        {!isWatch && (
+          <SettingItem
+            label={t`Change Address`}
+            description={t`Set a specific address to send change to`}
+            control={<div />}
+          >
+            <div className='mt-3'>
+              <PasteInput
+                placeholder={t`Enter change address`}
+                value={localChangeAddress}
+                onChange={(event) => setLocalChangeAddress(event.target.value)}
+                onBlur={() => {
+                  saveChangeAddress(localChangeAddress);
+                }}
+                onEndIconClick={handleScanOrPasteChangeAddress}
+                onScanImage={handleScanImageChangeAddress}
+              />
+            </div>
+          </SettingItem>
+        )}
       </SettingsSection>
 
       <SettingsSection title={t`Syncing`}>
-        <SettingItem
-          label={t`Derivation Index`}
-          description={t`The number of addresses managed by this wallet`}
-          control={
-            <div className='flex items-center gap-3'>
-              <span className='text-md'>{derivationIndex}</span>
-              <Button
-                variant='secondary'
-                size='sm'
-                onClick={() => setDeriveOpen(true)}
-              >
-                <Trans>Increase</Trans>
-              </Button>
-            </div>
-          }
-        />
+        {!isWatch && (
+          <SettingItem
+            label={t`Derivation Index`}
+            description={t`The number of addresses managed by this wallet`}
+            control={
+              <div className='flex items-center gap-3'>
+                <span className='text-md'>{derivationIndex}</span>
+                <Button
+                  variant='secondary'
+                  size='sm'
+                  onClick={() => setDeriveOpen(true)}
+                >
+                  <Trans>Increase</Trans>
+                </Button>
+              </div>
+            }
+          />
+        )}
 
         <SettingItem
           label={t`Resync`}

@@ -3,6 +3,7 @@ import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { OptionConfirmation } from '@/components/confirmations/OptionConfirmation';
 import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import { TransferDialog } from '@/components/TransferDialog';
+import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -59,12 +60,14 @@ export function useOptionActions(updateOptions: () => void) {
       if (!selectedOption) return;
       setIsTransferring(true);
       setTransferAddress(address);
-      commands
-        .transferOptions({
+      withHandleConfirmation((confirmed_handles) =>
+        commands.transferOptions({
           option_ids: [selectedOption.launcher_id],
           address,
           fee: toMojos(fee, walletState.sync.unit.precision),
-        })
+          confirmed_handles,
+        }),
+      )
         .then(setResponse)
         .catch((err) => {
           setIsTransferring(false);

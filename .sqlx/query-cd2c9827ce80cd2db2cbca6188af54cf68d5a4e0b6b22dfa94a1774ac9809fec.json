@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO xchandles (\n            registry_launcher_id, handle, handle_hash, owner_launcher_id, resolved_launcher_id,\n            resolved_puzzle_hash, expiration, slot_coin_id, slot_counter, slot_left_handle_hash,\n            slot_right_handle_hash, slot_parent_id, slot_parent_parent_id,\n            slot_parent_inner_puzzle_hash, slot_confirmation_height, resolved_coin_id,\n            resolved_confirmation_height, indexed_height, verified_height, verified_timestamp,\n            last_verified_at, status, status_reason, previous_resolved_launcher_id,\n            previous_resolved_puzzle_hash, last_sent_puzzle_hash\n        )\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n        ON CONFLICT (registry_launcher_id, handle) DO UPDATE SET\n            handle_hash = excluded.handle_hash,\n            owner_launcher_id = excluded.owner_launcher_id,\n            resolved_launcher_id = excluded.resolved_launcher_id,\n            resolved_puzzle_hash = excluded.resolved_puzzle_hash,\n            expiration = excluded.expiration,\n            slot_coin_id = excluded.slot_coin_id,\n            slot_counter = excluded.slot_counter,\n            slot_left_handle_hash = excluded.slot_left_handle_hash,\n            slot_right_handle_hash = excluded.slot_right_handle_hash,\n            slot_parent_id = excluded.slot_parent_id,\n            slot_parent_parent_id = excluded.slot_parent_parent_id,\n            slot_parent_inner_puzzle_hash = excluded.slot_parent_inner_puzzle_hash,\n            slot_confirmation_height = excluded.slot_confirmation_height,\n            resolved_coin_id = excluded.resolved_coin_id,\n            resolved_confirmation_height = excluded.resolved_confirmation_height,\n            indexed_height = excluded.indexed_height,\n            verified_height = excluded.verified_height,\n            verified_timestamp = excluded.verified_timestamp,\n            last_verified_at = excluded.last_verified_at,\n            status = excluded.status,\n            status_reason = excluded.status_reason,\n            previous_resolved_launcher_id = excluded.previous_resolved_launcher_id,\n            previous_resolved_puzzle_hash = excluded.previous_resolved_puzzle_hash,\n            last_sent_puzzle_hash = excluded.last_sent_puzzle_hash\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 26
+    },
+    "nullable": []
+  },
+  "hash": "cd2c9827ce80cd2db2cbca6188af54cf68d5a4e0b6b22dfa94a1774ac9809fec"
+}

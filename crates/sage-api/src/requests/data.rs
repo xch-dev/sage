@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Amount, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftData, NftRecord,
-    OptionRecord, PendingTransactionRecord, TokenRecord, TransactionRecord, Unit,
+    NftUpdaterKind, OptionRecord, PendingTransactionRecord, TokenRecord, TransactionRecord, Unit,
 };
 
 /// Validate and check an address
@@ -273,6 +273,7 @@ pub enum CoinSortMode {
     CreatedHeight,
     SpentHeight,
     ClawbackTimestamp,
+    ClawbackVersion,
 }
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
@@ -499,6 +500,20 @@ pub enum OptionSortMode {
     ExpirationSeconds,
 }
 
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum OptionFilter {
+    /// Options currently held by the wallet
+    #[default]
+    Owned,
+    /// Options minted by the wallet, including ones that have since been transferred
+    Created,
+    /// Both owned and created options
+    All,
+}
+
 /// List options with filtering
 #[cfg_attr(
     feature = "openapi",
@@ -531,6 +546,9 @@ pub struct GetOptions {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub include_hidden: bool,
+    /// Which options to list (defaults to owned options)
+    #[serde(default)]
+    pub filter: OptionFilter,
 }
 
 /// Response with options list
@@ -861,6 +879,36 @@ pub struct GetNftThumbnailResponse {
     /// Base64-encoded thumbnail image
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub thumbnail: Option<String>,
+}
+
+/// Get the metadata updater of any NFT, including ones not in the wallet
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "NFTs",
+        description = "Look up an NFT's metadata updater kind, fetching it from the network if it isn't in the wallet. Used to warn about mutable NFTs before making an offer."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetNftMetadataUpdater {
+    /// NFT launcher ID
+    pub nft_id: String,
+}
+
+/// Response with an NFT's metadata updater kind
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "NFTs"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetNftMetadataUpdaterResponse {
+    /// The metadata updater kind, or null if the NFT couldn't be found
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub metadata_updater_kind: Option<NftUpdaterKind>,
+    /// The NFT's name, if it's known
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub name: Option<String>,
 }
 
 /// Get NFT data file

@@ -6,7 +6,18 @@ import { platform } from '@tauri-apps/plugin-os';
 export enum ExportType {
   CSV,
   LOG,
+  JSON,
 }
+
+const EXPORT_FORMATS = {
+  [ExportType.CSV]: { name: 'CSV', extension: 'csv', mimeType: 'text/csv' },
+  [ExportType.LOG]: { name: 'LOG', extension: 'log', mimeType: 'text/plain' },
+  [ExportType.JSON]: {
+    name: 'JSON',
+    extension: 'json',
+    mimeType: 'application/json',
+  },
+};
 
 export async function exportText(
   text: string,
@@ -17,7 +28,7 @@ export async function exportText(
 
   if (isMobile) {
     await shareText(text, {
-      mimeType: type === ExportType.CSV ? 'text/csv' : 'text/plain',
+      mimeType: EXPORT_FORMATS[type].mimeType,
       title,
     });
     return true;
@@ -31,14 +42,10 @@ async function saveText(
   title: string,
   type: ExportType = ExportType.CSV,
 ) {
+  const format = EXPORT_FORMATS[type];
   const filePath = await save({
-    filters: [
-      {
-        name: type === ExportType.CSV ? 'CSV' : 'LOG',
-        extensions: type === ExportType.CSV ? ['csv'] : ['log'],
-      },
-    ],
-    defaultPath: title + (type === ExportType.CSV ? '.csv' : '.log'),
+    filters: [{ name: format.name, extensions: [format.extension] }],
+    defaultPath: `${title}.${format.extension}`,
   });
 
   if (filePath) {
