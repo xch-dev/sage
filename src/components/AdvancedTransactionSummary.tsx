@@ -1,10 +1,11 @@
 import { fromMojos, toDecimal } from '@/lib/utils';
+import { useAssetLabel } from '@/hooks/useAssetLabel';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { BadgeMinus, BadgePlus, BoxIcon, ForwardIcon } from 'lucide-react';
-import { TransactionSummary, Unit } from '../bindings';
+import { Asset, TransactionSummary, Unit } from '../bindings';
 import { formatNumber } from '../i18n';
 import { AddressLabels } from './AddressLabels';
 import { Badge } from './ui/badge';
@@ -33,10 +34,12 @@ export function AdvancedTransactionSummary({
   summary,
 }: AdvancedTransactionSummaryProps) {
   const walletState = useWalletState();
+  const label = useAssetLabel();
 
   const { spent, created } = calculateTransaction(
     walletState.sync.unit,
     summary,
+    label,
   );
 
   return (
@@ -135,11 +138,16 @@ export interface CalculatedTransaction {
 export function calculateTransaction(
   xch: Unit,
   summary: TransactionSummary,
+  // Shows an unnamed CAT with a token index's suggested label (useAssetLabel).
+  label?: (asset: Asset) => Asset,
 ): CalculatedTransaction {
   const spent: SpentCoin[] = [];
   const created: CreatedCoin[] = [];
+  const inputs = (summary.inputs || []).map((input) =>
+    input.asset && label ? { ...input, asset: label(input.asset) } : input,
+  );
 
-  for (const input of summary.inputs || []) {
+  for (const input of inputs) {
     if (input.asset && !input.asset.asset_id) {
       spent.push({
         badge: 'Chia',
@@ -153,7 +161,7 @@ export function calculateTransaction(
       });
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputs.find((i) => i.coin_id === output.coin_id)) {
           continue;
         }
 
@@ -189,7 +197,7 @@ export function calculateTransaction(
       });
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputs.find((i) => i.coin_id === output.coin_id)) {
           continue;
         }
 
@@ -212,7 +220,7 @@ export function calculateTransaction(
 
     if (input.asset?.kind === 'did') {
       if (
-        !summary.inputs
+        !inputs
           .map((i) => i.outputs)
           .flat()
           .find((o) => o.coin_id === input.coin_id)
@@ -226,7 +234,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputs.find((i) => i.coin_id === output.coin_id)) {
           continue;
         }
 
@@ -247,7 +255,7 @@ export function calculateTransaction(
 
     if (input.asset?.kind === 'nft') {
       if (
-        !summary.inputs
+        !inputs
           .map((i) => i.outputs)
           .flat()
           .find((o) => o.coin_id === input.coin_id)
@@ -261,7 +269,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputs.find((i) => i.coin_id === output.coin_id)) {
           continue;
         }
 
@@ -282,7 +290,7 @@ export function calculateTransaction(
 
     if (input.asset?.kind === 'option') {
       if (
-        !summary.inputs
+        !inputs
           .map((i) => i.outputs)
           .flat()
           .find((o) => o.coin_id === input.coin_id)
@@ -296,7 +304,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputs.find((i) => i.coin_id === output.coin_id)) {
           continue;
         }
 
