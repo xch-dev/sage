@@ -49,6 +49,11 @@ import { Separator } from './ui/separator';
 
 interface TokenCardProps {
   asset: TokenRecord;
+  /**
+   * What to show for the ticker and icon, such as a token index's suggestion.
+   * Edits always start from, and save, `asset`, the wallet's own record.
+   */
+  display?: TokenRecord;
   balanceInUsd: string;
   onRedownload: () => void;
   onVisibilityChange: (visible: boolean) => void;
@@ -57,11 +62,13 @@ interface TokenCardProps {
 
 export function TokenCard({
   asset,
+  display,
   balanceInUsd,
   onRedownload,
   onVisibilityChange,
   onUpdate,
 }: TokenCardProps) {
+  const shown = display ?? asset;
   const walletState = useWalletState();
   const navigate = useNavigate();
   const { isTestnet } = useNetwork();
@@ -103,10 +110,10 @@ export function TokenCard({
                 />
                 &nbsp;
               </span>
-              {asset?.ticker ?? 'CAT'}
+              {shown?.ticker ?? 'CAT'}
             </div>
             <div className='flex-shrink-0'>
-              <AssetIcon asset={{ ...asset, kind: 'token' }} size='md' />
+              <AssetIcon asset={{ ...shown, kind: 'token' }} size='md' />
             </div>
           </div>
           <div className='text-base text-muted-foreground'>

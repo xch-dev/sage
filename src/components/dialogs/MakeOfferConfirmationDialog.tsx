@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useAssetLabel } from '@/hooks/useAssetLabel';
 import { marketplaces } from '@/lib/marketplaces';
 import { isMutableNft, mutableNftLabel } from '@/lib/nftUpdater';
 import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
@@ -48,6 +49,9 @@ function AssetDisplay({
   type: 'offered' | 'requested';
 }) {
   const [nftDetailsList, setNftDetailsList] = useState<NftRecord[]>([]);
+  // Unnamed CATs show a token index's suggested label, as on the token list,
+  // including a CAT this wallet does not hold yet.
+  const label = useAssetLabel();
   // Includes NFTs whose updater couldn't be determined
   const [mutableNftLabels, setMutableNftLabels] = useState<string[]>([]);
   const [loadingNfts, setLoadingNfts] = useState(false);
@@ -84,7 +88,7 @@ function AssetDisplay({
               const tokenResponse = await commands.getToken({
                 asset_id: assetId,
               });
-              const token = tokenResponse.token;
+              const token = tokenResponse.token && label(tokenResponse.token);
               if (token) {
                 return {
                   asset_id: assetId,
@@ -98,11 +102,21 @@ function AssetDisplay({
                   precision: token.precision,
                 };
               } else {
+                const suggested = label({
+                  asset_id: assetId,
+                  name: null,
+                  ticker: null,
+                  icon_url: null,
+                });
                 return {
                   asset_id: assetId,
                   amount,
-                  displayName: getAssetDisplayName(null, null, 'token'),
-                  iconUrl: null,
+                  displayName: getAssetDisplayName(
+                    suggested.name,
+                    suggested.ticker,
+                    'token',
+                  ),
+                  iconUrl: suggested.icon_url,
                   precision: 3,
                 };
               }
@@ -141,7 +155,7 @@ function AssetDisplay({
     };
 
     fetchTokenNames();
-  }, [assets.tokens]);
+  }, [assets.tokens, label]);
 
   useEffect(() => {
     let cancelled = false;
