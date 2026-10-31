@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT data_hash, metadata_hash, display_name FROM nfts\n            INNER JOIN assets ON assets.id = nfts.asset_id\n            WHERE assets.hash = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "data_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata_hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "display_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "e4b792d90396e220f9d1c48f93ca667f711f1a6cfd3ea91661fe0393c09735ae"
+}

@@ -26,6 +26,8 @@ impl Default for Config {
 pub struct GlobalConfig {
     pub log_level: String,
     pub fingerprint: Option<u32>,
+    /// The name of the UI theme the user last selected.
+    pub theme: Option<String>,
 }
 
 impl Default for GlobalConfig {
@@ -33,6 +35,7 @@ impl Default for GlobalConfig {
         Self {
             log_level: "INFO".to_string(),
             fingerprint: None,
+            theme: None,
         }
     }
 }
@@ -68,5 +71,40 @@ impl Default for RpcConfig {
             enabled: false,
             port: 9257,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_without_theme() {
+        let config: Config = toml::from_str(
+            r#"
+            version = 2
+
+            [global]
+            log_level = "DEBUG"
+            fingerprint = 1000000
+            "#,
+        )
+        .expect("Failed to parse config");
+
+        assert_eq!(config.global.log_level, "DEBUG");
+        assert_eq!(config.global.fingerprint, Some(1_000_000));
+        assert_eq!(config.global.theme, None);
+    }
+
+    #[test]
+    fn test_config_theme_round_trip() {
+        let mut config = Config::default();
+        config.global.theme = Some("dark".to_string());
+
+        let toml = toml::to_string_pretty(&config).expect("Failed to serialize config");
+        let parsed: Config = toml::from_str(&toml).expect("Failed to parse config");
+
+        assert_eq!(parsed, config);
+        assert_eq!(parsed.global.theme.as_deref(), Some("dark"));
     }
 }

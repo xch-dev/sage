@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chia_wallet_sdk::{
     chia::{
         bls::{
-            DerivableKey, master_to_wallet_hardened_intermediate,
+            DerivableKey, aggregate_verify, master_to_wallet_hardened_intermediate,
             master_to_wallet_unhardened_intermediate, sign,
         },
         puzzle_types::DeriveSynthetic,
@@ -24,18 +24,8 @@ impl Wallet {
         master_sk: SecretKey,
         partial: bool,
     ) -> Result<SpendBundle, WalletError> {
-        let input_coin_spends = spend_bundle
-            .coin_spends
-            .iter()
-            .filter(|cs| cs.coin.parent_coin_info != Bytes32::default())
-            .cloned()
-            .collect_vec();
-
-        let required_signatures = RequiredSignature::from_coin_spends(
-            &mut Allocator::new(),
-            &input_coin_spends,
-            agg_sig_constants,
-        )?;
+        let required_signatures =
+            required_signatures(&spend_bundle.coin_spends, agg_sig_constants)?;
 
         let mut derivations = HashMap::new();
 
@@ -91,5 +81,92 @@ impl Wallet {
             spend_bundle.coin_spends,
             aggregated_signature,
         ))
+    }
+}
+
+/// Whether the signature already covers every BLS signature the coin spends require.
+pub fn is_fully_signed(
+    coin_spends: &[CoinSpend],
+    signature: &Signature,
+    agg_sig_constants: &AggSigConstants,
+) -> Result<bool, WalletError> {
+    let pairs = required_signatures(coin_spends, agg_sig_constants)?
+        .into_iter()
+        .filter_map(|required| match required {
+            RequiredSignature::Bls(required) => Some((required.public_key, required.message())),
+            RequiredSignature::Secp(_) => None,
+        })
+        .collect_vec();
+
+    Ok(aggregate_verify(signature, pairs))
+}
+
+fn required_signatures(
+    coin_spends: &[CoinSpend],
+    agg_sig_constants: &AggSigConstants,
+) -> Result<Vec<RequiredSignature>, WalletError> {
+    let input_coin_spends = coin_spends
+        .iter()
+        .filter(|cs| cs.coin.parent_coin_info != Bytes32::default())
+        .cloned()
+        .collect_vec();
+
+    Ok(RequiredSignature::from_coin_spends(
+        &mut Allocator::new(),
+        &input_coin_spends,
+        agg_sig_constants,
+    )?)
+}
+
+#[cfg(test)]
+mod tests {
+    use test_log::test;
+
+    use crate::TestWallet;
+
+    use super::*;
+
+    #[test(tokio::test)]
+    async fn test_is_fully_signed() -> anyhow::Result<()> {
+        let alice = TestWallet::new(1000).await?;
+
+        let coin_spends = alice
+            .wallet
+            .send_xch(vec![(alice.puzzle_hash, 1000)], 0, vec![], None)
+            .await?;
+
+        assert!(!is_fully_signed(
+            &coin_spends,
+            &Signature::default(),
+            &alice.agg_sig
+        )?);
+
+        let spend_bundle = alice
+            .wallet
+            .sign_transaction(
+                SpendBundle::new(coin_spends, Signature::default()),
+                &alice.agg_sig,
+                alice.master_sk.clone(),
+                false,
+            )
+            .await?;
+
+        assert!(is_fully_signed(
+            &spend_bundle.coin_spends,
+            &spend_bundle.aggregated_signature,
+            &alice.agg_sig
+        )?);
+
+        // Adding the same signatures again makes the bundle invalid.
+        let doubled =
+            spend_bundle.aggregated_signature.clone() + &spend_bundle.aggregated_signature;
+
+        assert!(!is_fully_signed(
+            &spend_bundle.coin_spends,
+            &doubled,
+            &alice.agg_sig
+        )?);
+
+        Ok(())
     }
 }

@@ -9,6 +9,7 @@ mod transaction;
 mod utils;
 mod wallet;
 mod wallet_peer;
+mod xchandles;
 
 pub use child_kind::*;
 pub use coin_kind::*;
@@ -21,6 +22,7 @@ pub use transaction::*;
 pub use utils::*;
 pub use wallet::*;
 pub use wallet_peer::*;
+pub use xchandles::*;
 
 #[cfg(test)]
 mod test;

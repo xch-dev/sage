@@ -1,7 +1,7 @@
 use chia_wallet_sdk::{
     chia::{
         bls::master_to_wallet_hardened_intermediate,
-        puzzle_types::{DeriveSynthetic, nft::NftMetadata, standard::StandardArgs},
+        puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
     prelude::*,
 };
@@ -14,7 +14,7 @@ use sage_api::{
 };
 use sage_assets::{DexieCat, XchUsdPrice};
 use sage_database::{Asset, AssetKind, Derivation};
-use sage_wallet::SyncCommand;
+use sage_wallet::{SyncCommand, WalletError, WalletKind};
 
 use crate::{
     Error, Result, Sage, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
@@ -147,13 +147,7 @@ impl Sage {
             return Err(Error::MissingNft(nft_id));
         };
 
-        let mut allocator = Allocator::new();
-        let metadata = nft
-            .info
-            .metadata
-            .to_clvm(&mut allocator)
-            .ok()
-            .and_then(|ptr| NftMetadata::from_clvm(&allocator, ptr).ok());
+        let metadata = nft.info.parsed_metadata();
 
         if let Some(metadata) = metadata {
             let mut tx = wallet.db.tx().await?;
@@ -191,6 +185,10 @@ impl Sage {
         req: IncreaseDerivationIndex,
     ) -> Result<IncreaseDerivationIndexResponse> {
         let wallet = self.wallet()?;
+
+        if !matches!(wallet.kind, WalletKind::Bls { .. }) {
+            return Err(WalletError::DerivationsNotSupported.into());
+        }
 
         let hardened = req.hardened.is_none_or(|hardened| hardened);
         let unhardened = req.unhardened.is_none_or(|unhardened| unhardened);

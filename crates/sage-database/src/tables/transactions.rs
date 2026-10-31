@@ -3,6 +3,30 @@ use sqlx::{Row, SqliteExecutor};
 
 use crate::{Asset, AssetKind, Convert, Database, Result};
 
+/// Resolves a coin's p2 puzzle to the wallet's own custody puzzle hash, if there is one.
+/// Requires `p2_puzzles` to be joined for the coin, followed by [`CUSTODY_JOINS`].
+///
+/// Only public key (0), arbor (3) and external (4) puzzles are plain custody. Wrappers such as
+/// clawbacks (1) and option underlyings (2) resolve to the receiver or creator, but only when
+/// that's one of our own custody puzzles. Anything else, including counterparty puzzle hashes and p2 puzzle
+/// kinds this query doesn't know about, resolves to `NULL` so it's never shown as an address.
+pub(crate) const CUSTODY_COLUMNS: &str = "
+    CASE
+        WHEN p2_puzzles.kind IN (0, 3, 4) THEN p2_puzzles.hash
+        WHEN p2_puzzles.kind = 1 THEN clawback_receiver.hash
+        WHEN p2_puzzles.kind = 2 THEN option_creator.hash
+    END AS custody_p2_puzzle_hash";
+
+pub(crate) const CUSTODY_JOINS: &str = "
+    LEFT JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id
+    LEFT JOIN p2_puzzles AS clawback_receiver
+        ON clawback_receiver.hash = clawbacks.receiver_puzzle_hash
+        AND clawback_receiver.kind IN (0, 3, 4)
+    LEFT JOIN p2_options ON p2_options.p2_puzzle_id = p2_puzzles.id
+    LEFT JOIN p2_puzzles AS option_creator
+        ON option_creator.hash = p2_options.creator_puzzle_hash
+        AND option_creator.kind IN (0, 3, 4)";
+
 #[derive(Debug, Clone)]
 pub struct Transaction {
     pub height: u32,
@@ -15,7 +39,9 @@ pub struct Transaction {
 pub struct TransactionCoin {
     pub coin: Coin,
     pub asset: Asset,
-    pub p2_puzzle_hash: Option<Bytes32>,
+    /// The wallet's own custody puzzle hash for this coin, which is safe to display as an address.
+    /// This is `None` for coins that aren't ours, and is never a wrapper such as a clawback or option.
+    pub custody_p2_puzzle_hash: Option<Bytes32>,
 }
 
 impl Database {
@@ -61,28 +87,32 @@ pub(crate) fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<T
             .convert()?,
     };
 
-    let p2_puzzle_hash = row.get::<Option<Vec<u8>>, _>("p2_puzzle_hash").convert()?;
+    let custody_p2_puzzle_hash = row
+        .get::<Option<Vec<u8>>, _>("custody_p2_puzzle_hash")
+        .convert()?;
 
     Ok(TransactionCoin {
         coin,
         asset,
-        p2_puzzle_hash,
+        custody_p2_puzzle_hash,
     })
 }
 
 async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Option<Transaction>> {
-    let rows = sqlx::query!(
-        "SELECT 	
+    let sql = format!(
+        "SELECT
             height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
             is_created_in_block, is_spent_in_block, asset_hash, asset_description,
             asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
-            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash
-        FROM transaction_coins 
-        WHERE height = ?",
-        height
-    )
-    .fetch_all(conn)
-    .await?;
+            asset_kind, asset_ticker, asset_precision, asset_hidden_puzzle_hash,
+            {CUSTODY_COLUMNS}
+        FROM transaction_coins
+        LEFT JOIN p2_puzzles ON p2_puzzles.hash = transaction_coins.p2_puzzle_hash
+        {CUSTODY_JOINS}
+        WHERE height = ?"
+    );
+
+    let rows = sqlx::query(&sql).bind(height).fetch_all(conn).await?;
 
     if rows.is_empty() {
         return Ok(None);
@@ -94,40 +124,17 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
 
     for row in rows {
         if timestamp.is_none() {
-            timestamp = row.timestamp.map(|ts| ts as u64);
+            timestamp = row.get::<Option<i64>, _>("timestamp").map(|ts| ts as u64);
         }
 
-        let coin = Coin::new(
-            row.parent_coin_hash.convert()?,
-            row.puzzle_hash.convert()?,
-            row.amount.convert()?,
-        );
-
-        let asset = Asset {
-            hash: row.asset_hash.convert()?,
-            name: row.asset_name,
-            ticker: row.asset_ticker,
-            precision: row.asset_precision.convert()?,
-            icon_url: row.asset_icon_url,
-            description: row.asset_description,
-            is_sensitive_content: row.asset_is_sensitive_content,
-            is_visible: row.asset_is_visible,
-            kind: row.asset_kind.convert()?,
-            hidden_puzzle_hash: row.asset_hidden_puzzle_hash.convert()?,
-        };
-
-        let transaction_coin = TransactionCoin {
-            coin,
-            asset,
-            p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
-        };
+        let transaction_coin = create_transaction_coin(&row)?;
 
         // these represent whether the coins was spent and/or created in this block
-        if row.is_spent_in_block == 1 {
+        if row.get::<i64, _>("is_spent_in_block") == 1 {
             spent_coins.push(transaction_coin.clone());
         }
 
-        if row.is_created_in_block == 1 {
+        if row.get::<i64, _>("is_created_in_block") == 1 {
             created_coins.push(transaction_coin);
         }
     }
@@ -147,16 +154,19 @@ async fn transactions(
     limit: u32,
     offset: u32,
 ) -> Result<(Vec<Transaction>, u32)> {
-    let mut query = sqlx::QueryBuilder::new(
-        "SELECT 	
+    let mut query = sqlx::QueryBuilder::new(format!(
+        "SELECT
             height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
             is_created_in_block, is_spent_in_block, asset_hash, asset_description,
             asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
-            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash,
+            asset_kind, asset_ticker, asset_precision, asset_hidden_puzzle_hash,
+            {CUSTODY_COLUMNS},
             COUNT(*) OVER() as total_count
         FROM transaction_coins
-        WHERE 1=1",
-    );
+        LEFT JOIN p2_puzzles ON p2_puzzles.hash = transaction_coins.p2_puzzle_hash
+        {CUSTODY_JOINS}
+        WHERE 1=1"
+    ));
 
     if let Some(find_value) = find_value {
         query.push(" AND (asset_name LIKE ");
@@ -270,4 +280,213 @@ fn group_rows_into_transactions(
     }
 
     Ok(transactions)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use chia_wallet_sdk::{
+        chia::bls::SecretKey,
+        driver::{Clawback as ClawbackV1, ClawbackV2, OptionType, OptionUnderlying},
+        types::puzzles::P2DelegatedConditionsArgs,
+    };
+    use sqlx::{SqlitePool, migrate};
+
+    use super::*;
+    use crate::{DatabaseTx, Derivation};
+
+    const HEIGHT: u32 = 1;
+
+    async fn insert_coin(
+        tx: &mut DatabaseTx<'_>,
+        expected: &mut HashMap<Bytes32, Option<Bytes32>>,
+        puzzle_hash: Bytes32,
+        asset_hash: Bytes32,
+        p2_puzzle_hash: Bytes32,
+        custody_p2_puzzle_hash: Option<Bytes32>,
+    ) -> anyhow::Result<()> {
+        let coin = Coin::new(Bytes32::new([expected.len() as u8; 32]), puzzle_hash, 1);
+
+        tx.insert_coin(CoinState::new(coin, None, Some(HEIGHT)))
+            .await?;
+        tx.update_coin(coin.coin_id(), asset_hash, p2_puzzle_hash)
+            .await?;
+
+        expected.insert(coin.coin_id(), custody_p2_puzzle_hash);
+
+        Ok(())
+    }
+
+    fn token(hash: Bytes32, kind: AssetKind) -> Asset {
+        Asset {
+            hash,
+            name: None,
+            ticker: None,
+            precision: 3,
+            icon_url: None,
+            description: None,
+            is_sensitive_content: false,
+            is_visible: true,
+            hidden_puzzle_hash: None,
+            kind,
+        }
+    }
+
+    fn custody_by_coin(coins: &[&TransactionCoin]) -> HashMap<Bytes32, Option<Bytes32>> {
+        coins
+            .iter()
+            .map(|coin| (coin.coin.coin_id(), coin.custody_p2_puzzle_hash))
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn test_history_only_shows_own_custody() -> anyhow::Result<()> {
+        let pool = SqlitePool::connect("sqlite::memory:").await?;
+        migrate!("../../migrations").run(&pool).await?;
+        let db = Database::new(pool);
+
+        let own_key = SecretKey::from_seed(&[1; 32]).public_key();
+        let arbor_key = SecretKey::from_seed(&[2; 32]).public_key();
+        let own = Bytes32::new([1; 32]);
+        let arbor: Bytes32 = P2DelegatedConditionsArgs::new(arbor_key)
+            .curry_tree_hash()
+            .into();
+        let external = Bytes32::new([3; 32]);
+        let xch = Bytes32::default();
+        let cat_asset_id = Bytes32::new([4; 32]);
+        let launcher_id = Bytes32::new([5; 32]);
+
+        let mut expected = HashMap::new();
+
+        let mut tx = db.tx().await?;
+
+        tx.insert_height(HEIGHT).await?;
+        tx.insert_custody_p2_puzzle(
+            own,
+            own_key,
+            Derivation {
+                derivation_index: 0,
+                is_hardened: false,
+            },
+        )
+        .await?;
+        tx.insert_arbor_p2_puzzle(arbor_key).await?;
+        tx.insert_asset(token(cat_asset_id, AssetKind::Token))
+            .await?;
+        tx.insert_asset(token(launcher_id, AssetKind::Option))
+            .await?;
+
+        // Plain custody puzzles are shown as they are
+        insert_coin(&mut tx, &mut expected, own, xch, own, Some(own)).await?;
+        insert_coin(&mut tx, &mut expected, arbor, xch, arbor, Some(arbor)).await?;
+
+        // CATs show their inner custody puzzle, never the outer CAT puzzle
+        let cat_puzzle_hash = Bytes32::new([6; 32]);
+        insert_coin(
+            &mut tx,
+            &mut expected,
+            cat_puzzle_hash,
+            cat_asset_id,
+            own,
+            Some(own),
+        )
+        .await?;
+
+        // Clawbacks only show the receiver when it's us, for both versions
+        let outgoing_v2 = ClawbackV2::new(own, external, 100, 1, true);
+        let incoming_v2 = ClawbackV2::new(external, own, 100, 1, true);
+        let outgoing_v1 = ClawbackV1::new(100, own, external);
+        let incoming_v1 = ClawbackV1::new(100, external, own);
+
+        tx.insert_clawback_p2_puzzle(outgoing_v2).await?;
+        tx.insert_clawback_p2_puzzle(incoming_v2).await?;
+        tx.insert_clawback_v1_p2_puzzle(outgoing_v1).await?;
+        tx.insert_clawback_v1_p2_puzzle(incoming_v1).await?;
+
+        for (wrapper, custody) in [
+            (outgoing_v2.tree_hash().into(), None),
+            (incoming_v2.tree_hash().into(), Some(own)),
+            (outgoing_v1.tree_hash().into(), None),
+            (incoming_v1.tree_hash().into(), Some(own)),
+        ] {
+            insert_coin(&mut tx, &mut expected, wrapper, xch, wrapper, custody).await?;
+        }
+
+        // A CAT wrapped in a clawback resolves the same way
+        insert_coin(
+            &mut tx,
+            &mut expected,
+            Bytes32::new([7; 32]),
+            cat_asset_id,
+            incoming_v2.tree_hash().into(),
+            Some(own),
+        )
+        .await?;
+
+        // Option underlying coins only show the creator when it's us
+        for (creator_puzzle_hash, custody) in [(own, Some(own)), (external, None)] {
+            let underlying = OptionUnderlying::new(
+                launcher_id,
+                creator_puzzle_hash,
+                100,
+                1,
+                OptionType::Xch { amount: 1 },
+            );
+            let wrapper = underlying.tree_hash().into();
+
+            tx.insert_option_p2_puzzle(underlying).await?;
+            insert_coin(&mut tx, &mut expected, wrapper, xch, wrapper, custody).await?;
+        }
+
+        // Coins whose p2 puzzle we don't know show nothing
+        insert_coin(&mut tx, &mut expected, external, xch, external, None).await?;
+
+        tx.commit().await?;
+
+        // A p2 puzzle kind added in the future must not break the history or be shown
+        let unknown = Bytes32::new([8; 32]);
+        sqlx::query("INSERT INTO p2_puzzles (hash, kind) VALUES (?, 99)")
+            .bind(unknown.as_ref())
+            .execute(&db.pool)
+            .await?;
+
+        let mut tx = db.tx().await?;
+        insert_coin(&mut tx, &mut expected, unknown, xch, unknown, None).await?;
+
+        // Every coin is also an output of a pending transaction
+        let mempool_item_id = Bytes32::new([9; 32]);
+        tx.insert_mempool_item(mempool_item_id, Signature::default(), 0)
+            .await?;
+
+        for coin_id in expected.keys() {
+            tx.insert_mempool_coin(mempool_item_id, *coin_id, false, true)
+                .await?;
+        }
+
+        tx.commit().await?;
+
+        let (transactions, total) = db.transactions(None, false, 100, 0).await?;
+        assert_eq!(total as usize, expected.len());
+        assert_eq!(transactions.len(), 1);
+        assert_eq!(
+            custody_by_coin(&transactions[0].created.iter().collect::<Vec<_>>()),
+            expected
+        );
+
+        let transaction = db.transaction(HEIGHT).await?.expect("missing transaction");
+        assert_eq!(
+            custody_by_coin(&transaction.created.iter().collect::<Vec<_>>()),
+            expected
+        );
+
+        let mempool_items = db.mempool_items_with_coins().await?;
+        assert_eq!(mempool_items.len(), 1);
+        assert_eq!(
+            custody_by_coin(&mempool_items[0].created.iter().collect::<Vec<_>>()),
+            expected
+        );
+
+        Ok(())
+    }
 }

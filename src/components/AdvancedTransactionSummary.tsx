@@ -7,6 +7,7 @@ import BigNumber from 'bignumber.js';
 import { BadgeMinus, BadgePlus, BoxIcon, ForwardIcon } from 'lucide-react';
 import { Asset, TransactionSummary, Unit } from '../bindings';
 import { formatNumber } from '../i18n';
+import { AddressLabels } from './AddressLabels';
 import { Badge } from './ui/badge';
 
 interface SpentCoin {
@@ -119,6 +120,7 @@ export function AdvancedTransactionSummary({
                   <div className='truncate text-muted-foreground text-sm'>
                     {created.address}
                   </div>
+                  <AddressLabels address={created.address} compact />
                 </div>
               </div>
             ))}

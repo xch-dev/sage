@@ -1,9 +1,12 @@
 use chia_wallet_sdk::{
-    chia::puzzle_types::{LineageProof, Proof, nft::NftMetadata},
+    chia::puzzle_types::{LineageProof, Proof},
+    driver::{Clawback as ClawbackV1, ClawbackV2},
     prelude::*,
     puzzles::SINGLETON_LAUNCHER_HASH,
 };
-use sage_database::{SerializePrimitive, SerializedDidInfo, SerializedNftInfo};
+use sage_database::{
+    NftUpdaterKindExt, ParsedNftMetadata, SerializePrimitive, SerializedDidInfo, SerializedNftInfo,
+};
 use tracing::{debug_span, warn};
 
 use crate::WalletError;
@@ -15,6 +18,9 @@ pub enum ChildKind {
     Launcher,
     Clawback {
         info: ClawbackV2,
+    },
+    ClawbackV1 {
+        info: ClawbackV1,
     },
     Cat {
         info: CatInfo,
@@ -29,7 +35,7 @@ pub enum ChildKind {
     Nft {
         info: SerializedNftInfo,
         lineage_proof: LineageProof,
-        metadata: Option<NftMetadata>,
+        metadata: Option<ParsedNftMetadata>,
         clawback: Option<ClawbackV2>,
     },
     Option {
@@ -77,6 +83,7 @@ impl ChildKind {
             parent_puzzle,
             parent_solution,
             create_coin,
+            &mut None,
         )
     }
 
@@ -94,6 +101,8 @@ impl ChildKind {
         let output = run_puzzle(&mut allocator, parent_puzzle.ptr(), parent_solution)?;
         let conditions = Vec::<Condition>::from_clvm(&allocator, output)?;
 
+        let mut clawbacks_v1 = None;
+
         Ok(conditions
             .into_iter()
             .filter_map(Condition::into_create_coin)
@@ -104,6 +113,7 @@ impl ChildKind {
                     parent_puzzle,
                     parent_solution,
                     create_coin,
+                    &mut clawbacks_v1,
                 )
                 .ok()
                 .map(|kind| {
@@ -126,6 +136,7 @@ impl ChildKind {
         parent_puzzle: Puzzle,
         parent_solution: NodePtr,
         create_coin: CreateCoin<NodePtr>,
+        clawbacks_v1: &mut Option<Vec<ClawbackV1>>,
     ) -> Result<Self, WalletError> {
         let coin = Coin::new(
             parent_coin.coin_id(),
@@ -200,7 +211,11 @@ impl ChildKind {
                         return Ok(Self::Unknown);
                     };
 
-                    let metadata = NftMetadata::from_clvm(allocator, nft.info.metadata.ptr()).ok();
+                    let metadata = ParsedNftMetadata::parse(
+                        allocator,
+                        nft.info.metadata.ptr(),
+                        nft.info.metadata_updater_kind(),
+                    );
 
                     let clawback = parse_clawback_unchecked(allocator, &create_coin, true)
                         .filter(|clawback| clawback.tree_hash() == nft.info.p2_puzzle_hash.into());
@@ -233,7 +248,9 @@ impl ChildKind {
 
                     let clawback = parse_clawback_unchecked(allocator, &create_coin, true);
 
-                    let did = if let Some(clawback) = clawback {
+                    // The clawback memos are only trusted if the DID's puzzle actually
+                    // commits to the clawback as its owner.
+                    let (did, clawback) = if let Some(clawback) = clawback {
                         let p2_puzzle_hash = clawback.tree_hash().into();
 
                         let clawback_did = Did::new(
@@ -249,13 +266,23 @@ impl ChildKind {
                         );
 
                         if clawback_did.info.puzzle_hash() == coin.puzzle_hash.into() {
-                            clawback_did
+                            (clawback_did, Some(clawback))
                         } else {
-                            did
+                            (did, None)
                         }
                     } else {
-                        did
+                        (did, None)
                     };
+
+                    // The p2 puzzle hash comes from the hint, which anyone can choose, so it
+                    // must produce the coin that was actually created.
+                    if did.info.puzzle_hash() != coin.puzzle_hash.into() {
+                        warn!(
+                            "DID coin {:?} does not match the puzzle hash implied by its hint",
+                            coin.coin_id()
+                        );
+                        return Ok(Self::Unknown);
+                    }
 
                     return Ok(Self::Did {
                         lineage_proof,
@@ -317,6 +344,27 @@ impl ChildKind {
             return Ok(Self::Clawback { info: clawback });
         }
 
+        // V1 structure lives in parent REMARK conditions (not CREATE_COIN memos). Parsing them
+        // requires running the parent puzzle, so do it at most once for all of its children.
+        let clawbacks_v1 = clawbacks_v1.get_or_insert_with(|| {
+            ClawbackV1::parse_children(allocator, parent_puzzle, parent_solution)
+                .unwrap_or_else(|error| {
+                    warn!("Failed to parse clawback v1 from parent: {error}");
+                    None
+                })
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|clawback| i64::try_from(clawback.timelock).is_ok())
+                .collect()
+        });
+
+        if let Some(&info) = clawbacks_v1
+            .iter()
+            .find(|clawback| clawback.tree_hash() == coin.puzzle_hash.into())
+        {
+            return Ok(Self::ClawbackV1 { info });
+        }
+
         Ok(Self::Unknown)
     }
 
@@ -325,6 +373,7 @@ impl ChildKind {
             // TODO: Should we add the puzzle hash of the coin as a candidate?
             Self::Launcher | Self::Unknown => vec![],
             Self::Clawback { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
+            Self::ClawbackV1 { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
             Self::Cat {
                 info: CatInfo { p2_puzzle_hash, .. },
                 clawback,
@@ -354,6 +403,7 @@ impl ChildKind {
         match self {
             Self::Launcher | Self::Unknown => None,
             Self::Clawback { info } => Some(info.receiver_puzzle_hash),
+            Self::ClawbackV1 { info } => Some(info.receiver_puzzle_hash),
             Self::Cat { info, clawback, .. } => clawback
                 .map_or(Some(info.p2_puzzle_hash), |clawback| {
                     Some(clawback.receiver_puzzle_hash)
@@ -377,6 +427,7 @@ impl ChildKind {
         matches!(
             self,
             Self::Clawback { .. }
+                | Self::ClawbackV1 { .. }
                 | Self::Cat { .. }
                 | Self::Did { .. }
                 | Self::Nft { .. }
@@ -410,6 +461,9 @@ pub fn clawback_from_memo_unchecked(
     let (sender_puzzle_hash, (seconds, ())) =
         <(Bytes32, (u64, ()))>::from_clvm(allocator, memo).ok()?;
 
+    // The database stores seconds as an i64, and Sage never creates clawbacks this far out.
+    i64::try_from(seconds).ok()?;
+
     let clawback = ClawbackV2 {
         sender_puzzle_hash,
         receiver_puzzle_hash,
@@ -419,4 +473,75 @@ pub fn clawback_from_memo_unchecked(
     };
 
     Some(clawback)
+}
+
+#[cfg(test)]
+mod tests {
+    use chia_wallet_sdk::test::Simulator;
+
+    use super::*;
+
+    /// Sends a DID to the given p2 puzzle hash, with memos that hint the given puzzle hash
+    /// and always claim a clawback, whether or not the DID is actually sent to one.
+    fn transfer_did(p2_puzzle_hash: Bytes32, hint: Bytes32) -> anyhow::Result<ChildKind> {
+        let mut sim = Simulator::new();
+        let alice = sim.bls(1);
+        let mut ctx = SpendContext::new();
+
+        let (conditions, did) = Launcher::new(alice.coin.coin_id(), 1)
+            .create_simple_did(&mut ctx, &StandardLayer::new(alice.pk))?;
+        StandardLayer::new(alice.pk).spend(&mut ctx, alice.coin, conditions)?;
+        ctx.take();
+
+        let new_info = DidInfo {
+            p2_puzzle_hash,
+            ..did.info
+        };
+
+        let memos = ctx.memos(&(hint, ((Bytes32::new([7; 32]), (100_u64, ())), ())))?;
+        did.spend_with(
+            &mut ctx,
+            &StandardLayer::new(alice.pk),
+            Conditions::new().create_coin(new_info.inner_puzzle_hash().into(), 1, memos),
+        )?;
+        let child = did.child(p2_puzzle_hash, did.info.metadata, 1);
+
+        let spend = ctx.take().remove(0);
+
+        Ok(ChildKind::from_parent(
+            spend.coin,
+            &spend.puzzle_reveal,
+            &spend.solution,
+            child.coin,
+        )?)
+    }
+
+    #[test]
+    fn test_did_clawback_memos_must_match_puzzle() -> anyhow::Result<()> {
+        let receiver = Bytes32::new([8; 32]);
+
+        let ChildKind::Did { info, clawback, .. } = transfer_did(receiver, receiver)? else {
+            panic!("expected a DID");
+        };
+        assert_eq!(info.p2_puzzle_hash, receiver);
+        assert_eq!(clawback, None);
+
+        let real = ClawbackV2::new(Bytes32::new([7; 32]), receiver, 100, 1, true);
+        let ChildKind::Did { info, clawback, .. } =
+            transfer_did(real.tree_hash().into(), receiver)?
+        else {
+            panic!("expected a DID");
+        };
+        assert_eq!(info.p2_puzzle_hash, real.tree_hash().into());
+        assert_eq!(clawback, Some(real));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_did_hint_must_match_puzzle() -> anyhow::Result<()> {
+        let kind = transfer_did(Bytes32::new([8; 32]), Bytes32::new([9; 32]))?;
+        assert!(matches!(kind, ChildKind::Unknown));
+        Ok(())
+    }
 }

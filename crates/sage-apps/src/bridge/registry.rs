@@ -52,7 +52,7 @@ fn build_user_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, AppLifecycleReadyToStop);
 
     // Wallet keys / secrets
-    insert_method(&mut methods, WalletGetKey);
+    insert_method(&mut methods, WalletGetWallet);
     insert_method(&mut methods, WalletGetSecretKey);
     insert_method(&mut methods, WalletGetPublicKeys);
     insert_method(&mut methods, WalletFilterUnlockedCoins);
@@ -77,6 +77,16 @@ fn build_user_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, WalletGetCoins);
     insert_method(&mut methods, WalletGetTransaction);
     insert_method(&mut methods, WalletGetTransactions);
+
+    // Wallet XCHandles
+    insert_method(&mut methods, WalletResolveHandle);
+    insert_method(&mut methods, WalletGetHandle);
+    insert_method(&mut methods, WalletGetHandles);
+    insert_method(&mut methods, WalletLookupAddressHandles);
+
+    // Wallet address book
+    insert_method(&mut methods, WalletGetContacts);
+    insert_method(&mut methods, WalletLookupAddressContacts);
 
     // Environment
     insert_method(&mut methods, EnvironmentThemeGetCurrent);

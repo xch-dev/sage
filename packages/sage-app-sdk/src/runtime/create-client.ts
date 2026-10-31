@@ -213,8 +213,8 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
         );
       },
 
-      async getKey() {
-        return await callHost<Generated.GetKeyResponse>('wallet.getKey');
+      async getWallet() {
+        return await callHost<Generated.GetWalletResponse>('wallet.getWallet');
       },
 
       async getSecretKey() {
@@ -291,6 +291,48 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
       async getTransactions(input: Generated.GetTransactions) {
         return await callHost<Generated.GetTransactionsResponse>(
           'wallet.getTransactions',
+          input,
+        );
+      },
+
+      async resolveHandle(input: Generated.ResolveHandle) {
+        return await callHost<Generated.ResolveHandleResponse>(
+          'wallet.resolveHandle',
+          input,
+        );
+      },
+
+      async getHandle(input: Generated.GetHandle) {
+        return await callHost<Generated.GetHandleResponse>(
+          'wallet.getHandle',
+          input,
+        );
+      },
+
+      async getHandles(input: Generated.GetHandles) {
+        return await callHost<Generated.GetHandlesResponse>(
+          'wallet.getHandles',
+          input,
+        );
+      },
+
+      async lookupAddressHandles(input: Generated.LookupAddressHandles) {
+        return await callHost<Generated.LookupAddressHandlesResponse>(
+          'wallet.lookupAddressHandles',
+          input,
+        );
+      },
+
+      async getContacts(input: Generated.GetContacts) {
+        return await callHost<Generated.WalletGetContactsResult>(
+          'wallet.getContacts',
+          input,
+        );
+      },
+
+      async lookupAddressContacts(input: Generated.LookupAddressContacts) {
+        return await callHost<Generated.WalletLookupAddressContactsResult>(
+          'wallet.lookupAddressContacts',
           input,
         );
       },

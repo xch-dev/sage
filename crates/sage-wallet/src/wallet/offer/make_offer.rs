@@ -51,18 +51,22 @@ impl Wallet {
         let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let offer_amounts = OfferAmounts {
-            xch: offered.xch,
-            cats: offered.cats.clone(),
+            xch: offered.xch.into(),
+            cats: offered
+                .cats
+                .iter()
+                .map(|(&asset_id, &amount)| (asset_id, amount.into()))
+                .collect(),
         };
 
         let requested_amounts = OfferAmounts {
-            xch: requested.xch,
+            xch: requested.xch.into(),
             cats: requested
                 .cats
                 .iter()
                 .map(|(asset_id, cat)| {
                     asset_info.insert_cat(*asset_id, CatAssetInfo::new(cat.hidden_puzzle_hash))?;
-                    Ok((*asset_id, cat.amount))
+                    Ok((*asset_id, cat.amount.into()))
                 })
                 .collect::<Result<_, WalletError>>()?,
         };
@@ -219,7 +223,7 @@ impl Wallet {
         let trade_prices = calculate_trade_prices(
             &calculate_trade_price_amounts(&requested_amounts, royalty_nft_count),
             &asset_info,
-        );
+        )?;
 
         for nft in spends.nfts.values().rev() {
             let nft = nft.last()?;

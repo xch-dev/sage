@@ -91,6 +91,7 @@ impl WalletSignCoinSpendsParams {
             coin_spends: self.coin_spends.into_iter().map(Into::into).collect(),
             auto_submit: false,
             partial: self.partial_sign.unwrap_or(false),
+            aggregated_signature: None,
         }
     }
 
@@ -239,6 +240,10 @@ impl BridgeMethod for WalletSignCoinSpends {
     }
 
     fn binds_approval_to_wallet(&self) -> bool {
+        true
+    }
+
+    fn requires_signing(&self) -> bool {
         true
     }
 

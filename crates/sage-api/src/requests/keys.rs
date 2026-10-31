@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{KeyInfo, SecretKeyInfo};
+use crate::{KeyInfo, SecretKeyInfo, WalletInfo};
 
 /// Login to a wallet using a fingerprint
 #[cfg_attr(
@@ -137,21 +137,21 @@ pub struct GenerateMnemonicResponse {
     pub mnemonic: String,
 }
 
-/// Import a wallet key
+/// Import a BLS wallet from a key
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
         tag = "Authentication & Keys",
-        description = "Import a wallet using a mnemonic phrase or private key. Optionally saves secrets and automatically logs in."
+        description = "Import a BLS wallet using a mnemonic phrase, private key or public key. Its key is added to the keychain, or reused if it's already there. Optionally saves secrets and automatically logs in."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct ImportKey {
+pub struct ImportWallet {
     /// Display name for the wallet
     pub name: String,
-    /// Mnemonic phrase or private key
+    /// Mnemonic phrase, or hex encoded private or public key
     pub key: String,
     /// Starting derivation index
     #[serde(default)]
@@ -183,7 +183,7 @@ fn yes() -> bool {
     true
 }
 
-/// Response with imported key fingerprint
+/// Response with the imported wallet's fingerprint
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(tag = "Authentication & Keys")
@@ -191,8 +191,8 @@ fn yes() -> bool {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct ImportKeyResponse {
-    /// Fingerprint of the imported key
+pub struct ImportWalletResponse {
+    /// Fingerprint of the imported wallet, which is also its key's fingerprint
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
     pub fingerprint: u32,
 }
@@ -223,24 +223,29 @@ pub struct DeleteDatabase {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DeleteDatabaseResponse {}
 
-/// Delete a wallet key
+/// Delete a wallet
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
         tag = "Authentication & Keys",
-        description = "Permanently delete a wallet key from the system. This action cannot be undone."
+        description = "Permanently delete a wallet, along with its synced data. The keys the wallet uses, such as a BLS wallet's own key, are removed from the keychain too, unless delete_keys is false. Keys that another wallet still uses are always kept. This action cannot be undone."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct DeleteKey {
+pub struct DeleteWallet {
     /// Wallet fingerprint to delete
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
     pub fingerprint: u32,
+    /// Whether to also remove the keys the wallet uses from the keychain, such as a BLS
+    /// wallet's own key. Keys that another wallet still uses are kept regardless
+    #[serde(default = "yes")]
+    #[cfg_attr(feature = "openapi", schema(default = true))]
+    pub delete_keys: bool,
 }
 
-/// Response for key deletion
+/// Response for wallet deletion
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(tag = "Authentication & Keys")
@@ -248,20 +253,20 @@ pub struct DeleteKey {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct DeleteKeyResponse {}
+pub struct DeleteWalletResponse {}
 
-/// Rename a wallet key
+/// Rename a wallet
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
         tag = "Authentication & Keys",
-        description = "Change the display name of a wallet key."
+        description = "Change the display name of a wallet."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct RenameKey {
+pub struct RenameWallet {
     /// Wallet fingerprint
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
     pub fingerprint: u32,
@@ -269,7 +274,7 @@ pub struct RenameKey {
     pub name: String,
 }
 
-/// Response for key rename
+/// Response for wallet rename
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(tag = "Authentication & Keys")
@@ -277,7 +282,7 @@ pub struct RenameKey {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct RenameKeyResponse {}
+pub struct RenameWalletResponse {}
 
 /// Set wallet emoji
 #[cfg_attr(
@@ -309,12 +314,70 @@ pub struct SetWalletEmoji {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SetWalletEmojiResponse {}
 
-/// List all wallet keys
+/// List all wallets
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
         tag = "Authentication & Keys",
-        description = "List all available wallet keys stored in the system."
+        description = "List every wallet, of any kind."
+    )
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetWallets {}
+
+/// Response with all wallets
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetWalletsResponse {
+    /// List of wallets
+    pub wallets: Vec<WalletInfo>,
+}
+
+/// Get a specific wallet
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Get information about a specific wallet by fingerprint."
+    )
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetWallet {
+    /// Wallet fingerprint (uses currently logged in if null)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true, example = 1_234_567_890))]
+    pub fingerprint: Option<u32>,
+}
+
+/// Response with wallet information
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetWalletResponse {
+    /// Wallet information if found
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub wallet: Option<WalletInfo>,
+}
+
+/// List all keys in the keychain
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "List the public information of every key in the keychain, including keys that aren't wallets."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -322,7 +385,7 @@ pub struct SetWalletEmojiResponse {}
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetKeys {}
 
-/// Response with all wallet keys
+/// Response with all keys in the keychain
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(tag = "Authentication & Keys")
@@ -331,26 +394,25 @@ pub struct GetKeys {}
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetKeysResponse {
-    /// List of wallet keys
+    /// List of keys
     pub keys: Vec<KeyInfo>,
 }
 
-/// Get a specific wallet key
+/// Get a specific key from the keychain
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
         tag = "Authentication & Keys",
-        description = "Get information about a specific wallet key by fingerprint."
+        description = "Get the public information of a key in the keychain by fingerprint."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetKey {
-    /// Wallet fingerprint (uses currently logged in if null)
-    #[serde(default)]
-    #[cfg_attr(feature = "openapi", schema(nullable = true, example = 1_234_567_890))]
-    pub fingerprint: Option<u32>,
+    /// Key fingerprint
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
 }
 
 /// Response with key information
@@ -366,6 +428,64 @@ pub struct GetKeyResponse {
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub key: Option<KeyInfo>,
 }
+
+/// Add a key to the keychain
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Add a key to the keychain without creating a wallet for it. Use import_wallet to create a wallet instead."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct AddKey {
+    /// Mnemonic phrase, or hex encoded secret or public key. A mnemonic or secret key is stored
+    /// with its secret key
+    pub key: String,
+}
+
+/// Response with the added key
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct AddKeyResponse {
+    /// Fingerprint of the key
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+}
+
+/// Remove a key from the keychain
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Permanently remove a key from the keychain. A key that a wallet uses can only be removed by deleting the wallet. This action cannot be undone."
+    )
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct DeleteKey {
+    /// Key fingerprint
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+}
+
+/// Response for key removal
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct DeleteKeyResponse {}
 
 /// Get wallet secret key
 #[cfg_attr(
@@ -518,3 +638,101 @@ pub struct DeleteUserTheme {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DeleteUserThemeResponse {}
+
+/// Import a watch-only wallet from addresses
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Import a read-only wallet that watches one or more addresses. Their prefix isn't checked, since the wallet's network decides how they're shown, so addresses for another network can be imported before switching the wallet to it. Its balances, assets and history are synced, but it can't create or sign transactions, since the puzzle reveals of its coins are unknown. Optionally logs in automatically."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ImportWatchWallet {
+    /// Display name for the wallet
+    pub name: String,
+    /// Addresses to watch, on any network. The first one is the receive address
+    pub addresses: Vec<String>,
+    /// Whether to automatically login after import
+    #[serde(default = "yes")]
+    #[cfg_attr(feature = "openapi", schema(default = true))]
+    pub login: bool,
+    /// Optional emoji identifier
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub emoji: Option<String>,
+}
+
+/// Response with the imported watch wallet's fingerprint
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ImportWatchWalletResponse {
+    /// Fingerprint assigned to the wallet. It's derived from its addresses, since it has no key
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+}
+
+/// Watch more addresses in a watch wallet
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Add addresses to a watch wallet. If it's the active wallet, they're synced right away, without a full resync. Addresses it already watches are ignored."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct AddWatchAddresses {
+    /// Fingerprint of the watch wallet
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+    /// Addresses to watch, on any network
+    pub addresses: Vec<String>,
+}
+
+/// Response for adding watched addresses
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct AddWatchAddressesResponse {}
+
+/// Stop watching addresses in a watch wallet
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Remove addresses from a watch wallet, along with the coins synced for them. A watch wallet must keep at least one address."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct RemoveWatchAddresses {
+    /// Fingerprint of the watch wallet
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+    /// Addresses to stop watching
+    pub addresses: Vec<String>,
+}
+
+/// Response for removing watched addresses
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct RemoveWatchAddressesResponse {}

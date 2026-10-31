@@ -53,6 +53,10 @@ impl BridgeMethod for WalletSignMessage {
         true
     }
 
+    fn requires_signing(&self) -> bool {
+        true
+    }
+
     fn approval_request(
         &self,
         _ctx: BridgeContext<'_>,

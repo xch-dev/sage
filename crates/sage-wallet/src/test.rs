@@ -16,7 +16,7 @@ use chia_wallet_sdk::{
     test::PeerSimulator,
 };
 use sage_config::TESTNET11;
-use sage_database::{Database, Derivation};
+use sage_database::{Database, Derivation, SharedDatabase};
 use sqlx::{SqlitePool, migrate};
 use tokio::{
     sync::{
@@ -29,7 +29,7 @@ use tracing::debug;
 
 use crate::{
     PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Transaction, Wallet,
-    insert_transaction,
+    WalletKind, insert_transaction,
 };
 
 static INDEX: Mutex<u32> = Mutex::const_new(0);
@@ -91,6 +91,13 @@ impl TestWallet {
         let db = Database::new(pool);
         db.run_rust_migrations("TXCH".to_string()).await?;
 
+        let shared_pool = SqlitePool::connect(&format!(
+            "file:testshareddb{db_index}?mode=memory&cache=shared"
+        ))
+        .await?;
+        migrate!("../../migrations").run(&shared_pool).await?;
+        let shared_db = SharedDatabase::new(shared_pool);
+
         let sk = BlsPair::default().sk.derive_unhardened(key_index);
         let pk = sk.public_key();
         let fingerprint = pk.get_fingerprint();
@@ -136,8 +143,9 @@ impl TestWallet {
         let state = Arc::new(Mutex::new(PeerState::default()));
         let wallet = Arc::new(Wallet::new(
             db,
+            shared_db,
             fingerprint,
-            intermediate_pk,
+            WalletKind::Bls { intermediate_pk },
             genesis_challenge,
             AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
             None,
@@ -249,6 +257,19 @@ impl TestWallet {
     pub async fn wait_for_puzzles(&mut self) {
         self.consume_until(|event| matches!(event, SyncEvent::PuzzleBatchSynced))
             .await;
+    }
+
+    /// The custody puzzle hash the transaction history shows as the address for a coin.
+    pub async fn history_custody(&self, coin_id: Bytes32) -> anyhow::Result<Option<Bytes32>> {
+        let (transactions, _) = self.wallet.db.transactions(None, false, 1000, 0).await?;
+
+        let coin = transactions
+            .iter()
+            .flat_map(|transaction| transaction.created.iter().chain(&transaction.spent))
+            .find(|coin| coin.coin.coin_id() == coin_id)
+            .unwrap_or_else(|| panic!("coin {coin_id} is missing from the transaction history"));
+
+        Ok(coin.custody_p2_puzzle_hash)
     }
 
     pub async fn new_block_with_current_time(&self) -> anyhow::Result<u64> {

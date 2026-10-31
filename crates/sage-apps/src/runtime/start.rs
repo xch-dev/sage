@@ -1,22 +1,25 @@
 use std::collections::BTreeMap;
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+use std::path::Path;
 
 use specta::Type;
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
 
-#[cfg(target_os = "windows")]
-use crate::data_directory_for;
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "windows"))]
+use crate::SageAppStorage;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use crate::parse_data_store_id;
+#[cfg(target_os = "windows")]
+use crate::windows_profile_dir;
 use crate::{
     AppMutationManager, AppPresentation, AppsHostState, CreateInstalledRuntimeArgs,
     OriginCleanupRuntimeTarget, ResolvedApp, RuntimeChangeSet, SageAppRuntimeMode,
-    SageAppRuntimeRecord, SageAppRuntimeRecordView, SageAppRuntimeVisibility, SageAppStorage,
-    SharedRuntime, SharedSageApp, build_entry_src, close_runtime_internal,
-    emit_runtime_manager_runtimes_changed, focus_taskbar_runtime, get_sage_window,
-    get_webview_in_sage_window, is_allowed_app_url, remove_runtime_by_runtime_id,
-    remove_runtime_id_by_app_id, resolve_app, rotate_app_storage_and_origin, sandbox,
-    sync_modal_runtime_visibility, write_runtime,
+    SageAppRuntimeRecord, SageAppRuntimeRecordView, SageAppRuntimeVisibility, SharedRuntime,
+    SharedSageApp, build_entry_src, close_runtime_internal, emit_runtime_manager_runtimes_changed,
+    focus_taskbar_runtime, get_sage_window, get_webview_in_sage_window, is_allowed_app_url,
+    remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, resolve_app,
+    rotate_app_storage_and_origin, sandbox, sync_modal_runtime_visibility, write_runtime,
 };
 
 #[derive(Debug, Type)]
@@ -206,10 +209,10 @@ async fn create_runtime_for_app(
     let builder = build_initialization_script(builder);
 
     #[cfg(any(target_os = "macos", target_os = "ios"))]
-    let builder = build_storage(builder, &app)?;
+    let builder = build_storage(builder, &app, apps_state.in_memory_webview_storage)?;
 
     #[cfg(not(any(target_os = "macos", target_os = "ios")))]
-    let builder = build_storage(builder, &app);
+    let builder = build_storage(builder, &app, &apps_state.webview_root);
 
     let (x, y, width, height) = if args.debug_layout {
         debug_layout_for_app(&app.id())
@@ -318,8 +321,9 @@ async fn rotate_incognito_app_storage_and_origin_if_needed(
 fn build_storage(
     builder: WebviewBuilder<Wry>,
     app: &SharedSageApp,
+    in_memory: bool,
 ) -> Result<WebviewBuilder<Wry>, String> {
-    if !app.with(|app| app.common().has_persistent_webview_storage()) {
+    if in_memory || !app.with(|app| app.common().has_persistent_webview_storage()) {
         return Ok(builder.incognito(true));
     }
 
@@ -327,7 +331,11 @@ fn build_storage(
 }
 
 #[cfg(target_os = "windows")]
-fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
+fn build_storage(
+    builder: WebviewBuilder<Wry>,
+    app: &SharedSageApp,
+    webview_root: &Path,
+) -> WebviewBuilder<Wry> {
     let builder = if app.with(|app| app.common().has_persistent_webview_storage()) {
         builder
     } else {
@@ -336,11 +344,19 @@ fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBu
 
     // Incognito webviews still need their app-specific storage target. On Windows this scopes the
     // WebView2 InPrivate session so another incognito app cannot keep its in-memory data alive.
-    build_windows_storage_target(builder, app)
+    build_windows_storage_target(builder, app, webview_root)
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
-fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
+fn build_storage(
+    builder: WebviewBuilder<Wry>,
+    app: &SharedSageApp,
+    webview_root: &Path,
+) -> WebviewBuilder<Wry> {
+    // App webviews share the main window's WebKitGTK data directory. Tauri would otherwise use its
+    // default directory, which is shared by every Sage root.
+    let builder = builder.data_directory(webview_root.to_path_buf());
+
     if app.with(|app| app.common().has_persistent_webview_storage()) {
         builder
     } else {
@@ -369,15 +385,20 @@ fn build_persistent_storage_target(
 fn build_windows_storage_target(
     builder: WebviewBuilder<Wry>,
     app: &SharedSageApp,
+    webview_root: &Path,
 ) -> WebviewBuilder<Wry> {
     let storage = app.with(|app| app.storage().clone());
 
     match storage {
         SageAppStorage::WindowsProfile { directory_name } => {
-            builder.data_directory(data_directory_for(&directory_name))
+            builder.data_directory(windows_profile_dir(webview_root, &directory_name))
         }
 
-        SageAppStorage::AppleDataStore { .. } | SageAppStorage::Unmanaged => builder,
+        // Share the main window's user data folder. Tauri would otherwise use its default folder,
+        // which is shared by every Sage root.
+        SageAppStorage::AppleDataStore { .. } | SageAppStorage::Unmanaged => {
+            builder.data_directory(webview_root.to_path_buf())
+        }
     }
 }
 

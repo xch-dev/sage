@@ -63,10 +63,10 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to request additional capabilities and network targets in one approval after installation.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
-        UserBridgeCapability::WalletGetKey => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetWallet => CapabilityDefinition::new(
             capability,
-            "Read wallet key",
-            "Allows the app to read public information about a wallet key.",
+            "Read wallet",
+            "Allows the app to read public information about the selected wallet.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
         UserBridgeCapability::WalletGetSecretKey => CapabilityDefinition::new(
@@ -109,6 +109,31 @@ pub(crate) fn get_user_capability_definition(
             capability,
             "Check address",
             "Allows the app to validate whether an address belongs to this wallet.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
+        // Resolving a handle sends it to the XCHandles API, so the app chooses what is sent
+        // to an outside server. That makes it externally observable, which also keeps it
+        // from being granted alongside secret access.
+        UserBridgeCapability::WalletResolveHandle => CapabilityDefinition::new(
+            capability,
+            "Resolve XCHandles",
+            "Allows the app to look up XCHandles handles, which sends them to the XCHandles API, and verify them against the blockchain.",
+            CapabilityFlags::new(true, false, true, true, true),
+        ),
+        // Known handles come from the local store only, but reveal which handles have been
+        // looked up in any wallet on this network, so they need their own grant.
+        UserBridgeCapability::WalletGetHandles => CapabilityDefinition::new(
+            capability,
+            "Read known XCHandles",
+            "Allows the app to read the XCHandles handles Sage has already verified on this network, in any wallet, including which ones this wallet owns and which handles point to an address.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
+        // Contacts come from the local store only, but are personal, so they need their own
+        // grant. Apps can only read them.
+        UserBridgeCapability::WalletGetContacts => CapabilityDefinition::new(
+            capability,
+            "Read address book",
+            "Allows the app to read the contacts in your address book, which every wallet on this network shares, including their names, notes, addresses and handles.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
         UserBridgeCapability::WalletFilterUnlockedCoins => CapabilityDefinition::new(
@@ -429,6 +454,37 @@ mod tests {
             assert!(flags.user_grantable());
             assert!(flags.shared_with_app());
         }
+    }
+
+    #[test]
+    fn resolving_handles_is_external_but_reading_known_handles_is_not() {
+        let resolve =
+            get_user_capability_definition(UserBridgeCapability::WalletResolveHandle).flags();
+
+        assert!(resolve.externally_observable());
+        assert!(!resolve.accesses_sensitive_secret());
+        assert!(resolve.requestable_by_app());
+        assert!(resolve.user_grantable());
+        assert!(resolve.shared_with_app());
+
+        let read = get_user_capability_definition(UserBridgeCapability::WalletGetHandles).flags();
+
+        assert!(!read.externally_observable());
+        assert!(!read.accesses_sensitive_secret());
+        assert!(read.requestable_by_app());
+        assert!(read.user_grantable());
+        assert!(read.shared_with_app());
+    }
+
+    #[test]
+    fn reading_contacts_is_not_external() {
+        let flags = get_user_capability_definition(UserBridgeCapability::WalletGetContacts).flags();
+
+        assert!(!flags.externally_observable());
+        assert!(!flags.accesses_sensitive_secret());
+        assert!(flags.requestable_by_app());
+        assert!(flags.user_grantable());
+        assert!(flags.shared_with_app());
     }
 
     #[test]

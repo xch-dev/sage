@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT OR IGNORE INTO nfts (\n                asset_id, collection_id, minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,\n                metadata_updater_kind, display_name,\n                royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,\n                edition_number, edition_total\n            )\n            VALUES ((SELECT id FROM assets WHERE hash = ?), (SELECT id FROM collections WHERE hash = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 15
+    },
+    "nullable": []
+  },
+  "hash": "4dcc72b89ceb07f3cb50683d2efda14aea8b1bd97a190ded99cb10c11b64b818"
+}

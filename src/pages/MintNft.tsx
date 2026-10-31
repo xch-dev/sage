@@ -1,4 +1,9 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { HandleResolution } from '@/components/HandleResolution';
+import {
+  ContactPicker,
+  RecipientContact,
+} from '@/components/contacts/ContactPicker';
 import Header from '@/components/Header';
 import { PasteInput } from '@/components/PasteInput';
 import {
@@ -37,6 +42,12 @@ import * as z from 'zod';
 import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
+import { xchandlesEnabled } from '@/lib/features';
+import {
+  isHandleInput,
+  isValidHandle,
+  withHandleConfirmation,
+} from '@/lib/handles';
 
 export default function MintNft() {
   const navigate = useNavigate();
@@ -49,7 +60,14 @@ export default function MintNft() {
   const formSchema = z.object({
     profile: z.string().min(1, t`Profile is required`),
     fee: amount(walletState.sync.unit.precision).optional(),
-    royaltyAddress: z.string().optional(),
+    royaltyAddress: z
+      .string()
+      .optional()
+      .refine(
+        (address) =>
+          !address || !isHandleInput(address) || isValidHandle(address),
+        t`Invalid handle`,
+      ),
     royaltyPercent: amount(2),
     dataUris: z.string(),
     metadataUris: z.string(),
@@ -59,7 +77,11 @@ export default function MintNft() {
     editionTotal: z.number().min(0).optional(),
   });
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<
+    z.input<typeof formSchema>,
+    unknown,
+    z.output<typeof formSchema>
+  >({
     resolver: zodResolver(formSchema),
     defaultValues: {
       editionCount: 1,
@@ -120,22 +142,24 @@ export default function MintNft() {
     const mints = Array.from({ length: values.editionCount }, (_, i) => ({
       edition_number: i + values.editionStart,
       edition_total: values.editionTotal ?? values.editionCount,
-      royalty_address: values.royaltyAddress || null,
+      royalty_address: values.royaltyAddress?.trim() || null,
       royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
       data_uris: mintDetails.data_uris,
       metadata_uris: mintDetails.metadata_uris,
       license_uris: mintDetails.license_uris,
     }));
 
-    commands
-      .bulkMintNfts({
+    withHandleConfirmation((confirmed_handles) =>
+      commands.bulkMintNfts({
         fee: toMojos(
           values.fee?.toString() || '0',
           walletState.sync.unit.precision,
         ),
         did_id: values.profile,
         mints,
-      })
+        confirmed_handles,
+      }),
+    )
       .then(setResponse)
       .catch(addError)
       .finally(() => setPending(false));
@@ -255,18 +279,33 @@ export default function MintNft() {
               name='royaltyAddress'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
-                    <Trans>Royalty Address</Trans>
-                  </FormLabel>
+                  <div className='flex items-center justify-between'>
+                    <FormLabel>
+                      <Trans>Royalty Address</Trans>
+                    </FormLabel>
+                    <ContactPicker
+                      onSelect={(recipient) =>
+                        form.setValue('royaltyAddress', recipient, {
+                          shouldValidate: true,
+                        })
+                      }
+                    />
+                  </div>
                   <FormControl>
                     <PasteInput
                       type='text'
-                      placeholder={t`Enter address`}
+                      placeholder={
+                        xchandlesEnabled
+                          ? t`Enter address or @handle`
+                          : t`Enter address`
+                      }
                       {...field}
                       onEndIconClick={handleRoyaltyPaste}
                       onScanImage={handleRoyaltyScanImage}
                     />
                   </FormControl>
+                  <RecipientContact value={field.value ?? ''} />
+                  <HandleResolution value={field.value ?? ''} />
                   <FormMessage />
                 </FormItem>
               )}
@@ -430,7 +469,7 @@ export default function MintNft() {
                         {form.getValues('royaltyAddress')}
                       </div>
                     )}
-                    {form.getValues('editionCount') > 1 && (
+                    {(form.getValues('editionCount') ?? 1) > 1 && (
                       <div>
                         <strong>Edition Count:</strong>{' '}
                         {form.getValues('editionCount')}
