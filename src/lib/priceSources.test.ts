@@ -13,6 +13,8 @@ import {
   moveSource,
   normalizePriceSources,
   PriceLayer,
+  refreshPlan,
+  withRefreshedLabel,
 } from './priceSources';
 import { parseTokenIndex } from './tokenIndex';
 
@@ -198,5 +200,84 @@ describe('priority and fallback', () => {
     ).toBe(0.3);
     expect(indexLayer(parsed ?? undefined, true)).toEqual({});
     expect(indexLayer(undefined, false)).toEqual({});
+  });
+});
+
+describe('refreshPlan', () => {
+  const dexie = { id: 'dexie', kind: 'dexie' as const };
+  const coingecko = { id: 'coingecko', kind: 'coingecko' as const };
+  const indexA = {
+    id: customSourceId(URL_A),
+    kind: 'index' as const,
+    url: URL_A,
+  };
+  const named = { ...label('Sprout'), ticker: 'SPROUT' };
+  const withSprout: PriceLayer = { labels: { [SPROUT]: named } };
+
+  it('reads Dexie when it comes first', () => {
+    expect(refreshPlan([dexie, indexA], [{}, withSprout], SPROUT)).toEqual({
+      kind: 'dexie',
+    });
+  });
+
+  it('reads an index ahead of Dexie, skipping CoinGecko', () => {
+    expect(
+      refreshPlan([coingecko, indexA, dexie], [{}, withSprout, {}], SPROUT),
+    ).toEqual({ kind: 'index', sourceId: indexA.id, label: named });
+  });
+
+  it('matches the asset id in any case', () => {
+    expect(refreshPlan([indexA], [withSprout], SPROUT.toUpperCase()).kind).toBe(
+      'index',
+    );
+  });
+
+  it('falls through an index without a named label for the CAT', () => {
+    const unnamed: PriceLayer = { labels: { [SPROUT]: label(null) } };
+    expect(refreshPlan([indexA, dexie], [unnamed, {}], SPROUT)).toEqual({
+      kind: 'dexie',
+    });
+    expect(refreshPlan([indexA, dexie], [withSprout, {}], OTHER)).toEqual({
+      kind: 'dexie',
+    });
+  });
+
+  it('never reads Dexie when it is off', () => {
+    expect(refreshPlan([coingecko, indexA], [{}, {}], SPROUT)).toEqual({
+      kind: 'none',
+    });
+    expect(refreshPlan([], [], SPROUT)).toEqual({ kind: 'none' });
+  });
+});
+
+describe('withRefreshedLabel', () => {
+  const record = {
+    name: 'CheeZe for SpaceRatZ',
+    ticker: 'CZE',
+    icon_url: 'https://old.example/icon.png',
+    visible: false,
+  };
+
+  it('replaces each field the index has', () => {
+    expect(
+      withRefreshedLabel(record, {
+        name: 'CheeZe',
+        ticker: '🧀',
+        iconUrl: 'https://new.example/icon.webp',
+        priceXch: 1,
+      }),
+    ).toEqual({
+      name: 'CheeZe',
+      ticker: '🧀',
+      icon_url: 'https://new.example/icon.webp',
+      visible: false,
+    });
+  });
+
+  it('keeps the wallet value where the index has none', () => {
+    expect(withRefreshedLabel(record, label('CheeZe'))).toEqual({
+      ...record,
+      name: 'CheeZe',
+    });
   });
 });

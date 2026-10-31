@@ -21,11 +21,11 @@ msgstr ""
 msgid "(Dexie, OfferCo.de, chia-offer.com URLs are supported)"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:461
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:475
 msgid "(for each offer)"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:554
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:568
 msgid "(Plus any blockchain royalties for offered assets)"
 msgstr ""
 
@@ -257,7 +257,7 @@ msgstr ""
 msgid "Active"
 msgstr ""
 
-#: src/pages/Settings.tsx:804
+#: src/pages/Settings.tsx:805
 msgid "Add"
 msgstr ""
 
@@ -320,7 +320,7 @@ msgstr "添加请求的资产."
 msgid "Add to Offer"
 msgstr ""
 
-#: src/pages/Settings.tsx:781
+#: src/pages/Settings.tsx:782
 msgid "Add Token Index"
 msgstr ""
 
@@ -365,8 +365,8 @@ msgstr "地址"
 msgid "Address belongs to your wallet"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:362
-#: src/components/ConfirmationDialog.tsx:498
+#: src/components/ConfirmationDialog.tsx:364
+#: src/components/ConfirmationDialog.tsx:500
 #: src/components/confirmations/DidConfirmation.tsx:79
 #: src/components/confirmations/NftConfirmation.tsx:86
 #: src/components/confirmations/OptionConfirmation.tsx:83
@@ -403,7 +403,7 @@ msgstr "地址"
 msgid "Advanced"
 msgstr "高级"
 
-#: src/components/ConfirmationDialog.tsx:518
+#: src/components/ConfirmationDialog.tsx:520
 msgid "Advanced Feature"
 msgstr ""
 
@@ -415,15 +415,15 @@ msgstr ""
 msgid "All Addresses"
 msgstr "所有地址"
 
-#: src/pages/Settings.tsx:1077
+#: src/pages/Settings.tsx:1078
 msgid "All Levels"
 msgstr ""
 
-#: src/pages/Settings.tsx:1109
+#: src/pages/Settings.tsx:1110
 msgid "All Sources"
 msgstr ""
 
-#: src/pages/Settings.tsx:1212
+#: src/pages/Settings.tsx:1213
 msgid "Allow Unsigned Transactions"
 msgstr ""
 
@@ -444,15 +444,15 @@ msgstr "金额"
 msgid "Amount copied to clipboard"
 msgstr ""
 
-#: src/components/Assets.tsx:118
+#: src/components/Assets.tsx:125
 msgid "Amount includes"
 msgstr "金额包括"
 
-#: src/pages/Settings.tsx:782
+#: src/pages/Settings.tsx:783
 msgid "An https URL serving a token index (version 1)"
 msgstr ""
 
-#: src/pages/Settings.tsx:1849
+#: src/pages/Settings.tsx:1850
 msgid "Analyze Duration"
 msgstr ""
 
@@ -515,15 +515,15 @@ msgstr ""
 #~ msgid "Asset Icon"
 #~ msgstr ""
 
-#: src/components/AssetCoin.tsx:84
-#: src/components/selectors/TokenSelector.tsx:136
+#: src/components/AssetCoin.tsx:87
+#: src/components/selectors/TokenSelector.tsx:143
 msgid "Asset ID"
 msgstr ""
 
-#: src/components/AssetCoin.tsx:85
+#: src/components/AssetCoin.tsx:88
 #: src/components/TokenColumns.tsx:221
 #: src/components/TokenGridView.tsx:81
-#: src/pages/Token.tsx:208
+#: src/pages/Token.tsx:215
 msgid "Asset ID copied to clipboard"
 msgstr ""
 
@@ -531,7 +531,7 @@ msgstr ""
 msgid "assets"
 msgstr ""
 
-#: src/pages/TokenList.tsx:175
+#: src/pages/TokenList.tsx:180
 msgid "Assets"
 msgstr "资产"
 
@@ -580,7 +580,7 @@ msgstr ""
 #~ msgid "Automatically generate new addresses as needed"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1297
+#: src/pages/Settings.tsx:1298
 msgid "Automatically start the RPC server when the app launches"
 msgstr ""
 
@@ -593,7 +593,7 @@ msgstr "返回"
 msgid "Back to groups"
 msgstr ""
 
-#: src/pages/Settings.tsx:1112
+#: src/pages/Settings.tsx:1113
 msgid "Backend"
 msgstr ""
 
@@ -714,10 +714,10 @@ msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交�
 #: src/components/AssignNftDialog.tsx:145
 #: src/components/ClawbackCoinsCard.tsx:402
 #: src/components/ClawbackCoinsCard.tsx:453
-#: src/components/ConfirmationDialog.tsx:622
+#: src/components/ConfirmationDialog.tsx:624
 #: src/components/dialogs/CancelOfferDialog.tsx:84
 #: src/components/dialogs/DeleteOfferDialog.tsx:58
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:613
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:627
 #: src/components/dialogs/MigrationDialog.tsx:52
 #: src/components/dialogs/OfferCreationProgressDialog.tsx:352
 #: src/components/dialogs/ResyncDialog.tsx:95
@@ -737,7 +737,7 @@ msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交�
 #: src/pages/PeerList.tsx:431
 #: src/pages/PeerList.tsx:487
 #: src/pages/PeerList.tsx:677
-#: src/pages/Settings.tsx:1789
+#: src/pages/Settings.tsx:1790
 msgid "Cancel"
 msgstr "取消"
 
@@ -784,7 +784,7 @@ msgstr ""
 msgid "Cancelled"
 msgstr "已取消"
 
-#: src/pages/Settings.tsx:1436
+#: src/pages/Settings.tsx:1437
 msgid "Cannot send change to external address. Setting not updated."
 msgstr ""
 
@@ -812,14 +812,14 @@ msgstr ""
 #~ msgid "CAT prices, XCH/USD rate, names and icons for unnamed tokens"
 #~ msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:128
-#: src/components/ConfirmationDialog.tsx:356
-#: src/components/ConfirmationDialog.tsx:377
-#: src/components/ConfirmationDialog.tsx:492
+#: src/components/ConfirmationDialog.tsx:130
+#: src/components/ConfirmationDialog.tsx:358
+#: src/components/ConfirmationDialog.tsx:379
+#: src/components/ConfirmationDialog.tsx:494
 msgid "Change"
 msgstr "修改"
 
-#: src/pages/Settings.tsx:1570
+#: src/pages/Settings.tsx:1571
 msgid "Change Address"
 msgstr ""
 
@@ -835,7 +835,7 @@ msgstr ""
 msgid "Check if an address is owned by this wallet."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:229
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:243
 msgid "Chia"
 msgstr ""
 
@@ -884,7 +884,7 @@ msgstr ""
 #~ msgstr ""
 
 #: src/components/ClawbackCoinsCard.tsx:227
-#: src/pages/Token.tsx:161
+#: src/pages/Token.tsx:168
 msgid "Claw Back Details"
 msgstr ""
 
@@ -922,7 +922,7 @@ msgstr ""
 msgid "Click here to go to offer."
 msgstr ""
 
-#: src/pages/Settings.tsx:1884
+#: src/pages/Settings.tsx:1885
 msgid "Close"
 msgstr ""
 
@@ -941,15 +941,15 @@ msgstr ""
 #~ msgid "Coin Id"
 #~ msgstr "硬币Id"
 
-#: src/components/AssetCoin.tsx:97
+#: src/components/AssetCoin.tsx:100
 #: src/components/CoinList.tsx:73
 #: src/pages/Nft.tsx:623
 #: src/pages/Option.tsx:278
 msgid "Coin ID"
 msgstr ""
 
-#: src/components/AssetCoin.tsx:98
-#: src/components/ConfirmationDialog.tsx:429
+#: src/components/AssetCoin.tsx:101
+#: src/components/ConfirmationDialog.tsx:431
 msgid "Coin ID copied to clipboard"
 msgstr ""
 
@@ -983,7 +983,7 @@ msgstr ""
 #~ msgid "Cold Wallet"
 #~ msgstr "冷钱包"
 
-#: src/pages/Settings.tsx:1210
+#: src/pages/Settings.tsx:1211
 msgid "Cold Wallets"
 msgstr ""
 
@@ -991,7 +991,7 @@ msgstr ""
 msgid "Cold wallets cannot sign offers"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:639
+#: src/components/ConfirmationDialog.tsx:641
 msgid "Cold wallets cannot sign transactions. Copy the JSON and sign externally."
 msgstr ""
 
@@ -1056,7 +1056,7 @@ msgid "Combine {ticker}"
 msgstr "合并 {ticker}"
 
 #: src/components/confirmations/TokenConfirmation.tsx:70
-#: src/pages/Token.tsx:149
+#: src/pages/Token.tsx:156
 msgid "Combine Coins"
 msgstr ""
 
@@ -1069,11 +1069,11 @@ msgstr ""
 msgid "Combined Swap"
 msgstr ""
 
-#: src/pages/Settings.tsx:1691
+#: src/pages/Settings.tsx:1692
 msgid "Compactable Pages"
 msgstr ""
 
-#: src/pages/Settings.tsx:1674
+#: src/pages/Settings.tsx:1675
 msgid "Compactable Space"
 msgstr ""
 
@@ -1097,15 +1097,15 @@ msgstr ""
 msgid "Confirm"
 msgstr "确认"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:616
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:630
 msgid "Confirm & Create"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:416
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:430
 msgid "Confirm Offer Creation"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:195
+#: src/components/ConfirmationDialog.tsx:197
 msgid "Confirm Transaction"
 msgstr ""
 
@@ -1160,7 +1160,7 @@ msgstr ""
 #~ msgid "Convert to XCH at current asking price"
 #~ msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:579
+#: src/components/ConfirmationDialog.tsx:581
 msgid "Copied"
 msgstr ""
 
@@ -1236,7 +1236,7 @@ msgstr "复制ID"
 #~ msgid "Copy ID to clipboard"
 #~ msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:584
+#: src/components/ConfirmationDialog.tsx:586
 msgid "Copy JSON"
 msgstr ""
 
@@ -1329,7 +1329,7 @@ msgstr ""
 msgid "Currency Symbol"
 msgstr "货币符号"
 
-#: src/pages/Settings.tsx:1625
+#: src/pages/Settings.tsx:1626
 msgid "Current database statistics and health information"
 msgstr ""
 
@@ -1381,7 +1381,7 @@ msgstr "数据URI"
 msgid "Data URLs"
 msgstr "数据URL"
 
-#: src/pages/Settings.tsx:1822
+#: src/pages/Settings.tsx:1823
 msgid "Database Maintenance Complete"
 msgstr ""
 
@@ -1389,15 +1389,15 @@ msgstr ""
 msgid "Database Migration Required"
 msgstr ""
 
-#: src/pages/Settings.tsx:1825
+#: src/pages/Settings.tsx:1826
 msgid "Database optimization has completed successfully."
 msgstr ""
 
-#: src/pages/Settings.tsx:1666
+#: src/pages/Settings.tsx:1667
 msgid "Database Size"
 msgstr ""
 
-#: src/pages/Settings.tsx:1624
+#: src/pages/Settings.tsx:1625
 msgid "Database Stats"
 msgstr ""
 
@@ -1462,7 +1462,7 @@ msgstr ""
 msgid "Delete All Filtered Offers"
 msgstr ""
 
-#: src/pages/Settings.tsx:1609
+#: src/pages/Settings.tsx:1610
 msgid "Delete and redownload coin data from the network"
 msgstr ""
 
@@ -1516,12 +1516,12 @@ msgstr ""
 msgid "Delta Sync"
 msgstr ""
 
-#: src/pages/Settings.tsx:1747
+#: src/pages/Settings.tsx:1748
 msgid "Derivation index"
 msgstr ""
 
-#: src/pages/Settings.tsx:1591
-#: src/pages/Settings.tsx:1741
+#: src/pages/Settings.tsx:1592
+#: src/pages/Settings.tsx:1742
 msgid "Derivation Index"
 msgstr ""
 
@@ -1542,7 +1542,7 @@ msgstr "描述"
 msgid "Deselect NFT"
 msgstr ""
 
-#: src/components/OfferSummaryCard.tsx:27
+#: src/components/OfferSummaryCard.tsx:28
 msgid "Deselect offer"
 msgstr ""
 
@@ -1555,7 +1555,7 @@ msgstr ""
 msgid "Detailed View"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:233
+#: src/components/ConfirmationDialog.tsx:235
 #: src/components/WalletCard.tsx:284
 msgid "Details"
 msgstr "详情"
@@ -1688,7 +1688,7 @@ msgstr "输入地址"
 #~ msgid "Enter amount"
 #~ msgstr "输入金额"
 
-#: src/pages/Settings.tsx:1576
+#: src/pages/Settings.tsx:1577
 msgid "Enter change address"
 msgstr ""
 
@@ -1702,7 +1702,7 @@ msgstr "请输入以逗号分隔的网址"
 msgid "Enter count"
 msgstr ""
 
-#: src/pages/Settings.tsx:1746
+#: src/pages/Settings.tsx:1747
 msgid "Enter derivation index"
 msgstr ""
 
@@ -1848,7 +1848,7 @@ msgstr ""
 msgid "Expired"
 msgstr "已过期"
 
-#: src/components/Assets.tsx:191
+#: src/components/Assets.tsx:198
 msgid "Expired at:"
 msgstr ""
 
@@ -1857,7 +1857,7 @@ msgstr ""
 msgid "Expires"
 msgstr ""
 
-#: src/components/Assets.tsx:192
+#: src/components/Assets.tsx:199
 msgid "Expires:"
 msgstr ""
 
@@ -1962,22 +1962,22 @@ msgstr ""
 msgid "Featured Themes"
 msgstr ""
 
-#: src/components/AdvancedTransactionSummary.tsx:89
-#: src/components/ConfirmationDialog.tsx:453
+#: src/components/AdvancedTransactionSummary.tsx:92
+#: src/components/ConfirmationDialog.tsx:455
 #: src/contexts/WalletConnectContext.tsx:427
 #: src/contexts/WalletConnectContext.tsx:467
 msgid "Fee"
 msgstr "手续费"
 
-#: src/components/ConfirmationDialog.tsx:261
+#: src/components/ConfirmationDialog.tsx:263
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "费用超过推荐的最大值 0.001 {ticker}"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:505
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:519
 msgid "Fee per offer:"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:500
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:514
 msgid "Fees"
 msgstr ""
 
@@ -2019,7 +2019,7 @@ msgid "Finalize Clawback"
 msgstr ""
 
 #: src/components/ClawbackCoinsCard.tsx:272
-#: src/pages/Token.tsx:173
+#: src/pages/Token.tsx:180
 msgid "Finalize Clawback Details"
 msgstr ""
 
@@ -2027,7 +2027,7 @@ msgstr ""
 msgid "Fresh Address"
 msgstr "刷新地址"
 
-#: src/pages/Settings.tsx:1115
+#: src/pages/Settings.tsx:1116
 msgid "Frontend"
 msgstr ""
 
@@ -2039,7 +2039,7 @@ msgstr ""
 msgid "General"
 msgstr ""
 
-#: src/pages/Settings.tsx:1801
+#: src/pages/Settings.tsx:1802
 msgid "Generate"
 msgstr ""
 
@@ -2051,7 +2051,7 @@ msgstr ""
 #~ msgid "Generate addresses automatically"
 #~ msgstr "自动生成地址"
 
-#: src/pages/Settings.tsx:1799
+#: src/pages/Settings.tsx:1800
 msgid "Generating"
 msgstr ""
 
@@ -2059,7 +2059,7 @@ msgstr ""
 msgid "Ghost"
 msgstr ""
 
-#: src/pages/Settings.tsx:1500
+#: src/pages/Settings.tsx:1501
 msgid "Give your wallet a memorable name"
 msgstr ""
 
@@ -2120,7 +2120,7 @@ msgstr ""
 #~ msgstr ""
 
 #: src/pages/ImportWallet.tsx:253
-#: src/pages/Settings.tsx:1774
+#: src/pages/Settings.tsx:1775
 msgid "Hardened Keys"
 msgstr ""
 
@@ -2205,7 +2205,7 @@ msgstr ""
 #~ msgid "Hide zero balances"
 #~ msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:258
+#: src/components/ConfirmationDialog.tsx:260
 msgid "High Transaction Fee"
 msgstr "高交易手续费"
 
@@ -2271,15 +2271,15 @@ msgstr ""
 msgid "Includes a 1% swap fee"
 msgstr ""
 
-#: src/pages/Settings.tsx:1601
+#: src/pages/Settings.tsx:1602
 msgid "Increase"
 msgstr ""
 
-#: src/pages/Settings.tsx:1723
+#: src/pages/Settings.tsx:1724
 msgid "Increase Derivation Index"
 msgstr ""
 
-#: src/pages/Settings.tsx:1726
+#: src/pages/Settings.tsx:1727
 msgid "Increase the derivation index to generate new addresses. Setting this too high can cause issues, and it can't be reversed without resyncing the wallet."
 msgstr ""
 
@@ -2323,13 +2323,13 @@ msgstr "IP地址"
 msgid "IP Addresses"
 msgstr ""
 
-#: src/pages/TokenList.tsx:183
+#: src/pages/TokenList.tsx:188
 msgid "Issue new token"
 msgstr ""
 
 #: src/pages/IssueToken.tsx:72
 #: src/pages/IssueToken.tsx:203
-#: src/pages/TokenList.tsx:187
+#: src/pages/TokenList.tsx:192
 msgid "Issue Token"
 msgstr "发行代币"
 
@@ -2337,11 +2337,11 @@ msgstr "发行代币"
 msgid "Items per page"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:243
+#: src/components/ConfirmationDialog.tsx:245
 msgid "JSON"
 msgstr "JSON"
 
-#: src/components/ConfirmationDialog.tsx:123
+#: src/components/ConfirmationDialog.tsx:125
 msgid "JSON copied to clipboard"
 msgstr ""
 
@@ -2367,7 +2367,7 @@ msgstr ""
 msgid "Launcher Id"
 msgstr "启动器Id"
 
-#: src/components/AssetCoin.tsx:89
+#: src/components/AssetCoin.tsx:92
 #: src/pages/Nft.tsx:264
 msgid "Launcher ID"
 msgstr ""
@@ -2377,7 +2377,7 @@ msgstr ""
 msgid "Launcher Id copied to clipboard"
 msgstr ""
 
-#: src/components/AssetCoin.tsx:90
+#: src/components/AssetCoin.tsx:93
 msgid "Launcher ID copied to clipboard"
 msgstr ""
 
@@ -2426,7 +2426,7 @@ msgstr ""
 msgid "Loading Collection..."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:245
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:259
 msgid "Loading NFT details..."
 msgstr ""
 
@@ -2434,7 +2434,7 @@ msgstr ""
 msgid "Loading offer details..."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:294
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:308
 msgid "Loading option details..."
 msgstr ""
 
@@ -2452,11 +2452,11 @@ msgstr ""
 msgid "Loading themes..."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:202
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:216
 msgid "Loading token details..."
 msgstr ""
 
-#: src/components/TransactionListView.tsx:196
+#: src/components/TransactionListView.tsx:191
 #: src/pages/Transactions.tsx:219
 msgid "Loading transactions..."
 msgstr ""
@@ -2465,7 +2465,7 @@ msgstr ""
 #~ msgid "Loading XCH details..."
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1653
+#: src/pages/Settings.tsx:1654
 msgid "Loading..."
 msgstr ""
 
@@ -2486,11 +2486,11 @@ msgstr ""
 msgid "Locked in offer"
 msgstr ""
 
-#: src/pages/Settings.tsx:1073
+#: src/pages/Settings.tsx:1074
 msgid "Log Level"
 msgstr ""
 
-#: src/pages/Settings.tsx:1042
+#: src/pages/Settings.tsx:1043
 msgid "Log Viewer"
 msgstr ""
 
@@ -2645,11 +2645,11 @@ msgstr ""
 msgid "More Themes..."
 msgstr ""
 
-#: src/pages/Settings.tsx:753
+#: src/pages/Settings.tsx:754
 msgid "Move {name} down"
 msgstr ""
 
-#: src/pages/Settings.tsx:744
+#: src/pages/Settings.tsx:745
 msgid "Move {name} up"
 msgstr ""
 
@@ -2730,7 +2730,7 @@ msgstr ""
 msgid "Network fee amount"
 msgstr "网络手续费金额"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:537
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:551
 msgid "Network Fee:"
 msgstr ""
 
@@ -2834,11 +2834,11 @@ msgstr "没有活跃的会话"
 msgid "No address found"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:380
+#: src/components/ConfirmationDialog.tsx:382
 msgid "No assets being sent to external recipients."
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:403
+#: src/components/ConfirmationDialog.tsx:405
 msgid "No coins being spent."
 msgstr ""
 
@@ -2860,6 +2860,11 @@ msgstr ""
 msgid "No Dexie offers requesting this NFT"
 msgstr ""
 
+#: src/pages/Token.tsx:110
+#: src/pages/TokenList.tsx:155
+msgid "No enabled source has information for this token"
+msgstr ""
+
 #: src/components/CoinList.tsx:259
 msgid "No expiration"
 msgstr ""
@@ -2877,7 +2882,7 @@ msgstr ""
 msgid "No items found."
 msgstr ""
 
-#: src/pages/Settings.tsx:1128
+#: src/pages/Settings.tsx:1129
 msgid "No matching log entries found"
 msgstr ""
 
@@ -2885,11 +2890,11 @@ msgstr ""
 msgid "No NFTs found."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:277
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:291
 msgid "No NFTs offered or details unavailable."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:279
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:293
 msgid "No NFTs requested or details unavailable."
 msgstr ""
 
@@ -2922,7 +2927,7 @@ msgstr "无结果."
 msgid "No theme available"
 msgstr ""
 
-#: src/components/selectors/TokenSelector.tsx:175
+#: src/components/selectors/TokenSelector.tsx:183
 msgid "No tokens found."
 msgstr ""
 
@@ -2976,11 +2981,11 @@ msgstr "余额不足以支付手续费"
 msgid "Note"
 msgstr "备注"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:355
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:369
 msgid "Nothing offered."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:357
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:371
 msgid "Nothing requested."
 msgstr ""
 
@@ -3102,11 +3107,11 @@ msgstr ""
 msgid "Open menu"
 msgstr ""
 
-#: src/pages/Settings.tsx:1640
+#: src/pages/Settings.tsx:1641
 msgid "Optimize"
 msgstr ""
 
-#: src/pages/Settings.tsx:1638
+#: src/pages/Settings.tsx:1639
 msgid "Optimizing..."
 msgstr ""
 
@@ -3151,14 +3156,14 @@ msgstr ""
 msgid "Option Details"
 msgstr ""
 
-#: src/components/AssetCoin.tsx:93
+#: src/components/AssetCoin.tsx:96
 #: src/components/confirmations/OptionConfirmation.tsx:94
 #: src/components/OptionCard.tsx:191
 #: src/pages/Option.tsx:275
 msgid "Option ID"
 msgstr ""
 
-#: src/components/AssetCoin.tsx:94
+#: src/components/AssetCoin.tsx:97
 #: src/components/confirmations/OptionConfirmation.tsx:96
 #: src/components/OptionCard.tsx:159
 #: src/components/OptionColumns.tsx:218
@@ -3210,11 +3215,11 @@ msgstr "转出数量"
 #~ msgid "Override Delta Sync"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1527
+#: src/pages/Settings.tsx:1528
 msgid "Override Network"
 msgstr ""
 
-#: src/pages/Settings.tsx:1528
+#: src/pages/Settings.tsx:1529
 msgid "Override the default network for this wallet"
 msgstr ""
 
@@ -3263,11 +3268,11 @@ msgstr ""
 #~ msgid "Page size"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1699
+#: src/pages/Settings.tsx:1700
 msgid "Page Size"
 msgstr ""
 
-#: src/pages/Settings.tsx:1841
+#: src/pages/Settings.tsx:1842
 msgid "Pages Vacuumed"
 msgstr ""
 
@@ -3335,13 +3340,13 @@ msgstr ""
 msgid "Pending..."
 msgstr "处理中..."
 
-#: src/components/AdvancedTransactionSummary.tsx:166
-#: src/components/AdvancedTransactionSummary.tsx:202
-#: src/components/AdvancedTransactionSummary.tsx:236
-#: src/components/AdvancedTransactionSummary.tsx:271
-#: src/components/AdvancedTransactionSummary.tsx:306
-#: src/components/ConfirmationDialog.tsx:354
-#: src/components/ConfirmationDialog.tsx:490
+#: src/components/AdvancedTransactionSummary.tsx:174
+#: src/components/AdvancedTransactionSummary.tsx:210
+#: src/components/AdvancedTransactionSummary.tsx:244
+#: src/components/AdvancedTransactionSummary.tsx:279
+#: src/components/AdvancedTransactionSummary.tsx:314
+#: src/components/ConfirmationDialog.tsx:356
+#: src/components/ConfirmationDialog.tsx:492
 msgid "Permanently Burned"
 msgstr "永久销毁"
 
@@ -3353,11 +3358,11 @@ msgstr "永久删除"
 msgid "Place the NFC tag near your device to scan it."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:419
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:433
 msgid "Please review the details of your offer(s) before proceeding."
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:199
+#: src/components/ConfirmationDialog.tsx:201
 msgid "Please review the transaction details before submitting."
 msgstr ""
 
@@ -3450,8 +3455,8 @@ msgstr ""
 msgid "Processing offer data..."
 msgstr "正在处理报价数据..."
 
-#: src/components/AdvancedTransactionSummary.tsx:219
-#: src/components/AdvancedTransactionSummary.tsx:233
+#: src/components/AdvancedTransactionSummary.tsx:227
+#: src/components/AdvancedTransactionSummary.tsx:241
 #: src/components/AssignNftDialog.tsx:89
 #: src/pages/MintNft.tsx:157
 msgid "Profile"
@@ -3576,7 +3581,7 @@ msgstr ""
 #~ msgid "Redownloading NFT data"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1655
+#: src/pages/Settings.tsx:1656
 msgid "Refresh"
 msgstr ""
 
@@ -3586,11 +3591,11 @@ msgstr ""
 msgid "Refresh Info"
 msgstr "刷新信息"
 
-#: src/pages/TokenList.tsx:154
+#: src/pages/TokenList.tsx:159
 msgid "Refreshing token info..."
 msgstr ""
 
-#: src/pages/Settings.tsx:763
+#: src/pages/Settings.tsx:764
 msgid "Remove {name}"
 msgstr ""
 
@@ -3649,8 +3654,8 @@ msgstr ""
 
 #: src/components/dialogs/ResyncDialog.tsx:47
 #: src/components/dialogs/ResyncDialog.tsx:120
-#: src/pages/Settings.tsx:1608
-#: src/pages/Settings.tsx:1616
+#: src/pages/Settings.tsx:1609
+#: src/pages/Settings.tsx:1617
 msgid "Resync"
 msgstr "重新同步"
 
@@ -3686,7 +3691,7 @@ msgstr ""
 msgid "Reveal Hidden Tokens"
 msgstr ""
 
-#: src/components/Assets.tsx:64
+#: src/components/Assets.tsx:71
 #: src/components/confirmations/TokenConfirmation.tsx:208
 msgid "Revocable"
 msgstr ""
@@ -3705,7 +3710,7 @@ msgstr ""
 msgid "Royalties {royaltyPercentage}%"
 msgstr "版税 {royaltyPercentage}%"
 
-#: src/components/Assets.tsx:125
+#: src/components/Assets.tsx:132
 msgid "royalty"
 msgstr "版税"
 
@@ -3721,19 +3726,19 @@ msgstr "版税地址"
 msgid "Royalty Percent"
 msgstr "税率"
 
-#: src/components/Assets.tsx:137
+#: src/components/Assets.tsx:144
 msgid "royalty to"
 msgstr "版税支付给"
 
-#: src/pages/Settings.tsx:1272
+#: src/pages/Settings.tsx:1273
 msgid "RPC Server"
 msgstr ""
 
-#: src/pages/Settings.tsx:1296
+#: src/pages/Settings.tsx:1297
 msgid "Run on startup"
 msgstr ""
 
-#: src/pages/Settings.tsx:1282
+#: src/pages/Settings.tsx:1283
 msgid "Running"
 msgstr ""
 
@@ -3794,7 +3799,7 @@ msgstr ""
 #~ msgid "Search for a token"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1062
+#: src/pages/Settings.tsx:1063
 msgid "Search logs..."
 msgstr ""
 
@@ -3821,7 +3826,7 @@ msgstr ""
 msgid "Search options..."
 msgstr ""
 
-#: src/components/selectors/TokenSelector.tsx:174
+#: src/components/selectors/TokenSelector.tsx:182
 msgid "Search or enter asset id"
 msgstr ""
 
@@ -3882,8 +3887,8 @@ msgstr ""
 msgid "Select all offers on this page"
 msgstr ""
 
-#: src/components/selectors/TokenSelector.tsx:153
-#: src/components/selectors/TokenSelector.tsx:173
+#: src/components/selectors/TokenSelector.tsx:161
+#: src/components/selectors/TokenSelector.tsx:181
 msgid "Select asset"
 msgstr ""
 
@@ -3904,12 +3909,12 @@ msgstr ""
 msgid "Select kind"
 msgstr "选择种类"
 
-#: src/pages/Settings.tsx:1048
+#: src/pages/Settings.tsx:1049
 msgid "Select log file"
 msgstr ""
 
 #: src/pages/Settings.tsx:617
-#: src/pages/Settings.tsx:1555
+#: src/pages/Settings.tsx:1556
 msgid "Select network"
 msgstr "选择网络"
 
@@ -3918,7 +3923,7 @@ msgstr "选择网络"
 msgid "Select NFT"
 msgstr ""
 
-#: src/components/OfferSummaryCard.tsx:27
+#: src/components/OfferSummaryCard.tsx:28
 msgid "Select offer"
 msgstr ""
 
@@ -4016,12 +4021,12 @@ msgstr ""
 msgid "Send Token"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:291
+#: src/components/ConfirmationDialog.tsx:293
 msgid "Sending"
 msgstr "发送中"
 
 #. js-lingui-explicit-id
-#: src/components/ConfirmationDialog.tsx:326
+#: src/components/ConfirmationDialog.tsx:328
 msgid "sending_to_recipients"
 msgstr ""
 
@@ -4041,7 +4046,7 @@ msgstr ""
 msgid "Set a default expiration time for new offers"
 msgstr ""
 
-#: src/pages/Settings.tsx:1571
+#: src/pages/Settings.tsx:1572
 msgid "Set a specific address to send change to"
 msgstr ""
 
@@ -4171,11 +4176,11 @@ msgstr ""
 msgid "Sidebar navigation"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:563
+#: src/components/ConfirmationDialog.tsx:565
 msgid "Sign Transaction"
 msgstr "签署交易"
 
-#: src/components/ConfirmationDialog.tsx:560
+#: src/components/ConfirmationDialog.tsx:562
 msgid "Signed"
 msgstr ""
 
@@ -4242,7 +4247,7 @@ msgstr ""
 #~ msgid "Sort Recent"
 #~ msgstr "按最近排序"
 
-#: src/pages/Settings.tsx:1105
+#: src/pages/Settings.tsx:1106
 msgid "Source"
 msgstr ""
 
@@ -4255,7 +4260,11 @@ msgstr ""
 #~ msgstr ""
 
 #: src/pages/Settings.tsx:714
-msgid "Sources are used in this order. For each token, the first enabled source with a price wins and later sources only fill gaps. Names, tickers and icons from a token index are shown only where a token has none, and are never saved to the wallet."
+#~ msgid "Sources are used in this order. For each token, the first enabled source with a price wins and later sources only fill gaps. Names, tickers and icons from a token index are shown only where a token has none, and are never saved to the wallet."
+#~ msgstr ""
+
+#: src/pages/Settings.tsx:714
+msgid "Sources are used in this order. For each token, the first enabled source with a price wins and later sources only fill gaps. Names, tickers and icons from a token index are shown only where a token has none. Refresh Info on a token saves the label from the first enabled source that has one."
 msgstr ""
 
 #: src/components/TokenCard.tsx:130
@@ -4270,8 +4279,8 @@ msgstr ""
 msgid "Spent"
 msgstr "已经花费"
 
-#: src/components/AdvancedTransactionSummary.tsx:47
-#: src/components/ConfirmationDialog.tsx:398
+#: src/components/AdvancedTransactionSummary.tsx:50
+#: src/components/ConfirmationDialog.tsx:400
 msgid "Spent Coins"
 msgstr "已花费硬币"
 
@@ -4289,7 +4298,7 @@ msgid "Split {ticker}"
 msgstr "拆分 {ticker}"
 
 #: src/components/confirmations/TokenConfirmation.tsx:54
-#: src/pages/Token.tsx:136
+#: src/pages/Token.tsx:143
 msgid "Split Coins"
 msgstr ""
 
@@ -4297,13 +4306,13 @@ msgstr ""
 msgid "Split Details"
 msgstr ""
 
-#: src/pages/Settings.tsx:1290
+#: src/pages/Settings.tsx:1291
 msgid "Start"
 msgstr ""
 
 #: src/components/confirmations/CancelOfferConfirmation.tsx:93
 #: src/components/OptionColumns.tsx:141
-#: src/pages/Settings.tsx:1622
+#: src/pages/Settings.tsx:1623
 msgid "Status"
 msgstr ""
 
@@ -4317,15 +4326,15 @@ msgstr ""
 msgid "Status: {offerStatus}"
 msgstr ""
 
-#: src/pages/Settings.tsx:1290
+#: src/pages/Settings.tsx:1291
 msgid "Stop"
 msgstr ""
 
-#: src/pages/Settings.tsx:1282
+#: src/pages/Settings.tsx:1283
 msgid "Stopped"
 msgstr ""
 
-#: src/components/Assets.tsx:171
+#: src/components/Assets.tsx:178
 #: src/components/confirmations/MintOptionConfirmation.tsx.tsx:105
 #: src/components/OptionColumns.tsx:80
 #: src/pages/MintOption.tsx:209
@@ -4337,14 +4346,14 @@ msgstr ""
 msgid "Strike Price"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:634
-#: src/components/ConfirmationDialog.tsx:695
+#: src/components/ConfirmationDialog.tsx:636
+#: src/components/ConfirmationDialog.tsx:697
 #: src/components/dialogs/CancelOfferDialog.tsx:91
 #: src/pages/CreateWallet.tsx:289
 msgid "Submit"
 msgstr "提交"
 
-#: src/components/ConfirmationDialog.tsx:648
+#: src/components/ConfirmationDialog.tsx:650
 #: src/components/dialogs/CancelOfferDialog.tsx:89
 msgid "Submitting"
 msgstr "正在提交"
@@ -4357,8 +4366,8 @@ msgstr ""
 msgid "Summarized View"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:220
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:428
+#: src/components/ConfirmationDialog.tsx:222
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:442
 msgid "Summary"
 msgstr "摘要"
 
@@ -4424,7 +4433,7 @@ msgstr ""
 msgid "synced to peak {peerMaxHeight}"
 msgstr ""
 
-#: src/pages/Settings.tsx:1589
+#: src/pages/Settings.tsx:1590
 msgid "Syncing"
 msgstr ""
 
@@ -4436,7 +4445,7 @@ msgstr "正在同步 {syncedCoins} / {totalCoins}"
 msgid "Syncing Defaults"
 msgstr ""
 
-#: src/pages/TokenList.tsx:214
+#: src/pages/TokenList.tsx:219
 msgid "Syncing in progress..."
 msgstr "同步进行中..."
 
@@ -4530,7 +4539,7 @@ msgstr ""
 #~ msgid "The network which this wallet will use"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1592
+#: src/pages/Settings.tsx:1593
 msgid "The number of addresses managed by this wallet"
 msgstr ""
 
@@ -4542,7 +4551,7 @@ msgstr ""
 msgid "The offer to fulfill the swap has been created successfully. It will now be executed on Dexie and imported on the offers page."
 msgstr ""
 
-#: src/pages/Settings.tsx:811
+#: src/pages/Settings.tsx:812
 msgid "The token index URL must start with https://"
 msgstr ""
 
@@ -4554,7 +4563,7 @@ msgstr ""
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "钱包在每次交易后会生成一个新的地址, 旧地址仍然有效."
 
-#: src/pages/TokenList.tsx:217
+#: src/pages/TokenList.tsx:222
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "钱包仍在同步中. 同步完成之前, 余额可能不准确."
 
@@ -4623,15 +4632,15 @@ msgstr ""
 msgid "This asset can be revoked by its issuer."
 msgstr ""
 
-#: src/components/Assets.tsx:86
+#: src/components/Assets.tsx:93
 msgid "This CAT can be revoked by the issuer"
 msgstr ""
 
-#: src/components/Assets.tsx:82
+#: src/components/Assets.tsx:89
 msgid "This CAT is already in your wallet"
 msgstr ""
 
-#: src/components/Assets.tsx:90
+#: src/components/Assets.tsx:97
 msgid "This CAT is not in your wallet yet"
 msgstr ""
 
@@ -4642,7 +4651,7 @@ msgstr ""
 #~ msgid "This does not include a fee of {makerFee} which was already added by the maker."
 #~ msgstr "这不包括已由创建者添加的手续费 {makerFee}."
 
-#: src/pages/TokenList.tsx:253
+#: src/pages/TokenList.tsx:258
 msgid "This is an estimate only and does not account for liquidity"
 msgstr ""
 
@@ -4654,7 +4663,7 @@ msgstr ""
 #~ msgid "This is how your selected theme looks across different components"
 #~ msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:521
+#: src/components/ConfirmationDialog.tsx:523
 msgid "This is the raw JSON spend bundle for this transaction. If you sign it, the transaction can be submitted to the mempool externally."
 msgstr "这是该交易的原始 JSON 支出捆绑包. 如果签署它, 交易可以通过外部提交到内存池."
 
@@ -4812,7 +4821,7 @@ msgstr ""
 #~ msgid "This will make your offer(s) immediately public and takeable on {0}."
 #~ msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:597
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:611
 msgid "This will make your offer(s) immediately public and takeable on {marketplaceName}."
 msgstr ""
 
@@ -4874,7 +4883,7 @@ msgstr ""
 msgid "Ticker is required"
 msgstr "需提供简称"
 
-#: src/components/ConfirmationDialog.tsx:323
+#: src/components/ConfirmationDialog.tsx:325
 msgid "To:"
 msgstr ""
 
@@ -4914,7 +4923,7 @@ msgstr ""
 msgid "Token Icon"
 msgstr ""
 
-#: src/pages/Settings.tsx:795
+#: src/pages/Settings.tsx:796
 msgid "Token index URL"
 msgstr ""
 
@@ -4940,7 +4949,7 @@ msgstr ""
 #~ msgid "Token search and filters"
 #~ msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:197
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:211
 msgid "Tokens"
 msgstr ""
 
@@ -4956,15 +4965,15 @@ msgstr ""
 msgid "Total Amount"
 msgstr ""
 
-#: src/pages/Settings.tsx:1833
+#: src/pages/Settings.tsx:1834
 msgid "Total Duration"
 msgstr ""
 
-#: src/pages/TokenList.tsx:244
+#: src/pages/TokenList.tsx:249
 msgid "Total Estimated Balance"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:520
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:534
 msgid "Total fees for {numberOfOffers} offers:"
 msgstr ""
 
@@ -4972,11 +4981,11 @@ msgstr ""
 msgid "Total items: {total}"
 msgstr ""
 
-#: src/pages/Settings.tsx:1683
+#: src/pages/Settings.tsx:1684
 msgid "Total Pages"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:311
+#: src/components/ConfirmationDialog.tsx:313
 msgid "Total:"
 msgstr ""
 
@@ -5020,7 +5029,7 @@ msgstr ""
 msgid "Transaction failed: {shortId}..."
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:601
+#: src/components/ConfirmationDialog.tsx:603
 msgid "Transaction Fee"
 msgstr ""
 
@@ -5028,12 +5037,12 @@ msgstr ""
 msgid "Transaction filtering and sorting options"
 msgstr ""
 
-#: src/components/TransactionListView.tsx:189
+#: src/components/TransactionListView.tsx:184
 msgid "Transaction history table"
 msgstr ""
 
-#: src/components/AdvancedTransactionSummary.tsx:81
-#: src/components/ConfirmationDialog.tsx:443
+#: src/components/AdvancedTransactionSummary.tsx:84
+#: src/components/ConfirmationDialog.tsx:445
 msgid "Transaction Output"
 msgstr "转出交易"
 
@@ -5041,11 +5050,11 @@ msgstr "转出交易"
 #~ msgid "Transaction Signed"
 #~ msgstr "已签名交易"
 
-#: src/components/ConfirmationDialog.tsx:547
+#: src/components/ConfirmationDialog.tsx:549
 msgid "Transaction signed successfully"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:689
+#: src/components/ConfirmationDialog.tsx:691
 msgid "Transaction submitted successfully"
 msgstr ""
 
@@ -5136,7 +5145,7 @@ msgstr ""
 #~ msgid "Unassigned NFTs"
 #~ msgstr ""
 
-#: src/components/Assets.tsx:160
+#: src/components/Assets.tsx:167
 #: src/components/OptionCard.tsx:252
 #: src/components/OptionColumns.tsx:51
 #: src/pages/MintOption.tsx:158
@@ -5149,14 +5158,14 @@ msgid "Underlying Asset (Locked)"
 msgstr ""
 
 #: src/pages/ImportWallet.tsx:239
-#: src/pages/Settings.tsx:1760
+#: src/pages/Settings.tsx:1761
 msgid "Unhardened Keys"
 msgstr ""
 
-#: src/components/AdvancedTransactionSummary.tsx:255
-#: src/components/AdvancedTransactionSummary.tsx:269
-#: src/components/Assets.tsx:56
-#: src/components/OfferSummaryCard.tsx:90
+#: src/components/AdvancedTransactionSummary.tsx:263
+#: src/components/AdvancedTransactionSummary.tsx:277
+#: src/components/Assets.tsx:63
+#: src/components/OfferSummaryCard.tsx:97
 #: src/components/OptionCard.tsx:267
 #: src/components/OptionColumns.tsx:72
 #: src/components/OptionColumns.tsx:98
@@ -5208,8 +5217,8 @@ msgstr ""
 msgid "Unless you import it as a cold wallet, your seed phrase and/or secret key will be viewable from the wallet card on the login screen."
 msgstr ""
 
-#: src/components/AdvancedTransactionSummary.tsx:220
-#: src/components/AdvancedTransactionSummary.tsx:234
+#: src/components/AdvancedTransactionSummary.tsx:228
+#: src/components/AdvancedTransactionSummary.tsx:242
 msgid "Unnamed"
 msgstr "未命名"
 
@@ -5239,8 +5248,8 @@ msgstr ""
 #~ msgid "Unspent"
 #~ msgstr "未花费"
 
-#: src/components/AdvancedTransactionSummary.tsx:290
-#: src/components/AdvancedTransactionSummary.tsx:304
+#: src/components/AdvancedTransactionSummary.tsx:298
+#: src/components/AdvancedTransactionSummary.tsx:312
 msgid "Untitled"
 msgstr ""
 
@@ -5267,7 +5276,7 @@ msgstr "未命名个人资料"
 #~ msgid "Upload to {0}"
 #~ msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:593
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:607
 #: src/components/MarketplaceCard.tsx:151
 msgid "Upload to {marketplaceName}"
 msgstr ""
@@ -5342,7 +5351,7 @@ msgstr "需提供网址"
 msgid "USD Value: "
 msgstr ""
 
-#: src/pages/Settings.tsx:771
+#: src/pages/Settings.tsx:772
 msgid "Use {name}"
 msgstr ""
 
@@ -5380,7 +5389,7 @@ msgstr ""
 msgid "UTF-8 string"
 msgstr ""
 
-#: src/pages/Settings.tsx:1873
+#: src/pages/Settings.tsx:1874
 msgid "Vacuum Duration"
 msgstr ""
 
@@ -5421,7 +5430,7 @@ msgstr ""
 msgid "View coin {coinId} on Spacescan.io"
 msgstr ""
 
-#: src/components/AssetCoin.tsx:30
+#: src/components/AssetCoin.tsx:31
 msgid "View coin {coinIdLabel} on Spacescan.io"
 msgstr ""
 
@@ -5485,15 +5494,15 @@ msgstr ""
 #~ msgid "View Unknown CAT token details"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1857
+#: src/pages/Settings.tsx:1858
 msgid "WAL Checkpoint Duration"
 msgstr ""
 
-#: src/pages/Settings.tsx:1707
+#: src/pages/Settings.tsx:1708
 msgid "WAL Pages"
 msgstr ""
 
-#: src/pages/Settings.tsx:1865
+#: src/pages/Settings.tsx:1866
 msgid "WAL Pages Checkpointed"
 msgstr ""
 
@@ -5504,7 +5513,7 @@ msgstr ""
 #: src/components/WalletSwitcher.tsx:349
 #: src/pages/Login.tsx:205
 #: src/pages/Settings.tsx:153
-#: src/pages/Settings.tsx:1497
+#: src/pages/Settings.tsx:1498
 msgid "Wallet"
 msgstr "钱包"
 
@@ -5535,7 +5544,7 @@ msgstr "钱包密钥"
 #: src/components/WalletCard.tsx:419
 #: src/pages/CreateWallet.tsx:163
 #: src/pages/ImportWallet.tsx:134
-#: src/pages/Settings.tsx:1499
+#: src/pages/Settings.tsx:1500
 msgid "Wallet Name"
 msgstr "钱包名称"
 
@@ -5557,11 +5566,11 @@ msgstr "钱包"
 msgid "Warning"
 msgstr "警告"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:483
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:497
 msgid "Warning: This is a one-sided offer. You are not requesting anything in return."
 msgstr ""
 
-#: src/pages/Settings.tsx:1213
+#: src/pages/Settings.tsx:1214
 msgid "When enabled, cold wallets can build transactions and export the unsigned spend bundle for external signing, instead of being blocked from transacting entirely."
 msgstr ""
 
@@ -5594,15 +5603,15 @@ msgstr ""
 msgid "Yes"
 msgstr ""
 
-#: src/components/AdvancedTransactionSummary.tsx:168
-#: src/components/AdvancedTransactionSummary.tsx:204
-#: src/components/AdvancedTransactionSummary.tsx:238
-#: src/components/AdvancedTransactionSummary.tsx:273
-#: src/components/AdvancedTransactionSummary.tsx:308
-#: src/components/ConfirmationDialog.tsx:128
-#: src/components/ConfirmationDialog.tsx:355
-#: src/components/ConfirmationDialog.tsx:377
-#: src/components/ConfirmationDialog.tsx:491
+#: src/components/AdvancedTransactionSummary.tsx:176
+#: src/components/AdvancedTransactionSummary.tsx:212
+#: src/components/AdvancedTransactionSummary.tsx:246
+#: src/components/AdvancedTransactionSummary.tsx:281
+#: src/components/AdvancedTransactionSummary.tsx:316
+#: src/components/ConfirmationDialog.tsx:130
+#: src/components/ConfirmationDialog.tsx:357
+#: src/components/ConfirmationDialog.tsx:379
+#: src/components/ConfirmationDialog.tsx:493
 msgid "You"
 msgstr "我"
 
@@ -5610,11 +5619,11 @@ msgstr "我"
 msgid "You are about to claw back coins. This will return them to your wallet."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:432
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:446
 msgid "You are about to create <0>{numberOfOffers}</0> individual offers. Each offer will request the same assets and offer one of the selected NFTs."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:441
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:455
 msgid "You are about to create <0>1</0> offer."
 msgstr ""
 
@@ -5654,11 +5663,11 @@ msgstr ""
 msgid "You are minting a new option contract. This will lock up the underlying funds until the expiration, or until the current owner chooses to exercise it."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:452
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:466
 msgid "You Are Offering"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:458
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:472
 msgid "You Are Requesting"
 msgstr ""
 
