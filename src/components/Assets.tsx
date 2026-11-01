@@ -1,5 +1,6 @@
 import { OfferAsset } from '@/bindings';
 import { NumberFormat } from '@/components/NumberFormat';
+import { useAssetLabel } from '@/hooks/useAssetLabel';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -28,9 +29,15 @@ export interface AssetsProps {
 }
 
 export function Assets({ assets, catPresence = {} }: AssetsProps) {
+  // Unnamed CATs show a token index's suggested label, as on the token list.
+  const label = useAssetLabel();
+  const shown = assets.map((entry) => ({
+    ...entry,
+    asset: label(entry.asset),
+  }));
   return (
     <div className='flex flex-col gap-3'>
-      {assets.map(
+      {shown.map(
         ({
           asset,
           amount,
