@@ -39,6 +39,25 @@ struct OptionExercise {
     strike_ids: IndexSet<Id>,
 }
 
+impl OptionExercise {
+    fn actions(&self, fee: u64) -> Vec<Action> {
+        let mut actions = vec![Action::fee(fee)];
+        actions.extend_from_slice(&self.melt_actions);
+        actions.extend_from_slice(&self.settle_actions);
+        actions
+    }
+
+    fn add_settlements(&self, spends: &mut Spends) {
+        for &coin in &self.settlement_coins {
+            spends.add(coin);
+        }
+
+        for &cat in &self.settlement_cats {
+            spends.add(cat);
+        }
+    }
+}
+
 impl Wallet {
     pub async fn mint_option(
         &self,
@@ -147,19 +166,11 @@ impl Wallet {
 
         let exercise = self.prepare_exercise(&mut ctx, option_ids).await?;
 
-        let mut actions = vec![Action::fee(fee)];
-        actions.extend(exercise.melt_actions);
-        actions.extend(exercise.settle_actions);
+        let actions = exercise.actions(fee);
 
         let mut spends = self.prepare_spends(&mut ctx, vec![], &actions).await?;
 
-        for coin in exercise.settlement_coins {
-            spends.add(coin);
-        }
-
-        for cat in exercise.settlement_cats {
-            spends.add(cat);
-        }
+        exercise.add_settlements(&mut spends);
 
         let deltas = spends.apply(&mut ctx, &actions)?;
         self.complete_spends(&mut ctx, &deltas, spends).await?;
@@ -200,17 +211,11 @@ impl Wallet {
 
         let mut spends = self.prepare_spends_for_selection(&mut ctx, &[]).await?;
 
-        for option in exercise.options {
+        for &option in &exercise.options {
             spends.add(option);
         }
 
-        for coin in exercise.settlement_coins {
-            spends.add(coin);
-        }
-
-        for cat in exercise.settlement_cats {
-            spends.add(cat);
-        }
+        exercise.add_settlements(&mut spends);
 
         for &id in &exercise.strike_ids {
             self.select_any_coin(&mut ctx, &mut spends, id, WalletError::MissingStrikeCoin)
@@ -226,11 +231,7 @@ impl Wallet {
         self.select_spends(&mut ctx, &mut spends, &[Action::fee(fee)])
             .await?;
 
-        let mut actions = vec![Action::fee(fee)];
-        actions.extend(exercise.melt_actions);
-        actions.extend(exercise.settle_actions);
-
-        let mut deltas = spends.apply(&mut ctx, &actions)?;
+        let mut deltas = spends.apply(&mut ctx, &exercise.actions(fee))?;
 
         // The strike payments are spent as part of the transaction, rather than being received
         for coin in mem::take(&mut spends.outputs.xch) {
@@ -279,6 +280,9 @@ impl Wallet {
         option_ids: Vec<Bytes32>,
     ) -> Result<OptionExercise, WalletError> {
         let mut exercise = OptionExercise::default();
+
+        // An option can only be spent once, so repeated ids are ignored
+        let option_ids: IndexSet<Bytes32> = option_ids.into_iter().collect();
 
         for option_id in option_ids {
             let option = self
@@ -1081,6 +1085,74 @@ mod tests {
             alice.wallet.cancel_options(vec![option_id], 0).await,
             Err(WalletError::OptionExpired(id)) if id == option_id
         ));
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_cancel_option_repeated_id() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1002).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let option_id =
+            mint_cat_option(&mut alice, asset_id, OptionType::Xch { amount: 2000 }).await?;
+
+        let coin_spends = alice
+            .wallet
+            .cancel_options(vec![option_id, option_id], 0)
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        assert!(alice.wallet.db.option(option_id).await?.is_none());
+        assert_eq!(
+            alice.wallet.db.selectable_cat_balance(asset_id).await?,
+            1000
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_cancel_option_xch_underlying_with_fee() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1001).await?;
+
+        let option_id = mint_option(
+            &mut alice,
+            OptionType::Xch { amount: 1000 },
+            OptionType::Xch { amount: 5000 },
+        )
+        .await?;
+
+        let coin_spends = alice.wallet.cancel_options(vec![option_id], 1).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        assert!(alice.wallet.db.option(option_id).await?.is_none());
+        assert_eq!(alice.wallet.db.selectable_xch_balance().await?, 1000);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_cancel_multiple_xch_underlying_options_with_same_strike() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2002).await?;
+
+        let strike_type = OptionType::Xch { amount: 5000 };
+
+        let first = mint_option(&mut alice, OptionType::Xch { amount: 1000 }, strike_type).await?;
+        let second = mint_option(&mut alice, OptionType::Xch { amount: 1000 }, strike_type).await?;
+
+        let coin_spends = alice.wallet.cancel_options(vec![first, second], 0).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        assert!(alice.wallet.db.option(first).await?.is_none());
+        assert!(alice.wallet.db.option(second).await?.is_none());
+        assert_eq!(alice.wallet.db.selectable_xch_balance().await?, 2002);
 
         Ok(())
     }

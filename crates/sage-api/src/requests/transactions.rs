@@ -724,7 +724,7 @@ pub struct ExerciseOptions {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Options",
-        description = "Cancel unexpired options that were minted by and are still owned by this wallet, returning the underlying assets. The strike amount is not required, but a coin of the strike asset of any amount (including 0) must be available.",
+        description = "Cancel unexpired options that were minted by and are still owned by this wallet, returning the underlying assets. The strike amount is not required, but a coin of any amount (including 0) is needed for the strike asset and for XCH, unless the underlying asset is the same asset.",
         response_type = "TransactionResponse"
     )
 )]

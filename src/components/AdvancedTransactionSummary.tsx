@@ -139,10 +139,14 @@ export function calculateTransaction(
   const spent: SpentCoin[] = [];
   const created: CreatedCoin[] = [];
 
-  for (const input of summary.inputs || []) {
-    const isEphemeral = summary.inputs.some((i) =>
-      i.outputs.some((o) => o.coin_id === input.coin_id),
-    );
+  const inputs = summary.inputs || [];
+  const inputCoinIds = new Set(inputs.map((input) => input.coin_id));
+  const outputCoinIds = new Set(
+    inputs.flatMap((input) => input.outputs.map((output) => output.coin_id)),
+  );
+
+  for (const input of inputs) {
+    const isEphemeral = outputCoinIds.has(input.coin_id);
 
     if (input.asset && !input.asset.asset_id) {
       if (!isEphemeral) {
@@ -159,7 +163,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 
@@ -197,7 +201,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 
@@ -219,12 +223,7 @@ export function calculateTransaction(
     }
 
     if (input.asset?.kind === 'did') {
-      if (
-        !summary.inputs
-          .map((i) => i.outputs)
-          .flat()
-          .find((o) => o.coin_id === input.coin_id)
-      ) {
+      if (!isEphemeral) {
         spent.push({
           badge: t`Profile`,
           label: input.asset.name ?? t`Unnamed`,
@@ -234,7 +233,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 
@@ -254,12 +253,7 @@ export function calculateTransaction(
     }
 
     if (input.asset?.kind === 'nft') {
-      if (
-        !summary.inputs
-          .map((i) => i.outputs)
-          .flat()
-          .find((o) => o.coin_id === input.coin_id)
-      ) {
+      if (!isEphemeral) {
         spent.push({
           badge: 'NFT',
           label: input.asset.name ?? t`Unknown`,
@@ -269,7 +263,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 
@@ -289,12 +283,7 @@ export function calculateTransaction(
     }
 
     if (input.asset?.kind === 'option') {
-      if (
-        !summary.inputs
-          .map((i) => i.outputs)
-          .flat()
-          .find((o) => o.coin_id === input.coin_id)
-      ) {
+      if (!isEphemeral) {
         spent.push({
           badge: 'Option',
           label: input.asset.name ?? t`Untitled`,
@@ -304,7 +293,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 

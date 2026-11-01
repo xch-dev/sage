@@ -34,12 +34,12 @@ impl Sage {
 
         let transaction = Transaction::from_coin_spends(coin_spends)?;
 
-        let input_puzzle_hashes: HashMap<Bytes32, Bytes32> = transaction
+        let input_coins: HashMap<Bytes32, Coin> = transaction
             .inputs
             .iter()
             .map(|input| {
                 let coin = input.coin_spend.coin;
-                (coin.coin_id(), coin.puzzle_hash)
+                (coin.coin_id(), coin)
             })
             .collect();
 
@@ -53,14 +53,7 @@ impl Sage {
             let asset = match input.kind {
                 CoinKind::Launcher => None,
                 CoinKind::Unknown => {
-                    // Settlement coins don't have an owner, but ones we created are still our XCH
-                    let owner_puzzle_hash = if coin.puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
-                        input_puzzle_hashes.get(&coin.parent_coin_info).copied()
-                    } else {
-                        Some(coin.puzzle_hash)
-                    };
-
-                    if let Some(owner_puzzle_hash) = owner_puzzle_hash
+                    if let Some(owner_puzzle_hash) = owner_puzzle_hash(coin, &input_coins)
                         && wallet.db.is_p2_puzzle_hash(owner_puzzle_hash).await?
                     {
                         wallet.db.asset(Bytes32::default()).await?
@@ -157,6 +150,18 @@ impl Sage {
             handles: cache.handles,
         })
     }
+}
+
+/// Settlement coins don't have an owner, but ones we created are still our XCH. This is the
+/// puzzle hash of the first ancestor in the transaction that isn't a settlement coin.
+fn owner_puzzle_hash(coin: Coin, input_coins: &HashMap<Bytes32, Coin>) -> Option<Bytes32> {
+    let mut owner = coin;
+
+    while owner.puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
+        owner = *input_coins.get(&owner.parent_coin_info)?;
+    }
+
+    Some(owner.puzzle_hash)
 }
 
 #[derive(Debug, Default)]
@@ -268,4 +273,36 @@ pub fn rust_coin(coin: CoinJson) -> Result<Coin> {
             .to_u64()
             .ok_or(Error::InvalidCoinAmount(coin.amount.to_string()))?,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_owner_puzzle_hash() {
+        let settlement_hash = SETTLEMENT_PAYMENT_HASH.into();
+        let wallet_hash = Bytes32::new([1; 32]);
+
+        let wallet_coin = Coin::new(Bytes32::new([2; 32]), wallet_hash, 1);
+        let settlement = Coin::new(wallet_coin.coin_id(), settlement_hash, 1);
+        let nested = Coin::new(settlement.coin_id(), settlement_hash, 1);
+        let external = Coin::new(Bytes32::new([3; 32]), settlement_hash, 1);
+
+        let input_coins: HashMap<Bytes32, Coin> = [wallet_coin, settlement, nested]
+            .into_iter()
+            .map(|coin| (coin.coin_id(), coin))
+            .collect();
+
+        assert_eq!(
+            owner_puzzle_hash(wallet_coin, &input_coins),
+            Some(wallet_hash)
+        );
+        assert_eq!(
+            owner_puzzle_hash(settlement, &input_coins),
+            Some(wallet_hash)
+        );
+        assert_eq!(owner_puzzle_hash(nested, &input_coins), Some(wallet_hash));
+        assert_eq!(owner_puzzle_hash(external, &input_coins), None);
+    }
 }

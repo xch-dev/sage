@@ -19,6 +19,8 @@ export interface OptionActionHandlers {
   onToggleVisibility: (option: OptionRecord) => void;
 }
 
+type OptionAction = 'exercise' | 'cancel' | 'transfer' | 'burn';
+
 export function useOptionActions(updateOptions: () => void) {
   const { addError } = useErrors();
   const walletState = useWalletState();
@@ -32,96 +34,88 @@ export function useOptionActions(updateOptions: () => void) {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
-  const [isExercising, setIsExercising] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [isTransferring, setIsTransferring] = useState(false);
-  const [isBurning, setIsBurning] = useState(false);
+  const [pendingAction, setPendingAction] = useState<OptionAction | null>(null);
   const [transferAddress, setTransferAddress] = useState('');
 
   // Action handler functions
+  const submit = useCallback(
+    (
+      action: OptionAction,
+      setOpen: (open: boolean) => void,
+      request: () => Promise<TransactionResponse>,
+    ) => {
+      setPendingAction(action);
+      request()
+        .then(setResponse)
+        .catch((err) => {
+          setPendingAction(null);
+          addError(err);
+        })
+        .finally(() => setOpen(false));
+    },
+    [addError],
+  );
+
   const onExerciseSubmit = useCallback(
     (fee: string) => {
       if (!selectedOption) return;
-      setIsExercising(true);
-      commands
-        .exerciseOptions({
+      submit('exercise', setExerciseOpen, () =>
+        commands.exerciseOptions({
           option_ids: [selectedOption.launcher_id],
           fee: toMojos(fee, walletState.sync.unit.precision),
-        })
-        .then(setResponse)
-        .catch((err) => {
-          setIsExercising(false);
-          addError(err);
-        })
-        .finally(() => setExerciseOpen(false));
+        }),
+      );
     },
-    [selectedOption, walletState.sync.unit.precision, addError],
+    [selectedOption, walletState.sync.unit.precision, submit],
   );
 
   const onCancelSubmit = useCallback(
     (fee: string) => {
       if (!selectedOption) return;
-      setIsCancelling(true);
-      commands
-        .cancelOptions({
+      submit('cancel', setCancelOpen, () =>
+        commands.cancelOptions({
           option_ids: [selectedOption.launcher_id],
           fee: toMojos(fee, walletState.sync.unit.precision),
-        })
-        .then(setResponse)
-        .catch((err) => {
-          setIsCancelling(false);
-          addError(err);
-        })
-        .finally(() => setCancelOpen(false));
+        }),
+      );
     },
-    [selectedOption, walletState.sync.unit.precision, addError],
+    [selectedOption, walletState.sync.unit.precision, submit],
   );
 
   const onTransferSubmit = useCallback(
     (address: string, fee: string) => {
       if (!selectedOption) return;
-      setIsTransferring(true);
       setTransferAddress(address);
-      withHandleConfirmation((confirmed_handles) =>
-        commands.transferOptions({
-          option_ids: [selectedOption.launcher_id],
-          address,
-          fee: toMojos(fee, walletState.sync.unit.precision),
-          confirmed_handles,
-        }),
-      )
-        .then(setResponse)
-        .catch((err) => {
-          setIsTransferring(false);
-          addError(err);
-        })
-        .finally(() => setTransferOpen(false));
+      submit('transfer', setTransferOpen, () =>
+        withHandleConfirmation((confirmed_handles) =>
+          commands.transferOptions({
+            option_ids: [selectedOption.launcher_id],
+            address,
+            fee: toMojos(fee, walletState.sync.unit.precision),
+            confirmed_handles,
+          }),
+        ),
+      );
     },
-    [selectedOption, walletState.sync.unit.precision, addError],
+    [selectedOption, walletState.sync.unit.precision, submit],
   );
 
   const onBurnSubmit = useCallback(
     (fee: string) => {
       if (!selectedOption) return;
-      setIsBurning(true);
-      commands
-        .transferOptions({
+      submit('burn', setBurnOpen, () =>
+        commands.transferOptions({
           option_ids: [selectedOption.launcher_id],
           address: walletState.sync.burn_address,
           fee: toMojos(fee, walletState.sync.unit.precision),
-        })
-        .then(setResponse)
-        .catch((err) => {
-          setIsBurning(false);
-          addError(err);
-        })
-        .finally(() => setBurnOpen(false));
+        }),
+      );
     },
     [
       selectedOption,
       walletState.sync.unit.precision,
       walletState.sync.burn_address,
-      addError,
+      submit,
     ],
   );
 
@@ -154,6 +148,13 @@ export function useOptionActions(updateOptions: () => void) {
     },
   };
 
+  const confirmationTitles: Record<OptionAction, string> = {
+    exercise: t`Exercise Option`,
+    cancel: t`Cancel Option`,
+    transfer: t`Transfer Option`,
+    burn: t`Burn Option`,
+  };
+
   // Dialog components
   const dialogs = (
     <>
@@ -179,8 +180,9 @@ export function useOptionActions(updateOptions: () => void) {
       >
         <Trans>
           This will cancel the option contract and return the underlying asset
-          to you. The strike price is not paid, but you must hold a coin of the
-          strike asset, and an XCH coin, of any amount.
+          to you. The strike price is not paid, but unless the underlying asset
+          is the same asset, you need a coin of the strike asset and an XCH
+          coin, of any amount.
         </Trans>
       </FeeOnlyDialog>
 
@@ -211,56 +213,25 @@ export function useOptionActions(updateOptions: () => void) {
         showRecipientDetails={false}
         close={() => {
           setResponse(null);
-          setIsTransferring(false);
-          setIsBurning(false);
-          setIsExercising(false);
-          setIsCancelling(false);
+          setPendingAction(null);
           setSelectedOption(null);
         }}
         onConfirm={() => updateOptions()}
         additionalData={
-          isTransferring && response && selectedOption
+          pendingAction && response && selectedOption
             ? {
-                title: t`Transfer Option`,
+                title: confirmationTitles[pendingAction],
                 content: (
                   <OptionConfirmation
                     options={[selectedOption]}
-                    address={transferAddress}
-                    type='transfer'
+                    address={
+                      pendingAction === 'transfer' ? transferAddress : undefined
+                    }
+                    type={pendingAction}
                   />
                 ),
               }
-            : isBurning && response && selectedOption
-              ? {
-                  title: t`Burn Option`,
-                  content: (
-                    <OptionConfirmation
-                      options={[selectedOption]}
-                      type='burn'
-                    />
-                  ),
-                }
-              : isExercising && response && selectedOption
-                ? {
-                    title: t`Exercise Option`,
-                    content: (
-                      <OptionConfirmation
-                        options={[selectedOption]}
-                        type='exercise'
-                      />
-                    ),
-                  }
-                : isCancelling && response && selectedOption
-                  ? {
-                      title: t`Cancel Option`,
-                      content: (
-                        <OptionConfirmation
-                          options={[selectedOption]}
-                          type='cancel'
-                        />
-                      ),
-                    }
-                  : undefined
+            : undefined
         }
       />
     </>

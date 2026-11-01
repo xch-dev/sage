@@ -98,7 +98,8 @@ impl Database {
                 clawback_expiration_seconds AS 'clawback_timestamp?', clawback_version AS 'clawback_version?',
                 p2_options.expiration_seconds AS option_expiration_seconds,
                 EXISTS (
-                    SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = p2_options.creator_puzzle_hash
+                    SELECT 1 FROM p2_puzzles
+                    WHERE p2_puzzles.hash = p2_options.creator_puzzle_hash AND p2_puzzles.kind IN (0, 3, 4)
                 ) AS 'is_creator!: bool',
 
                 strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,
@@ -377,8 +378,10 @@ impl DatabaseTx<'_> {
     }
 }
 
+// This has to match the condition in `wallet_option`, since `query!` can't share it
 const IS_CREATED: &str = "EXISTS (
-    SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = p2_options.creator_puzzle_hash
+    SELECT 1 FROM p2_puzzles
+    WHERE p2_puzzles.hash = p2_options.creator_puzzle_hash AND p2_puzzles.kind IN (0, 3, 4)
 )";
 
 #[allow(clippy::too_many_arguments)]
