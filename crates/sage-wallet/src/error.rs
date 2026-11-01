@@ -72,6 +72,12 @@ pub enum WalletError {
     #[error("Insufficient derivations")]
     InsufficientDerivations,
 
+    #[error("This kind of wallet doesn't derive addresses")]
+    DerivationsNotSupported,
+
+    #[error("Watch-only wallets can't create or sign transactions")]
+    WatchOnly,
+
     #[error("Missing secret key")]
     UnknownPublicKey,
 
@@ -112,6 +118,11 @@ pub enum WalletError {
 
     #[error("Cannot import offer that doesn't belong to this wallet")]
     CannotImportOffer,
+
+    #[error(
+        "NFT with id {0} doesn't use the default metadata updater, so URIs can't be appended to it"
+    )]
+    NftMetadataNotAppendOnly(Bytes32),
 
     #[error("NFT option contracts are not supported")]
     NftOptionNotSupported,

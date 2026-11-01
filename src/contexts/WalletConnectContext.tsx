@@ -1,12 +1,15 @@
 import {
   commands,
+  OfferHandleNft,
   OfferRecord,
   OfferSummary,
   TokenRecord,
   TransactionSummary,
 } from '@/bindings';
 import { AdvancedTransactionSummary } from '@/components/AdvancedTransactionSummary';
+import { HandleResolution } from '@/components/HandleResolution';
 import { OfferCard } from '@/components/OfferCard';
+import { OfferHandleNftWarning } from '@/components/OfferHandleNftWarning';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +28,7 @@ import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useErrors } from '@/hooks/useErrors';
+import { xchandlesEnabled } from '@/lib/features';
 import { decodeHexMessage, fromMojos, toMojos, isHex } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
@@ -32,6 +36,7 @@ import {
   WalletConnectCommand,
   walletConnectCommands,
 } from '@/walletconnect/commands';
+import { WalletConnectError } from '@/walletconnect/errors';
 import { handleCommand } from '@/walletconnect/handler';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -124,8 +129,27 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
             : typeof error === 'object' && error !== null && 'reason' in error
               ? (error.reason as string)
               : 'Request failed';
-        addError({ kind: 'walletconnect', reason: errorMessage });
+        // Declining a changed handle has already been shown to the user.
+        const declined =
+          typeof error === 'object' &&
+          error !== null &&
+          'kind' in error &&
+          error.kind === 'cancelled';
+
+        if (!declined) {
+          addError({ kind: 'walletconnect', reason: errorMessage });
+        }
         console.error('WalletConnect request failed:', error);
+
+        // Recipients which couldn't be used, such as a handle which changed
+        // hands, are passed on as JSON so the dApp can tell which one failed.
+        const recipients =
+          typeof error === 'object' &&
+          error !== null &&
+          'recipients' in error &&
+          Array.isArray(error.recipients)
+            ? error.recipients
+            : null;
 
         await signClient.respond({
           topic: request.topic,
@@ -135,6 +159,11 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
             error: {
               code: 4001,
               message: errorMessage,
+              ...(error instanceof WalletConnectError
+                ? { data: JSON.stringify({ code: error.code }) }
+                : recipients
+                  ? { data: JSON.stringify({ recipients }) }
+                  : {}),
             },
           },
         });
@@ -593,17 +622,22 @@ function TakeOfferDialog({
   onFeeChange,
 }: CommandDialogProps<'chia_takeOffer'>) {
   const [offer, setOffer] = useState<OfferSummary | null>(null);
+  const [handleNfts, setHandleNfts] = useState<OfferHandleNft[]>([]);
   const { addError } = useErrors();
 
   useEffect(() => {
     commands
       .viewOffer({ offer: params.offer ?? '' })
-      .then((data) => setOffer(data.offer))
+      .then((data) => {
+        setOffer(data.offer);
+        setHandleNfts(data.handle_nfts ?? []);
+      })
       .catch(addError);
   }, [params, addError]);
 
   return (
     <div className='space-y-4'>
+      <OfferHandleNftWarning handleNfts={handleNfts} className='mx-4' />
       {offer ? (
         <OfferCard summary={offer} />
       ) : (
@@ -730,6 +764,7 @@ function SendDialog({ params, onFeeChange }: CommandDialogProps<'chia_send'>) {
         <div className='text-sm truncate text-muted-foreground'>
           {params.address}
         </div>
+        <HandleResolution value={params.address ?? ''} />
       </div>
       <div>
         <div className='font-medium'>Amount</div>
@@ -830,6 +865,79 @@ function UpdateCatDialog({ params }: CommandDialogProps<'chia_updateCat'>) {
   );
 }
 
+function GetContactsDialog({ params }: CommandDialogProps<'chia_getContacts'>) {
+  const search = params?.search;
+
+  return (
+    <div className='space-y-2 p-4'>
+      <p className='text-sm text-muted-foreground'>
+        {search ? (
+          <Trans>
+            The site wants to read the contacts in your address book matching{' '}
+            <span className='font-mono text-foreground'>{search}</span>,
+            including their names, notes, addresses and handles. Your address
+            book is shared by all of your wallets on this network.
+          </Trans>
+        ) : (
+          <Trans>
+            The site wants to read the contacts in your address book, including
+            their names, notes, addresses and handles. Your address book is
+            shared by all of your wallets on this network.
+          </Trans>
+        )}
+      </p>
+    </div>
+  );
+}
+
+function AddContactDialog({ params }: CommandDialogProps<'chia_addContact'>) {
+  return (
+    <div className='space-y-4 p-4'>
+      <div className='rounded-lg bg-amber-50 dark:bg-amber-950 p-4 border border-amber-200 dark:border-amber-800'>
+        <div className='flex items-start gap-3'>
+          <AlertTriangleIcon className='h-5 w-5 text-amber-500 mt-0.5' />
+          <p className='text-sm text-amber-700 dark:text-amber-300'>
+            <Trans>
+              The site chose this name. Only save it if you know this recipient
+              belongs to who the name says, since the contact will be offered
+              when you pick a recipient.
+            </Trans>
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className='font-medium'>
+          <Trans>Name</Trans>
+        </div>
+        <div className='text-sm text-muted-foreground break-words'>
+          {params.name}
+        </div>
+      </div>
+      <div>
+        <div className='font-medium'>
+          <Trans>Recipient</Trans>
+        </div>
+        <div className='text-sm text-muted-foreground font-mono break-all'>
+          {params.recipient}
+        </div>
+        {xchandlesEnabled && (
+          <HandleResolution value={params.recipient ?? ''} />
+        )}
+      </div>
+      {params.note && (
+        <div>
+          <div className='font-medium'>
+            <Trans>Note</Trans>
+          </div>
+          <div className='text-sm text-muted-foreground break-words'>
+            {params.note}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DefaultCommandDialog({ params }: { params: unknown }) {
   return (
     <div className='p-4'>
@@ -852,6 +960,8 @@ const COMMAND_COMPONENTS: {
   chia_send: SendDialog,
   chia_signMessageByAddress: SignMessageByAddressDialog,
   chia_updateCat: UpdateCatDialog,
+  chia_getContacts: GetContactsDialog,
+  chia_addContact: AddContactDialog,
 };
 
 const COMMANDS_WITH_FEE = new Set<string>([
@@ -899,6 +1009,14 @@ const COMMAND_METADATA: Partial<
     title: 'Update Token',
     description: 'A site suggests how this token is shown in your wallet',
   },
+  chia_getContacts: {
+    title: 'Share Address Book',
+    description: 'A site wants to read your contacts',
+  },
+  chia_addContact: {
+    title: 'Add Contact',
+    description: 'A site suggests a contact for your address book',
+  },
 };
 
 function RequestDialog({
@@ -919,7 +1037,11 @@ function RequestDialog({
   };
   const peerMetadata = signClient?.session.get(request.topic)?.peer.metadata;
 
-  const CommandComponent = COMMAND_COMPONENTS[method] ?? DefaultCommandDialog;
+  // The component is selected by `method`, so its params always match `parsedParams`.
+  const CommandComponent = (COMMAND_COMPONENTS[method] ??
+    DefaultCommandDialog) as (
+    props: CommandDialogProps<WalletConnectCommand>,
+  ) => JSX.Element;
 
   const parsedParams = useMemo(
     () => commandInfo.paramsType.parse(params),

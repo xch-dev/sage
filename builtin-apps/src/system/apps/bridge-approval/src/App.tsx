@@ -8,6 +8,7 @@ import {
 import { Clock } from 'lucide-react';
 import { AppApprovalBody } from './approval/AppApprovalBody';
 import { parseXchFee } from './approval/fee';
+import { sendXchHandleState } from './approval/handle';
 
 function appNameFromRuntime(
   runtime: SageAppRuntimeRecordView | null,
@@ -85,6 +86,8 @@ export function App() {
     approvalId: string | null;
     value: string;
   }>({ approvalId: null, value: '0' });
+  // The approval whose changed handle the user acknowledged, if any.
+  const [handleAck, setHandleAck] = useState<string | null>(null);
 
   async function refreshActiveRuntime() {
     const active = await sage.runtimeManager.getActiveTaskbarRuntime();
@@ -158,6 +161,15 @@ export function App() {
       : '0';
   const selectedFee =
     activeApproval?.approval.kind === 'sendXch' ? parseXchFee(feeInput) : null;
+  const handle =
+    activeApproval?.approval.kind === 'sendXch'
+      ? sendXchHandleState(activeApproval.approval)
+      : null;
+  const handleChangeAcknowledged =
+    !!activeApproval && handleAck === activeApproval.approvalId;
+  const handleBlocked =
+    !!handle &&
+    (!!handle.error || (!!handle.previousAddress && !handleChangeAcknowledged));
   const pendingForActiveAppCount = activeApprovals.length;
   const queuedApprovalCount = Math.max(0, pendingForActiveAppCount - 1);
 
@@ -186,6 +198,15 @@ export function App() {
       return;
     }
 
+    if (approved && handleBlocked) {
+      setError(
+        handle?.error
+          ? 'The handle could not be verified.'
+          : 'Confirm the new address before approving.',
+      );
+      return;
+    }
+
     setWorking(true);
     setError(null);
 
@@ -197,7 +218,12 @@ export function App() {
         approvalResponse: selectedFeeMojos
           ? {
               kind: 'sendXch',
-              response: { selectedFee: selectedFeeMojos },
+              response: {
+                selectedFee: selectedFeeMojos,
+                // Sage rejects the send if the handle resolves anywhere else
+                // by the time it's submitted.
+                confirmedAddress: handle?.address ?? null,
+              },
             }
           : undefined,
       });
@@ -278,6 +304,7 @@ export function App() {
               type='button'
               disabled={
                 working ||
+                handleBlocked ||
                 (activeApproval.approval.kind === 'sendXch' &&
                   selectedFee === null)
               }
@@ -315,6 +342,10 @@ export function App() {
               approvalId: activeApproval.approvalId,
               value,
             })
+          }
+          handleChangeAcknowledged={handleChangeAcknowledged}
+          onHandleChangeAcknowledgedChange={(value) =>
+            setHandleAck(value ? activeApproval.approvalId : null)
           }
         />
 

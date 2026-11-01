@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        DELETE FROM coins WHERE p2_puzzle_id = (\n            SELECT id FROM p2_puzzles WHERE hash = ? AND kind = 4\n        );\n\n        DELETE FROM p2_puzzles WHERE hash = ? AND kind = 4;\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "46ce84bf6ee2832977a5ae336a19263e1570599881aa42bcb56b084520540764"
+}

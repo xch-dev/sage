@@ -92,9 +92,15 @@ pub fn builtin_runtime_apps_root() -> PathBuf {
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
-fn builtin_storage(app_id: &str) -> SageAppStorage {
+fn builtin_storage(app_id: &str, namespace: Option<&str>) -> SageAppStorage {
     let mut hasher = Sha256::new();
-    hasher.update(format!("builtin-storage:{app_id}").as_bytes());
+
+    let seed = match namespace {
+        Some(namespace) => format!("builtin-storage:{namespace}:{app_id}"),
+        None => format!("builtin-storage:{app_id}"),
+    };
+    hasher.update(seed.as_bytes());
+
     let digest = hasher.finalize();
 
     SageAppStorage::AppleDataStore {
@@ -102,15 +108,16 @@ fn builtin_storage(app_id: &str) -> SageAppStorage {
     }
 }
 
+// Windows profiles are already scoped to the root's webview data directory.
 #[cfg(target_os = "windows")]
-fn builtin_storage(app_id: &str) -> SageAppStorage {
+fn builtin_storage(app_id: &str, _namespace: Option<&str>) -> SageAppStorage {
     SageAppStorage::WindowsProfile {
         directory_name: format!("builtin-profile-{app_id}"),
     }
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
-fn builtin_storage(_app_id: &str) -> SageAppStorage {
+fn builtin_storage(_app_id: &str, _namespace: Option<&str>) -> SageAppStorage {
     SageAppStorage::Unmanaged
 }
 
@@ -132,7 +139,10 @@ fn read_builtin_manifest(app_dir: &Path) -> AnyResult<SageAppPackageManifest> {
     })
 }
 
-pub fn build_builtin_test_app(app_id: &str) -> Result<Option<SageApp>, AppBuildError> {
+pub fn build_builtin_test_app(
+    app_id: &str,
+    storage_namespace: Option<&str>,
+) -> Result<Option<SageApp>, AppBuildError> {
     let Some(spec) = builtin_test_app_spec(app_id) else {
         return Ok(None);
     };
@@ -174,7 +184,7 @@ pub fn build_builtin_test_app(app_id: &str) -> Result<Option<SageApp>, AppBuildE
         )
         .map_err(|_| AppBuildError::InternalError)?,
         granted_permissions,
-        builtin_storage(spec.app_id),
+        builtin_storage(spec.app_id, storage_namespace),
         snapshot,
         SageAppWalletScope::AllWallets,
     )

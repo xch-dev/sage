@@ -128,6 +128,9 @@ impl Wallet {
         coin_ids: Vec<Bytes32>,
         fee: u64,
     ) -> Result<Vec<CoinSpend>, WalletError> {
+        // Without a fee, this doesn't go through the usual spend path, so it's checked here.
+        self.ensure_spendable()?;
+
         let coin_ids = dedup_coin_ids(coin_ids);
         let mut ctx = SpendContext::new();
 
@@ -664,6 +667,71 @@ mod tests {
     }
 
     #[test(tokio::test)]
+    async fn test_clawback_v1_expired_receiver_coin_is_not_selected() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(1000).await?;
+
+        alice.new_block_with_current_time().await?;
+
+        // The smallest coin and an exact match for the send, so selection would prefer it.
+        let timelock = 1;
+        let (clawback_id, _, inclusion_ts) =
+            create_v1_clawback(&alice, bob.puzzle_hash, 1, timelock).await?;
+
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+        seed_created_timestamp(&bob, clawback_id, inclusion_ts).await?;
+
+        sleep(Duration::from_secs(timelock + 1)).await;
+        bob.new_block_with_current_time().await?;
+
+        // It stays visible as a clawback, but isn't part of the balance until it's claimed.
+        wait_for_clawback_coin(&bob, clawback_id, CoinFilterMode::Clawback).await?;
+        assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(bob.wallet.db.selectable_xch_balance().await?, 1000);
+        assert!(
+            !bob.wallet
+                .db
+                .selectable_xch_coins()
+                .await?
+                .iter()
+                .any(|coin| coin.coin_id() == clawback_id)
+        );
+
+        // Explicitly spending it through the normal path points at claim_clawback.
+        let err = bob
+            .wallet
+            .combine(vec![clawback_id], 0)
+            .await
+            .expect_err("V1 receiver coins must be claimed");
+        assert!(
+            matches!(err, WalletError::ClawbackClaimRequired),
+            "unexpected error: {err:?}"
+        );
+
+        let coin_spends = bob
+            .wallet
+            .send_xch(vec![(alice.puzzle_hash, 1)], 0, vec![], None)
+            .await?;
+        assert!(
+            !coin_spends
+                .iter()
+                .any(|spend| spend.coin.coin_id() == clawback_id)
+        );
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+        assert_eq!(bob.wallet.db.xch_balance().await?, 999);
+
+        let coin_spends = bob.wallet.claim_clawback(vec![clawback_id], 0).await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+        assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(bob.wallet.db.selectable_xch_balance().await?, 1000);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
     async fn test_clawback_v1_claim_dedups_coin_ids() -> anyhow::Result<()> {
         let mut alice = TestWallet::new(1000).await?;
         let mut bob = alice.next(0).await?;
@@ -848,6 +916,69 @@ mod tests {
 
         assert_eq!(bob.wallet.db.selectable_xch_balance().await?, 1000);
         assert_eq!(alice.wallet.db.selectable_xch_balance().await?, 0);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_clawback_history_only_shows_own_custody() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(0).await?;
+
+        let timestamp = alice.new_block_with_current_time().await?;
+
+        let coin_spends = alice
+            .wallet
+            .send_xch(
+                vec![(bob.puzzle_hash, 1000)],
+                0,
+                vec![],
+                Some(timestamp + 5),
+            )
+            .await?;
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        let (transactions, _) = alice.wallet.db.transactions(None, false, 10, 0).await?;
+
+        let clawback_coin = transactions
+            .iter()
+            .flat_map(|transaction| &transaction.created)
+            .find(|coin| coin.coin.amount == 1000)
+            .expect("missing clawback coin")
+            .coin;
+
+        assert_ne!(clawback_coin.puzzle_hash, bob.puzzle_hash);
+
+        // The sender doesn't see the receiver's address, and nobody sees the wrapper
+        assert_eq!(alice.history_custody(clawback_coin.coin_id()).await?, None);
+        assert_eq!(
+            bob.history_custody(clawback_coin.coin_id()).await?,
+            Some(bob.puzzle_hash)
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_clawback_v1_history_only_shows_own_custody() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(0).await?;
+
+        alice.new_block_with_current_time().await?;
+
+        let (clawback_id, _, _) = create_v1_clawback(&alice, bob.puzzle_hash, 1000, 3600).await?;
+
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        assert_eq!(alice.history_custody(clawback_id).await?, None);
+        assert_eq!(
+            bob.history_custody(clawback_id).await?,
+            Some(bob.puzzle_hash)
+        );
 
         Ok(())
     }

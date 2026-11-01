@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sage_api::GetKeys;
+use sage_api::GetWallets;
 use serde::Serialize;
 use specta::Type;
 
@@ -52,18 +52,18 @@ impl BridgeMethod for WalletListWallets {
     ) -> BridgeHandleResult {
         let sage = tools.app_state.lock().await;
 
-        let keys = sage.get_keys(GetKeys {}).map_err(|err| {
+        let wallets = sage.get_wallets(GetWallets {}).map_err(|err| {
             BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
         })?;
 
         Ok(Box::new(WalletListWalletsResult {
-            wallets: keys
-                .keys
+            wallets: wallets
+                .wallets
                 .into_iter()
-                .map(|key| SystemWalletView {
-                    fingerprint: key.fingerprint,
-                    name: key.name,
-                    emoji: key.emoji,
+                .map(|wallet| SystemWalletView {
+                    fingerprint: wallet.fingerprint,
+                    name: wallet.name,
+                    emoji: wallet.emoji,
                 })
                 .collect(),
         }))

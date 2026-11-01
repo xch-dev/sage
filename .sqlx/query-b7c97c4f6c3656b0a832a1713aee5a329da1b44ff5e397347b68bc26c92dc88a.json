@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT hash FROM p2_puzzles WHERE kind = 4",
+  "describe": {
+    "columns": [
+      {
+        "name": "hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b7c97c4f6c3656b0a832a1713aee5a329da1b44ff5e397347b68bc26c92dc88a"
+}

@@ -61,6 +61,72 @@ const nftMint = z.object({
   editionTotal: z.number().optional(),
 });
 
+const handleRecord = z.object({
+  handle: z.string(),
+  handleHash: z.string(),
+  address: z.string(),
+  status: z.enum(['verified', 'changed']),
+  previousAddress: z.string().nullable(),
+  lastSentAddress: z.string().nullable(),
+  changedFrom: z.string().nullable(),
+  cached: z.boolean(),
+  verification: z.enum([
+    'verified',
+    'outdated',
+    'unverified',
+    'stale',
+    'expired',
+  ]),
+  verificationReason: z.string().nullable(),
+  ownerLauncherId: z.string(),
+  resolvedLauncherId: z.string(),
+  expiration: z.number(),
+  slotCoinId: z.string(),
+  slotConfirmationHeight: z.number(),
+  resolvedCoinId: z.string(),
+  resolvedConfirmationHeight: z.number(),
+  updatedHeight: z.number(),
+  verifiedHeight: z.number(),
+  verifiedTimestamp: z.number(),
+  lastVerifiedAt: z.number(),
+});
+
+// Contacts are identified by their recipient. Their row IDs aren't shared: sites
+// can't change contacts, so they've no use for them, and they'd hint at how many
+// contacts were ever made.
+const contactRecord = z.object({
+  name: z.string(),
+  note: z.string().nullable(),
+  kind: z.enum(['address', 'handle']),
+  recipient: z.string(),
+  handle: z.string().nullable(),
+  address: z.string().nullable(),
+  resolution: handleRecord.nullable(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+
+const handleSlot = z.object({
+  registryLauncherId: z.string(),
+  counter: z.number(),
+  leftHandleHash: z.string(),
+  rightHandleHash: z.string(),
+  parentId: z.string(),
+  parentParentId: z.string(),
+  parentInnerPuzzleHash: z.string(),
+  indexedHeight: z.number(),
+});
+
+const pendingTransfer = z.object({
+  newOwnerLauncherId: z.string(),
+  newResolvedLauncherId: z.string(),
+  minimumExecutionHeight: z.number(),
+  initiatorCoinId: z.string(),
+  executorCoinId: z.string(),
+  updateConfirmationHeight: z.number(),
+  updateSlotCoinId: z.string().nullable(),
+});
+
 enum MempoolInclusionStatus {
   SUCCESS = 1, // Transaction added to mempool
   PENDING = 2, // Transaction not yet added to mempool
@@ -244,6 +310,93 @@ export const walletConnectCommands = {
     }),
     confirm: true,
   },
+  // XCHandles reads. Every handle is verified against the blockchain, and the
+  // result carries its verification state and any change warning, so that a site
+  // never has to trust a bare address. XCHandles failures set the JSON-RPC
+  // error's data to JSON with a `code`, which is a HandleErrorCode such as
+  // 'expired' or 'unavailable', or 'rate_limited' when sites resolve too many
+  // handles in a short time.
+  //
+  // There's no reverse lookup for sites: which handles have been looked up for
+  // other addresses, in this wallet or another on the network, is private. For
+  // the same reason, handle records sent to sites without asking the user say
+  // whether a handle changed hands, but leave out the addresses it was used
+  // with before (previousAddress, lastSentAddress and changedFrom are null).
+  chia_resolveHandle: {
+    paramsType: z.object({ handle: z.string() }),
+    returnType: handleRecord,
+    confirm: false,
+  },
+  chia_getHandle: {
+    paramsType: z.object({ handle: z.string() }),
+    returnType: z.object({
+      handle: handleRecord,
+      slot: handleSlot,
+      pendingTransferStatus: z.enum([
+        'none',
+        'verified',
+        'unverified',
+        'unavailable',
+      ]),
+      pendingTransfer: pendingTransfer.nullable(),
+    }),
+    confirm: false,
+  },
+  // Verified handles whose owner NFT or DID is in this wallet. Other handles
+  // Sage knows about aren't shared with sites.
+  chia_getOwnedHandles: {
+    paramsType: z
+      .object({
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      })
+      .optional(),
+    returnType: z.object({
+      handles: z.array(handleRecord),
+      total: z.number(),
+    }),
+    confirm: false,
+  },
+  // The address book. Contacts are personal, so the user approves every read,
+  // and there is no reverse lookup for sites. A site can suggest a contact, which
+  // the user reviews before it's saved, but can't change or delete contacts.
+  // Handle contacts carry the mapping Sage last verified, with its verification
+  // state and any change warning; it's read from the local store, so resolve
+  // the handle before relying on its address.
+  chia_getContacts: {
+    paramsType: z
+      .object({
+        search: z.string().optional(),
+        // One approval shares at most a page of contacts.
+        limit: z.number().int().min(1).max(100).optional(),
+        offset: z.number().int().min(0).optional(),
+      })
+      .optional(),
+    returnType: z.object({
+      contacts: z.array(contactRecord),
+      total: z.number(),
+    }),
+    confirm: true,
+  },
+  chia_addContact: {
+    paramsType: z.object({
+      // Lengths are in characters, as the backend counts them, not UTF-16
+      // code units.
+      name: z
+        .string()
+        .trim()
+        .min(1)
+        .refine((name) => [...name].length <= 64, 'name is too long'),
+      recipient: z.string().trim().min(1),
+      note: z
+        .string()
+        .trim()
+        .refine((note) => [...note].length <= 1000, 'note is too long')
+        .optional(),
+    }),
+    returnType: contactRecord,
+    confirm: true,
+  },
   // Update the display name, ticker, icon and description of a CAT this wallet
   // already holds (the same record update_cat edits). Nothing is signed; the user
   // reviews the suggestion against the asset id and approves or rejects it.
@@ -289,5 +442,5 @@ export const parseCommand = <C extends WalletConnectCommand>(
   params: unknown,
 ): z.infer<Config<C>['paramsType']> => {
   const commandInfo = walletConnectCommands[command];
-  return commandInfo.paramsType.parse(params);
+  return commandInfo.paramsType.parse(params) as Params<C>;
 };

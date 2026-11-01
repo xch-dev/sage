@@ -16,6 +16,8 @@ interface Props {
   working: boolean;
   feeInput: string;
   onFeeInputChange: (value: string) => void;
+  handleChangeAcknowledged: boolean;
+  onHandleChangeAcknowledgedChange: (value: boolean) => void;
 }
 
 export function AppApprovalBody({
@@ -25,6 +27,8 @@ export function AppApprovalBody({
   working,
   feeInput,
   onFeeInputChange,
+  handleChangeAcknowledged,
+  onHandleChangeAcknowledgedChange,
 }: Props) {
   switch (approval.kind) {
     case 'getSecretKey':
@@ -45,6 +49,8 @@ export function AppApprovalBody({
           working={working}
           feeInput={feeInput}
           onFeeInputChange={onFeeInputChange}
+          handleChangeAcknowledged={handleChangeAcknowledged}
+          onHandleChangeAcknowledgedChange={onHandleChangeAcknowledgedChange}
         />
       );
 

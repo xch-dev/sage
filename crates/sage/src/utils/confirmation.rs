@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 
-use chia_wallet_sdk::{chia::puzzle_types::nft::NftMetadata, driver::BURN_PUZZLE_HASH, prelude::*};
+use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, prelude::*};
 use sage_api::{
-    Amount, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput, TransactionOutput,
-    TransactionSummary,
+    Amount, CoinJson, CoinSpendJson, HandleRecord, SpendBundleJson, TransactionInput,
+    TransactionOutput, TransactionSummary,
 };
 use sage_assets::{Data, base64_data_uri};
-use sage_database::{Asset, AssetKind, Database};
+use sage_database::{Asset, AssetKind, Database, ParsedNftMetadata};
 use sage_wallet::{CoinKind, Transaction, compute_nft_info};
 
-use crate::{Error, Result, Sage};
+use crate::{Error, HandleSend, Result, Sage};
 
 use super::{parse_coin_id, parse_hash, parse_program, parse_signature};
 
@@ -17,6 +17,11 @@ use super::{parse_coin_id, parse_hash, parse_program, parse_signature};
 pub struct ConfirmationInfo {
     pub nft_data: HashMap<Bytes32, Data>,
     pub uri_hashes: HashMap<Vec<String>, Bytes32>,
+    /// The verified handle recipients, shown in the summary.
+    pub handles: Vec<HandleRecord>,
+    /// The handle recipients to check again before the transaction is submitted, and to
+    /// record once it is.
+    pub handle_sends: Vec<HandleSend>,
 }
 
 impl Sage {
@@ -57,8 +62,14 @@ impl Sage {
                     let metadata = info.metadata.to_clvm(&mut allocator)?;
                     p2_puzzle_hash = info.p2_puzzle_hash;
                     Some(
-                        self.cache_nft(&allocator, info.launcher_id, metadata, &mut cache)
-                            .await?,
+                        self.cache_nft(
+                            &allocator,
+                            info.launcher_id,
+                            metadata,
+                            info.metadata_updater_puzzle_hash,
+                            &mut cache,
+                        )
+                        .await?,
                     )
                 }
                 CoinKind::Did { info, .. } => {
@@ -125,6 +136,7 @@ impl Sage {
         Ok(TransactionSummary {
             fee: Amount::u64(transaction.fee),
             inputs,
+            handles: cache.handles,
         })
     }
 }
@@ -139,7 +151,7 @@ pub struct ExtractedNftData {
 
 pub async fn extract_nft_data(
     db: Option<&Database>,
-    onchain_metadata: Option<NftMetadata>,
+    onchain_metadata: Option<ParsedNftMetadata>,
     cache: &ConfirmationInfo,
 ) -> Result<ExtractedNftData> {
     let mut result = ExtractedNftData::default();
@@ -174,6 +186,11 @@ pub async fn extract_nft_data(
             let info = compute_nft_info(None, &metadata.data);
             result.name = info.name;
         }
+    }
+
+    // The display name from on-chain metadata takes precedence over the file's name
+    if onchain_metadata.display_name.is_some() {
+        result.name = onchain_metadata.display_name;
     }
 
     Ok(result)
