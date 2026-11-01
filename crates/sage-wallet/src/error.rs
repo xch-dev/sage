@@ -124,6 +124,12 @@ pub enum WalletError {
     )]
     NftMetadataNotAppendOnly(Bytes32),
 
+    #[error("Option contract with id {0} wasn't minted by this wallet")]
+    NotOptionCreator(Bytes32),
+
+    #[error("Cancelling an option requires a coin of its strike asset, of any amount")]
+    MissingStrikeCoin,
+
     #[error("NFT option contracts are not supported")]
     NftOptionNotSupported,
 

@@ -13,6 +13,7 @@ import { useCallback, useState } from 'react';
 
 export interface OptionActionHandlers {
   onExercise: (option: OptionRecord) => void;
+  onCancel: (option: OptionRecord) => void;
   onTransfer: (option: OptionRecord) => void;
   onBurn: (option: OptionRecord) => void;
   onToggleVisibility: (option: OptionRecord) => void;
@@ -28,9 +29,11 @@ export function useOptionActions(updateOptions: () => void) {
   );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
   const [exerciseOpen, setExerciseOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
   const [isExercising, setIsExercising] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
   const [isBurning, setIsBurning] = useState(false);
   const [transferAddress, setTransferAddress] = useState('');
@@ -51,6 +54,25 @@ export function useOptionActions(updateOptions: () => void) {
           addError(err);
         })
         .finally(() => setExerciseOpen(false));
+    },
+    [selectedOption, walletState.sync.unit.precision, addError],
+  );
+
+  const onCancelSubmit = useCallback(
+    (fee: string) => {
+      if (!selectedOption) return;
+      setIsCancelling(true);
+      commands
+        .cancelOptions({
+          option_ids: [selectedOption.launcher_id],
+          fee: toMojos(fee, walletState.sync.unit.precision),
+        })
+        .then(setResponse)
+        .catch((err) => {
+          setIsCancelling(false);
+          addError(err);
+        })
+        .finally(() => setCancelOpen(false));
     },
     [selectedOption, walletState.sync.unit.precision, addError],
   );
@@ -109,6 +131,10 @@ export function useOptionActions(updateOptions: () => void) {
       setSelectedOption(option);
       setExerciseOpen(true);
     },
+    onCancel: (option) => {
+      setSelectedOption(option);
+      setCancelOpen(true);
+    },
     onTransfer: (option) => {
       setSelectedOption(option);
       setTransferOpen(true);
@@ -144,6 +170,20 @@ export function useOptionActions(updateOptions: () => void) {
         </Trans>
       </FeeOnlyDialog>
 
+      <FeeOnlyDialog
+        title={t`Cancel Option`}
+        submitButtonLabel={t`Cancel Option`}
+        open={cancelOpen}
+        setOpen={setCancelOpen}
+        onSubmit={onCancelSubmit}
+      >
+        <Trans>
+          This will cancel the option contract and return the underlying asset
+          to you. The strike price is not paid, but you must hold a coin of the
+          strike asset of any amount.
+        </Trans>
+      </FeeOnlyDialog>
+
       <TransferDialog
         title={t`Transfer Option`}
         open={transferOpen}
@@ -174,6 +214,7 @@ export function useOptionActions(updateOptions: () => void) {
           setIsTransferring(false);
           setIsBurning(false);
           setIsExercising(false);
+          setIsCancelling(false);
           setSelectedOption(null);
         }}
         onConfirm={() => updateOptions()}
@@ -209,7 +250,17 @@ export function useOptionActions(updateOptions: () => void) {
                       />
                     ),
                   }
-                : undefined
+                : isCancelling && response && selectedOption
+                  ? {
+                      title: t`Cancel Option`,
+                      content: (
+                        <OptionConfirmation
+                          options={[selectedOption]}
+                          type='cancel'
+                        />
+                      ),
+                    }
+                  : undefined
         }
       />
     </>

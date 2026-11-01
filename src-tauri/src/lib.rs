@@ -70,6 +70,7 @@ macro_rules! sage_commands {
             commands::mint_option,
             commands::transfer_options,
             commands::exercise_options,
+            commands::cancel_options,
             commands::add_nft_uri,
             commands::assign_nfts_to_did,
             commands::finalize_clawback,

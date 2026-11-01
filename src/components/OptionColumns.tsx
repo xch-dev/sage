@@ -22,6 +22,7 @@ import {
   HandCoins,
   MoreHorizontal,
   SendIcon,
+  Undo2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -197,6 +198,16 @@ export const columns = (
                     <Trans>Exercise</Trans>
                   </DropdownMenuItem>
                 )}
+                {actionHandlers?.onCancel &&
+                  option.is_creator &&
+                  option.expiration_seconds * 1000 > Date.now() && (
+                    <DropdownMenuItem
+                      onClick={() => actionHandlers.onCancel?.(option)}
+                    >
+                      <Undo2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                      <Trans>Cancel</Trans>
+                    </DropdownMenuItem>
+                  )}
                 {actionHandlers?.onTransfer && (
                   <DropdownMenuItem
                     onClick={() => actionHandlers.onTransfer?.(option)}

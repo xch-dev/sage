@@ -79,6 +79,7 @@
   "mint_option": true,
   "transfer_options": true,
   "exercise_options": true,
+  "cancel_options": true,
   "finalize_clawback": true,
   "claim_clawback": true,
   "create_transaction": true,
