@@ -41,6 +41,7 @@ pub struct OptionRow {
     pub expiration_seconds: u64,
     pub coin_row: CoinRow,
     pub underlying_coin_id: Bytes32,
+    pub is_creator: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -96,6 +97,9 @@ impl Database {
                 offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp,
                 clawback_expiration_seconds AS 'clawback_timestamp?', clawback_version AS 'clawback_version?',
                 p2_options.expiration_seconds AS option_expiration_seconds,
+                EXISTS (
+                    SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = p2_options.creator_puzzle_hash
+                ) AS 'is_creator!: bool',
 
                 strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,
                 strike_asset.ticker AS strike_asset_ticker, strike_asset.precision AS strike_asset_precision,
@@ -166,6 +170,7 @@ impl Database {
                 strike_amount: row.strike_amount.convert()?,
                 underlying_coin_id: row.underlying_coin_id.convert()?,
                 expiration_seconds: row.option_expiration_seconds.convert()?,
+                is_creator: row.is_creator,
                 coin_row: CoinRow {
                     coin: Coin::new(
                         row.parent_coin_hash.convert()?,
@@ -372,6 +377,10 @@ impl DatabaseTx<'_> {
     }
 }
 
+const IS_CREATED: &str = "EXISTS (
+    SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = p2_options.creator_puzzle_hash
+)";
+
 #[allow(clippy::too_many_arguments)]
 async fn owned_options(
     conn: impl SqliteExecutor<'_>,
@@ -399,6 +408,7 @@ async fn owned_options(
             offer_hash, mempool_item_hash, created_timestamp, spent_timestamp,
             clawback_expiration_seconds AS clawback_timestamp, clawback_version,
             p2_options.expiration_seconds AS option_expiration_seconds,
+            {IS_CREATED} AS is_creator,
 
             strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,
             strike_asset.ticker AS strike_asset_ticker, strike_asset.precision AS strike_asset_precision,
@@ -435,15 +445,11 @@ async fn owned_options(
             )",
         );
 
-        let is_created = "EXISTS (
-            SELECT 1 FROM p2_puzzles WHERE p2_puzzles.hash = p2_options.creator_puzzle_hash
-        )";
-
         if filter == OptionFilter::Created {
-            query.push(format!(" AND {is_created}"));
+            query.push(format!(" AND {IS_CREATED}"));
         } else {
             query.push(format!(
-                " AND ({is_created} OR (option_coins.spent_height IS NULL AND option_coins.mempool_item_hash IS NULL))"
+                " AND ({IS_CREATED} OR (option_coins.spent_height IS NULL AND option_coins.mempool_item_hash IS NULL))"
             ));
         }
     }
@@ -576,6 +582,7 @@ async fn owned_options(
                         .unwrap_or(AssetKind::Token),
                 },
                 expiration_seconds: row.get::<i64, _>("option_expiration_seconds").convert()?,
+                is_creator: row.get::<bool, _>("is_creator"),
                 coin_row: CoinRow {
                     coin: Coin::new(
                         row.get::<Vec<u8>, _>("parent_coin_hash").convert()?,

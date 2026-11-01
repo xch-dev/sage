@@ -30,6 +30,7 @@ import { NumberFormat } from './NumberFormat';
 
 export const columns = (
   actionHandlers?: OptionActionHandlers,
+  isTransactionDisabled = false,
 ): ColumnDef<OptionRecord>[] => [
   {
     accessorKey: 'name',
@@ -188,7 +189,7 @@ export const columns = (
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>
-            {!isPending && option.is_owned && (
+            {!isPending && option.is_owned && !isTransactionDisabled && (
               <>
                 {actionHandlers?.onExercise && (
                   <DropdownMenuItem

@@ -140,17 +140,23 @@ export function calculateTransaction(
   const created: CreatedCoin[] = [];
 
   for (const input of summary.inputs || []) {
+    const isEphemeral = summary.inputs.some((i) =>
+      i.outputs.some((o) => o.coin_id === input.coin_id),
+    );
+
     if (input.asset && !input.asset.asset_id) {
-      spent.push({
-        badge: 'Chia',
-        label: `${formatNumber({
-          value: fromMojos(input.amount, xch.precision),
-          minimumFractionDigits: 0,
-          maximumFractionDigits: xch.precision,
-        })} ${xch.ticker}`,
-        coinId: input.coin_id,
-        sort: 1,
-      });
+      if (!isEphemeral) {
+        spent.push({
+          badge: 'Chia',
+          label: `${formatNumber({
+            value: fromMojos(input.amount, xch.precision),
+            minimumFractionDigits: 0,
+            maximumFractionDigits: xch.precision,
+          })} ${xch.ticker}`,
+          coinId: input.coin_id,
+          sort: 1,
+        });
+      }
 
       for (const output of input.outputs) {
         if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
@@ -177,16 +183,18 @@ export function calculateTransaction(
     if (input.asset?.kind === 'token' && input.asset.asset_id) {
       const ticker = input.asset.ticker || 'CAT';
 
-      spent.push({
-        badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
-        label: `${formatNumber({
-          value: fromMojos(input.amount, 3),
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 3,
-        })} ${ticker}`,
-        coinId: input.coin_id,
-        sort: 2,
-      });
+      if (!isEphemeral) {
+        spent.push({
+          badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
+          label: `${formatNumber({
+            value: fromMojos(input.amount, 3),
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 3,
+          })} ${ticker}`,
+          coinId: input.coin_id,
+          sort: 2,
+        });
+      }
 
       for (const output of input.outputs) {
         if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {

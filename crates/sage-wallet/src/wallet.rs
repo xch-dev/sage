@@ -225,9 +225,23 @@ impl Wallet {
         actions: &[Action],
         excluded_coin_ids: &[Bytes32],
     ) -> Result<(), WalletError> {
-        self.ensure_spendable()?;
+        self.select_spends_for_deltas(
+            ctx,
+            spends,
+            Deltas::from_actions(actions),
+            excluded_coin_ids,
+        )
+        .await
+    }
 
-        let mut deltas = Deltas::from_actions(actions);
+    async fn select_spends_for_deltas(
+        &self,
+        ctx: &mut SpendContext,
+        spends: &mut Spends,
+        mut deltas: Deltas,
+        excluded_coin_ids: &[Bytes32],
+    ) -> Result<(), WalletError> {
+        self.ensure_spendable()?;
 
         deltas.update(Id::Xch).input += spends.xch.selected_amount();
 

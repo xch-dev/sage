@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, prelude::*};
+use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, prelude::*, puzzles::SETTLEMENT_PAYMENT_HASH};
 use sage_api::{
     Amount, CoinJson, CoinSpendJson, HandleRecord, SpendBundleJson, TransactionInput,
     TransactionOutput, TransactionSummary,
@@ -34,6 +34,15 @@ impl Sage {
 
         let transaction = Transaction::from_coin_spends(coin_spends)?;
 
+        let input_puzzle_hashes: HashMap<Bytes32, Bytes32> = transaction
+            .inputs
+            .iter()
+            .map(|input| {
+                let coin = input.coin_spend.coin;
+                (coin.coin_id(), coin.puzzle_hash)
+            })
+            .collect();
+
         let mut inputs = Vec::with_capacity(transaction.inputs.len());
 
         for input in transaction.inputs {
@@ -44,7 +53,16 @@ impl Sage {
             let asset = match input.kind {
                 CoinKind::Launcher => None,
                 CoinKind::Unknown => {
-                    if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
+                    // Settlement coins don't have an owner, but ones we created are still our XCH
+                    let owner_puzzle_hash = if coin.puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
+                        input_puzzle_hashes.get(&coin.parent_coin_info).copied()
+                    } else {
+                        Some(coin.puzzle_hash)
+                    };
+
+                    if let Some(owner_puzzle_hash) = owner_puzzle_hash
+                        && wallet.db.is_p2_puzzle_hash(owner_puzzle_hash).await?
+                    {
                         wallet.db.asset(Bytes32::default()).await?
                     } else {
                         None

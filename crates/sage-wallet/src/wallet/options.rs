@@ -1,10 +1,14 @@
-use std::mem;
+use std::{
+    mem,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use chia_wallet_sdk::{
     chia::puzzle_types::offer::{NotarizedPayment, Payment},
     driver::{Delta, FungibleSpend},
     prelude::*,
     puzzles::SETTLEMENT_PAYMENT_HASH,
+    utils::CoinSelectionError,
 };
 use indexmap::IndexSet;
 use sage_database::CoinKind;
@@ -27,6 +31,7 @@ pub struct WalletOptionMint {
 #[derive(Debug, Default)]
 struct OptionExercise {
     options: Vec<OptionContract>,
+    underlyings: Vec<OptionUnderlying>,
     settlement_coins: Vec<Coin>,
     settlement_cats: Vec<Cat>,
     melt_actions: Vec<Action>,
@@ -175,23 +180,23 @@ impl Wallet {
     ) -> Result<Vec<CoinSpend>, WalletError> {
         let mut ctx = SpendContext::new();
 
-        for &option_id in &option_ids {
-            let underlying = self
-                .db
-                .option_underlying(option_id)
-                .await?
-                .ok_or(WalletError::MissingOption(option_id))?;
+        let exercise = self.prepare_exercise(&mut ctx, option_ids).await?;
 
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+
+        for underlying in &exercise.underlyings {
             if !self
                 .db
                 .is_custody_p2_puzzle_hash(underlying.creator_puzzle_hash)
                 .await?
             {
-                return Err(WalletError::NotOptionCreator(option_id));
+                return Err(WalletError::NotOptionCreator(underlying.launcher_id));
+            }
+
+            if timestamp >= underlying.seconds {
+                return Err(WalletError::OptionExpired(underlying.launcher_id));
             }
         }
-
-        let exercise = self.prepare_exercise(&mut ctx, option_ids).await?;
 
         let mut spends = self.prepare_spends_for_selection(&mut ctx, &[]).await?;
 
@@ -207,12 +212,15 @@ impl Wallet {
             spends.add(cat);
         }
 
-        // The melted option's value is returned as change, which needs an XCH spend as well
-        let mut flash_ids = exercise.strike_ids;
-        flash_ids.insert(Id::Xch);
+        for &id in &exercise.strike_ids {
+            self.select_any_coin(&mut ctx, &mut spends, id, WalletError::MissingStrikeCoin)
+                .await?;
+        }
 
-        for id in flash_ids {
-            self.add_flash_coin(&mut spends, id).await?;
+        // The melted option's value is returned as change, which needs an XCH spend as well
+        if spends.xch.items.is_empty() {
+            self.select_any_coin(&mut ctx, &mut spends, Id::Xch, WalletError::MissingMeltCoin)
+                .await?;
         }
 
         self.select_spends(&mut ctx, &mut spends, &[Action::fee(fee)])
@@ -231,9 +239,7 @@ impl Wallet {
         }
 
         for (id, cats) in mem::take(&mut spends.outputs.cats) {
-            let Some(cat_spends) = spends.cats.get_mut(&id) else {
-                continue;
-            };
+            let cat_spends = spends.cats.entry(id).or_default();
 
             for cat in cats {
                 *deltas.update(id) += Delta::new(cat.coin.amount, 0);
@@ -246,39 +252,25 @@ impl Wallet {
         Ok(ctx.take())
     }
 
-    /// Adds the smallest available coin of the asset, unless there's already a spend of it.
-    async fn add_flash_coin(&self, spends: &mut Spends, id: Id) -> Result<(), WalletError> {
-        match id {
-            Id::Xch => {
-                if spends.xch.items.is_empty() {
-                    let coin = self
-                        .db
-                        .selectable_xch_coins()
-                        .await?
-                        .into_iter()
-                        .min_by_key(|coin| coin.amount)
-                        .ok_or(WalletError::MissingStrikeCoin)?;
+    /// Selects a coin of the asset of any amount, unless the spends already have some of it.
+    async fn select_any_coin(
+        &self,
+        ctx: &mut SpendContext,
+        spends: &mut Spends,
+        id: Id,
+        missing: WalletError,
+    ) -> Result<(), WalletError> {
+        let mut deltas = Deltas::new();
+        deltas.update(id);
+        deltas.set_needed(id);
 
-                    spends.add(coin);
-                }
-            }
-            Id::Existing(asset_id) => {
-                if !spends.cats.contains_key(&id) {
-                    let cat = self
-                        .db
-                        .selectable_cat_coins(asset_id)
-                        .await?
-                        .into_iter()
-                        .min_by_key(|cat| cat.coin.amount)
-                        .ok_or(WalletError::MissingStrikeCoin)?;
-
-                    spends.add(cat);
-                }
-            }
-            Id::New(_) => {}
+        match self
+            .select_spends_for_deltas(ctx, spends, deltas, &[])
+            .await
+        {
+            Err(WalletError::CoinSelection(CoinSelectionError::NoSpendableCoins)) => Err(missing),
+            result => result,
         }
-
-        Ok(())
     }
 
     async fn prepare_exercise(
@@ -381,6 +373,7 @@ impl Wallet {
             }
 
             exercise.options.push(option);
+            exercise.underlyings.push(underlying);
         }
 
         Ok(exercise)
@@ -717,9 +710,9 @@ mod tests {
         Ok(())
     }
 
-    async fn mint_cat_option(
+    async fn mint_option(
         test: &mut TestWallet,
-        asset_id: Bytes32,
+        underlying_type: OptionType,
         strike_type: OptionType,
     ) -> anyhow::Result<Bytes32> {
         let timestamp = test.new_block_with_current_time().await?;
@@ -729,10 +722,7 @@ mod tests {
             .mint_option(
                 WalletOptionMint {
                     expiration_seconds: timestamp + 1000,
-                    underlying_type: OptionType::Cat {
-                        asset_id,
-                        amount: 1000,
-                    },
+                    underlying_type,
                     strike_type,
                 },
                 0,
@@ -743,6 +733,19 @@ mod tests {
         test.wait_for_coins().await;
 
         Ok(option.info.launcher_id)
+    }
+
+    async fn mint_cat_option(
+        test: &mut TestWallet,
+        asset_id: Bytes32,
+        strike_type: OptionType,
+    ) -> anyhow::Result<Bytes32> {
+        let underlying_type = OptionType::Cat {
+            asset_id,
+            amount: 1000,
+        };
+
+        mint_option(test, underlying_type, strike_type).await
     }
 
     #[test(tokio::test)]
@@ -912,6 +915,177 @@ mod tests {
     }
 
     #[test(tokio::test)]
+    async fn test_cancel_option_revocable_cat_strike() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1102).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let hidden_puzzle_hash = Bytes32::new([1; 32]);
+
+        let (coin_spends, strike_asset_id) = alice
+            .wallet
+            .issue_cat_with_hidden_puzzle_hash(100, 0, None, Some(hidden_puzzle_hash))
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let option_id = mint_cat_option(
+            &mut alice,
+            asset_id,
+            OptionType::RevocableCat {
+                asset_id: strike_asset_id,
+                hidden_puzzle_hash,
+                amount: 5000,
+            },
+        )
+        .await?;
+
+        let coin_spends = alice.wallet.cancel_options(vec![option_id], 0).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        assert!(alice.wallet.db.option(option_id).await?.is_none());
+        assert_eq!(
+            alice.wallet.db.selectable_cat_balance(asset_id).await?,
+            1000
+        );
+        assert_eq!(
+            alice
+                .wallet
+                .db
+                .selectable_cat_balance(strike_asset_id)
+                .await?,
+            100
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_cancel_option_xch_underlying_xch_strike() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1001).await?;
+
+        let option_id = mint_option(
+            &mut alice,
+            OptionType::Xch { amount: 1000 },
+            OptionType::Xch { amount: 5000 },
+        )
+        .await?;
+
+        assert_eq!(alice.wallet.db.selectable_xch_balance().await?, 0);
+
+        let coin_spends = alice.wallet.cancel_options(vec![option_id], 0).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        assert!(alice.wallet.db.option(option_id).await?.is_none());
+        assert_eq!(alice.wallet.db.selectable_xch_balance().await?, 1001);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_cancel_option_xch_underlying_cat_strike() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1101).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(100, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let option_id = mint_option(
+            &mut alice,
+            OptionType::Xch { amount: 1000 },
+            OptionType::Cat {
+                asset_id,
+                amount: 5000,
+            },
+        )
+        .await?;
+
+        let coin_spends = alice.wallet.cancel_options(vec![option_id], 0).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        assert!(alice.wallet.db.option(option_id).await?.is_none());
+        assert_eq!(alice.wallet.db.selectable_xch_balance().await?, 1001);
+        assert_eq!(alice.wallet.db.selectable_cat_balance(asset_id).await?, 100);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_cancel_option_requires_xch_coin() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1101).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let (coin_spends, strike_asset_id) = alice.wallet.issue_cat(100, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let option_id = mint_cat_option(
+            &mut alice,
+            asset_id,
+            OptionType::Cat {
+                asset_id: strike_asset_id,
+                amount: 5000,
+            },
+        )
+        .await?;
+
+        assert!(alice.wallet.db.selectable_xch_coins().await?.is_empty());
+
+        assert!(matches!(
+            alice.wallet.cancel_options(vec![option_id], 0).await,
+            Err(WalletError::MissingMeltCoin)
+        ));
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_cancel_option_requires_unexpired() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1002).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let timestamp = alice.new_block_with_current_time().await?;
+
+        let (coin_spends, option) = alice
+            .wallet
+            .mint_option(
+                WalletOptionMint {
+                    expiration_seconds: timestamp - 1,
+                    underlying_type: OptionType::Cat {
+                        asset_id,
+                        amount: 1000,
+                    },
+                    strike_type: OptionType::Xch { amount: 2000 },
+                },
+                0,
+            )
+            .await?;
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let option_id = option.info.launcher_id;
+
+        assert!(matches!(
+            alice.wallet.cancel_options(vec![option_id], 0).await,
+            Err(WalletError::OptionExpired(id)) if id == option_id
+        ));
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
     async fn test_cancel_option_requires_strike_coin() -> anyhow::Result<()> {
         let mut alice = TestWallet::new(1001).await?;
 
@@ -956,6 +1130,42 @@ mod tests {
             bob.wallet.cancel_options(vec![option_id], 0).await,
             Err(WalletError::NotOptionCreator(id)) if id == option_id
         ));
+
+        let row = bob.wallet.db.wallet_option(option_id).await?.unwrap();
+        assert!(!row.is_creator);
+
+        let (rows, _) = bob
+            .wallet
+            .db
+            .owned_options(
+                10,
+                0,
+                OptionSortMode::Name,
+                true,
+                None,
+                true,
+                OptionFilter::Owned,
+            )
+            .await?;
+        assert!(!rows[0].is_creator);
+
+        let (rows, _) = alice
+            .wallet
+            .db
+            .owned_options(
+                10,
+                0,
+                OptionSortMode::Name,
+                true,
+                None,
+                true,
+                OptionFilter::All,
+            )
+            .await?;
+        assert!(rows[0].is_creator);
+
+        let row = alice.wallet.db.wallet_option(option_id).await?.unwrap();
+        assert!(row.is_creator);
 
         Ok(())
     }

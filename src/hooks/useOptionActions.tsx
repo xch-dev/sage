@@ -180,7 +180,7 @@ export function useOptionActions(updateOptions: () => void) {
         <Trans>
           This will cancel the option contract and return the underlying asset
           to you. The strike price is not paid, but you must hold a coin of the
-          strike asset of any amount.
+          strike asset, and an XCH coin, of any amount.
         </Trans>
       </FeeOnlyDialog>
 

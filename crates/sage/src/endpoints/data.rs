@@ -28,7 +28,7 @@ use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
     ParsedNftMetadata, Transaction, TransactionCoin,
 };
-use sage_wallet::{Wallet, WalletKind};
+use sage_wallet::WalletKind;
 
 impl Sage {
     pub fn get_version(&self, _req: GetVersion) -> Result<GetVersionResponse> {
@@ -451,8 +451,6 @@ impl Sage {
             .await?;
 
         for row in rows {
-            let is_creator = is_option_creator(&wallet, row.asset.hash).await?;
-
             options.push(OptionRecord {
                 launcher_id: Address::new(row.asset.hash, "option".to_string()).encode()?,
                 name: row.asset.name,
@@ -471,7 +469,7 @@ impl Sage {
                 created_timestamp: row.coin_row.created_timestamp,
                 is_owned: row.coin_row.spent_height.is_none()
                     && row.coin_row.mempool_item_hash.is_none(),
-                is_creator,
+                is_creator: row.is_creator,
             });
         }
 
@@ -489,8 +487,6 @@ impl Sage {
             return Ok(GetOptionResponse { option: None });
         };
 
-        let is_creator = is_option_creator(&wallet, row.asset.hash).await?;
-
         let option = OptionRecord {
             launcher_id: Address::new(row.asset.hash, "option".to_string()).encode()?,
             name: row.asset.name,
@@ -507,7 +503,7 @@ impl Sage {
             created_height: row.coin_row.created_height,
             created_timestamp: row.coin_row.created_timestamp,
             is_owned: row.coin_row.spent_height.is_none(),
-            is_creator,
+            is_creator: row.is_creator,
         };
 
         Ok(GetOptionResponse {
@@ -938,15 +934,4 @@ impl Sage {
             created,
         })
     }
-}
-
-async fn is_option_creator(wallet: &Wallet, option_id: Bytes32) -> Result<bool> {
-    let Some(underlying) = wallet.db.option_underlying(option_id).await? else {
-        return Ok(false);
-    };
-
-    Ok(wallet
-        .db
-        .is_custody_p2_puzzle_hash(underlying.creator_puzzle_hash)
-        .await?)
 }
