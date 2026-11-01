@@ -8,6 +8,8 @@ import { TokenCard } from '@/components/TokenCard';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
+import { useRefreshTokenInfo } from '@/hooks/useRefreshTokenInfo';
+import { withSuggestedLabel } from '@/lib/tokenIndex';
 import { getAssetDisplayName, toDecimal } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -40,7 +42,8 @@ export default function Token() {
   if (assetId === 'xch') assetId = null;
 
   const { addError } = useErrors();
-  const { getBalanceInUsd } = usePrices();
+  const refreshTokenInfo = useRefreshTokenInfo();
+  const { getBalanceInUsd, getSuggestedLabel } = usePrices();
 
   const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [response, setResponse] = useState<EnhancedTransactionResponse | null>(
@@ -93,12 +96,22 @@ export default function Token() {
     );
   }, [asset, getBalanceInUsd]);
 
+  // The header may show a token index's suggested label for an unnamed CAT;
+  // the record itself (and every edit) stays the wallet's own.
+  const shownAsset =
+    asset && withSuggestedLabel(asset, getSuggestedLabel(asset.asset_id));
+
   const redownload = () => {
     if (!assetId) return;
 
-    commands
-      .resyncCat({ asset_id: assetId })
-      .then(() => updateToken())
+    refreshTokenInfo(assetId)
+      .then((refreshed) => {
+        if (!refreshed) {
+          toast.info(t`No enabled source has information for this token`);
+          return;
+        }
+        updateToken();
+      })
       .catch((err) => {
         addError(err);
       });
@@ -196,8 +209,8 @@ export default function Token() {
       <Header
         title={
           <span>
-            {asset
-              ? getAssetDisplayName(asset.name, asset.ticker, 'token')
+            {shownAsset
+              ? getAssetDisplayName(shownAsset.name, shownAsset.ticker, 'token')
               : ''}{' '}
             {asset?.asset_id && (
               <div className='inline-flex items-center gap-1.5'>
@@ -225,6 +238,7 @@ export default function Token() {
             <div className='flex flex-col gap-4 max-w-screen-lg'>
               <TokenCard
                 asset={asset}
+                display={shownAsset ?? undefined}
                 balanceInUsd={balanceInUsd}
                 onRedownload={redownload}
                 onVisibilityChange={() => {
