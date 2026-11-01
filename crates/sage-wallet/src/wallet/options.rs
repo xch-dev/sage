@@ -1,7 +1,4 @@
-use std::{
-    mem,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::mem;
 
 use chia_wallet_sdk::{
     chia::puzzle_types::offer::{NotarizedPayment, Payment},
@@ -195,8 +192,6 @@ impl Wallet {
 
         let exercise = self.prepare_exercise(&mut ctx, option_ids).await?;
 
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-
         for underlying in &exercise.underlyings {
             if !self
                 .db
@@ -204,10 +199,6 @@ impl Wallet {
                 .await?
             {
                 return Err(WalletError::NotOptionCreator(underlying.launcher_id));
-            }
-
-            if timestamp >= underlying.seconds {
-                return Err(WalletError::OptionExpired(underlying.launcher_id));
             }
         }
 
@@ -1048,44 +1039,6 @@ mod tests {
         assert!(matches!(
             alice.wallet.cancel_options(vec![option_id], 0).await,
             Err(WalletError::MissingMeltCoin)
-        ));
-
-        Ok(())
-    }
-
-    #[test(tokio::test)]
-    async fn test_cancel_option_requires_unexpired() -> anyhow::Result<()> {
-        let mut alice = TestWallet::new(1002).await?;
-
-        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
-        alice.transact(coin_spends).await?;
-        alice.wait_for_coins().await;
-
-        let timestamp = alice.new_block_with_current_time().await?;
-
-        let (coin_spends, option) = alice
-            .wallet
-            .mint_option(
-                WalletOptionMint {
-                    expiration_seconds: timestamp - 1,
-                    underlying_type: OptionType::Cat {
-                        asset_id,
-                        amount: 1000,
-                    },
-                    strike_type: OptionType::Xch { amount: 2000 },
-                },
-                0,
-            )
-            .await?;
-
-        alice.transact(coin_spends).await?;
-        alice.wait_for_coins().await;
-
-        let option_id = option.info.launcher_id;
-
-        assert!(matches!(
-            alice.wallet.cancel_options(vec![option_id], 0).await,
-            Err(WalletError::OptionExpired(id)) if id == option_id
         ));
 
         Ok(())
