@@ -312,7 +312,21 @@ Allows the app to read confirmed and spendable balances for XCH, CAT, DID, or NF
 
 **Sign wallet coin spends**
 
-Allows the app to request signatures for custom coin spends, and to create offers from your wallet, after per-request approval.
+Allows the app to request signatures for custom coin spends after per-request approval.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
+| Accesses sensitive secret | `false` |
+
+## `wallet.create_offer`
+
+**Create offers**
+
+Allows the app to request offers made from your wallet's coins after per-request approval. The offer is listed on the Offers page and its coins are reserved.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |

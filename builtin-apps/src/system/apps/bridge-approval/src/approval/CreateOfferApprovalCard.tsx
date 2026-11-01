@@ -32,8 +32,8 @@ function formatAmount(amount: string, precision: number) {
   return fraction ? `${whole}.${fraction}` : whole;
 }
 
-function assetAmount(asset: OfferAsset) {
-  const amount = formatAmount(asset.amount, asset.precision);
+function assetAmount(asset: OfferAsset, mojos = asset.amount) {
+  const amount = formatAmount(mojos, asset.precision);
   if (asset.kind === 'nft' || asset.kind === 'option') return amount;
 
   // An asset posing as XCH gets no unit, so its amount cannot read as "1 XCH".
@@ -86,10 +86,22 @@ function AssetList({ title, assets }: { title: string; assets: OfferAsset[] }) {
               </div>
             ) : null}
             <ApprovalDetailRow label='Amount' value={assetAmount(asset)} />
+            {asset.royalty !== '0' ? (
+              <>
+                <ApprovalDetailRow
+                  label='NFT royalties'
+                  value={assetAmount(asset, asset.royalty)}
+                />
+                <ApprovalDetailRow
+                  label='Total spent'
+                  value={assetAmount(asset, asset.total)}
+                />
+              </>
+            ) : null}
             {asset.kind === 'xch' || asset.kind === 'cat' ? (
               <ApprovalDetailRow
                 label='Mojos'
-                value={asset.amount}
+                value={asset.total}
                 mono
                 breakAll
               />
@@ -133,6 +145,9 @@ export function CreateOfferApprovalCard({ approval, appName }: Props) {
             {appName} wants your wallet to create and sign an offer. Coins for
             the offered assets are reserved until the offer is taken or
             cancelled, and the offer is listed on the Offers page.
+            {summary.offered.some((asset) => asset.royalty !== '0')
+              ? ' The NFTs you request charge royalties, which are paid on top of what you offer.'
+              : null}
           </div>
         </div>
       </div>

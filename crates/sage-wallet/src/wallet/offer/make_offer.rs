@@ -1,8 +1,8 @@
 use chia_wallet_sdk::{
     chia::puzzle_types::offer::{NotarizedPayment, Payment},
     driver::{
-        TransferNftById, calculate_royalty_payments, calculate_trade_price_amounts,
-        calculate_trade_prices,
+        TransferNftById, calculate_royalty_amounts, calculate_royalty_payments,
+        calculate_trade_price_amounts, calculate_trade_prices,
     },
     prelude::*,
     puzzles::SETTLEMENT_PAYMENT_HASH,
@@ -38,6 +38,44 @@ pub struct RequestedCat {
     pub hidden_puzzle_hash: Option<Bytes32>,
 }
 
+/// The royalty NFTs among the requested NFTs, in the order they're paid.
+fn offer_royalties(requested: &Requested) -> Vec<RoyaltyInfo> {
+    requested
+        .nfts
+        .iter()
+        .map(|(&launcher_id, nft)| {
+            RoyaltyInfo::new(
+                launcher_id,
+                nft.royalty_puzzle_hash,
+                nft.royalty_basis_points,
+            )
+        })
+        .filter(|info| info.basis_points > 0)
+        .collect_vec()
+}
+
+fn offered_amounts(offered: &Offered) -> OfferAmounts {
+    OfferAmounts {
+        xch: offered.xch.into(),
+        cats: offered
+            .cats
+            .iter()
+            .map(|(&asset_id, &amount)| (asset_id, amount.into()))
+            .collect(),
+    }
+}
+
+/// The royalties that [`Wallet::make_offer`] pays on top of the offered XCH and CATs, for the
+/// royalty NFTs it requests, so they can be shown before the offer is made.
+pub fn offer_royalty_amounts(
+    offered: &Offered,
+    requested: &Requested,
+) -> Result<OfferAmounts, WalletError> {
+    let royalties = offer_royalties(requested);
+    let trade_prices = calculate_trade_price_amounts(&offered_amounts(offered), royalties.len());
+    Ok(calculate_royalty_amounts(&trade_prices, &royalties)?)
+}
+
 impl Wallet {
     pub async fn make_offer(
         &self,
@@ -50,14 +88,7 @@ impl Wallet {
 
         let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
-        let offer_amounts = OfferAmounts {
-            xch: offered.xch.into(),
-            cats: offered
-                .cats
-                .iter()
-                .map(|(&asset_id, &amount)| (asset_id, amount.into()))
-                .collect(),
-        };
+        let offer_amounts = offered_amounts(&offered);
 
         let requested_amounts = OfferAmounts {
             xch: requested.xch.into(),
@@ -71,18 +102,7 @@ impl Wallet {
                 .collect::<Result<_, WalletError>>()?,
         };
 
-        let offer_royalties = requested
-            .nfts
-            .iter()
-            .map(|(&launcher_id, nft)| {
-                RoyaltyInfo::new(
-                    launcher_id,
-                    nft.royalty_puzzle_hash,
-                    nft.royalty_basis_points,
-                )
-            })
-            .filter(|info| info.basis_points > 0)
-            .collect_vec();
+        let offer_royalties = offer_royalties(&requested);
 
         let offer_trade_price_amounts =
             calculate_trade_price_amounts(&offer_amounts, offer_royalties.len());
@@ -277,5 +297,55 @@ impl Wallet {
         )?;
 
         Ok(offer.to_spend_bundle(&mut ctx)?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn requested_nfts(basis_points: &[u16]) -> Requested {
+        Requested {
+            nfts: basis_points
+                .iter()
+                .enumerate()
+                .map(|(index, &royalty_basis_points)| {
+                    (
+                        Bytes32::new([u8::try_from(index).unwrap() + 1; 32]),
+                        NftOfferInfo {
+                            metadata: Program::default(),
+                            metadata_updater_puzzle_hash: Bytes32::default(),
+                            royalty_puzzle_hash: Bytes32::new([9; 32]),
+                            royalty_basis_points,
+                        },
+                    )
+                })
+                .collect(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn royalty_amounts_follow_the_offered_amounts() {
+        let cat = Bytes32::new([7; 32]);
+        let offered = Offered {
+            xch: 1000,
+            cats: [(cat, 100)].into_iter().collect(),
+            ..Default::default()
+        };
+
+        // A royalty-free NFT doesn't count towards the trade price split.
+        let royalties = offer_royalty_amounts(&offered, &requested_nfts(&[300, 0])).unwrap();
+        assert_eq!(royalties.xch, 30);
+        assert_eq!(royalties.cats[&cat], 3);
+
+        // Each royalty NFT takes its share of the price, and each royalty rounds down.
+        let royalties = offer_royalty_amounts(&offered, &requested_nfts(&[300, 300])).unwrap();
+        assert_eq!(royalties.xch, 30);
+        assert_eq!(royalties.cats[&cat], 2);
+
+        let royalties = offer_royalty_amounts(&offered, &Requested::default()).unwrap();
+        assert_eq!(royalties.xch, 0);
+        assert!(royalties.cats.is_empty());
     }
 }

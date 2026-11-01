@@ -1,4 +1,7 @@
+use std::collections::HashSet;
+
 use async_trait::async_trait;
+use sage::MakeOfferRoyalties;
 use sage_api::{Amount, GetNft, GetOption, GetToken, MakeOffer, MakeOfferResponse, OfferAmount};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -6,8 +9,8 @@ use specta::Type;
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeApprovalBody,
-    RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability, parse_required_params,
-    unix_timestamp_ms,
+    RustBridgeApprovalRequest, RustBridgeApprovalResponse, RustBridgeRequest, UserBridgeCapability,
+    parse_required_params, unix_timestamp_ms,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -130,6 +133,11 @@ pub struct WalletCreateOfferApprovalAsset {
     pub impersonates_xch: bool,
     /// The amount in mojos.
     pub amount: String,
+    /// NFT royalties paid on top of an offered XCH or CAT amount, in mojos, for the royalty NFTs
+    /// the offer requests. Zero for requested assets.
+    pub royalty: String,
+    /// `amount` plus `royalty`: what the offer spends of this asset, in mojos.
+    pub total: String,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -141,12 +149,14 @@ pub struct WalletCreateOfferApprovalSummary {
     pub expires_at_second: Option<u64>,
 }
 
+#[derive(Debug, Clone)]
 struct ValidatedLeg {
     kind: WalletCreateOfferApprovalAssetKind,
     asset_id: Option<String>,
     amount: u64,
 }
 
+#[derive(Debug, Clone)]
 struct ValidatedOffer {
     offered: Vec<ValidatedLeg>,
     requested: Vec<ValidatedLeg>,
@@ -193,6 +203,10 @@ fn validate_legs(
     legs: &[WalletCreateOfferAsset],
     field: &str,
 ) -> Result<Vec<ValidatedLeg>, BridgeMethodHandleError> {
+    // make_offer adds up repeated XCH and CAT entries and keeps one of each repeated NFT or
+    // option, so a list with repeats would sign something other than the approval shows.
+    let mut seen = HashSet::new();
+
     legs.iter()
         .map(|leg| {
             if leg.hidden_puzzle_hash.is_some() {
@@ -202,9 +216,17 @@ fn validate_legs(
                 )));
             }
 
-            let asset_id = leg.asset_id();
+            // Asset ids are case-insensitive, so they're compared and passed on in lowercase.
+            let asset_id = leg.asset_id().map(|id| id.to_ascii_lowercase());
             let kind = asset_kind(asset_id.as_deref(), field)?;
             let amount = leg.amount.mojos()?;
+
+            if !seen.insert(asset_id.clone()) {
+                return Err(BridgeMethodHandleError::invalid_request(format!(
+                    "{field} lists {} more than once; give each asset one entry",
+                    asset_id.as_deref().unwrap_or("XCH")
+                )));
+            }
 
             if amount == 0 {
                 return Err(BridgeMethodHandleError::invalid_request(format!(
@@ -267,10 +289,10 @@ fn now_seconds() -> u64 {
     u64::try_from(unix_timestamp_ms() / 1000).unwrap_or(0)
 }
 
-fn offer_amounts(legs: Vec<ValidatedLeg>) -> Vec<OfferAmount> {
-    legs.into_iter()
+fn offer_amounts(legs: &[ValidatedLeg]) -> Vec<OfferAmount> {
+    legs.iter()
         .map(|leg| OfferAmount {
-            asset_id: leg.asset_id,
+            asset_id: leg.asset_id.clone(),
             // Never taken from the app: make_offer looks up a requested CAT's
             // hidden puzzle hash itself when this is None.
             hidden_puzzle_hash: None,
@@ -280,10 +302,10 @@ fn offer_amounts(legs: Vec<ValidatedLeg>) -> Vec<OfferAmount> {
 }
 
 impl ValidatedOffer {
-    fn into_request(self) -> MakeOffer {
+    fn to_request(&self) -> MakeOffer {
         MakeOffer {
-            requested_assets: offer_amounts(self.requested),
-            offered_assets: offer_amounts(self.offered),
+            requested_assets: offer_amounts(&self.requested),
+            offered_assets: offer_amounts(&self.offered),
             fee: Amount::Number(self.fee),
             receive_address: None,
             expires_at_second: self.expires_at_second,
@@ -291,8 +313,73 @@ impl ValidatedOffer {
             // there, and its coins are reserved like any offer made in Sage.
             auto_import: true,
             coin_ids: None,
+            confirmed_handles: Vec::new(),
         }
     }
+}
+
+/// The royalty `make_offer` pays on top of an offered leg. Royalties are paid in the offered XCH
+/// and CATs, so a requested leg, an NFT or an option pays none.
+fn leg_royalty(leg: &ValidatedLeg, royalties: &MakeOfferRoyalties) -> u64 {
+    match leg.kind {
+        WalletCreateOfferApprovalAssetKind::Xch => royalties.xch,
+        WalletCreateOfferApprovalAssetKind::Cat => leg
+            .asset_id
+            .as_ref()
+            .and_then(|asset_id| royalties.cats.get(asset_id).copied())
+            .unwrap_or(0),
+        WalletCreateOfferApprovalAssetKind::Nft | WalletCreateOfferApprovalAssetKind::Option => 0,
+    }
+}
+
+async fn offer_royalties(
+    tools: &BridgeTools<'_>,
+    offer: &ValidatedOffer,
+) -> Result<MakeOfferRoyalties, BridgeMethodHandleError> {
+    tools
+        .app_state
+        .lock()
+        .await
+        .make_offer_royalties(offer.to_request())
+        .await
+        .map_err(|err| {
+            BridgeMethodHandleError::internal_error(format!(
+                "wallet.createOffer could not look up royalties: {err}"
+            ))
+        })
+}
+
+/// Each offered asset and the royalty the user approved for it.
+fn approved_royalties(
+    approval: &RustBridgeApprovalRequest,
+) -> Option<Vec<(Option<String>, String)>> {
+    match &approval.body {
+        RustBridgeApprovalBody::CreateOffer { summary } => Some(
+            summary
+                .offered
+                .iter()
+                .map(|asset| (asset.asset_id.clone(), asset.royalty.clone()))
+                .collect(),
+        ),
+        _ => None,
+    }
+}
+
+/// Each offered asset and the royalty the offer would pay for it now.
+fn current_royalties(
+    offer: &ValidatedOffer,
+    royalties: &MakeOfferRoyalties,
+) -> Vec<(Option<String>, String)> {
+    offer
+        .offered
+        .iter()
+        .map(|leg| {
+            (
+                leg.asset_id.clone(),
+                leg_royalty(leg, royalties).to_string(),
+            )
+        })
+        .collect()
 }
 
 fn is_xch_label(label: Option<&str>) -> bool {
@@ -301,10 +388,11 @@ fn is_xch_label(label: Option<&str>) -> bool {
 
 fn approval_asset_from_labels(
     leg: ValidatedLeg,
+    royalty: u64,
     name: Option<String>,
     ticker: Option<String>,
     precision: Option<u8>,
-) -> WalletCreateOfferApprovalAsset {
+) -> Result<WalletCreateOfferApprovalAsset, BridgeMethodHandleError> {
     let (precision, precision_known) = match (leg.kind, precision) {
         (_, Some(precision)) => (precision, true),
         (WalletCreateOfferApprovalAssetKind::Xch, None) => (XCH_PRECISION, true),
@@ -319,7 +407,14 @@ fn approval_asset_from_labels(
     let impersonates_xch = leg.kind != WalletCreateOfferApprovalAssetKind::Xch
         && (is_xch_label(name.as_deref()) || is_xch_label(ticker.as_deref()));
 
-    WalletCreateOfferApprovalAsset {
+    let total = leg.amount.checked_add(royalty).ok_or_else(|| {
+        BridgeMethodHandleError::invalid_request(format!(
+            "the amount plus royalties for {} is more than a u64",
+            leg.asset_id.as_deref().unwrap_or("XCH")
+        ))
+    })?;
+
+    Ok(WalletCreateOfferApprovalAsset {
         kind: leg.kind,
         asset_id: leg.asset_id,
         name,
@@ -328,13 +423,16 @@ fn approval_asset_from_labels(
         precision_known,
         impersonates_xch,
         amount: leg.amount.to_string(),
-    }
+        royalty: royalty.to_string(),
+        total: total.to_string(),
+    })
 }
 
 async fn approval_asset(
     tools: &BridgeTools<'_>,
     leg: ValidatedLeg,
-) -> WalletCreateOfferApprovalAsset {
+    royalty: u64,
+) -> Result<WalletCreateOfferApprovalAsset, BridgeMethodHandleError> {
     // Labels are best effort: a CAT, NFT or option the wallet has never seen has
     // no record, and the approval then shows its kind and id.
     let app_state = tools.app_state.lock().await;
@@ -382,7 +480,7 @@ async fn approval_asset(
 
     drop(app_state);
 
-    approval_asset_from_labels(leg, name, ticker, precision)
+    approval_asset_from_labels(leg, royalty, name, ticker, precision)
 }
 
 #[async_trait]
@@ -391,11 +489,14 @@ impl BridgeMethod for WalletCreateOffer {
         "wallet.createOffer"
     }
 
-    // Making an offer is Sage signing spends of its own coins, so it sits under
-    // the same capability as signing an app's coin spends, with the same
-    // per-request approval. It can never be auto-approved.
+    // Its own capability, so an app that only makes offers isn't granted signing
+    // of arbitrary coin spends. Every offer still needs per-request approval.
     fn capability(&self) -> BridgeMethodCapability {
-        BridgeMethodCapability::user(UserBridgeCapability::WalletSignCoinSpends)
+        BridgeMethodCapability::user(UserBridgeCapability::WalletCreateOffer)
+    }
+
+    fn requires_signing(&self) -> bool {
+        true
     }
 
     fn binds_approval_to_wallet(&self) -> bool {
@@ -410,15 +511,19 @@ impl BridgeMethod for WalletCreateOffer {
     ) -> BridgeApprovalRequestResult {
         let params: WalletCreateOfferParams = parse_required_params(self, request)?;
         let offer = validate_params(&params, now_seconds())?;
+        // Requesting a royalty NFT makes the offer pay its royalty on top of the offered XCH and
+        // CATs, so the approval shows those totals rather than the app's amounts alone.
+        let royalties = offer_royalties(&tools, &offer).await?;
 
         let mut offered = Vec::with_capacity(offer.offered.len());
         for leg in offer.offered {
-            offered.push(approval_asset(&tools, leg).await);
+            let royalty = leg_royalty(&leg, &royalties);
+            offered.push(approval_asset(&tools, leg, royalty).await?);
         }
 
         let mut requested = Vec::with_capacity(offer.requested.len());
         for leg in offer.requested {
-            requested.push(approval_asset(&tools, leg).await);
+            requested.push(approval_asset(&tools, leg, 0).await?);
         }
 
         Ok(Some(RustBridgeApprovalRequest {
@@ -431,6 +536,36 @@ impl BridgeMethod for WalletCreateOffer {
                 },
             },
         }))
+    }
+
+    async fn handle_approved(
+        &self,
+        approval: &RustBridgeApprovalRequest,
+        ctx: BridgeContext<'_>,
+        tools: BridgeTools<'_>,
+        request: &RustBridgeRequest,
+        response: Option<&RustBridgeApprovalResponse>,
+    ) -> BridgeHandleResult {
+        if response.is_some() {
+            return Err(BridgeMethodHandleError::invalid_request(format!(
+                "{} does not accept approval response data",
+                self.name()
+            )));
+        }
+
+        // The royalties are looked up again for the offer about to be signed. If they aren't
+        // the ones the user approved, the user hasn't approved what it would spend.
+        let params: WalletCreateOfferParams = parse_required_params(self, request)?;
+        let offer = validate_params(&params, now_seconds())?;
+        let royalties = offer_royalties(&tools, &offer).await?;
+
+        if approved_royalties(approval) != Some(current_royalties(&offer, &royalties)) {
+            return Err(BridgeMethodHandleError::invalid_request(
+                "the offer's royalties changed after it was approved; request it again",
+            ));
+        }
+
+        self.handle(ctx, tools, request).await
     }
 
     async fn handle(
@@ -446,7 +581,7 @@ impl BridgeMethod for WalletCreateOffer {
             .app_state
             .lock()
             .await
-            .make_offer(offer.into_request())
+            .make_offer(offer.to_request())
             .await
             .map_err(|err| {
                 BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
@@ -497,7 +632,7 @@ mod tests {
             "expiresAtSecond": 1_900_000_000
         }))
         .expect("valid params")
-        .into_request();
+        .to_request();
 
         assert!(request.auto_import);
         assert!(request.coin_ids.is_none());
@@ -698,28 +833,34 @@ mod tests {
             ] {
                 let asset = approval_asset_from_labels(
                     leg(kind, Some(CAT_ID)),
+                    0,
                     name.map(ToString::to_string),
                     ticker.map(ToString::to_string),
                     Some(3),
-                );
+                )
+                .expect("labels are valid");
                 assert!(asset.impersonates_xch, "{kind:?} {name:?} {ticker:?}");
             }
         }
 
         let real = approval_asset_from_labels(
             leg(WalletCreateOfferApprovalAssetKind::Xch, None),
+            0,
             Some("Chia".to_string()),
             Some("XCH".to_string()),
             Some(12),
-        );
+        )
+        .expect("labels are valid");
         assert!(!real.impersonates_xch);
 
         let other = approval_asset_from_labels(
             leg(WalletCreateOfferApprovalAssetKind::Cat, Some(CAT_ID)),
+            0,
             Some("Wrapped XCH".to_string()),
             Some("wXCH".to_string()),
             Some(3),
-        );
+        )
+        .expect("labels are valid");
         assert!(!other.impersonates_xch);
     }
 
@@ -727,30 +868,193 @@ mod tests {
     fn unknown_cats_default_to_three_decimals() {
         let unknown = approval_asset_from_labels(
             leg(WalletCreateOfferApprovalAssetKind::Cat, Some(CAT_ID)),
+            0,
             None,
             None,
             None,
-        );
+        )
+        .expect("labels are valid");
         assert_eq!(unknown.precision, DEFAULT_CAT_PRECISION);
         assert!(!unknown.precision_known);
         assert_eq!(unknown.amount, "1000");
 
         let known = approval_asset_from_labels(
             leg(WalletCreateOfferApprovalAssetKind::Cat, Some(CAT_ID)),
+            0,
             None,
             Some("SBX".to_string()),
             Some(4),
-        );
+        )
+        .expect("labels are valid");
         assert_eq!(known.precision, 4);
         assert!(known.precision_known);
 
         let nft = approval_asset_from_labels(
             leg(WalletCreateOfferApprovalAssetKind::Nft, Some("nft1abc")),
+            0,
             None,
             None,
             None,
-        );
+        )
+        .expect("labels are valid");
         assert_eq!(nft.precision, 0);
         assert!(nft.precision_known);
+    }
+
+    const NFT_ID: &str = "nft1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+    const OPTION_ID: &str = "option1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+
+    #[test]
+    fn repeated_assets_are_rejected() {
+        for legs in [
+            json!([{ "amount": 1 }, { "amount": 2 }]),
+            json!([{ "amount": 1 }, { "assetId": "", "amount": 2 }]),
+            json!([
+                { "assetId": CAT_ID, "amount": 1 },
+                { "assetId": CAT_ID, "amount": 2 }
+            ]),
+            json!([
+                { "assetId": CAT_ID, "amount": 1 },
+                { "assetId": CAT_ID.to_ascii_uppercase(), "amount": 2 }
+            ]),
+            // make_offer would add these up to 1 mojo with overflow checks off.
+            json!([
+                { "assetId": CAT_ID, "amount": u64::MAX },
+                { "assetId": CAT_ID, "amount": 2 }
+            ]),
+            // make_offer would keep only one of each.
+            json!([{ "assetId": NFT_ID, "amount": 1 }, { "assetId": NFT_ID, "amount": 1 }]),
+            json!([
+                { "assetId": OPTION_ID, "amount": 1 },
+                { "assetId": OPTION_ID, "amount": 1 }
+            ]),
+        ] {
+            for (field, other) in [
+                ("offerAssets", "requestAssets"),
+                ("requestAssets", "offerAssets"),
+            ] {
+                let message = error_message(validate(json!({
+                    field: legs.clone(),
+                    other: [],
+                    "fee": 1
+                })));
+
+                assert!(
+                    message.contains("more than once"),
+                    "{field} {legs}: {message}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn cat_ids_are_lowercased() {
+        let offer = validate(json!({
+            "offerAssets": [{ "assetId": CAT_ID.to_ascii_uppercase(), "amount": 1 }],
+            "requestAssets": [{ "amount": 1 }]
+        }))
+        .expect("valid params");
+
+        assert_eq!(offer.offered[0].asset_id.as_deref(), Some(CAT_ID));
+        assert_eq!(
+            offer.to_request().offered_assets[0].asset_id.as_deref(),
+            Some(CAT_ID)
+        );
+    }
+
+    fn royalties() -> MakeOfferRoyalties {
+        MakeOfferRoyalties {
+            xch: 30,
+            cats: [(CAT_ID.to_string(), 5)].into_iter().collect(),
+        }
+    }
+
+    #[test]
+    fn royalties_are_shown_on_the_offered_xch_and_cats() {
+        let offer = validate(json!({
+            "offerAssets": [{ "amount": 1000 }, { "assetId": CAT_ID, "amount": 100 }],
+            "requestAssets": [{ "assetId": NFT_ID, "amount": 1 }]
+        }))
+        .expect("valid params");
+        let royalties = royalties();
+
+        let royalty_by_leg = offer
+            .offered
+            .iter()
+            .chain(&offer.requested)
+            .map(|leg| leg_royalty(leg, &royalties))
+            .collect::<Vec<_>>();
+        assert_eq!(royalty_by_leg, [30, 5, 0]);
+
+        let xch = approval_asset_from_labels(offer.offered[0].clone(), 30, None, None, None)
+            .expect("labels are valid");
+        assert_eq!(xch.amount, "1000");
+        assert_eq!(xch.royalty, "30");
+        assert_eq!(xch.total, "1030");
+
+        let nft = approval_asset_from_labels(offer.requested[0].clone(), 0, None, None, None)
+            .expect("labels are valid");
+        assert_eq!(nft.royalty, "0");
+        assert_eq!(nft.total, "1");
+    }
+
+    #[test]
+    fn a_total_over_u64_is_rejected() {
+        let mut xch = leg(WalletCreateOfferApprovalAssetKind::Xch, None);
+        xch.amount = u64::MAX;
+
+        assert!(approval_asset_from_labels(xch, 1, None, None, None).is_err());
+    }
+
+    #[test]
+    fn execution_needs_the_approved_royalties() {
+        let offer = validate(json!({
+            "offerAssets": [{ "amount": 1000 }, { "assetId": CAT_ID, "amount": 100 }],
+            "requestAssets": [{ "assetId": NFT_ID, "amount": 1 }]
+        }))
+        .expect("valid params");
+
+        let approval = |royalties: &MakeOfferRoyalties| RustBridgeApprovalRequest {
+            body: RustBridgeApprovalBody::CreateOffer {
+                summary: WalletCreateOfferApprovalSummary {
+                    offered: offer
+                        .offered
+                        .iter()
+                        .map(|leg| {
+                            approval_asset_from_labels(
+                                leg.clone(),
+                                leg_royalty(leg, royalties),
+                                None,
+                                None,
+                                None,
+                            )
+                            .expect("labels are valid")
+                        })
+                        .collect(),
+                    requested: Vec::new(),
+                    fee: "0".to_string(),
+                    expires_at_second: None,
+                },
+            },
+        };
+
+        let approved = approval(&royalties());
+        assert_eq!(
+            approved_royalties(&approved),
+            Some(current_royalties(&offer, &royalties()))
+        );
+
+        let mut higher = royalties();
+        higher.xch += 1;
+        assert_ne!(
+            approved_royalties(&approved),
+            Some(current_royalties(&offer, &higher))
+        );
+
+        let none = MakeOfferRoyalties::default();
+        assert_ne!(
+            approved_royalties(&approved),
+            Some(current_royalties(&offer, &none))
+        );
     }
 }

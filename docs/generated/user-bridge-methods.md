@@ -84,9 +84,9 @@
 
 ## `wallet.createOffer`
 
-| Field      | Value                     |
-| ---------- | ------------------------- |
-| Capability | `wallet.sign_coin_spends` |
+| Field      | Value                 |
+| ---------- | --------------------- |
+| Capability | `wallet.create_offer` |
 
 ## `wallet.filterUnlockedCoins`
 
