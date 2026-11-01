@@ -21,6 +21,13 @@ export interface OptionActionHandlers {
 
 type OptionAction = 'exercise' | 'cancel' | 'transfer' | 'burn';
 
+interface OptionConfirmationState {
+  action: OptionAction;
+  option: OptionRecord;
+  address?: string;
+  response: TransactionResponse;
+}
+
 export function useOptionActions(updateOptions: () => void) {
   const { addError } = useErrors();
   const walletState = useWalletState();
@@ -29,28 +36,23 @@ export function useOptionActions(updateOptions: () => void) {
   const [selectedOption, setSelectedOption] = useState<OptionRecord | null>(
     null,
   );
-  const [response, setResponse] = useState<TransactionResponse | null>(null);
+  const [confirmation, setConfirmation] =
+    useState<OptionConfirmationState | null>(null);
   const [exerciseOpen, setExerciseOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [burnOpen, setBurnOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<OptionAction | null>(null);
-  const [transferAddress, setTransferAddress] = useState('');
 
   // Action handler functions
   const submit = useCallback(
     (
-      action: OptionAction,
+      target: Omit<OptionConfirmationState, 'response'>,
       setOpen: (open: boolean) => void,
       request: () => Promise<TransactionResponse>,
     ) => {
-      setPendingAction(action);
       request()
-        .then(setResponse)
-        .catch((err) => {
-          setPendingAction(null);
-          addError(err);
-        })
+        .then((response) => setConfirmation({ ...target, response }))
+        .catch(addError)
         .finally(() => setOpen(false));
     },
     [addError],
@@ -59,11 +61,14 @@ export function useOptionActions(updateOptions: () => void) {
   const onExerciseSubmit = useCallback(
     (fee: string) => {
       if (!selectedOption) return;
-      submit('exercise', setExerciseOpen, () =>
-        commands.exerciseOptions({
-          option_ids: [selectedOption.launcher_id],
-          fee: toMojos(fee, walletState.sync.unit.precision),
-        }),
+      submit(
+        { action: 'exercise', option: selectedOption },
+        setExerciseOpen,
+        () =>
+          commands.exerciseOptions({
+            option_ids: [selectedOption.launcher_id],
+            fee: toMojos(fee, walletState.sync.unit.precision),
+          }),
       );
     },
     [selectedOption, walletState.sync.unit.precision, submit],
@@ -72,7 +77,7 @@ export function useOptionActions(updateOptions: () => void) {
   const onCancelSubmit = useCallback(
     (fee: string) => {
       if (!selectedOption) return;
-      submit('cancel', setCancelOpen, () =>
+      submit({ action: 'cancel', option: selectedOption }, setCancelOpen, () =>
         commands.cancelOptions({
           option_ids: [selectedOption.launcher_id],
           fee: toMojos(fee, walletState.sync.unit.precision),
@@ -85,16 +90,18 @@ export function useOptionActions(updateOptions: () => void) {
   const onTransferSubmit = useCallback(
     (address: string, fee: string) => {
       if (!selectedOption) return;
-      setTransferAddress(address);
-      submit('transfer', setTransferOpen, () =>
-        withHandleConfirmation((confirmed_handles) =>
-          commands.transferOptions({
-            option_ids: [selectedOption.launcher_id],
-            address,
-            fee: toMojos(fee, walletState.sync.unit.precision),
-            confirmed_handles,
-          }),
-        ),
+      submit(
+        { action: 'transfer', option: selectedOption, address },
+        setTransferOpen,
+        () =>
+          withHandleConfirmation((confirmed_handles) =>
+            commands.transferOptions({
+              option_ids: [selectedOption.launcher_id],
+              address,
+              fee: toMojos(fee, walletState.sync.unit.precision),
+              confirmed_handles,
+            }),
+          ),
       );
     },
     [selectedOption, walletState.sync.unit.precision, submit],
@@ -103,7 +110,7 @@ export function useOptionActions(updateOptions: () => void) {
   const onBurnSubmit = useCallback(
     (fee: string) => {
       if (!selectedOption) return;
-      submit('burn', setBurnOpen, () =>
+      submit({ action: 'burn', option: selectedOption }, setBurnOpen, () =>
         commands.transferOptions({
           option_ids: [selectedOption.launcher_id],
           address: walletState.sync.burn_address,
@@ -180,9 +187,9 @@ export function useOptionActions(updateOptions: () => void) {
       >
         <Trans>
           This will cancel the option contract and return the underlying asset
-          to you. The strike price is not paid, but unless the underlying asset
-          is the same asset, you need a coin of the strike asset and an XCH
-          coin, of any amount.
+          to you. The strike price is not paid, but you need a coin of any
+          amount of the strike asset unless it is also the underlying asset, and
+          of XCH unless it is the underlying or strike asset.
         </Trans>
       </FeeOnlyDialog>
 
@@ -209,25 +216,22 @@ export function useOptionActions(updateOptions: () => void) {
       </FeeOnlyDialog>
 
       <ConfirmationDialog
-        response={response}
+        response={confirmation?.response ?? null}
         showRecipientDetails={false}
         close={() => {
-          setResponse(null);
-          setPendingAction(null);
+          setConfirmation(null);
           setSelectedOption(null);
         }}
         onConfirm={() => updateOptions()}
         additionalData={
-          pendingAction && response && selectedOption
+          confirmation
             ? {
-                title: confirmationTitles[pendingAction],
+                title: confirmationTitles[confirmation.action],
                 content: (
                   <OptionConfirmation
-                    options={[selectedOption]}
-                    address={
-                      pendingAction === 'transfer' ? transferAddress : undefined
-                    }
-                    type={pendingAction}
+                    options={[confirmation.option]}
+                    address={confirmation.address}
+                    type={confirmation.action}
                   />
                 ),
               }

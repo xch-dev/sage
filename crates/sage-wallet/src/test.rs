@@ -39,6 +39,7 @@ pub struct TestWallet {
     pub sim: Arc<PeerSimulator>,
     pub agg_sig: AggSigConstants,
     pub peer: Peer,
+    pub pool: SqlitePool,
     pub wallet: Arc<Wallet>,
     pub master_sk: SecretKey,
     pub puzzle_hash: Bytes32,
@@ -88,7 +89,7 @@ impl TestWallet {
         let pool =
             SqlitePool::connect(&format!("file:testdb{db_index}?mode=memory&cache=shared")).await?;
         migrate!("../../migrations").run(&pool).await?;
-        let db = Database::new(pool);
+        let db = Database::new(pool.clone());
         db.run_rust_migrations("TXCH".to_string()).await?;
 
         let shared_pool = SqlitePool::connect(&format!(
@@ -173,6 +174,7 @@ impl TestWallet {
             sim,
             agg_sig: AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
             peer,
+            pool,
             wallet,
             master_sk: sk,
             puzzle_hash: puzzle_hash.into(),

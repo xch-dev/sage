@@ -183,7 +183,9 @@ impl Wallet {
     /// Since the strike payment goes to the creator, it doesn't need to be funded. Its coin is spent
     /// in the same transaction, and its value pays for the settlement coin that created it. Only
     /// balances within the transaction are enforced, so this is effectively a flash loan, and a coin
-    /// of the strike asset of any amount (including 0) is enough to start from.
+    /// of the strike asset of any amount (including 0) is enough to start from. That coin isn't
+    /// needed if the strike asset is also the underlying asset. An XCH coin of any amount is needed
+    /// for the melted option's value as well, unless XCH is the underlying or strike asset.
     pub async fn cancel_options(
         &self,
         option_ids: Vec<Bytes32>,
@@ -1153,6 +1155,63 @@ mod tests {
         assert!(alice.wallet.db.option(first).await?.is_none());
         assert!(alice.wallet.db.option(second).await?.is_none());
         assert_eq!(alice.wallet.db.selectable_xch_balance().await?, 2002);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_is_creator_requires_custody() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1001).await?;
+        let mut bob = alice.next(0).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let option_id =
+            mint_cat_option(&mut alice, asset_id, OptionType::Xch { amount: 2000 }).await?;
+
+        let coin_spends = alice
+            .wallet
+            .transfer_options(vec![option_id], bob.puzzle_hash, 0, None)
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        let creator_puzzle_hash = bob
+            .wallet
+            .db
+            .option_underlying(option_id)
+            .await?
+            .expect("option should exist")
+            .creator_puzzle_hash;
+
+        // A clawback puzzle is known to the wallet, but doesn't make it the creator
+        sqlx::query("INSERT INTO p2_puzzles (hash, kind) VALUES (?, 1)")
+            .bind(creator_puzzle_hash.as_ref())
+            .execute(&bob.pool)
+            .await?;
+
+        let row = bob.wallet.db.wallet_option(option_id).await?.unwrap();
+        assert!(!row.is_creator);
+
+        let (rows, _) = bob
+            .wallet
+            .db
+            .owned_options(
+                10,
+                0,
+                OptionSortMode::Name,
+                true,
+                None,
+                true,
+                OptionFilter::Owned,
+            )
+            .await?;
+        assert!(!rows[0].is_creator);
+
+        assert!(list_options(&bob, OptionFilter::Created).await?.is_empty());
 
         Ok(())
     }
