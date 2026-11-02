@@ -6,7 +6,7 @@ use std::{
 
 use chia_wallet_sdk::prelude::*;
 use itertools::Itertools;
-use tokio::task::JoinHandle;
+use tokio::{task::JoinHandle, time::Instant};
 use tracing::debug;
 
 use crate::WalletPeer;
@@ -16,6 +16,8 @@ pub struct PeerInfo {
     pub peer: WalletPeer,
     pub claimed_peak: u32,
     pub header_hash: Bytes32,
+    /// When the peer last sent a new peak, or connected if it hasn't sent one since.
+    pub last_peak_at: Instant,
     pub receive_message_task: JoinHandle<()>,
     pub user_managed: bool,
 }
@@ -103,6 +105,20 @@ impl PeerState {
             .collect()
     }
 
+    /// Auto-discovered peers that haven't sent a new peak within `max_silence`. A connection can
+    /// die without closing, which leaves a peer connected that will never answer. User-managed
+    /// peers are left alone, since the user chose them.
+    pub fn silent_peers(&self, now: Instant, max_silence: Duration) -> Vec<IpAddr> {
+        self.peers
+            .iter()
+            .filter(|(_, info)| {
+                !info.user_managed
+                    && now.saturating_duration_since(info.last_peak_at) >= max_silence
+            })
+            .map(|(&ip, _)| ip)
+            .collect()
+    }
+
     pub fn ban(&mut self, ip: IpAddr, duration: Duration, message: &str) {
         debug!("Banning peer {ip} ({duration:?}): {message}");
 
@@ -135,6 +151,7 @@ impl PeerState {
         if let Some(peer) = self.peers.get_mut(&ip) {
             peer.claimed_peak = height;
             peer.header_hash = header_hash;
+            peer.last_peak_at = Instant::now();
         }
     }
 
@@ -165,9 +182,13 @@ impl PeerState {
 
 #[cfg(test)]
 mod tests {
+    use tokio::time::sleep;
+
     use crate::unresponsive_peer;
 
     use super::*;
+
+    const MAX_SILENCE: Duration = Duration::from_mins(5);
 
     /// Adds a peer under the IP 10.0.0.`last_octet`. Its connection is on 127.0.0.1 regardless,
     /// since macOS only routes that loopback address.
@@ -175,6 +196,8 @@ mod tests {
         state: &mut PeerState,
         last_octet: u8,
         claimed_peak: u32,
+        last_peak_at: Instant,
+        user_managed: bool,
     ) -> anyhow::Result<IpAddr> {
         let ip = IpAddr::from([10, 0, 0, last_octet]);
         state.peers.insert(
@@ -183,8 +206,9 @@ mod tests {
                 peer: unresponsive_peer().await?,
                 claimed_peak,
                 header_hash: Bytes32::default(),
+                last_peak_at,
                 receive_message_task: tokio::spawn(async {}),
-                user_managed: false,
+                user_managed,
             },
         );
         Ok(ip)
@@ -192,10 +216,11 @@ mod tests {
 
     #[tokio::test]
     async fn peers_by_peak_orders_highest_peak_first() -> anyhow::Result<()> {
+        let now = Instant::now();
         let mut state = PeerState::default();
-        let lowest = add_peer(&mut state, 2, 10).await?;
-        let highest = add_peer(&mut state, 3, 30).await?;
-        let middle = add_peer(&mut state, 4, 20).await?;
+        let lowest = add_peer(&mut state, 2, 10, now, false).await?;
+        let highest = add_peer(&mut state, 3, 30, now, false).await?;
+        let middle = add_peer(&mut state, 4, 20, now, false).await?;
 
         let addr = |ip| state.peer(ip).map(|info| info.peer.socket_addr());
 
@@ -206,6 +231,58 @@ mod tests {
             .collect_vec();
 
         assert_eq!(addrs, [addr(highest), addr(middle), addr(lowest)]);
+
+        Ok(())
+    }
+
+    // These tests check silence at a later time rather than backdating peaks, since subtracting
+    // from an `Instant` panics when the machine booted recently.
+
+    #[tokio::test]
+    async fn peer_that_stops_sending_peaks_is_silent() -> anyhow::Result<()> {
+        let start = Instant::now();
+        let mut state = PeerState::default();
+        let silent = add_peer(&mut state, 2, 100, start, false).await?;
+        add_peer(&mut state, 3, 100, start + MAX_SILENCE / 2, false).await?;
+
+        assert_eq!(
+            state.silent_peers(start + MAX_SILENCE, MAX_SILENCE),
+            [silent]
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn user_managed_peers_are_never_silent() -> anyhow::Result<()> {
+        let start = Instant::now();
+        let mut state = PeerState::default();
+        add_peer(&mut state, 2, 100, start, true).await?;
+
+        assert!(
+            state
+                .silent_peers(start + MAX_SILENCE, MAX_SILENCE)
+                .is_empty()
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn new_peak_refreshes_a_peer() -> anyhow::Result<()> {
+        let start = Instant::now();
+        let mut state = PeerState::default();
+        let ip = add_peer(&mut state, 2, 100, start, false).await?;
+        assert_eq!(state.silent_peers(start + MAX_SILENCE, MAX_SILENCE), [ip]);
+
+        sleep(Duration::from_millis(10)).await;
+        state.update_peak(ip, 101, Bytes32::default());
+
+        assert!(
+            state
+                .silent_peers(start + MAX_SILENCE, MAX_SILENCE)
+                .is_empty()
+        );
 
         Ok(())
     }

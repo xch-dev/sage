@@ -17,7 +17,7 @@ use sage_config::Network;
 use tokio::{
     sync::{Mutex, mpsc},
     task::JoinHandle,
-    time::{sleep, timeout},
+    time::{Instant, sleep, timeout},
 };
 use tracing::{debug, info, warn};
 use wallet_sync::{add_new_subscriptions, incremental_sync, sync_wallet};
@@ -391,6 +391,8 @@ impl SyncManager {
     }
 
     async fn update(&mut self) {
+        self.drop_silent_peers().await;
+
         let peer_count = self.state.lock().await.peer_count();
 
         if peer_count < self.options.target_peers && self.options.discover_peers {
@@ -405,6 +407,17 @@ impl SyncManager {
 
         self.update_tasks().await;
         self.poll_tasks().await;
+    }
+
+    /// Removes silent peers without banning them. After the computer wakes from sleep, live
+    /// peers can look silent too, and a fresh connection to one is fine.
+    async fn drop_silent_peers(&self) {
+        let mut state = self.state.lock().await;
+
+        for ip in state.silent_peers(Instant::now(), self.options.timeouts.peer_silence) {
+            info!("Dropping peer {ip}, which stopped sending new peaks");
+            state.remove_peer(ip);
+        }
     }
 
     async fn update_tasks(&mut self) {
@@ -687,6 +700,8 @@ mod tests {
     use chia_wallet_sdk::client::Connector;
     use sage_config::TESTNET11;
 
+    use crate::{TestWallet, default_test_options};
+
     use super::*;
 
     #[tokio::test]
@@ -736,6 +751,26 @@ mod tests {
 
         assert!(manager.pending_coin_subscriptions.is_empty());
         assert!(manager.pending_puzzle_subscriptions.is_empty());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn silent_subscribed_peer_is_dropped() -> anyhow::Result<()> {
+        let mut options = default_test_options();
+        // Long enough for the setup below to finish its initial sync, which it allows 10 seconds.
+        options.timeouts.peer_silence = Duration::from_secs(10);
+
+        // The simulator only sends new peaks when blocks are created, so without new blocks the
+        // peer goes silent, like one whose connection died without closing.
+        let test = TestWallet::new_with_options(1000, options).await?;
+
+        timeout(Duration::from_secs(30), async {
+            while test.state.lock().await.peer_count() > 0 {
+                sleep(Duration::from_millis(100)).await;
+            }
+        })
+        .await?;
 
         Ok(())
     }

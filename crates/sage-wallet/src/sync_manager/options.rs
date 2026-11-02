@@ -26,6 +26,9 @@ pub struct Timeouts {
     pub initial_peak: Duration,
     pub dns: Duration,
     pub introducer: Duration,
+    /// How long a peer can go without sending a new peak before it's dropped. Blocks arrive
+    /// about every 20 seconds, so a silent peer has usually lost its connection without closing.
+    pub peer_silence: Duration,
 }
 
 impl Default for Timeouts {
@@ -42,6 +45,7 @@ impl Default for Timeouts {
             initial_peak: Duration::from_secs(2),
             dns: Duration::from_secs(3),
             introducer: Duration::from_secs(10),
+            peer_silence: Duration::from_mins(5),
         }
     }
 }
