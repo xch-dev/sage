@@ -107,6 +107,7 @@ futures-util = "0.3.30"
 futures-lite = "2.3.0"
 sqlx = "0.8.0"
 reqwest = { version = "0.12.22", default-features = false }
+tokio-tungstenite = "0.30.0"
 
 # Utilities
 indexmap = "2.3.0"

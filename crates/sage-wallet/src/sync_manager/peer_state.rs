@@ -94,6 +94,15 @@ impl PeerState {
             .map(|info| info.peer.clone())
     }
 
+    /// Every peer, the one claiming the highest peak first.
+    pub fn peers_by_peak(&self) -> Vec<WalletPeer> {
+        self.peers
+            .values()
+            .sorted_by_key(|info| std::cmp::Reverse(info.claimed_peak))
+            .map(|info| info.peer.clone())
+            .collect()
+    }
+
     pub fn ban(&mut self, ip: IpAddr, duration: Duration, message: &str) {
         debug!("Banning peer {ip} ({duration:?}): {message}");
 
@@ -151,5 +160,53 @@ impl PeerState {
             *ban_until > since_the_epoch.as_secs()
         });
         &self.banned_peers
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::unresponsive_peer;
+
+    use super::*;
+
+    /// Adds a peer under the IP 10.0.0.`last_octet`. Its connection is on 127.0.0.1 regardless,
+    /// since macOS only routes that loopback address.
+    async fn add_peer(
+        state: &mut PeerState,
+        last_octet: u8,
+        claimed_peak: u32,
+    ) -> anyhow::Result<IpAddr> {
+        let ip = IpAddr::from([10, 0, 0, last_octet]);
+        state.peers.insert(
+            ip,
+            PeerInfo {
+                peer: unresponsive_peer().await?,
+                claimed_peak,
+                header_hash: Bytes32::default(),
+                receive_message_task: tokio::spawn(async {}),
+                user_managed: false,
+            },
+        );
+        Ok(ip)
+    }
+
+    #[tokio::test]
+    async fn peers_by_peak_orders_highest_peak_first() -> anyhow::Result<()> {
+        let mut state = PeerState::default();
+        let lowest = add_peer(&mut state, 2, 10).await?;
+        let highest = add_peer(&mut state, 3, 30).await?;
+        let middle = add_peer(&mut state, 4, 20).await?;
+
+        let addr = |ip| state.peer(ip).map(|info| info.peer.socket_addr());
+
+        let addrs = state
+            .peers_by_peak()
+            .iter()
+            .map(|peer| Some(peer.socket_addr()))
+            .collect_vec();
+
+        assert_eq!(addrs, [addr(highest), addr(middle), addr(lowest)]);
+
+        Ok(())
     }
 }
