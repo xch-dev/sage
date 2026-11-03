@@ -5,6 +5,9 @@ use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
 
 #[cfg(target_os = "windows")]
+use tauri::Manager;
+
+#[cfg(target_os = "windows")]
 use crate::data_directory_for;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use crate::parse_data_store_id;
@@ -208,7 +211,10 @@ async fn create_runtime_for_app(
     #[cfg(any(target_os = "macos", target_os = "ios"))]
     let builder = build_storage(builder, &app)?;
 
-    #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+    #[cfg(target_os = "windows")]
+    let builder = build_storage(builder, app_handle, &app)?;
+
+    #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
     let builder = build_storage(builder, &app);
 
     let (x, y, width, height) = if args.debug_layout {
@@ -327,7 +333,11 @@ fn build_storage(
 }
 
 #[cfg(target_os = "windows")]
-fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
+fn build_storage(
+    builder: WebviewBuilder<Wry>,
+    app_handle: &AppHandle,
+    app: &SharedSageApp,
+) -> Result<WebviewBuilder<Wry>, String> {
     let builder = if app.with(|app| app.common().has_persistent_webview_storage()) {
         builder
     } else {
@@ -336,7 +346,7 @@ fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBu
 
     // Incognito webviews still need their app-specific storage target. On Windows this scopes the
     // WebView2 InPrivate session so another incognito app cannot keep its in-memory data alive.
-    build_windows_storage_target(builder, app)
+    build_windows_storage_target(builder, app_handle, app)
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
@@ -368,16 +378,21 @@ fn build_persistent_storage_target(
 #[cfg(target_os = "windows")]
 fn build_windows_storage_target(
     builder: WebviewBuilder<Wry>,
+    app_handle: &AppHandle,
     app: &SharedSageApp,
-) -> WebviewBuilder<Wry> {
+) -> Result<WebviewBuilder<Wry>, String> {
     let storage = app.with(|app| app.storage().clone());
 
     match storage {
         SageAppStorage::WindowsProfile { directory_name } => {
-            builder.data_directory(data_directory_for(&directory_name))
+            let app_data_dir = app_handle
+                .path()
+                .app_data_dir()
+                .map_err(|err| format!("failed to resolve app data dir: {err}"))?;
+            Ok(builder.data_directory(app_data_dir.join(data_directory_for(&directory_name))))
         }
 
-        SageAppStorage::AppleDataStore { .. } | SageAppStorage::Unmanaged => builder,
+        SageAppStorage::AppleDataStore { .. } | SageAppStorage::Unmanaged => Ok(builder),
     }
 }
 

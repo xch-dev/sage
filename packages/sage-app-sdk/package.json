@@ -52,9 +52,9 @@
   },
   "scripts": {
     "generate:types": "node ./scripts/export-types.mjs",
-    "build": "pnpm run generate:types && tsup && cp src/theme/theme.css dist/theme.css && cp src/theme/theme-css.d.ts dist/theme-css.d.ts",
+    "build": "pnpm run generate:types && tsup && node scripts/copy-theme.mjs",
     "dev": "pnpm run generate:types && tsup --watch",
-    "clean": "rm -rf dist",
+    "clean": "node ../../scripts/clean-package-dist.mjs",
     "test": "node --test ./test/finalize-manifest.test.mjs",
     "prepack": "pnpm run build"
   },
