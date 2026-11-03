@@ -248,6 +248,48 @@ pub struct SetChangeAddress {
     pub change_address: Option<String>,
 }
 
+/// Get the UI theme the user last selected
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Themes",
+        description = "Retrieve the name of the UI theme the user last selected."
+    )
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetSelectedTheme {}
+
+/// Response with the selected UI theme
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Themes"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetSelectedThemeResponse {
+    /// Theme name, if one has been selected
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub theme: Option<String>,
+}
+
+/// Remember the UI theme the user selected
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Themes",
+        description = "Store the name of the selected UI theme in the app config.",
+        response_type = "EmptyResponse"
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct SetSelectedTheme {
+    /// Theme name (null to clear)
+    #[cfg_attr(feature = "openapi", schema(example = "dark"))]
+    pub theme: Option<String>,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -262,3 +304,4 @@ pub type SetNetworkOverrideResponse = EmptyResponse;
 pub type SetDeltaSyncResponse = EmptyResponse;
 pub type SetDeltaSyncOverrideResponse = EmptyResponse;
 pub type SetChangeAddressResponse = EmptyResponse;
+pub type SetSelectedThemeResponse = EmptyResponse;

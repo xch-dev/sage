@@ -1,13 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
-use chia_wallet_sdk::{
-    chia::puzzle_types::{LineageProof, nft::NftMetadata},
-    prelude::*,
-};
+use chia_wallet_sdk::{chia::puzzle_types::LineageProof, prelude::*};
 use sage_assets::base64_data_uri;
 use sage_database::{
     Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo, OptionCoinInfo,
-    SerializedNftInfo,
+    ParsedNftMetadata, SerializedNftInfo,
 };
 use tracing::{error, warn};
 
@@ -75,6 +72,18 @@ pub async fn insert_puzzle(
             }
 
             tx.insert_clawback_p2_puzzle(info).await?;
+
+            tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into())
+                .await?;
+        }
+        ChildKind::ClawbackV1 { info } => {
+            if underlying_p2_puzzle_hash.is_some() {
+                warn!("Deleting underlying coin {coin_id} because clawbacks are unsupported");
+                tx.delete_coin(coin_id).await?;
+                return Ok(false);
+            }
+
+            tx.insert_clawback_v1_p2_puzzle(info).await?;
 
             tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into())
                 .await?;
@@ -254,7 +263,7 @@ pub async fn insert_nft(
     coin_state: CoinState,
     lineage_proof: Option<LineageProof>,
     info: SerializedNftInfo,
-    metadata: Option<NftMetadata>,
+    metadata: Option<ParsedNftMetadata>,
     context: PuzzleContext,
 ) -> Result<(), WalletError> {
     if let Some(lineage_proof) = lineage_proof {
@@ -299,8 +308,9 @@ pub async fn insert_nft(
         data_hash: metadata.as_ref().and_then(|m| m.data_hash),
         metadata_hash: metadata.as_ref().and_then(|m| m.metadata_hash),
         license_hash: metadata.as_ref().and_then(|m| m.license_hash),
-        edition_number: metadata.as_ref().map(|m| m.edition_number),
-        edition_total: metadata.as_ref().map(|m| m.edition_total),
+        edition_number: metadata.as_ref().and_then(|m| m.edition_number),
+        edition_total: metadata.as_ref().and_then(|m| m.edition_total),
+        display_name: metadata.as_ref().and_then(|m| m.display_name.clone()),
     };
 
     if let Some(metadata_hash) = &metadata.as_ref().and_then(|m| m.metadata_hash)
@@ -317,11 +327,53 @@ pub async fn insert_nft(
         }
     }
 
+    // The display name from on-chain metadata takes precedence over the metadata file's name
+    if let Some(display_name) = &coin_info.display_name {
+        asset.name = Some(display_name.clone());
+    }
+
+    let is_current = coin_state.spent_height.is_none() || lineage_proof.is_none();
+    let is_mutable = !coin_info.metadata_updater_kind().is_append_only();
+
+    // A mutable NFT's earlier versions may have had different metadata, so only its current
+    // version sets its name, description, and icon.
+    if !is_current && is_mutable {
+        asset.name = None;
+        asset.description = None;
+        asset.icon_url = None;
+        asset.is_sensitive_content = false;
+    }
+
+    // Mutable NFTs can replace their metadata, so when their files or display name change,
+    // the name and icon from the previous metadata are cleared rather than kept. They're
+    // filled in again once the new files are downloaded.
+    //
+    // This includes the first time the NFT is synced, since any name and icon saved before
+    // then came from an offer's claimed metadata rather than the NFT itself.
+    if is_current
+        && is_mutable
+        && tx.nft_display_source(info.launcher_id).await?
+            != Some((
+                coin_info.data_hash,
+                coin_info.metadata_hash,
+                coin_info.display_name.clone(),
+            ))
+    {
+        tx.reset_nft_asset_display(
+            asset.hash,
+            asset.name.clone(),
+            asset.description.clone(),
+            asset.icon_url.clone(),
+            asset.is_sensitive_content,
+        )
+        .await?;
+    }
+
     tx.insert_asset(asset).await?;
 
     tx.insert_nft(info.launcher_id, &coin_info).await?;
 
-    if coin_state.spent_height.is_none() || lineage_proof.is_none() {
+    if is_current {
         tx.update_nft(info.launcher_id, &coin_info).await?;
     }
 

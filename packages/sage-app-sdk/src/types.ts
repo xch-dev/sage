@@ -51,7 +51,7 @@ export type SageWalletClient = {
   getPublicKeys(
     input?: Generated.WalletGetPublicKeysParams,
   ): Promise<Generated.WalletGetPublicKeysResult>;
-  getKey(): Promise<Generated.GetKeyResponse>;
+  getWallet(): Promise<Generated.GetWalletResponse>;
   getSecretKey(): Promise<Generated.GetSecretKeyResponse>;
 
   getSyncStatus(): Promise<Generated.GetSyncStatusResponse>;
@@ -78,6 +78,30 @@ export type SageWalletClient = {
   getTransactions(
     input: Generated.GetTransactions,
   ): Promise<Generated.GetTransactionsResponse>;
+
+  /** Requires `wallet.resolve_handle`. Sends the handle to the XCHandles API. */
+  resolveHandle(
+    input: Generated.ResolveHandle,
+  ): Promise<Generated.ResolveHandleResponse>;
+  /** Requires `wallet.resolve_handle`. Sends the handle to the XCHandles API. */
+  getHandle(input: Generated.GetHandle): Promise<Generated.GetHandleResponse>;
+  /** Requires `wallet.get_handles`. Reads known handles only; `refresh` is rejected. */
+  getHandles(
+    input: Generated.GetHandles,
+  ): Promise<Generated.GetHandlesResponse>;
+  /** Requires `wallet.get_handles`. Reads known handles only. */
+  lookupAddressHandles(
+    input: Generated.LookupAddressHandles,
+  ): Promise<Generated.LookupAddressHandlesResponse>;
+
+  /** Requires `wallet.get_contacts`. Reads the address book only. */
+  getContacts(
+    input: Generated.GetContacts,
+  ): Promise<Generated.WalletGetContactsResult>;
+  /** Requires `wallet.get_contacts`. Reads the address book only. */
+  lookupAddressContacts(
+    input: Generated.LookupAddressContacts,
+  ): Promise<Generated.WalletLookupAddressContactsResult>;
 
   sendXch(
     input: Generated.WalletSendXchParams,

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE p2_puzzles SET is_synced = TRUE WHERE hash = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "020491f0ba6d28f55c36bfc553710040af5b248cee564675e4d223248a211f41"
+}

@@ -936,6 +936,99 @@ mod tests {
     }
 
     #[test(tokio::test)]
+    async fn test_cancel_offers_share_one_fee_coin() -> anyhow::Result<()> {
+        // 1000 mojos back the CAT; 3 are left as a single XCH coin for fees.
+        let mut alice = TestWallet::new(1003).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let cats = alice.wallet.db.selectable_cat_coins(asset_id).await?;
+        let coin_spends = alice
+            .wallet
+            .split(vec![cats[0].coin.coin_id()], 2, 0)
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let cats = alice.wallet.db.selectable_cat_coins(asset_id).await?;
+        assert_eq!(cats.len(), 2);
+        let fee_coins = alice.wallet.db.selectable_xch_coins().await?;
+        assert_eq!(fee_coins.len(), 1);
+        let fee_coin_id = fee_coins[0].coin_id();
+
+        // Two offers of CAT only: neither holds XCH, so each cancel needs an XCH fee coin,
+        // and the wallet has just one.
+        let mut offers = Vec::new();
+
+        for cat in &cats {
+            let offer = alice
+                .wallet
+                .make_offer(
+                    Offered {
+                        cats: indexmap! { asset_id => cat.coin.amount },
+                        selected_coin_ids: vec![cat.coin.coin_id()],
+                        ..Default::default()
+                    },
+                    Requested {
+                        xch: 1,
+                        ..Default::default()
+                    },
+                    None,
+                )
+                .await?;
+            offers.push(
+                alice
+                    .wallet
+                    .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+                    .await?,
+            );
+        }
+
+        // Built one by one (as cancel_offers used to), both cancels pick the same fee coin,
+        // and the joined bundle spends it twice.
+        let mut one_by_one = Vec::new();
+        for offer in &offers {
+            one_by_one.extend(alice.wallet.cancel_offer(offer.clone(), 1).await?);
+        }
+        assert_eq!(
+            one_by_one
+                .iter()
+                .filter(|cs| cs.coin.coin_id() == fee_coin_id)
+                .count(),
+            2
+        );
+
+        // Cancelled together, the fee coin is selected once.
+        let coin_spends = alice.wallet.cancel_offers(offers, 2, Vec::new()).await?;
+        let fee_coin_spends = coin_spends
+            .iter()
+            .filter(|cs| cs.coin.coin_id() == fee_coin_id)
+            .count();
+        assert_eq!(fee_coin_spends, 1);
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1);
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert!(
+            alice
+                .wallet
+                .db
+                .selectable_cat_coins(asset_id)
+                .await?
+                .iter()
+                .all(|cat| cats
+                    .iter()
+                    .all(|old| old.coin.coin_id() != cat.coin.coin_id()))
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
     async fn test_offer_cat_single_sided() -> anyhow::Result<()> {
         let mut alice = TestWallet::new(1000).await?;
         let mut bob = alice.next(0).await?;

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE coins SET spent_height = ? WHERE hash = ? AND spent_height IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "29e887fdbc7e530e6033ef8c31cdce8a01925bee4395f4378e8887181983f966"
+}

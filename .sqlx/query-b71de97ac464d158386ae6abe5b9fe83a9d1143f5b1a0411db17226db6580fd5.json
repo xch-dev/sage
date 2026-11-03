@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE nfts\n            SET\n                collection_id = (SELECT id FROM collections WHERE hash = ?),\n                minter_hash = ?,\n                owner_hash = ?,\n                metadata = ?,\n                metadata_updater_puzzle_hash = ?,\n                metadata_updater_kind = ?,\n                display_name = ?,\n                royalty_puzzle_hash = ?,\n                royalty_basis_points = ?,\n                data_hash = ?,\n                metadata_hash = ?,\n                license_hash = ?,\n                edition_number = ?,\n                edition_total = ?\n            WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 15
+    },
+    "nullable": []
+  },
+  "hash": "b71de97ac464d158386ae6abe5b9fe83a9d1143f5b1a0411db17226db6580fd5"
+}

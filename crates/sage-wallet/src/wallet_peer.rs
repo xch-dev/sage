@@ -291,6 +291,35 @@ impl WalletPeer {
         })
     }
 
+    /// Looks up the unspent coins with a puzzle hash, without subscribing to it. Also returns
+    /// whether the peer sent all of them, since it may only send the first batch.
+    pub async fn fetch_unspent_coins_by_puzzle_hash(
+        &self,
+        puzzle_hash: Bytes32,
+        genesis_challenge: Bytes32,
+    ) -> Result<(Vec<CoinState>, bool), WalletError> {
+        let response = timeout(
+            Duration::from_secs(10),
+            self.peer.request_puzzle_state(
+                vec![puzzle_hash],
+                None,
+                genesis_challenge,
+                CoinStateFilters::new(false, true, false, 0),
+                false,
+            ),
+        )
+        .await??
+        .map_err(|_| WalletError::PeerMisbehaved)?;
+
+        let coin_states = response
+            .coin_states
+            .into_iter()
+            .filter(|state| state.coin.puzzle_hash == puzzle_hash && state.spent_height.is_none())
+            .collect();
+
+        Ok((coin_states, response.is_finished))
+    }
+
     pub async fn unsubscribe_coins(&self, coin_ids: Vec<Bytes32>) -> Result<(), WalletError> {
         timeout(
             Duration::from_secs(10),
@@ -302,6 +331,23 @@ impl WalletPeer {
     }
 
     pub async fn block_timestamp(&self, height: u32) -> Result<(Bytes32, u64), WalletError> {
+        let (header_hash, timestamp) = self.block_header_timestamp(height).await?;
+        Ok((header_hash, timestamp.ok_or(WalletError::PeerMisbehaved)?))
+    }
+
+    /// Returns the timestamp of the block at the given height, or `None` if it isn't a
+    /// transaction block and therefore has no timestamp.
+    pub async fn block_timestamp_if_transaction_block(
+        &self,
+        height: u32,
+    ) -> Result<Option<u64>, WalletError> {
+        Ok(self.block_header_timestamp(height).await?.1)
+    }
+
+    async fn block_header_timestamp(
+        &self,
+        height: u32,
+    ) -> Result<(Bytes32, Option<u64>), WalletError> {
         let header_block = timeout(
             Duration::from_secs(5),
             self.peer
@@ -315,9 +361,6 @@ impl WalletPeer {
             .as_ref()
             .map(|block| block.timestamp);
 
-        Ok((
-            header_block.header_hash(),
-            timestamp.ok_or(WalletError::PeerMisbehaved)?,
-        ))
+        Ok((header_block.header_hash(), timestamp))
     }
 }

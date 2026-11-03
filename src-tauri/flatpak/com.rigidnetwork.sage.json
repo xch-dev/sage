@@ -1,0 +1,35 @@
+{
+  "app-id": "com.rigidnetwork.sage",
+  "branch": "stable",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "50",
+  "sdk": "org.gnome.Sdk",
+  "command": "sage-tauri",
+  "rename-desktop-file": "Sage.desktop",
+  "rename-icon": "sage-tauri",
+  "appstream-compose": false,
+  "finish-args": [
+    "--share=network",
+    "--share=ipc",
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--device=dri",
+    "--env=__NV_DISABLE_EXPLICIT_SYNC=1"
+  ],
+  "modules": [
+    {
+      "name": "sage",
+      "buildsystem": "simple",
+      "build-commands": [
+        "ar x sage.deb",
+        "tar -xf data.tar.*",
+        "cp -a usr/. /app/",
+        "install -Dm644 LICENSE /app/share/licenses/com.rigidnetwork.sage/LICENSE"
+      ],
+      "sources": [
+        { "type": "file", "path": "sage.deb" },
+        { "type": "file", "path": "LICENSE" }
+      ]
+    }
+  ]
+}

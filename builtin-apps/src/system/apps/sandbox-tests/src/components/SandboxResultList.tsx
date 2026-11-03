@@ -1,3 +1,5 @@
+import * as Tooltip from '@radix-ui/react-tooltip';
+
 import {
   formatCapabilityLabel,
   listSandboxCapabilities,
@@ -108,29 +110,33 @@ export function SandboxResultList({
                     </div>
 
                     {result.details ? (
-                      <div className='group relative shrink-0'>
-                        <button
-                          type='button'
-                          className='flex h-4 w-4 items-center justify-center rounded-full border border-border text-[10px] text-muted-foreground hover:bg-muted'
-                        >
-                          ?
-                        </button>
-
-                        <div
-                          className='
-                            pointer-events-none absolute left-1/2 top-full z-50 mt-2
-                            hidden w-max max-w-[min(280px,calc(100vw-32px))]
-                            -translate-x-1/2 rounded-md border
-                            p-2 text-xs shadow-md break-words
-                            backdrop-blur-sm group-hover:block
-                          '
-                          style={{
-                            backgroundColor: resolveBackgroundTintWithAlpha(),
-                          }}
-                        >
-                          {result.details}
-                        </div>
-                      </div>
+                      <Tooltip.Provider delayDuration={150}>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <button
+                              type='button'
+                              aria-label={`${formatCapabilityLabel(capability)} details`}
+                              className='flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-border text-[10px] text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                            >
+                              ?
+                            </button>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content
+                              side='top'
+                              sideOffset={8}
+                              collisionPadding={16}
+                              className='z-50 w-max max-w-[min(280px,calc(100vw-32px))] break-words rounded-md border p-2 text-xs text-foreground shadow-md backdrop-blur-sm'
+                              style={{
+                                backgroundColor:
+                                  resolveBackgroundTintWithAlpha(),
+                              }}
+                            >
+                              {result.details}
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                      </Tooltip.Provider>
                     ) : null}
                   </div>
                 </div>

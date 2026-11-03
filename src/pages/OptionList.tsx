@@ -1,4 +1,4 @@
-import { commands, events, OptionRecord } from '@/bindings';
+import { commands, events, OptionFilter, OptionRecord } from '@/bindings';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { OptionGridView } from '@/components/OptionGridView';
@@ -8,6 +8,13 @@ import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { useOptionActions } from '@/hooks/useOptionActions';
@@ -15,7 +22,7 @@ import { useOptionParams } from '@/hooks/useOptionParams';
 import { exportOptions } from '@/lib/exportOptions';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
-import { FilePenLine } from 'lucide-react';
+import { FilePenLine, FilterIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -28,6 +35,7 @@ export function OptionList() {
     sortMode,
     ascending,
     showHiddenOptions,
+    filter,
     search,
     page,
     limit,
@@ -47,6 +55,7 @@ export function OptionList() {
         ascending,
         find_value: search || null,
         include_hidden: showHiddenOptions,
+        filter,
       });
 
       setOptions(data.options);
@@ -56,7 +65,16 @@ export function OptionList() {
     } finally {
       setLoading(false);
     }
-  }, [addError, page, limit, sortMode, ascending, search, showHiddenOptions]);
+  }, [
+    addError,
+    page,
+    limit,
+    sortMode,
+    ascending,
+    search,
+    showHiddenOptions,
+    filter,
+  ]);
 
   useEffect(() => {
     updateOptions();
@@ -87,14 +105,46 @@ export function OptionList() {
         </div>
       </Header>
       <Container>
-        <ReadOnlyButton
-          aria-label={t`Mint new option`}
-          className='mb-4'
-          onClick={() => navigate('/options/mint')}
-        >
-          <FilePenLine className='h-4 w-4 mr-2' />
-          <Trans>Mint Option</Trans>
-        </ReadOnlyButton>
+        <div className='flex flex-wrap items-center justify-between gap-4 mb-4'>
+          <ReadOnlyButton
+            aria-label={t`Mint new option`}
+            onClick={() => navigate('/options/mint')}
+          >
+            <FilePenLine className='h-4 w-4 mr-2' />
+            <Trans>Mint Option</Trans>
+          </ReadOnlyButton>
+
+          <div className='flex items-center gap-2'>
+            <FilterIcon
+              className='h-4 w-4 text-muted-foreground'
+              aria-hidden='true'
+            />
+            <Select
+              value={filter}
+              onValueChange={(value) =>
+                setParams({ filter: value as OptionFilter, page: 1 })
+              }
+            >
+              <SelectTrigger
+                className='w-[180px]'
+                aria-label={t`Filter options`}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='owned'>
+                  <Trans>Owned</Trans>
+                </SelectItem>
+                <SelectItem value='created'>
+                  <Trans>Minted by me</Trans>
+                </SelectItem>
+                <SelectItem value='all'>
+                  <Trans>All Options</Trans>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         <OptionOptions
           query={search}
@@ -116,7 +166,13 @@ export function OptionList() {
           onExport={() => exportOptions(options)}
         />
 
-        {options.length === 0 && (
+        {options.length === 0 && filter !== 'owned' && !loading && (
+          <div className='text-center text-muted-foreground py-8'>
+            <Trans>No options found.</Trans>
+          </div>
+        )}
+
+        {options.length === 0 && filter === 'owned' && (
           <Alert className='mt-4'>
             <FilePenLine className='h-4 w-4' />
             <AlertTitle>

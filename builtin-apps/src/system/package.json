@@ -6,6 +6,7 @@
     "build": "node ./build.mjs"
   },
   "dependencies": {
+    "@radix-ui/react-tooltip": "^1.2.8",
     "@tauri-apps/api": "^2.10.1",
     "sage-system-app-sdk": "workspace:*",
     "sage-app-ui": "workspace:*",
@@ -17,9 +18,9 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^5.0.4",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1",
+    "vite": "^7.3.7",
     "tailwindcss": "^3.4.17",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.23",
     "autoprefixer": "^10.4.20"
   }
 }

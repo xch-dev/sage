@@ -1,3 +1,4 @@
+use sage_api::HandleRecord;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
@@ -76,6 +77,24 @@ pub enum RustBridgeApprovalResponse {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WalletSendXchApprovalResponse {
     pub selected_fee: String,
+    /// The address the user reviewed the handle recipient as resolving to, if the
+    /// recipient is a handle. The send is rejected if the handle resolves elsewhere by the
+    /// time it's submitted. Without it, a handle which changed since it was last sent to is
+    /// rejected.
+    #[serde(default)]
+    pub confirmed_address: Option<String>,
+}
+
+/// A handle recipient, resolved by Sage when the approval was requested so that the user
+/// can review the verified address before approving.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct WalletSendXchHandle {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub record: Option<HandleRecord>,
+    /// Why the handle couldn't be resolved, in which case the send can't be approved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -93,6 +112,9 @@ pub enum RustBridgeApprovalBody {
     },
     SendXch {
         summary: WalletSendXchParams,
+        /// What the handle recipient resolves to, if the recipient is a handle.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        handle: Option<Box<WalletSendXchHandle>>,
     },
     SignCoinSpends {
         summary: WalletSignCoinSpendsApprovalSummary,

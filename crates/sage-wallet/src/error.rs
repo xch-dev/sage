@@ -72,6 +72,12 @@ pub enum WalletError {
     #[error("Insufficient derivations")]
     InsufficientDerivations,
 
+    #[error("This kind of wallet doesn't derive addresses")]
+    DerivationsNotSupported,
+
+    #[error("Watch-only wallets can't create or sign transactions")]
+    WatchOnly,
+
     #[error("Missing secret key")]
     UnknownPublicKey,
 
@@ -113,6 +119,20 @@ pub enum WalletError {
     #[error("Cannot import offer that doesn't belong to this wallet")]
     CannotImportOffer,
 
+    #[error(
+        "NFT with id {0} doesn't use the default metadata updater, so URIs can't be appended to it"
+    )]
+    NftMetadataNotAppendOnly(Bytes32),
+
+    #[error("Option contract with id {0} wasn't minted by this wallet")]
+    NotOptionCreator(Bytes32),
+
+    #[error("Cancelling an option requires a coin of its strike asset, of any amount")]
+    MissingStrikeCoin,
+
+    #[error("Cancelling an option requires an XCH coin, of any amount")]
+    MissingMeltCoin,
+
     #[error("NFT option contracts are not supported")]
     NftOptionNotSupported,
 
@@ -124,6 +144,30 @@ pub enum WalletError {
 
     #[error("Cannot find clawback info for coin with id {0}")]
     MissingClawbackInfo(Bytes32),
+
+    #[error("Clawback V1 coin {0} is not yet claimable (relative timelock)")]
+    ClawbackNotYetClaimable(Bytes32),
+
+    #[error(
+        "Clawback version mismatch for coin {coin_id}: expected version {expected}, found {actual}"
+    )]
+    ClawbackVersionMismatch {
+        coin_id: Bytes32,
+        expected: u8,
+        actual: u8,
+    },
+
+    #[error("Cannot fulfill clawback spend (wrong role, version path, or time window)")]
+    ClawbackSpendNotAllowed,
+
+    #[error("Clawback V1 receiver spend requires claim_clawback")]
+    ClawbackClaimRequired,
+
+    #[error("Clawback coin {0} is already spent or pending in the mempool")]
+    ClawbackAlreadySpentOrPending(Bytes32),
+
+    #[error("Clawback coin {0} has not been confirmed yet")]
+    ClawbackUnconfirmed(Bytes32),
 
     #[error("Try from int error: {0}")]
     TryFromInt(#[from] TryFromIntError),

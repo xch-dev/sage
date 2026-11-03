@@ -12,7 +12,7 @@ pub enum SyncCommand {
         wallet: Option<Arc<Wallet>>,
         delta_sync: bool,
     },
-    SwitchNetwork(Network),
+    SwitchNetwork(Box<Network>),
     HandleMessage {
         ip: IpAddr,
         message: Message,
