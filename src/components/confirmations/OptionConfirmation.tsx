@@ -3,13 +3,13 @@ import { AddressLabels } from '@/components/AddressLabels';
 import { CopyBox } from '@/components/CopyBox';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { FilePenLine, Flame, HandCoins, SendIcon } from 'lucide-react';
+import { FilePenLine, Flame, HandCoins, SendIcon, Undo2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
 interface OptionConfirmationProps {
-  type: 'burn' | 'transfer' | 'exercise';
+  type: 'burn' | 'transfer' | 'exercise' | 'cancel';
   options: OptionRecord[];
   address?: string; // Only required for transfer
 }
@@ -65,6 +65,23 @@ export function OptionConfirmation({
           <Trans>These options will be exercised.</Trans>
         ) : (
           <Trans>This option will be exercised.</Trans>
+        ),
+    },
+    cancel: {
+      icon: Undo2,
+      title: <Trans>Cancel Details</Trans>,
+      variant: 'success' as const,
+      message:
+        options.length > 1 ? (
+          <Trans>
+            These options will be cancelled, and their underlying assets will be
+            returned to you.
+          </Trans>
+        ) : (
+          <Trans>
+            This option will be cancelled, and its underlying asset will be
+            returned to you.
+          </Trans>
         ),
     },
   };

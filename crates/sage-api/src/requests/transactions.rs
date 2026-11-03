@@ -719,6 +719,29 @@ pub struct ExerciseOptions {
     pub auto_submit: bool,
 }
 
+/// Cancel options
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Options",
+        description = "Cancel unexpired options that were minted by and are still owned by this wallet, returning the underlying assets. The strike amount is not required, but a coin of any amount (including 0) is needed of the strike asset unless it is also the underlying asset, and of XCH unless it is the underlying or strike asset.",
+        response_type = "TransactionResponse"
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct CancelOptions {
+    /// Option IDs to cancel
+    pub option_ids: Vec<String>,
+    /// Transaction fee
+    pub fee: Amount,
+    /// Whether to automatically submit the transaction
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub auto_submit: bool,
+}
+
 /// Transfer options to another address
 #[cfg_attr(
     feature = "openapi",
@@ -915,5 +938,6 @@ pub type TransferDidsResponse = TransactionResponse;
 pub type NormalizeDidsResponse = TransactionResponse;
 pub type TransferOptionsResponse = TransactionResponse;
 pub type ExerciseOptionsResponse = TransactionResponse;
+pub type CancelOptionsResponse = TransactionResponse;
 pub type FinalizeClawbackResponse = TransactionResponse;
 pub type ClaimClawbackResponse = TransactionResponse;

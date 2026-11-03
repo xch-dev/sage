@@ -469,6 +469,7 @@ impl Sage {
                 created_timestamp: row.coin_row.created_timestamp,
                 is_owned: row.coin_row.spent_height.is_none()
                     && row.coin_row.mempool_item_hash.is_none(),
+                is_creator: row.is_creator,
             });
         }
 
@@ -502,6 +503,7 @@ impl Sage {
             created_height: row.coin_row.created_height,
             created_timestamp: row.coin_row.created_timestamp,
             is_owned: row.coin_row.spent_height.is_none(),
+            is_creator: row.is_creator,
         };
 
         Ok(GetOptionResponse {

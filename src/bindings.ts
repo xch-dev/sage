@@ -125,6 +125,9 @@ async transferOptions(req: TransferOptions) : Promise<TransactionResponse> {
 async exerciseOptions(req: ExerciseOptions) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("exercise_options", { req });
 },
+async cancelOptions(req: CancelOptions) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("cancel_options", { req });
+},
 async addNftUri(req: AddNftUri) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("add_nft_uri", { req });
 },
@@ -895,6 +898,22 @@ auto_submit?: boolean;
  * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
  */
 coin_ids?: string[] | null }
+/**
+ * Cancel options
+ */
+export type CancelOptions = { 
+/**
+ * Option IDs to cancel
+ */
+option_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
 /**
  * Validate and check an address
  */
@@ -3110,7 +3129,11 @@ export type OptionFilter =
  * Both owned and created options
  */
 "all"
-export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null; is_owned: boolean }
+export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null; is_owned: boolean; 
+/**
+ * Whether this wallet minted the option
+ */
+is_creator: boolean }
 export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }
