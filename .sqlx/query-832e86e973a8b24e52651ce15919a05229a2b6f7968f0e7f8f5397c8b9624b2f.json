@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            id, puzzle_version, custody_threshold, recovery_threshold, recovery_timelock,\n            recovery_custody_hash, recovery_amount, source\n        FROM vault_configs\n        WHERE custody_hash = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "puzzle_version",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "custody_threshold",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "recovery_threshold",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "recovery_timelock",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "recovery_custody_hash",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "recovery_amount",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "source",
+        "ordinal": 7,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "832e86e973a8b24e52651ce15919a05229a2b6f7968f0e7f8f5397c8b9624b2f"
+}
