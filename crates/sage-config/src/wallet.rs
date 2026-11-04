@@ -48,7 +48,8 @@ pub struct Wallet {
 }
 
 /// The kind of a wallet. A BLS wallet's key is stored in the keychain under the wallet's
-/// fingerprint. A watch wallet has no key, and is defined entirely here.
+/// fingerprint. A watch wallet has no key, and is defined entirely here. A vault wallet is defined
+/// by its launcher id, and references the keychain keys that sign for it.
 ///
 /// It's read through [`RawWalletKind`], since a flattened field can't have a default, and a
 /// missing `type` means BLS. BLS wallets are written without a `type`, in JSON as well as TOML,
@@ -65,6 +66,15 @@ pub enum WalletKind {
         #[specta(type = Vec<String>)]
         p2_puzzle_hashes: Vec<Bytes32>,
     },
+    /// A vault, and the fingerprints of the keychain keys that sign for it as custody or recovery
+    /// members. A vault without signers is read-only.
+    Vault {
+        #[serde_as(as = "Hex")]
+        #[specta(type = String)]
+        launcher_id: Bytes32,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        signers: Vec<u32>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -72,6 +82,7 @@ pub enum WalletKind {
 enum WalletKindTag {
     Bls,
     Watch,
+    Vault,
 }
 
 /// The fields of every kind of wallet, which are checked against the `type` when converting
@@ -84,6 +95,11 @@ struct RawWalletKind {
     #[serde_as(as = "Option<Vec<Hex>>")]
     #[serde(default)]
     p2_puzzle_hashes: Option<Vec<Bytes32>>,
+    #[serde_as(as = "Option<Hex>")]
+    #[serde(default)]
+    launcher_id: Option<Bytes32>,
+    #[serde(default)]
+    signers: Vec<u32>,
 }
 
 impl TryFrom<RawWalletKind> for WalletKind {
@@ -96,6 +112,12 @@ impl TryFrom<RawWalletKind> for WalletKind {
                 p2_puzzle_hashes: raw
                     .p2_puzzle_hashes
                     .ok_or("a watch wallet needs `p2_puzzle_hashes`")?,
+            },
+            WalletKindTag::Vault => Self::Vault {
+                launcher_id: raw
+                    .launcher_id
+                    .ok_or("a vault wallet needs a `launcher_id`")?,
+                signers: raw.signers,
             },
         })
     }
@@ -271,6 +293,79 @@ mod tests {
                     }
                   ]
                 }"#]],
+        );
+    }
+
+    #[test]
+    fn test_vault_wallet() {
+        let config = Wallet {
+            change_address: None,
+            kind: WalletKind::Vault {
+                launcher_id: Bytes32::new([4; 32]),
+                signers: vec![123, 456],
+            },
+            ..default()
+        };
+        check(
+            config,
+            &expect![[r#"
+                version = 1
+
+                [defaults]
+                delta_sync = true
+
+                [[wallets]]
+                name = "Main"
+                fingerprint = 1000000
+                type = "vault"
+                launcher_id = "0404040404040404040404040404040404040404040404040404040404040404"
+                signers = [
+                    123,
+                    456,
+                ]
+            "#]],
+            &expect![[r#"
+                {
+                  "version": 1,
+                  "defaults": {
+                    "delta_sync": true
+                  },
+                  "wallets": [
+                    {
+                      "name": "Main",
+                      "fingerprint": 1000000,
+                      "delta_sync": null,
+                      "type": "vault",
+                      "launcher_id": "0404040404040404040404040404040404040404040404040404040404040404",
+                      "signers": [
+                        123,
+                        456
+                      ]
+                    }
+                  ]
+                }"#]],
+        );
+
+        let config: WalletConfig = toml::from_str(
+            "[[wallets]]\nname = \"Vault\"\nfingerprint = 2\ntype = \"vault\"\n\
+             launcher_id = \"0404040404040404040404040404040404040404040404040404040404040404\"\n",
+        )
+        .expect("Failed to parse toml");
+        assert_eq!(
+            config.wallets[0].kind,
+            WalletKind::Vault {
+                launcher_id: Bytes32::new([4; 32]),
+                signers: vec![],
+            }
+        );
+
+        let result = toml::from_str::<WalletConfig>(
+            "[[wallets]]\nname = \"Bad\"\nfingerprint = 1\ntype = \"vault\"\n",
+        );
+        let message = result.expect_err("missing fields should fail").to_string();
+        assert!(
+            message.contains("a vault wallet needs a `launcher_id`"),
+            "{message}"
         );
     }
 

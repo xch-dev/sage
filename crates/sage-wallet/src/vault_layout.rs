@@ -52,7 +52,7 @@ use thiserror::Error;
 pub const MAX_VAULT_MEMO_LIST_SIZE: usize = 65_536;
 
 /// The mode of fast forwardable singleton members, as in [`MemberMemo::singleton`].
-const FAST_FORWARD_SINGLETON_MODE: u8 = 0b010_010;
+pub(crate) const FAST_FORWARD_SINGLETON_MODE: u8 = 0b010_010;
 
 /// The condition opcodes that the recovery path is prevented from using, in order.
 const PREVENTED_RECOVERY_OPCODES: [u16; 4] = [
@@ -272,7 +272,10 @@ pub fn vault_memo_list_custody_hash(allocator: &Allocator, memo_list: NodePtr) -
     memo.try_inner_puzzle_hash().ok().map(Into::into)
 }
 
-fn top_level_hashes(custody_member_hash: TreeHash, recovery_member_hash: TreeHash) -> VaultHashes {
+pub(crate) fn top_level_hashes(
+    custody_member_hash: TreeHash,
+    recovery_member_hash: TreeHash,
+) -> VaultHashes {
     VaultHashes {
         custody_hash: mips_puzzle_hash(
             0,
@@ -405,7 +408,7 @@ fn validate_signers(signers: &VaultSigners) -> Result<(), VaultLayoutError> {
 }
 
 /// The curried puzzle hash of a member, as in `getMemberHash`.
-fn member_puzzle_hash(member: VaultMember) -> TreeHash {
+pub(crate) fn member_puzzle_hash(member: VaultMember) -> TreeHash {
     match member {
         VaultMember::Bls {
             public_key,
@@ -441,7 +444,7 @@ fn member_puzzle_hash(member: VaultMember) -> TreeHash {
 }
 
 /// The hash of a signer tree, as in `getVaultInternals`.
-fn signers_hash(
+pub(crate) fn signers_hash(
     signers: &VaultSigners,
     restrictions: Vec<Restriction>,
 ) -> Result<TreeHash, VaultLayoutError> {

@@ -17,7 +17,7 @@ use sage_api::{ErrorKind, HandleErrorCode, RecipientError};
 use sage_assets::UriError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::{SyncCommand, WalletError, XchandlesApiError, XchandlesError};
+use sage_wallet::{SyncCommand, VaultHistoryError, WalletError, XchandlesApiError, XchandlesError};
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
 use tokio::{sync::mpsc::error::SendError, time::error::Elapsed};
@@ -142,6 +142,42 @@ pub enum Error {
 
     #[error("Wallet {0} isn't a watch wallet")]
     NotWatchWallet(u32),
+
+    #[error("Wallet {0} isn't a vault")]
+    NotVaultWallet(u32),
+
+    #[error("Import a vault from either its launcher id or an address it has spent from")]
+    VaultImportSource,
+
+    #[error("No vault with launcher id {0} was found on chain")]
+    VaultNotFound(String),
+
+    #[error(
+        "No coins have been spent from this address yet, so the vault it belongs to can't be found. You can watch the address instead, until the vault spends from it."
+    )]
+    VaultAddressNeverSpent,
+
+    #[error("The coins spent from this address weren't spent by a vault")]
+    NotVaultAddress,
+
+    #[error(
+        "The vault's config isn't known yet. Rebuild it from the vault's spends with its recovery key first."
+    )]
+    VaultConfigUnknown,
+
+    #[error(
+        "Invalid recovery key. Enter its public key in hex, or the mnemonic or secret key of a BLS key."
+    )]
+    InvalidRecoveryKey,
+
+    #[error("The recovery timelock must be at least one second")]
+    InvalidRecoveryTimelock,
+
+    #[error("Key {0} isn't a custody or recovery member of this vault")]
+    NotVaultMember(u32),
+
+    #[error("{0}")]
+    VaultHistory(VaultHistoryError),
 
     #[error("Not logged in")]
     NotLoggedIn,
@@ -385,7 +421,8 @@ impl Error {
             | Self::MissingNft(..)
             | Self::MissingOption(..)
             | Self::MissingOffer(..)
-            | Self::MissingContact(..) => ErrorKind::NotFound,
+            | Self::MissingContact(..)
+            | Self::VaultNotFound(..) => ErrorKind::NotFound,
             Self::Bls(..)
             | Self::Hex(..)
             | Self::InvalidKey
@@ -395,6 +432,15 @@ impl Error {
             | Self::KeyExists(..)
             | Self::NoWatchAddresses
             | Self::NotWatchWallet(..)
+            | Self::NotVaultWallet(..)
+            | Self::VaultImportSource
+            | Self::VaultAddressNeverSpent
+            | Self::NotVaultAddress
+            | Self::VaultConfigUnknown
+            | Self::InvalidRecoveryKey
+            | Self::InvalidRecoveryTimelock
+            | Self::NotVaultMember(..)
+            | Self::VaultHistory(..)
             | Self::InvalidMnemonic(..)
             | Self::TryFromSlice(..)
             | Self::TryFromInt(..)
@@ -452,6 +498,15 @@ impl Error {
             error if error.is_unavailable() => HandleErrorCode::Unavailable,
             _ => HandleErrorCode::VerificationFailed,
         })
+    }
+}
+
+impl From<VaultHistoryError> for Error {
+    fn from(error: VaultHistoryError) -> Self {
+        match error {
+            VaultHistoryError::Wallet(error) => Self::Wallet(error),
+            error => Self::VaultHistory(error),
+        }
     }
 }
 
