@@ -2,10 +2,11 @@ use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
 use chia_wallet_sdk::prelude::*;
+use itertools::Itertools;
 use sage_api::OptionAssets;
 use sage_api::{Amount, NftRoyalty, OfferAsset, OfferSummary};
 use sage_database::{NftUpdaterKindExt, OfferStatus};
-use sage_wallet::{FETCH_COINS_TIMEOUT, WalletError, fetch_coins_from_peers};
+use sage_wallet::{FETCH_COINS_TIMEOUT, MAX_PEER_ATTEMPTS, WalletError, fetch_coins_from_peers};
 
 use crate::ConfirmationInfo;
 use crate::StatusCoinType;
@@ -249,7 +250,12 @@ impl Sage {
         // Don't hold the peer lock across network requests, which would stall syncing.
         let (peak, peers) = {
             let peer_state = self.peer_state.lock().await;
-            (peer_state.peak(), peer_state.peers_by_peak())
+            let peers = peer_state
+                .peers_by_peak()
+                .take(MAX_PEER_ATTEMPTS)
+                .cloned()
+                .collect_vec();
+            (peer_state.peak(), peers)
         };
 
         if let Some(expiration_height) = summary.expiration_height

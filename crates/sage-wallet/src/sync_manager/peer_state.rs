@@ -1,4 +1,5 @@
 use std::{
+    cmp::Reverse,
     collections::HashMap,
     net::IpAddr,
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -90,19 +91,15 @@ impl PeerState {
     }
 
     pub fn acquire_peer(&self) -> Option<WalletPeer> {
-        self.peers
-            .values()
-            .max_by_key(|info| info.claimed_peak)
-            .map(|info| info.peer.clone())
+        self.peers_by_peak().next().cloned()
     }
 
     /// Every peer, the one claiming the highest peak first.
-    pub fn peers_by_peak(&self) -> Vec<WalletPeer> {
+    pub fn peers_by_peak(&self) -> impl Iterator<Item = &WalletPeer> {
         self.peers
             .values()
-            .sorted_by_key(|info| std::cmp::Reverse(info.claimed_peak))
-            .map(|info| info.peer.clone())
-            .collect()
+            .sorted_by_key(|info| Reverse(info.claimed_peak))
+            .map(|info| &info.peer)
     }
 
     /// Auto-discovered peers that haven't sent a new peak within `max_silence`. A connection can
@@ -226,7 +223,6 @@ mod tests {
 
         let addrs = state
             .peers_by_peak()
-            .iter()
             .map(|peer| Some(peer.socket_addr()))
             .collect_vec();
 
