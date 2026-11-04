@@ -412,6 +412,10 @@ impl SyncManager {
     /// Removes silent peers without banning them. After the computer wakes from sleep, live
     /// peers can look silent too, and a fresh connection to one is fine.
     async fn drop_silent_peers(&self) {
+        if !self.network.drop_silent_peers {
+            return;
+        }
+
         let mut state = self.state.lock().await;
 
         for ip in state.silent_peers(Instant::now(), self.options.timeouts.peer_silence) {
@@ -697,10 +701,10 @@ impl SyncManager {
 
 #[cfg(test)]
 mod tests {
-    use chia_wallet_sdk::client::Connector;
+    use chia_wallet_sdk::{client::Connector, test::PeerSimulator};
     use sage_config::TESTNET11;
 
-    use crate::{TestWallet, default_test_options};
+    use crate::default_test_options;
 
     use super::*;
 
@@ -755,22 +759,50 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn silent_subscribed_peer_is_dropped() -> anyhow::Result<()> {
+    /// Returns the simulator too, so the peer's connection stays open.
+    async fn manager_with_sim_peer(
+        network: Network,
+    ) -> anyhow::Result<(SyncManager, PeerSimulator)> {
         let mut options = default_test_options();
-        // Long enough for the setup below to finish its initial sync, which it allows 10 seconds.
-        options.timeouts.peer_silence = Duration::from_secs(10);
+        options.timeouts.peer_silence = Duration::ZERO;
 
-        // The simulator only sends new peaks when blocks are created, so without new blocks the
-        // peer goes silent, like one whose connection died without closing.
-        let test = TestWallet::new_with_options(1000, options).await?;
+        let (mut manager, _sender, _events) = SyncManager::new(
+            options,
+            Arc::new(Mutex::new(PeerState::default())),
+            None,
+            network,
+            Connector::Plain,
+        );
 
-        timeout(Duration::from_secs(30), async {
-            while test.state.lock().await.peer_count() > 0 {
-                sleep(Duration::from_millis(100)).await;
-            }
+        let sim = PeerSimulator::new().await?;
+        let (peer, receiver) = sim.connect_raw().await?;
+        assert!(manager.try_add_peer(peer, receiver, true, false).await);
+
+        Ok((manager, sim))
+    }
+
+    #[tokio::test]
+    async fn silent_peer_is_dropped() -> anyhow::Result<()> {
+        let (manager, _sim) = manager_with_sim_peer(TESTNET11.clone()).await?;
+
+        manager.drop_silent_peers().await;
+
+        assert_eq!(manager.state.lock().await.peer_count(), 0);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn silent_peer_is_kept_when_disabled_for_network() -> anyhow::Result<()> {
+        let (manager, _sim) = manager_with_sim_peer(Network {
+            drop_silent_peers: false,
+            ..TESTNET11.clone()
         })
         .await?;
+
+        manager.drop_silent_peers().await;
+
+        assert_eq!(manager.state.lock().await.peer_count(), 1);
 
         Ok(())
     }

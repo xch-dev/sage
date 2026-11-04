@@ -82,6 +82,11 @@ pub struct Network {
     /// is inherited from the built-in network named by `inherit`, if there is one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub xchandles: Option<XchandlesConfig>,
+    /// Whether to drop auto-discovered peers that stop sending new peaks. Disable this for
+    /// networks that don't create blocks regularly, such as simulators, where a live peer can go
+    /// quiet for a long time.
+    #[serde(default = "default_drop_silent_peers", skip_serializing_if = "is_true")]
+    pub drop_silent_peers: bool,
 }
 
 /// The XCHandles deployment used to resolve handles on a network.
@@ -189,6 +194,15 @@ impl Network {
     }
 }
 
+fn default_drop_silent_peers() -> bool {
+    true
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_true(value: &bool) -> bool {
+    *value
+}
+
 fn default_precision() -> u8 {
     12
 }
@@ -240,6 +254,7 @@ pub static MAINNET: LazyLock<Network> = LazyLock::new(|| Network {
         relative_block_height: 32,
         api_url: "https://api.xchandles.com".to_string(),
     }),
+    drop_silent_peers: true,
 });
 
 pub static TESTNET11: LazyLock<Network> = LazyLock::new(|| Network {
@@ -271,6 +286,7 @@ pub static TESTNET11: LazyLock<Network> = LazyLock::new(|| Network {
         relative_block_height: 8,
         api_url: "https://testnet-api.xchandles.com".to_string(),
     }),
+    drop_silent_peers: true,
 });
 
 #[cfg(test)]
@@ -395,5 +411,24 @@ mod tests {
         let toml = toml::to_string_pretty(&network).unwrap();
         let parsed: Network = toml::from_str(&toml).unwrap();
         assert_eq!(parsed.xchandles(), Some(custom));
+    }
+
+    #[test]
+    fn test_drop_silent_peers_defaults_to_enabled() {
+        let toml = toml::to_string_pretty(&*TESTNET11).unwrap();
+        assert!(!toml.contains("drop_silent_peers"));
+
+        let parsed: Network = toml::from_str(&toml).unwrap();
+        assert!(parsed.drop_silent_peers);
+
+        let network = Network {
+            name: "simulator0".to_string(),
+            drop_silent_peers: false,
+            ..TESTNET11.clone()
+        };
+
+        let toml = toml::to_string_pretty(&network).unwrap();
+        let parsed: Network = toml::from_str(&toml).unwrap();
+        assert!(!parsed.drop_silent_peers);
     }
 }

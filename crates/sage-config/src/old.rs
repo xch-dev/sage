@@ -199,6 +199,7 @@ pub fn migrate_networks(old: IndexMap<String, OldNetwork>) -> NetworkList {
                     additional_peer_introducers: vec![],
                     inherit,
                     xchandles: None,
+                    drop_silent_peers: true,
                 }
             })
             .collect(),
