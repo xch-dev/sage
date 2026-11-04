@@ -48,6 +48,9 @@ pub enum WalletError {
     #[error("Peer misbehaved")]
     PeerMisbehaved,
 
+    #[error("No peers are connected")]
+    NoPeers,
+
     #[error("Subscription limit reached")]
     SubscriptionLimitReached,
 

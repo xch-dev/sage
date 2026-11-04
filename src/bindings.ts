@@ -2920,7 +2920,13 @@ export type Network = { name: string; ticker: string; prefix?: string | null; pr
  * Overrides the XCHandles deployment for this network. When unset, the deployment
  * is inherited from the built-in network named by `inherit`, if there is one.
  */
-xchandles?: XchandlesConfig | null }
+xchandles?: XchandlesConfig | null; 
+/**
+ * Whether to drop auto-discovered peers that stop sending new peaks. Disable this for
+ * networks that don't create blocks regularly, such as simulators, where a live peer can go
+ * quiet for a long time.
+ */
+drop_silent_peers: boolean }
 export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean }
 export type NetworkKind = "mainnet" | "testnet" | "unknown"
 export type NetworkList = { networks: Network[] }

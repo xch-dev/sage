@@ -1,4 +1,5 @@
 use std::{
+    net::Ipv4Addr,
     sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -11,7 +12,7 @@ use chia_wallet_sdk::{
         },
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
-    client::Connector,
+    client::{Connector, PeerOptions},
     prelude::*,
     test::PeerSimulator,
 };
@@ -19,17 +20,19 @@ use sage_config::TESTNET11;
 use sage_database::{Database, Derivation, SharedDatabase};
 use sqlx::{SqlitePool, migrate};
 use tokio::{
+    net::TcpListener,
     sync::{
         Mutex,
         mpsc::{Receiver, Sender},
     },
     time::timeout,
 };
+use tokio_tungstenite::{accept_async, connect_async};
 use tracing::debug;
 
 use crate::{
     PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Transaction, Wallet,
-    WalletKind, insert_transaction,
+    WalletKind, WalletPeer, insert_transaction,
 };
 
 static INDEX: Mutex<u32> = Mutex::const_new(0);
@@ -303,4 +306,25 @@ pub fn default_test_options() -> SyncOptions {
         },
         testing: true,
     }
+}
+
+/// Connects to a local websocket server that accepts the connection but never answers, like a
+/// peer whose connection silently died.
+pub async fn unresponsive_peer() -> anyhow::Result<WalletPeer> {
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+    let addr = listener.local_addr()?;
+
+    tokio::spawn(async move {
+        let mut connections = Vec::new();
+        while let Ok((stream, _)) = listener.accept().await {
+            if let Ok(ws) = accept_async(stream).await {
+                connections.push(ws);
+            }
+        }
+    });
+
+    let (ws, _) = connect_async(format!("ws://{addr}")).await?;
+    let (peer, _receiver) = Peer::from_websocket(ws, PeerOptions::default())?;
+
+    Ok(WalletPeer::new(peer))
 }

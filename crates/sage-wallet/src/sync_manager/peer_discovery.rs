@@ -19,7 +19,10 @@ use chia_wallet_sdk::{
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rand::Rng;
-use tokio::{sync::mpsc, time::timeout};
+use tokio::{
+    sync::mpsc,
+    time::{Instant, timeout},
+};
 use tracing::{debug, info, warn};
 
 use crate::{SyncCommand, WalletError, WalletPeer};
@@ -444,6 +447,7 @@ impl SyncManager {
             peer: WalletPeer::new(peer),
             claimed_peak: message.height,
             header_hash: message.header_hash,
+            last_peak_at: Instant::now(),
             user_managed,
             receive_message_task: tokio::spawn(async move {
                 while let Some(message) = receiver.recv().await {
