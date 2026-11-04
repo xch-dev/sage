@@ -119,7 +119,8 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
                         // TODO: New event?
                         SyncEvent::CoinsUpdated
                         | SyncEvent::TransactionUpdated { .. }
-                        | SyncEvent::OfferUpdated { .. } => ApiEvent::CoinState,
+                        | SyncEvent::OfferUpdated { .. }
+                        | SyncEvent::VaultStateChanged { .. } => ApiEvent::CoinState,
                         SyncEvent::PuzzleBatchSynced => ApiEvent::PuzzleBatchSynced,
                         SyncEvent::CatInfo => ApiEvent::CatInfo,
                         SyncEvent::DidInfo => ApiEvent::DidInfo,

@@ -261,6 +261,17 @@ pub fn decode_vault_memo_list_bytes(
     decode_vault_memo_list(allocator, memo_list, custody_hash)
 }
 
+/// The custody hash that a CHIP-0043 memo list claims to rebuild, without decoding its layout.
+///
+/// This is only a candidate, which must match a puzzle hash before the memo can be trusted. It's
+/// used to find the custody hash of an eve vault coin from its launcher's memo, since the eve coin
+/// doesn't reveal its inner puzzle until it's spent.
+pub fn vault_memo_list_custody_hash(allocator: &Allocator, memo_list: NodePtr) -> Option<Bytes32> {
+    let (memo, _rest) = <(NodePtr, NodePtr)>::from_clvm(allocator, memo_list).ok()?;
+    let memo = MipsMemo::from_clvm_bounded(allocator, memo).ok()?;
+    memo.try_inner_puzzle_hash().ok().map(Into::into)
+}
+
 fn top_level_hashes(custody_member_hash: TreeHash, recovery_member_hash: TreeHash) -> VaultHashes {
     VaultHashes {
         custody_hash: mips_puzzle_hash(
@@ -305,7 +316,7 @@ fn finish_build(
 }
 
 /// The restrictions on the recovery path before recovery has started, in order.
-fn recovery_restrictions(
+pub(crate) fn recovery_restrictions(
     custody_member_hash: TreeHash,
     recovery_timelock: u64,
     version: VaultVersion,
