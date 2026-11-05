@@ -255,6 +255,9 @@ export const walletConnectCommands = {
     paramsType: z.object({
       id: z.string(),
       fee: safeAmount.optional(),
+      // Only removes the offer from the wallet, without spending its coins.
+      // Anyone who already has the offer file can still take it.
+      offChain: z.boolean().optional(),
     }),
     returnType: z.object({}),
     confirm: true,
