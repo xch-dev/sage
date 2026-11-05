@@ -747,7 +747,8 @@ function CancelOfferDialog({
         <div className='text-sm text-yellow-600 dark:text-yellow-400'>
           <Trans>
             This only deletes the offer from your wallet. It stays valid, so
-            anyone who already has it can still take it.
+            anyone who already has it can still take it, and you will not be
+            able to cancel it on-chain unless you import it again.
           </Trans>
         </div>
       ) : (

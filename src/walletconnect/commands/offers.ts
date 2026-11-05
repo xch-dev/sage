@@ -57,6 +57,8 @@ export async function handleCancelOffer(
   }
 
   if (params.offChain) {
+    // Deleting a missing offer succeeds silently, so check that it exists first.
+    await commands.getOffer({ offer_id: params.id });
     await commands.deleteOffer({ offer_id: params.id });
     return {};
   }
