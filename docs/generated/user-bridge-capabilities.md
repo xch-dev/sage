@@ -322,6 +322,20 @@ Allows the app to request signatures for custom coin spends after per-request ap
 | Externally observable     | `true`  |
 | Accesses sensitive secret | `false` |
 
+## `wallet.create_offer`
+
+**Create offers**
+
+Allows the app to request offers made from your wallet's coins after per-request approval. The offer is listed on the Offers page and its coins are reserved.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.sign_message`
 
 **Sign wallet messages**

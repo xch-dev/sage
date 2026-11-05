@@ -9,3 +9,5 @@ mod themes;
 mod transactions;
 mod wallet_connect;
 mod xchandles;
+
+pub use offers::MakeOfferRoyalties;

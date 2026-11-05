@@ -7,6 +7,7 @@ mod peers;
 mod sage;
 mod utils;
 
+pub use endpoints::MakeOfferRoyalties;
 pub use error::*;
 pub use sage::*;
 

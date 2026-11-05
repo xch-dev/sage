@@ -160,6 +160,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to request signatures for custom coin spends after per-request approval.",
             CapabilityFlags::new(true, false, true, true, true),
         ),
+        UserBridgeCapability::WalletCreateOffer => CapabilityDefinition::new(
+            capability,
+            "Create offers",
+            "Allows the app to request offers made from your wallet's coins after per-request approval. The offer is listed on the Offers page and its coins are reserved.",
+            CapabilityFlags::new(true, false, true, true, true),
+        ),
         UserBridgeCapability::WalletSignMessage => CapabilityDefinition::new(
             capability,
             "Sign wallet messages",
@@ -444,6 +450,7 @@ mod tests {
     fn approval_gated_signing_does_not_claim_secret_exposure() {
         for capability in [
             UserBridgeCapability::WalletSignCoinSpends,
+            UserBridgeCapability::WalletCreateOffer,
             UserBridgeCapability::WalletSignMessage,
         ] {
             let flags = get_user_capability_definition(capability).flags();
