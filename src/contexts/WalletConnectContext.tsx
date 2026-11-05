@@ -743,7 +743,16 @@ function CancelOfferDialog({
       <div className='font-medium'>Offer ID</div>
       <div className='text-sm text-muted-foreground'>{params.id}</div>
 
-      <EditableFee suggestedFeeMojos={params.fee} onFeeChange={onFeeChange} />
+      {params.offChain ? (
+        <div className='text-sm text-yellow-600 dark:text-yellow-400'>
+          <Trans>
+            This only deletes the offer from your wallet. It stays valid, so
+            anyone who already has it can still take it.
+          </Trans>
+        </div>
+      ) : (
+        <EditableFee suggestedFeeMojos={params.fee} onFeeChange={onFeeChange} />
+      )}
 
       {record && (
         <div className='border rounded-md'>
@@ -1019,6 +1028,11 @@ const COMMAND_METADATA: Partial<
   },
 };
 
+const OFF_CHAIN_CANCEL_METADATA = {
+  title: 'Delete Offer',
+  description: 'Review and delete the offer from your wallet',
+};
+
 function RequestDialog({
   request,
   approve,
@@ -1031,10 +1045,6 @@ function RequestDialog({
   const method = request.params.request.method as WalletConnectCommand;
   const params = request.params.request.params;
   const commandInfo = walletConnectCommands[method];
-  const metadata = COMMAND_METADATA[method] ?? {
-    title: 'WalletConnect Request',
-    description: `Would you like to authorize the "${method.split('_').slice(1).join(' ')}" request?`,
-  };
   const peerMetadata = signClient?.session.get(request.topic)?.peer.metadata;
 
   // The component is selected by `method`, so its params always match `parsedParams`.
@@ -1048,7 +1058,19 @@ function RequestDialog({
     [params, commandInfo],
   );
 
-  const hasFee = COMMANDS_WITH_FEE.has(method);
+  // Deleting an offer locally doesn't create a transaction, so there's no fee.
+  const isOffChainCancel =
+    method === 'chia_cancelOffer' &&
+    (parsedParams as Params<'chia_cancelOffer'>).offChain === true;
+
+  const hasFee = COMMANDS_WITH_FEE.has(method) && !isOffChainCancel;
+
+  const metadata = (isOffChainCancel
+    ? OFF_CHAIN_CANCEL_METADATA
+    : COMMAND_METADATA[method]) ?? {
+    title: 'WalletConnect Request',
+    description: `Would you like to authorize the "${method.split('_').slice(1).join(' ')}" request?`,
+  };
 
   const approveWithFee = useCallback(async () => {
     if (feeOverride !== null && hasFee) {

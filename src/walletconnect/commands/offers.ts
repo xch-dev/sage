@@ -56,6 +56,11 @@ export async function handleCancelOffer(
     throw new Error('Authentication failed');
   }
 
+  if (params.offChain) {
+    await commands.deleteOffer({ offer_id: params.id });
+    return {};
+  }
+
   await commands.cancelOffer({
     offer_id: params.id,
     fee: params.fee ?? 0,
