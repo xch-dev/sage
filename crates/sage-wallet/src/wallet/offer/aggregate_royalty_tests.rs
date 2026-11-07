@@ -90,7 +90,7 @@ async fn take_aggregate(taker: &TestWallet, offers: Vec<SpendBundle>) -> anyhow:
 
 fn xch_amounts(xch: u64) -> OfferAmounts {
     OfferAmounts {
-        xch,
+        xch: xch.into(),
         cats: IndexMap::new(),
     }
 }
@@ -129,7 +129,7 @@ async fn test_aggregate_sells_same_price_different_royalties() -> anyhow::Result
         sell_for_xch(&bob, &[&nft_b], 10_000).await?,
     ];
     let offer = take_aggregate(&carol, offers).await?;
-    assert_eq!(offer.requested_royalty_amounts(), xch_amounts(1500));
+    assert_eq!(offer.requested_royalty_amounts()?, xch_amounts(1500));
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
@@ -160,7 +160,7 @@ async fn test_aggregate_sells_different_prices_different_royalties() -> anyhow::
         sell_for_xch(&bob, &[&nft_b], 30_000).await?,
     ];
     let offer = take_aggregate(&carol, offers).await?;
-    assert_eq!(offer.requested_royalty_amounts(), xch_amounts(3500));
+    assert_eq!(offer.requested_royalty_amounts()?, xch_amounts(3500));
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
@@ -189,7 +189,7 @@ async fn test_aggregate_sells_different_prices_same_royalty() -> anyhow::Result<
         sell_for_xch(&bob, &[&nft_b], 30_000).await?,
     ];
     let offer = take_aggregate(&carol, offers).await?;
-    assert_eq!(offer.requested_royalty_amounts(), xch_amounts(2000));
+    assert_eq!(offer.requested_royalty_amounts()?, xch_amounts(2000));
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
@@ -219,7 +219,7 @@ async fn test_aggregate_sells_multi_nft_leg_and_single_nft_leg() -> anyhow::Resu
         sell_for_xch(&bob, &[&nft_b], 10_000).await?,
     ];
     let offer = take_aggregate(&carol, offers).await?;
-    assert_eq!(offer.requested_royalty_amounts(), xch_amounts(2000));
+    assert_eq!(offer.requested_royalty_amounts()?, xch_amounts(2000));
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
@@ -262,7 +262,7 @@ async fn test_aggregate_sells_for_different_assets() -> anyhow::Result<()> {
     let offers = vec![sell_for_xch(&alice, &[&nft_a], 10_000).await?, cat_offer];
     let offer = take_aggregate(&carol, offers).await?;
     assert_eq!(
-        offer.requested_royalty_amounts(),
+        offer.requested_royalty_amounts()?,
         OfferAmounts {
             xch: 500,
             cats: indexmap! { asset_id => 500 },
@@ -312,7 +312,7 @@ async fn test_aggregate_nft_sell_with_unrelated_cat_trade() -> anyhow::Result<()
 
     let offers = vec![sell_for_xch(&alice, &[&nft_a], 10_000).await?, cat_offer];
     let offer = take_aggregate(&carol, offers).await?;
-    assert_eq!(offer.requested_royalty_amounts(), xch_amounts(500));
+    assert_eq!(offer.requested_royalty_amounts()?, xch_amounts(500));
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
@@ -342,7 +342,7 @@ async fn test_aggregate_bids_same_price_different_royalties() -> anyhow::Result<
         bid_xch(&bob, &nft_b, 10_000).await?,
     ];
     let offer = take_aggregate(&carol, offers).await?;
-    assert_eq!(offer.offered_royalty_amounts(), xch_amounts(1500));
+    assert_eq!(offer.offered_royalty_amounts()?, xch_amounts(1500));
 
     carol.wait_for_coins().await;
     alice.wait_for_puzzles().await;
@@ -373,7 +373,7 @@ async fn test_aggregate_bids_different_prices() -> anyhow::Result<()> {
         bid_xch(&bob, &nft_b, 30_000).await?,
     ];
     let offer = take_aggregate(&carol, offers).await?;
-    assert_eq!(offer.offered_royalty_amounts(), xch_amounts(3500));
+    assert_eq!(offer.offered_royalty_amounts()?, xch_amounts(3500));
 
     carol.wait_for_coins().await;
     alice.wait_for_puzzles().await;
@@ -399,7 +399,7 @@ async fn test_sell_price_below_royalty_granularity() -> anyhow::Result<()> {
     // 3% of 10 mojos rounds down to 0. Settlement can't make a 0 payment, so the maker must not
     // commit that trade price.
     let offer = take_aggregate(&carol, vec![sell_for_xch(&alice, &[&nft_a], 10).await?]).await?;
-    assert_eq!(offer.requested_royalty_amounts(), OfferAmounts::new());
+    assert_eq!(offer.requested_royalty_amounts()?, OfferAmounts::new());
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
