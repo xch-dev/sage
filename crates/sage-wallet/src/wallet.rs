@@ -29,6 +29,8 @@ mod multi_send;
 mod nfts;
 mod offer;
 mod options;
+#[cfg(test)]
+mod selected_singleton_tests;
 mod signing;
 mod wallet_kind;
 mod xch;
