@@ -23,8 +23,9 @@ impl Wallet {
         // Make payments
         let mut actions = vec![Action::fee(fee)];
 
-        // Pay royalties on every offered NFT, including ones that are also requested and only
-        // pass through settlement
+        // Pay the royalty each offered NFT asserts for the trade prices its own maker committed
+        // to, including NFTs that are also requested and only pass through settlement. Nothing is
+        // pooled across makers, and NFTs that committed to no trade price are owed nothing.
         actions.extend(offer.requested_royalty_payments(&mut ctx)?.actions());
 
         // Pay requested payments
@@ -42,7 +43,9 @@ impl Wallet {
         self.select_spends_excluding(&mut ctx, &mut spends, &actions, &offer_input_coin_ids)
             .await?;
 
-        // Reset DIDs and reveal trade prices matching the royalties buyers already paid
+        // Reset DIDs, and have each requested NFT reveal the trade prices that match the royalties
+        // its buyer already paid. Like the offered side, this comes from what the maker committed
+        // to (their gross offered amounts), never from the net arbitrage.
         for nft in spends.nfts.values().rev() {
             let nft = nft.last()?;
 
