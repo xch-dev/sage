@@ -410,3 +410,86 @@ async fn test_sell_price_below_royalty_granularity() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[test(tokio::test)]
+async fn test_aggregate_nft_for_nft_with_nft_sell() -> anyhow::Result<()> {
+    let mut alice = TestWallet::new(2).await?;
+    let mut bob = alice.next(2).await?;
+    let mut carol = bob.next(1032).await?;
+
+    let nft_a = mint_nft_with_royalty(&mut alice, ROYALTY_A, 300).await?;
+    let nft_b = mint_nft_with_royalty(&mut bob, ROYALTY_B, 300).await?;
+    let nft_c = mint_nft_with_royalty(&mut carol, ROYALTY_C, 300).await?;
+
+    // Alice's NFT commits to no trade price, so no royalty is owed for it. Pooling the requested
+    // XCH across both offered NFTs would underpay Bob's NFT and pay a royalty nobody asserts.
+    let alice_swap = make_signed_offer(
+        &alice,
+        Offered {
+            nfts: vec![nft_a.info.launcher_id],
+            ..Default::default()
+        },
+        Requested {
+            nfts: indexmap! { nft_c.info.launcher_id => nft_offer_info(&nft_c) },
+            ..Default::default()
+        },
+    )
+    .await?;
+    let offers = vec![alice_swap, sell_for_xch(&bob, &[&nft_b], 1000).await?];
+    let offer = take_aggregate(&carol, offers).await?;
+    assert_eq!(offer.requested_royalty_amounts()?, xch_amounts(30));
+    assert_eq!(offer.offered_royalty_amounts()?, OfferAmounts::new());
+
+    carol.wait_for_coins().await;
+    alice.wait_for_puzzles().await;
+    bob.wait_for_coins().await;
+
+    assert_eq!(alice.wallet.db.xch_balance().await?, 0);
+    assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
+    assert_eq!(carol.wallet.db.xch_balance().await?, 0);
+    assert!(owns_nft(&alice, &nft_c).await?);
+    assert!(owns_nft(&carol, &nft_a).await?);
+    assert!(owns_nft(&carol, &nft_b).await?);
+    assert_eq!(royalties_paid(&carol, ROYALTY_A).await, (0, 0));
+    assert_eq!(royalties_paid(&carol, ROYALTY_B).await, (30, 0));
+    assert_eq!(royalties_paid(&carol, ROYALTY_C).await, (0, 0));
+
+    Ok(())
+}
+
+#[test(tokio::test)]
+async fn test_aggregate_bid_for_nft_and_xch() -> anyhow::Result<()> {
+    let mut alice = TestWallet::new(1030).await?;
+    let mut carol = alice.next(102).await?;
+
+    let nft_c = mint_nft_with_royalty(&mut carol, ROYALTY_C, 300).await?;
+
+    // Alice offers 1000 XCH for Carol's NFT plus 100 XCH. She prepays the royalty on her gross
+    // offered 1000, so Carol's NFT has to reveal a trade price of 1000 rather than the net 900.
+    let bid = make_signed_offer(
+        &alice,
+        Offered {
+            xch: 1000,
+            ..Default::default()
+        },
+        Requested {
+            xch: 100,
+            nfts: indexmap! { nft_c.info.launcher_id => nft_offer_info(&nft_c) },
+            ..Default::default()
+        },
+    )
+    .await?;
+    let offer = take_aggregate(&carol, vec![bid]).await?;
+    assert_eq!(offer.offered_royalty_amounts()?, xch_amounts(30));
+
+    carol.wait_for_coins().await;
+    alice.wait_for_coins().await;
+    alice.wait_for_puzzles().await;
+
+    assert_eq!(alice.wallet.db.xch_balance().await?, 100);
+    assert_eq!(carol.wallet.db.xch_balance().await?, 1000);
+    assert!(owns_nft(&alice, &nft_c).await?);
+    assert_eq!(royalties_paid(&carol, ROYALTY_C).await, (30, 0));
+
+    Ok(())
+}
