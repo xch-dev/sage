@@ -155,3 +155,12 @@ tauri-runtime = { git = "https://github.com/Rigidity/tauri.git", rev = "8b205bb8
 tauri-runtime-wry = { git = "https://github.com/Rigidity/tauri.git", rev = "8b205bb844bd56b4ee027905d1b068553d867ebe" }
 tauri-utils = { git = "https://github.com/Rigidity/tauri.git", rev = "8b205bb844bd56b4ee027905d1b068553d867ebe" }
 wry = { git = "https://github.com/Rigidity/wry.git", rev = "997ce01862c23b0220b95b4b5541e55fd48670ec" }
+chia-wallet-sdk = { path = "../chia-wallet-sdk" }
+chia-sdk-client = { path = "../chia-wallet-sdk/crates/chia-sdk-client" }
+chia-sdk-driver = { path = "../chia-wallet-sdk/crates/chia-sdk-driver" }
+chia-sdk-signer = { path = "../chia-wallet-sdk/crates/chia-sdk-signer" }
+chia-sdk-test = { path = "../chia-wallet-sdk/crates/chia-sdk-test" }
+chia-sdk-types = { path = "../chia-wallet-sdk/crates/chia-sdk-types" }
+chia-sdk-derive = { path = "../chia-wallet-sdk/crates/chia-sdk-types/derive" }
+chia-sdk-utils = { path = "../chia-wallet-sdk/crates/chia-sdk-utils" }
+chia-sdk-coinset = { path = "../chia-wallet-sdk/crates/chia-sdk-coinset" }
