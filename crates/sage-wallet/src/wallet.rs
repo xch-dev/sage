@@ -186,6 +186,7 @@ impl Wallet {
 
                     spends.add(option);
                 }
+                Some(CoinKind::Vault) => return Err(WalletError::VaultSpendNotSupported),
                 None => return Err(WalletError::MissingCoin(coin_id)),
             }
         }
@@ -337,6 +338,7 @@ impl Wallet {
 
                         spends.add(option);
                     }
+                    Some(AssetKind::Vault) => return Err(WalletError::VaultSpendNotSupported),
                     None => {
                         if required_amount == 0 && !deltas.is_needed(&id) {
                             continue;
@@ -468,6 +470,9 @@ impl Wallet {
                                 ),
                             )?,
                         P2Puzzle::External => return Err(WalletError::WatchOnly),
+                        P2Puzzle::P2Singleton(_) | P2Puzzle::P2ConditionsOrSingleton(_) => {
+                            return Err(WalletError::VaultSpendNotSupported);
+                        }
                     }
                 }
                 SpendKind::Settlement(spend) => SettlementLayer

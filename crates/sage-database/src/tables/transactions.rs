@@ -6,26 +6,36 @@ use crate::{Asset, AssetKind, Convert, Database, Result};
 /// Resolves a coin's p2 puzzle to the wallet's own custody puzzle hash, if there is one.
 /// Requires `p2_puzzles` to be joined for the coin, followed by [`CUSTODY_JOINS`].
 ///
-/// Only public key (0), arbor (3) and external (4) puzzles are plain custody. Wrappers such as
-/// clawbacks (1) and option underlyings (2) resolve to the receiver or creator, but only when
-/// that's one of our own custody puzzles. Anything else, including counterparty puzzle hashes and p2 puzzle
-/// kinds this query doesn't know about, resolves to `NULL` so it's never shown as an address.
+/// Only public key (0), arbor (3), external (4) and P2 singleton (5) puzzles are plain custody.
+/// Wrappers such as clawbacks (1) and option underlyings (2) resolve to the receiver or creator,
+/// and P2 conditions or singletons (6) to the P2 singleton with the same launcher id and nonce, but
+/// only when that's one of our own custody puzzles. Anything else, including counterparty puzzle
+/// hashes and p2 puzzle kinds this query doesn't know about, resolves to `NULL` so it's never
+/// shown as an address.
 pub(crate) const CUSTODY_COLUMNS: &str = "
     CASE
-        WHEN p2_puzzles.kind IN (0, 3, 4) THEN p2_puzzles.hash
+        WHEN p2_puzzles.kind IN (0, 3, 4, 5) THEN p2_puzzles.hash
         WHEN p2_puzzles.kind = 1 THEN clawback_receiver.hash
         WHEN p2_puzzles.kind = 2 THEN option_creator.hash
+        WHEN p2_puzzles.kind = 6 THEN conditions_or_singleton_owner.hash
     END AS custody_p2_puzzle_hash";
 
 pub(crate) const CUSTODY_JOINS: &str = "
     LEFT JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id
     LEFT JOIN p2_puzzles AS clawback_receiver
         ON clawback_receiver.hash = clawbacks.receiver_puzzle_hash
-        AND clawback_receiver.kind IN (0, 3, 4)
+        AND clawback_receiver.kind IN (0, 3, 4, 5)
     LEFT JOIN p2_options ON p2_options.p2_puzzle_id = p2_puzzles.id
     LEFT JOIN p2_puzzles AS option_creator
         ON option_creator.hash = p2_options.creator_puzzle_hash
-        AND option_creator.kind IN (0, 3, 4)";
+        AND option_creator.kind IN (0, 3, 4, 5)
+    LEFT JOIN p2_conditions_or_singletons
+        ON p2_conditions_or_singletons.p2_puzzle_id = p2_puzzles.id
+    LEFT JOIN p2_singletons AS conditions_or_singleton_p2_singleton
+        ON conditions_or_singleton_p2_singleton.launcher_id = p2_conditions_or_singletons.launcher_id
+        AND conditions_or_singleton_p2_singleton.nonce = p2_conditions_or_singletons.nonce
+    LEFT JOIN p2_puzzles AS conditions_or_singleton_owner
+        ON conditions_or_singleton_owner.id = conditions_or_singleton_p2_singleton.p2_puzzle_id";
 
 #[derive(Debug, Clone)]
 pub struct Transaction {
@@ -288,7 +298,10 @@ mod tests {
 
     use chia_wallet_sdk::{
         chia::bls::SecretKey,
-        driver::{Clawback as ClawbackV1, ClawbackV2, OptionType, OptionUnderlying},
+        driver::{
+            Clawback as ClawbackV1, ClawbackV2, OptionType, OptionUnderlying,
+            P2ConditionsOrSingleton, P2Singleton,
+        },
         types::puzzles::P2DelegatedConditionsArgs,
     };
     use sqlx::{SqlitePool, migrate};
@@ -436,6 +449,31 @@ mod tests {
             let wrapper = underlying.tree_hash().into();
 
             tx.insert_option_p2_puzzle(underlying).await?;
+            insert_coin(&mut tx, &mut expected, wrapper, xch, wrapper, custody).await?;
+        }
+
+        // Vault addresses are plain custody, and coins locked to fixed conditions show the vault
+        // address with the same launcher id and nonce, but only when it's ours
+        let vault_launcher_id = Bytes32::new([10; 32]);
+        let p2_singleton = P2Singleton::new(vault_launcher_id, 0);
+        let p2_singleton_hash: Bytes32 = p2_singleton.tree_hash().into();
+        tx.insert_p2_singleton_p2_puzzle(p2_singleton).await?;
+        insert_coin(
+            &mut tx,
+            &mut expected,
+            p2_singleton_hash,
+            xch,
+            p2_singleton_hash,
+            Some(p2_singleton_hash),
+        )
+        .await?;
+
+        for (nonce, custody) in [(0, Some(p2_singleton_hash)), (1, None)] {
+            let p2 = P2ConditionsOrSingleton::new(vault_launcher_id, nonce, Bytes32::new([11; 32]));
+            let wrapper = p2.tree_hash().into();
+
+            tx.insert_p2_conditions_or_singleton_p2_puzzle(p2, None)
+                .await?;
             insert_coin(&mut tx, &mut expected, wrapper, xch, wrapper, custody).await?;
         }
 
