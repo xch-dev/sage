@@ -225,6 +225,16 @@ impl OfferQueue {
             // The coin isn't known, so it either failed to be created, or it was created and
             // the wallet is still syncing it.
             let Some(parent_heights) = tx.coin_heights(coin.parent_coin_info).await? else {
+                // The action system makes split coins before the change, so they come straight
+                // from the coins being split, and only the change is made from an intermediate
+                // coin if it would be identical to one. In case a split coin is ever made from
+                // one instead, the wallet forgets it too if the split fails, so if no peer has
+                // seen it either, it was never created.
+                if !chain_coin_states.contains_key(&coin.parent_coin_info) {
+                    tx.commit().await?;
+                    return Ok(Some(OfferStatus::Cancelled));
+                }
+
                 continue;
             };
 
@@ -280,6 +290,13 @@ mod tests {
     /// Makes an offer of 300 mojos from a wallet with a single 1000 mojo coin, so the coin has
     /// to be split.
     async fn pre_split_offer(wallet: &TestWallet) -> anyhow::Result<(SpendBundle, Vec<CoinSpend>)> {
+        pre_split_offer_of(wallet, 300).await
+    }
+
+    async fn pre_split_offer_of(
+        wallet: &TestWallet,
+        xch: u64,
+    ) -> anyhow::Result<(SpendBundle, Vec<CoinSpend>)> {
         let PreSplitOffer {
             offer,
             split_coin_spends,
@@ -287,7 +304,7 @@ mod tests {
             .wallet
             .make_pre_split_offer(
                 Offered {
-                    xch: 300,
+                    xch,
                     ..Default::default()
                 },
                 Requested {
@@ -412,6 +429,31 @@ mod tests {
         );
 
         // The coin that would have been split can be spent again.
+        assert_eq!(selectable_amounts(&alice).await?, vec![1000]);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_pending_offer_cancelled_when_split_with_intermediate_coin_fails()
+    -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+
+        // The change is the same as the split coin, so it's made from an intermediate coin, which
+        // the wallet also tracks and forgets when the split fails.
+        let (offer, split_coin_spends) = pre_split_offer_of(&alice, 500).await?;
+        assert_eq!(split_coin_spends.len(), 2);
+
+        alice
+            .push_bundle(SpendBundle::new(split_coin_spends, Signature::default()))
+            .await?;
+        let offer_id = insert_pending_offer(&alice, &offer, true).await?;
+
+        assert_eq!(
+            next_offer_status(&mut alice, offer_id).await,
+            OfferStatus::Cancelled
+        );
+
         assert_eq!(selectable_amounts(&alice).await?, vec![1000]);
 
         Ok(())

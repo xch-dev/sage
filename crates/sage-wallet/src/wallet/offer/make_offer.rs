@@ -345,14 +345,9 @@ impl Wallet {
         let deltas = Deltas::from_actions(actions);
         let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
-        // If the split coin went to the change address, it would have the same coin id as the
-        // change whenever their amounts match, so it goes to an unused address instead.
-        let split_puzzle_hash = self
-            .p2_puzzle_hashes(2, false, false)
-            .await?
-            .into_iter()
-            .find(|&puzzle_hash| puzzle_hash != change_puzzle_hash)
-            .ok_or(WalletError::InsufficientDerivations)?;
+        // If a split coin is identical to the change, the action system creates it from an
+        // intermediate coin, so the two never share a coin id. Either of them can then be used.
+        let split_puzzle_hash = change_puzzle_hash;
 
         let fungible_amount = |id: &Id| coin_amount(deltas.get(id).map_or(0, |delta| delta.output));
 

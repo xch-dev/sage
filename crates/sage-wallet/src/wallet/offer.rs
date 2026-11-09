@@ -2056,4 +2056,64 @@ mod tests {
 
         Ok(())
     }
+    #[test(tokio::test)]
+    async fn test_pre_split_offer_change_matches_offered_amount() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(1).await?;
+
+        // Splitting 500 from the 1000 coin leaves 500 of change, which would be an identical
+        // coin to the split coin if they were made from the same coin.
+        let PreSplitOffer {
+            offer,
+            split_coin_spends,
+        } = alice
+            .wallet
+            .make_pre_split_offer(
+                Offered {
+                    xch: 500,
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 1,
+                    ..Default::default()
+                },
+                None,
+                0,
+            )
+            .await?;
+
+        let split_coin_spends = split_coin_spends.expect("the 1000 coin should be split");
+
+        // The action system makes one of them from an intermediate coin instead.
+        assert_eq!(split_coin_spends.len(), 2);
+
+        let mut allocator = Allocator::new();
+        let parsed = Offer::from_spend_bundle(&mut allocator, &offer)?;
+        let offered_amounts = parsed
+            .cancellable_coin_spends()?
+            .into_iter()
+            .map(|coin_spend| coin_spend.coin.amount)
+            .collect::<Vec<_>>();
+        assert_eq!(offered_amounts, vec![500]);
+
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        alice.transact(split_coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        assert_eq!(alice.wallet.db.xch_balance().await?, 501);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 500);
+
+        Ok(())
+    }
 }
