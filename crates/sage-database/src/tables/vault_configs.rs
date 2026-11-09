@@ -154,13 +154,46 @@ impl VaultSigners {
     }
 }
 
-/// A vault in its normal state, whose custody can spend it at any time, and whose recovery can
-/// start moving it to new custody after a timelock.
+/// A vault in its normal state, whose custody can spend it at any time, and whose recovery, if it
+/// has one, can start moving it to new custody after a timelock.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VaultConfig {
     pub custody: VaultSigners,
-    pub recovery: VaultSigners,
-    pub recovery_timelock: u64,
+    /// A vault without recovery is only its custody, with no top level 1 of 2.
+    pub recovery: Option<VaultRecovery>,
+}
+
+impl VaultConfig {
+    pub fn with_recovery(
+        custody: VaultSigners,
+        recovery: VaultSigners,
+        timelock: u64,
+        version: VaultVersion,
+    ) -> Self {
+        Self {
+            custody,
+            recovery: Some(VaultRecovery {
+                signers: recovery,
+                timelock,
+                version,
+            }),
+        }
+    }
+
+    pub fn without_recovery(custody: VaultSigners) -> Self {
+        Self {
+            custody,
+            recovery: None,
+        }
+    }
+}
+
+/// The recovery side of a vault, which can start moving it to new custody after a timelock.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VaultRecovery {
+    pub signers: VaultSigners,
+    pub timelock: u64,
+    /// The puzzle version only changes the recovery side, so a vault without one has none.
     pub version: VaultVersion,
 }
 
@@ -181,15 +214,6 @@ pub struct VaultRecoveryConfig {
 pub enum VaultLayout {
     Custody(VaultConfig),
     Recovery(VaultRecoveryConfig),
-}
-
-impl VaultLayout {
-    pub fn version(&self) -> VaultVersion {
-        match self {
-            Self::Custody(config) => config.version,
-            Self::Recovery(config) => config.version,
-        }
-    }
 }
 
 /// Where a vault config came from.
@@ -258,28 +282,29 @@ impl DatabaseTx<'_> {
             match &row.layout {
                 VaultLayout::Custody(config) => (
                     &config.custody,
-                    Some(&config.recovery),
-                    config.recovery_timelock,
-                    config.version,
+                    config.recovery.as_ref().map(|recovery| &recovery.signers),
+                    config.recovery.as_ref().map(|recovery| recovery.timelock),
+                    config.recovery.as_ref().map(|recovery| recovery.version),
                     None,
                     None,
                 ),
                 VaultLayout::Recovery(config) => (
                     &config.custody,
                     None,
-                    config.recovery_timelock,
-                    config.version,
+                    Some(config.recovery_timelock),
+                    Some(config.version),
                     Some(config.recovery_custody_hash.to_vec()),
                     Some(config.amount.to_be_bytes().to_vec()),
                 ),
             };
 
-        let version = encode_vault_version(version);
+        let version = version.map(encode_vault_version);
         let custody_threshold: i64 = custody.threshold.try_into()?;
         let recovery_threshold: Option<i64> = recovery
             .map(|recovery| recovery.threshold.try_into())
             .transpose()?;
-        let recovery_timelock: i64 = recovery_timelock.try_into()?;
+        let recovery_timelock: Option<i64> =
+            recovery_timelock.map(TryInto::try_into).transpose()?;
 
         query!(
             "
@@ -367,29 +392,45 @@ async fn vault_config(
     let (custody, recovery) = vault_config_members(&mut *tx.tx, row.id).await?;
 
     let custody = VaultSigners::new(custody, row.custody_threshold.try_into()?);
-    let recovery_timelock = row.recovery_timelock.convert()?;
-    let version = decode_vault_version(row.puzzle_version)?;
+    let recovery_timelock: Option<u64> = row.recovery_timelock.map(Convert::convert).transpose()?;
+    let version = row.puzzle_version.map(decode_vault_version).transpose()?;
 
     let layout = match (
         row.recovery_threshold,
+        recovery_timelock,
+        version,
         row.recovery_custody_hash,
         row.recovery_amount,
     ) {
-        (Some(recovery_threshold), None, None) => VaultLayout::Custody(VaultConfig {
-            custody,
-            recovery: VaultSigners::new(recovery, recovery_threshold.try_into()?),
-            recovery_timelock,
-            version,
-        }),
-        (None, Some(recovery_custody_hash), Some(amount)) if recovery.is_empty() => {
-            VaultLayout::Recovery(VaultRecoveryConfig {
+        (Some(recovery_threshold), Some(timelock), Some(version), None, None) => {
+            VaultLayout::Custody(VaultConfig {
                 custody,
-                recovery_timelock,
-                version,
-                recovery_custody_hash: recovery_custody_hash.convert()?,
-                amount: amount.convert()?,
+                recovery: Some(VaultRecovery {
+                    signers: VaultSigners::new(recovery, recovery_threshold.try_into()?),
+                    timelock,
+                    version,
+                }),
             })
         }
+        (None, None, None, None, None) if recovery.is_empty() => {
+            VaultLayout::Custody(VaultConfig {
+                custody,
+                recovery: None,
+            })
+        }
+        (
+            None,
+            Some(recovery_timelock),
+            Some(version),
+            Some(recovery_custody_hash),
+            Some(amount),
+        ) if recovery.is_empty() => VaultLayout::Recovery(VaultRecoveryConfig {
+            custody,
+            recovery_timelock,
+            version,
+            recovery_custody_hash: recovery_custody_hash.convert()?,
+            amount: amount.convert()?,
+        }),
         _ => return Err(DatabaseError::InvalidVaultConfig),
     };
 

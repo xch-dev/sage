@@ -134,12 +134,15 @@ fn fixture(name: &str, version: VaultVersion) -> VaultConfig {
         _ => panic!("unknown fixture {name}"),
     };
 
-    VaultConfig {
-        custody,
-        recovery,
-        recovery_timelock,
-        version,
-    }
+    VaultConfig::with_recovery(custody, recovery, recovery_timelock, version)
+}
+
+fn recovery_timelock(config: &VaultConfig) -> u64 {
+    config
+        .recovery
+        .as_ref()
+        .expect("the vault has recovery")
+        .timelock
 }
 
 fn version(name: &str) -> VaultVersion {
@@ -160,8 +163,10 @@ fn normalize_signers(signers: &VaultSigners) -> VaultSigners {
 fn normalize(config: &VaultConfig) -> VaultConfig {
     VaultConfig {
         custody: normalize_signers(&config.custody),
-        recovery: normalize_signers(&config.recovery),
-        ..config.clone()
+        recovery: config.recovery.as_ref().map(|recovery| VaultRecovery {
+            signers: normalize_signers(&recovery.signers),
+            ..recovery.clone()
+        }),
     }
 }
 
@@ -189,8 +194,8 @@ fn test_ent_wallet_vectors() -> anyhow::Result<()> {
                 let current = fixture("oneOfOne", version);
                 let post_recovery = fixture("mixedMofN", version);
                 let config = VaultRecoveryConfig {
+                    recovery_timelock: recovery_timelock(&current),
                     custody: current.custody,
-                    recovery_timelock: current.recovery_timelock,
                     version,
                     recovery_custody_hash: vault_hashes(&post_recovery)?.custody_hash.into(),
                     amount: vector.amount.as_deref().unwrap().parse()?,
@@ -252,7 +257,13 @@ fn test_member_order_is_canonical() -> anyhow::Result<()> {
     let config = fixture("mixedMofN", VaultVersion::Legacy);
     let mut reversed = config.clone();
     reversed.custody.members.reverse();
-    reversed.recovery.members.reverse();
+    reversed
+        .recovery
+        .as_mut()
+        .expect("the vault has recovery")
+        .signers
+        .members
+        .reverse();
 
     let mut allocator = Allocator::new();
     let built = build_vault(&mut allocator, &config)?;
@@ -352,12 +363,12 @@ fn test_round_trip_matrix() -> anyhow::Result<()> {
             for version in [VaultVersion::Legacy, VaultVersion::ForceSingletonRecreation] {
                 let mut allocator = Allocator::new();
 
-                let config = VaultConfig {
-                    custody: sdk_custody(custody),
-                    recovery: sdk_recovery(recovery),
-                    recovery_timelock: 86_400,
+                let config = VaultConfig::with_recovery(
+                    sdk_custody(custody),
+                    sdk_recovery(recovery),
+                    86_400,
                     version,
-                };
+                );
 
                 let built = build_vault(&mut allocator, &config)?;
                 let bytes = node_to_bytes(&allocator, built.memo_list)?;
@@ -374,14 +385,15 @@ fn test_round_trip_matrix() -> anyhow::Result<()> {
                 assert_eq!(node_to_bytes(&allocator, rebuilt.memo_list)?, bytes);
 
                 // Recovery to the swapped config.
-                let post_recovery = VaultConfig {
-                    custody: sdk_recovery(recovery),
-                    recovery: sdk_custody(custody),
-                    ..config.clone()
-                };
+                let post_recovery = VaultConfig::with_recovery(
+                    sdk_recovery(recovery),
+                    sdk_custody(custody),
+                    86_400,
+                    version,
+                );
                 let recovery_config = VaultRecoveryConfig {
                     custody: config.custody.clone(),
-                    recovery_timelock: config.recovery_timelock,
+                    recovery_timelock: 86_400,
                     version,
                     recovery_custody_hash: vault_hashes(&post_recovery)?.custody_hash.into(),
                     amount: 1,
@@ -420,6 +432,104 @@ fn test_round_trip_matrix() -> anyhow::Result<()> {
             }
         }
     }
+
+    Ok(())
+}
+
+/// Vaults without recovery are only their custody, at the top level.
+#[test]
+fn test_without_recovery() -> anyhow::Result<()> {
+    for custody in [
+        "single_k1",
+        "single_bls",
+        "two_of_four_mixed",
+        "nested_vault",
+    ] {
+        let mut allocator = Allocator::new();
+        let config = VaultConfig::without_recovery(sdk_custody(custody));
+
+        let built = build_vault(&mut allocator, &config)?;
+        assert_eq!(built.hashes.recovery_member_hash, None);
+        assert_eq!(
+            built.hashes.custody_hash,
+            mips_puzzle_hash(0, vec![], signers_inner_hash(&config.custody), true)
+        );
+
+        // It's a different puzzle from the same custody with recovery.
+        let with_recovery = VaultConfig::with_recovery(
+            config.custody.clone(),
+            sdk_recovery("single_k1"),
+            86_400,
+            VaultVersion::ForceSingletonRecreation,
+        );
+        let with_recovery = vault_hashes(&with_recovery)?;
+        assert_ne!(built.hashes.custody_hash, with_recovery.custody_hash);
+        assert_eq!(
+            built.hashes.custody_member_hash,
+            with_recovery.custody_member_hash
+        );
+
+        let bytes = node_to_bytes(&allocator, built.memo_list)?;
+        let custody_hash = built.hashes.custody_hash.into();
+
+        let decoded = decode_vault_memo_list_bytes(&mut allocator, &bytes, custody_hash)?;
+        assert_eq!(decoded, DecodedVault::Custody(normalize(&config)));
+
+        let DecodedVault::Custody(decoded) = decoded else {
+            unreachable!();
+        };
+        let rebuilt = build_vault(&mut allocator, &decoded)?;
+        assert_eq!(node_to_bytes(&allocator, rebuilt.memo_list)?, bytes);
+
+        // A vault can recover to custody without recovery.
+        let current = fixture("oneOfOne", VaultVersion::ForceSingletonRecreation);
+        let recovery_config = VaultRecoveryConfig {
+            custody: current.custody.clone(),
+            recovery_timelock: recovery_timelock(&current),
+            version: VaultVersion::ForceSingletonRecreation,
+            recovery_custody_hash: custody_hash,
+            amount: 1,
+        };
+        let built = build_vault_recovery(&mut allocator, &recovery_config, &config)?;
+        let bytes = node_to_bytes(&allocator, built.memo_list)?;
+        let decoded =
+            decode_vault_memo_list_bytes(&mut allocator, &bytes, built.hashes.custody_hash.into())?;
+        assert_eq!(
+            decoded,
+            DecodedVault::Recovery {
+                config: recovery_config,
+                post_recovery: normalize(&config),
+            }
+        );
+    }
+
+    Ok(())
+}
+
+/// The memo of a custody without recovery is checked against the custody hash like any other.
+#[test]
+fn test_without_recovery_rejects_hash_mismatch() -> anyhow::Result<()> {
+    let config = VaultConfig::without_recovery(sdk_custody("two_of_four_mixed"));
+    let (bytes, custody_hash) = memo_bytes(&config)?;
+
+    let mut allocator = Allocator::new();
+    assert!(matches!(
+        decode_vault_memo_list_bytes(&mut allocator, &bytes, Bytes32::new([1; 32])),
+        Err(VaultLayoutError::HashMismatch)
+    ));
+
+    // The same custody with recovery has a different custody hash.
+    let (_, other) = memo_bytes(&VaultConfig::with_recovery(
+        config.custody.clone(),
+        sdk_recovery("single_k1"),
+        86_400,
+        VaultVersion::Legacy,
+    ))?;
+    assert_ne!(other, custody_hash);
+    assert!(matches!(
+        decode_vault_memo_list_bytes(&mut allocator, &bytes, other),
+        Err(VaultLayoutError::HashMismatch)
+    ));
 
     Ok(())
 }

@@ -209,8 +209,8 @@ async fn vaults_migration_keeps_existing_coins() -> anyhow::Result<()> {
 async fn stores_vault_configs() -> anyhow::Result<()> {
     let db = migrated_db().await?;
 
-    let config = VaultConfig {
-        custody: VaultSigners::new(
+    let config = VaultConfig::with_recovery(
+        VaultSigners::new(
             vec![
                 VaultMember::secp256r1(R1Pair::new(1).pk),
                 VaultMember::passkey(R1Pair::new(2).pk),
@@ -222,7 +222,7 @@ async fn stores_vault_configs() -> anyhow::Result<()> {
             ],
             3,
         ),
-        recovery: VaultSigners::new(
+        VaultSigners::new(
             vec![
                 VaultMember::bls(BlsPair::new(5).pk),
                 VaultMember::Custom {
@@ -231,9 +231,9 @@ async fn stores_vault_configs() -> anyhow::Result<()> {
             ],
             1,
         ),
-        recovery_timelock: 86_400,
-        version: VaultVersion::ForceSingletonRecreation,
-    };
+        86_400,
+        VaultVersion::ForceSingletonRecreation,
+    );
 
     let custody = VaultConfigRow {
         custody_hash: Bytes32::new([7; 32]),
@@ -270,11 +270,13 @@ async fn stores_vault_configs() -> anyhow::Result<()> {
 
     // Reinserting a config replaces its members.
     let replaced = VaultConfigRow {
-        layout: VaultLayout::Custody(VaultConfig {
-            recovery: VaultSigners::new(vec![VaultMember::bls(BlsPair::new(9).pk)], 1),
-            ..config
-        }),
-        ..custody
+        layout: VaultLayout::Custody(VaultConfig::with_recovery(
+            config.custody.clone(),
+            VaultSigners::new(vec![VaultMember::bls(BlsPair::new(9).pk)], 1),
+            3600,
+            VaultVersion::Legacy,
+        )),
+        ..custody.clone()
     };
     let mut tx = db.tx().await?;
     tx.insert_vault_config(&replaced).await?;
@@ -283,6 +285,20 @@ async fn stores_vault_configs() -> anyhow::Result<()> {
     assert_eq!(
         db.vault_config(replaced.custody_hash).await?,
         Some(replaced)
+    );
+
+    // A vault without recovery has no recovery members, timelock or version.
+    let without_recovery = VaultConfigRow {
+        layout: VaultLayout::Custody(VaultConfig::without_recovery(config.custody.clone())),
+        ..custody
+    };
+    let mut tx = db.tx().await?;
+    tx.insert_vault_config(&without_recovery).await?;
+    tx.commit().await?;
+
+    assert_eq!(
+        db.vault_config(without_recovery.custody_hash).await?,
+        Some(without_recovery)
     );
 
     Ok(())
