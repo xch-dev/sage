@@ -1157,7 +1157,12 @@ fingerprint: number;
 /**
  * Network name
  */
-network: string }
+network: string; 
+/**
+ * Whether to also delete the database shared by the wallets on the wallet's network, which
+ * holds the address book and handle mappings
+ */
+shared?: boolean }
 /**
  * Response for database deletion
  */
@@ -1225,7 +1230,12 @@ handle_error_code?: HandleErrorCode | null;
  * The recipients which couldn't be used, if that's why the request failed.
  */
 recipients?: RecipientError[] | null }
-export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc" | 
+export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | 
+/**
+ * The database shared by the wallets on a network, which holds the address book and handle
+ * mappings, couldn't be migrated. Deleting the wallet's own database doesn't fix this.
+ */
+"shared_database_migration" | "nfc" | 
 /**
  * One or more recipients couldn't be used. See the attached recipient errors.
  */

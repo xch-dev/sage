@@ -61,6 +61,7 @@ where
                 ErrorKind::Unauthorized => StatusCode::UNAUTHORIZED,
                 ErrorKind::AlreadyRunning => StatusCode::CONFLICT,
                 ErrorKind::DatabaseMigration
+                | ErrorKind::SharedDatabaseMigration
                 | ErrorKind::Wallet
                 | ErrorKind::Internal
                 | ErrorKind::Nfc => StatusCode::INTERNAL_SERVER_ERROR,

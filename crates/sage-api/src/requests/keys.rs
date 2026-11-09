@@ -202,7 +202,7 @@ pub struct ImportWalletResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "System & Sync",
-        description = "Delete the wallet database for a specific fingerprint and network."
+        description = "Delete the wallet database for a specific fingerprint and network, so it's synced again from scratch. Optionally, also delete the database shared by the wallets on the network, which holds the address book and handle mappings, if it can't be migrated."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -214,6 +214,11 @@ pub struct DeleteDatabase {
     pub fingerprint: u32,
     /// Network name
     pub network: String,
+    /// Whether to also delete the database shared by the wallets on the wallet's network, which
+    /// holds the address book and handle mappings
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub shared: bool,
 }
 
 /// Response for database deletion

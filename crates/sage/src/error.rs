@@ -262,6 +262,9 @@ pub enum Error {
     #[error("Database version too old")]
     DatabaseVersionTooOld,
 
+    #[error("The database shared by this network's wallets can't be migrated")]
+    SharedDatabaseVersionTooOld,
+
     #[error("Sage did not initialize successfully, so changes cannot be saved")]
     NotInitialized,
 
@@ -347,6 +350,7 @@ impl Error {
                 | KeychainError::Argon2(..) => ErrorKind::Internal,
             },
             Self::SqlxMigration(..) | Self::DatabaseVersionTooOld => ErrorKind::DatabaseMigration,
+            Self::SharedDatabaseVersionTooOld => ErrorKind::SharedDatabaseMigration,
             Self::Send(..)
             | Self::Io(..)
             | Self::Client(..)

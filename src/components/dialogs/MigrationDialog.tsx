@@ -12,6 +12,9 @@ import { Trans } from '@lingui/react/macro';
 
 interface MigrationDialogProps {
   open: boolean;
+  /** Whether the database shared by the wallets on the network failed to
+   *  migrate, rather than the wallet's own. */
+  shared?: boolean;
   onOpenChange: (open: boolean) => void;
   onCancel: () => void | Promise<void>;
   onConfirm: () => void | Promise<void>;
@@ -19,6 +22,7 @@ interface MigrationDialogProps {
 
 export function MigrationDialog({
   open,
+  shared = false,
   onOpenChange,
   onCancel,
   onConfirm,
@@ -31,7 +35,14 @@ export function MigrationDialog({
             <Trans>Database Migration Required</Trans>
           </DialogTitle>
           <DialogDescription>
-            {offersEnabled ? (
+            {shared ? (
+              <Trans>
+                In order to proceed with the update, the address book and handle
+                mappings shared by the wallets on this network will be reset,
+                and the wallet will be fully resynced. You can add contacts and
+                custom asset names again after if needed.
+              </Trans>
+            ) : offersEnabled ? (
               <Trans>
                 In order to proceed with the update, the wallet will be fully
                 resynced. This means any imported offer files or custom asset

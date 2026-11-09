@@ -16,6 +16,7 @@ import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useErrors } from '@/hooks/useErrors';
+import { DatabaseMigration, databaseMigration } from '@/lib/errors';
 import { clearState, loginAndUpdateState, logoutAndUpdateState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -46,6 +47,7 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
   const [migrationWallet, setMigrationWallet] = useState<WalletInfo | null>(
     null,
   );
+  const [migration, setMigration] = useState<DatabaseMigration>('wallet');
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
@@ -69,7 +71,12 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
     setIsOpen(debouncedIsHovering);
   }, [debouncedIsHovering]);
 
-  const handleSwitchWallet = async (fingerprint: number) => {
+  // After a database is reset, the switch is retried once. If it still can't
+  // be migrated, resetting again wouldn't help, so the error is shown instead.
+  const handleSwitchWallet = async (
+    fingerprint: number,
+    afterReset = false,
+  ) => {
     if (isSwitching) {
       return;
     }
@@ -94,11 +101,8 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
       setIsSwitching(false);
 
       const targetWallet = wallets.find((w) => w.fingerprint === fingerprint);
-      const isDatabaseMigration =
-        typeof error === 'object' &&
-        error !== null &&
-        'kind' in error &&
-        error.kind === 'database_migration';
+      const failedMigration = databaseMigration(error);
+      const isDatabaseMigration = failedMigration !== null && !afterReset;
 
       // Always logout cleanly first to prevent auth error cascade
       try {
@@ -110,6 +114,7 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
       if (isDatabaseMigration && targetWallet) {
         // Show migration dialog - don't navigate yet
         setMigrationWallet(targetWallet);
+        setMigration(failedMigration);
         setIsMigrationDialogOpen(true);
       } else {
         // Navigate to login and show error
@@ -142,6 +147,7 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
   const migrationDialog = (
     <MigrationDialog
       open={isMigrationDialogOpen}
+      shared={migration === 'shared'}
       onOpenChange={(open) => {
         if (!open) {
           setIsMigrationDialogOpen(false);
@@ -162,10 +168,11 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
           await commands.deleteDatabase({
             fingerprint: migrationWallet.fingerprint,
             network: migrationWallet.network_id,
+            shared: migration === 'shared',
           });
           setMigrationWallet(null);
           // Retry the wallet switch
-          await handleSwitchWallet(fingerprint);
+          await handleSwitchWallet(fingerprint, true);
         } catch (error) {
           setMigrationWallet(null);
           addError(error as CustomError);
