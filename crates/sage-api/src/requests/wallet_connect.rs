@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::Amount;
+
 /// Filter unlocked coins from a list
 #[cfg_attr(
     feature = "openapi",
@@ -109,7 +111,7 @@ pub struct Coin {
     /// Puzzle hash
     pub puzzle_hash: String,
     /// Amount in mojos
-    pub amount: u64,
+    pub amount: Amount,
 }
 
 /// Lineage proof for CAT coins
@@ -127,7 +129,7 @@ pub struct LineageProof {
     pub inner_puzzle_hash: Option<String>,
     /// Amount
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
-    pub amount: Option<u64>,
+    pub amount: Option<Amount>,
 }
 
 /// Sign a message with a public key

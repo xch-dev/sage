@@ -1,4 +1,4 @@
-import { OptionSortMode } from '@/bindings';
+import { OptionFilter, OptionSortMode } from '@/bindings';
 import { ViewMode } from '@/components/ViewToggle';
 import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
@@ -7,12 +7,14 @@ const OPTION_SORT_STORAGE_KEY = 'sage-wallet-option-sort';
 const OPTION_VIEW_MODE_STORAGE_KEY = 'sage-wallet-option-view-mode';
 const HIDDEN_OPTIONS_STORAGE_KEY = 'sage-wallet-show-hidden-options';
 const OPTION_ASCENDING_STORAGE_KEY = 'sage-wallet-option-ascending';
+const OPTION_FILTER_STORAGE_KEY = 'sage-wallet-option-filter';
 
 export interface OptionParams {
   viewMode: ViewMode;
   sortMode: OptionSortMode;
   ascending: boolean;
   showHiddenOptions: boolean;
+  filter: OptionFilter;
   search: string;
   page: number;
   limit: number;
@@ -28,6 +30,19 @@ export function parseSortMode(mode: string): OptionSortMode {
       return 'expiration_seconds';
     default:
       return 'name';
+  }
+}
+
+export function parseFilter(filter: string): OptionFilter {
+  switch (filter) {
+    case 'owned':
+      return 'owned';
+    case 'created':
+      return 'created';
+    case 'all':
+      return 'all';
+    default:
+      return 'owned';
   }
 }
 
@@ -54,12 +69,18 @@ export function useOptionParams(): [OptionParams, SetOptionParams] {
     true,
   );
 
+  const [storedFilter, setStoredFilter] = useLocalStorage<OptionFilter>(
+    OPTION_FILTER_STORAGE_KEY,
+    'owned',
+  );
+
   const sortMode = parseSortMode(params.get('sortMode') ?? storedSortMode);
   const ascending =
     (params.get('ascending') ?? storedAscending.toString()) === 'true';
   const showHiddenOptions =
     (params.get('showHiddenOptions') ?? storedShowHiddenOptions.toString()) ===
     'true';
+  const filter = parseFilter(params.get('filter') ?? storedFilter);
   const search = params.get('search') ?? '';
   const page = parseInt(params.get('page') ?? '1', 10);
   const limit = parseInt(params.get('limit') ?? '20', 10);
@@ -70,6 +91,7 @@ export function useOptionParams(): [OptionParams, SetOptionParams] {
     sortMode,
     ascending,
     showHiddenOptions,
+    filter,
     search,
     viewMode,
     page,
@@ -92,6 +114,11 @@ export function useOptionParams(): [OptionParams, SetOptionParams] {
         if (showHiddenOptions !== undefined) {
           next.set('showHiddenOptions', showHiddenOptions.toString());
           setStoredShowHiddenOptions(showHiddenOptions);
+        }
+
+        if (filter !== undefined) {
+          next.set('filter', filter);
+          setStoredFilter(filter);
         }
 
         if (search !== undefined) {
@@ -127,6 +154,7 @@ export function useOptionParams(): [OptionParams, SetOptionParams] {
       sortMode,
       ascending,
       showHiddenOptions,
+      filter,
       search,
       page,
       limit,

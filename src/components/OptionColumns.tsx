@@ -22,6 +22,7 @@ import {
   HandCoins,
   MoreHorizontal,
   SendIcon,
+  Undo2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -29,6 +30,7 @@ import { NumberFormat } from './NumberFormat';
 
 export const columns = (
   actionHandlers?: OptionActionHandlers,
+  isTransactionDisabled = false,
 ): ColumnDef<OptionRecord>[] => [
   {
     accessorKey: 'name',
@@ -149,7 +151,11 @@ export const columns = (
 
       return (
         <div className='text-sm'>
-          {isPending ? (
+          {!option.is_owned ? (
+            <span className='text-muted-foreground font-medium'>
+              <Trans>Transferred</Trans>
+            </span>
+          ) : isPending ? (
             <span className='text-yellow-500 font-medium'>
               <Trans>Pending</Trans>
             </span>
@@ -183,7 +189,7 @@ export const columns = (
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>
-            {!isPending && (
+            {!isPending && option.is_owned && !isTransactionDisabled && (
               <>
                 {actionHandlers?.onExercise && (
                   <DropdownMenuItem
@@ -193,6 +199,16 @@ export const columns = (
                     <Trans>Exercise</Trans>
                   </DropdownMenuItem>
                 )}
+                {actionHandlers?.onCancel &&
+                  option.is_creator &&
+                  option.expiration_seconds * 1000 > Date.now() && (
+                    <DropdownMenuItem
+                      onClick={() => actionHandlers.onCancel?.(option)}
+                    >
+                      <Undo2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                      <Trans>Cancel</Trans>
+                    </DropdownMenuItem>
+                  )}
                 {actionHandlers?.onTransfer && (
                   <DropdownMenuItem
                     onClick={() => actionHandlers.onTransfer?.(option)}

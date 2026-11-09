@@ -1,0 +1,27 @@
+{
+  "manifestVersion": 0,
+  "sageVersion": {
+    "min": "0.0.0"
+  },
+  "name": "Task Manager",
+  "version": "0.1.0",
+  "permissions": {
+    "network": {
+      "whitelist": {
+        "required": [],
+        "optional": []
+      }
+    },
+    "capabilities": {
+      "required": [
+        "environment.theme.get_current",
+        "environment.theme.listen_changed",
+        "environment.theme.css_vars"
+      ],
+      "optional": []
+    }
+  },
+  "files": [],
+  "entry": "index.html",
+  "icon": "icon.svg"
+}

@@ -6,7 +6,7 @@ import { TokenGridView } from '@/components/TokenGridView';
 import { TokenListView } from '@/components/TokenListView';
 import { TokenOptions } from '@/components/TokenOptions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import {
   Tooltip,
   TooltipContent,
@@ -177,14 +177,14 @@ export function TokenList() {
         </div>
       </Header>
       <Container>
-        <Button
+        <ReadOnlyButton
           onClick={() => navigate('/wallet/issue-token')}
           aria-label={t`Issue new token`}
           className='mb-4'
         >
           <Coins className='h-4 w-4 mr-2' aria-hidden='true' />
           <Trans>Issue Token</Trans>
-        </Button>
+        </ReadOnlyButton>
 
         <TokenOptions
           query={params.search}

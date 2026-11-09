@@ -1,6 +1,7 @@
 import { t } from '@lingui/core/macro';
 import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger } from './ui/select';
 
 interface SimplePaginationProps {
   currentPage: number;
@@ -10,6 +11,9 @@ interface SimplePaginationProps {
   size?: 'default' | 'sm';
   align?: 'start' | 'end' | 'between';
   actions?: React.ReactNode;
+  pageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
+  pageSizeOptions?: number[];
 }
 
 export function SimplePagination({
@@ -20,6 +24,9 @@ export function SimplePagination({
   size = 'default',
   align = 'between',
   actions,
+  pageSize,
+  onPageSizeChange,
+  pageSizeOptions = [10, 25, 50, 100],
 }: SimplePaginationProps) {
   const justifyClass =
     align === 'start'
@@ -34,6 +41,30 @@ export function SimplePagination({
         <div className='flex space-x-2'>{actions}</div>
       )}
       <div className='flex space-x-2'>
+        {pageSize !== undefined && onPageSizeChange && (
+          <Select
+            value={pageSize.toString()}
+            onValueChange={(value) => onPageSizeChange(parseInt(value))}
+          >
+            <SelectTrigger
+              className={`w-min gap-2 ${size === 'sm' ? 'h-8 text-xs' : ''}`}
+              aria-label={t`${pageSize} items per page`}
+            >
+              {pageSize}
+            </SelectTrigger>
+            <SelectContent>
+              {pageSizeOptions.map((size) => (
+                <SelectItem
+                  key={size}
+                  value={size.toString()}
+                  aria-label={t`Show ${size} items per page`}
+                >
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Button
           variant='outline'
           size={size}

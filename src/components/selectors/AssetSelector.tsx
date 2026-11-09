@@ -12,12 +12,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { optionsEnabled } from '@/lib/features';
 import { toDecimal } from '@/lib/utils';
 import { Assets } from '@/state';
 import BigNumber from 'bignumber.js';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { platform } from '@tauri-apps/plugin-os';
 import {
   AlertTriangle,
   FilePenLine,
@@ -48,8 +48,6 @@ export function AssetSelector({
   setSplitNftOffers,
   fee,
 }: AssetSelectorProps) {
-  const isIos = platform() === 'ios';
-
   const [ownedTokens, setOwnedTokens] = useState<TokenRecord[]>([]);
   const [tokenIds, setTokenIds] = useState<number[]>([]);
   const [nftIds, setNftIds] = useState<number[]>([]);
@@ -214,7 +212,7 @@ export function AssetSelector({
           <Trans>NFT</Trans>
         </Button>
 
-        {!isIos && (
+        {optionsEnabled && (
           <Button variant='outline' className='flex-grow' onClick={addOption}>
             <PlusIcon className='mr-0.5 h-3 w-3' aria-hidden='true' />{' '}
             <Trans>Option</Trans>

@@ -3,6 +3,7 @@ import { WalletCard } from '@/components/WalletCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useErrors } from '@/hooks/useErrors';
+import { useKeys } from '@/hooks/useKeys';
 import {
   closestCenter,
   DndContext,
@@ -26,7 +27,7 @@ import { CogIcon } from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
 import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, KeyInfo } from '../bindings';
+import { commands, WalletInfo } from '../bindings';
 import Container from '../components/Container';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
@@ -34,20 +35,25 @@ const isMobile = platform() === 'ios' || platform() === 'android';
 export default function Login() {
   const navigate = useNavigate();
   const { addError } = useErrors();
-  const [keys, setKeys] = useState<KeyInfo[] | null>(null);
+  const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
+  const keychain = useKeys();
+
+  // Unknown until the keychain loads, so cards don't show hot wallets as cold.
+  const keyFor = (fingerprint: number) =>
+    keychain === null ? undefined : (keychain.get(fingerprint) ?? null);
 
   useEffect(() => {
     commands
-      .getKeys({})
-      .then((data) => setKeys(data.keys))
+      .getWallets({})
+      .then((data) => setWallets(data.wallets))
       .catch(addError);
   }, [addError]);
 
   useEffect(() => {
     commands
-      .getKey({})
+      .getWallet({})
       .then((data) => {
-        if (data.key !== null) {
+        if (data.wallet !== null) {
           navigate('/wallet');
         }
       })
@@ -82,19 +88,25 @@ export default function Login() {
 
     setActiveId(null);
 
-    if (!keys || !over || active.id === over.id) return;
+    if (!wallets || !over || active.id === over.id) return;
 
-    const oldIndex = keys.findIndex((key) => key.fingerprint === active.id);
-    const newIndex = keys.findIndex((key) => key.fingerprint === over.id);
+    const oldIndex = wallets.findIndex(
+      (wallet) => wallet.fingerprint === active.id,
+    );
+    const newIndex = wallets.findIndex(
+      (wallet) => wallet.fingerprint === over.id,
+    );
 
     if (oldIndex === newIndex || oldIndex === -1 || newIndex === -1) return;
 
-    setKeys(arrayMove(keys, oldIndex, newIndex));
+    setWallets(arrayMove(wallets, oldIndex, newIndex));
 
     commands.moveKey(active.id as number, newIndex).catch(addError);
   }
 
-  const activeKey = keys?.find((key) => key.fingerprint === activeId);
+  const activeWallet = wallets?.find(
+    (wallet) => wallet.fingerprint === activeId,
+  );
 
   return (
     <SafeAreaView>
@@ -104,7 +116,7 @@ export default function Login() {
         }`}
       >
         <div className='flex items-center justify-between space-y-2'>
-          {(keys?.length ?? 0) > 0 && (
+          {(wallets?.length ?? 0) > 0 && (
             <>
               <h2 className='text-3xl font-bold tracking-tight'>
                 <Trans>Wallets</Trans>
@@ -127,8 +139,8 @@ export default function Login() {
             </>
           )}
         </div>
-        {keys !== null ? (
-          keys.length ? (
+        {wallets !== null ? (
+          wallets.length ? (
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -136,24 +148,30 @@ export default function Login() {
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={keys.map((key) => key.fingerprint)}
+                items={wallets.map((wallet) => wallet.fingerprint)}
                 strategy={rectSortingStrategy}
               >
                 <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-3'>
-                  {keys.map((key) => (
+                  {wallets.map((wallet) => (
                     <WalletCard
                       draggable
-                      key={key.fingerprint}
-                      info={key}
-                      keys={keys}
-                      setKeys={setKeys}
+                      key={wallet.fingerprint}
+                      info={wallet}
+                      keyInfo={keyFor(wallet.fingerprint)}
+                      wallets={wallets}
+                      setWallets={setWallets}
                     />
                   ))}
                 </div>
               </SortableContext>
               <DragOverlay>
-                {activeId && activeKey && (
-                  <WalletCard info={activeKey} keys={keys} setKeys={setKeys} />
+                {activeId && activeWallet && (
+                  <WalletCard
+                    info={activeWallet}
+                    keyInfo={keyFor(activeWallet.fingerprint)}
+                    wallets={wallets}
+                    setWallets={setWallets}
+                  />
                 )}
               </DragOverlay>
             </DndContext>

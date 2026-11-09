@@ -1,0 +1,8 @@
+{
+  "build": {
+    "beforeBuildCommand": "pnpm run build:frontend"
+  },
+  "bundle": {
+    "resources": []
+  }
+}

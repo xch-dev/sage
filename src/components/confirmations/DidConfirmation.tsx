@@ -1,4 +1,5 @@
 import { DidRecord } from '@/bindings';
+import { AddressLabels } from '@/components/AddressLabels';
 import { CopyBox } from '@/components/CopyBox';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -73,11 +74,14 @@ export function DidConfirmation({ type, dids, address }: DidConfirmationProps) {
       </ConfirmationAlert>
 
       {type === 'transfer' && address && (
-        <CopyBox
-          title={t`Recipient Address`}
-          value={address}
-          onCopy={() => toast.success(t`Address copied to clipboard`)}
-        />
+        <div className='space-y-1'>
+          <AddressLabels address={address} />
+          <CopyBox
+            title={t`Recipient Address`}
+            value={address}
+            onCopy={() => toast.success(t`Address copied to clipboard`)}
+          />
+        </div>
       )}
 
       {dids.map((did) => (

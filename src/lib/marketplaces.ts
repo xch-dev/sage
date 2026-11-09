@@ -1,17 +1,20 @@
 import { OfferSummary } from '@/bindings';
 import { MarketplaceConfig } from '@/components/MarketplaceCard';
 import {
-  dexieLink,
   isDexieSupported,
   isDexieSupportedForSummary,
   isMintGardenSupported,
   isMintGardenSupportedForSummary,
-  mintGardenLink,
   offerIsOnDexie,
   offerIsOnMintGarden,
   uploadToDexie,
   uploadToMintGarden,
 } from '@/lib/offerUpload';
+import {
+  dexieOfferUrl,
+  mintGardenApiUrl,
+  mintGardenOfferUrl,
+} from '@/lib/urls';
 import { OfferState } from '@/state';
 // need to store mintgarden logo locally because of CORS
 import mintGardenLogo from '@/images/mintgarden-logo.svg';
@@ -34,7 +37,7 @@ export const marketplaces: MarketplaceConfig[] = [
     isOnMarketplace: (_, offerId, isTestnet) =>
       offerIsOnDexie(offerId, isTestnet),
     uploadToMarketplace: uploadToDexie,
-    getMarketplaceLink: dexieLink,
+    getMarketplaceLink: dexieOfferUrl,
   },
   {
     id: 'mintgarden',
@@ -51,13 +54,13 @@ export const marketplaces: MarketplaceConfig[] = [
     isOnMarketplace: (offer, _, isTestnet) =>
       offerIsOnMintGarden(offer, isTestnet),
     uploadToMarketplace: uploadToMintGarden,
-    getMarketplaceLink: mintGardenLink,
+    getMarketplaceLink: mintGardenOfferUrl,
   },
 ];
 
-export async function getMintGardenProfile(did: string) {
+export async function getMintGardenProfile(did: string, isTestnet: boolean) {
   try {
-    const response = await fetch(`https://api.mintgarden.io/profile/${did}`);
+    const response = await fetch(mintGardenApiUrl(`profile/${did}`, isTestnet));
     const data = await response.json();
     if ('detail' in data) {
       return null;

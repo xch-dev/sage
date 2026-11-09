@@ -1,3 +1,5 @@
+import { offersEnabled } from '@/lib/features';
+import { spacescanCoinUrl } from '@/lib/urls';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -81,21 +83,28 @@ const CoinIdHeader = ({
   </Button>
 );
 
-const CoinIdCell = ({ row }: { row: Row<CoinRecord> }) => {
+const CoinIdCell = ({
+  row,
+  isTestnet,
+}: {
+  row: Row<CoinRecord>;
+  isTestnet: boolean;
+}) => {
   const coinId = row.original.coin_id;
+  const url = spacescanCoinUrl(coinId, isTestnet);
   return (
     <div
       className='cursor-pointer truncate hover:underline'
       onClick={(e) => {
         e.stopPropagation();
-        openUrl(`https://spacescan.io/coin/0x${coinId}`);
+        openUrl(url);
       }}
       aria-label={t`View coin ${coinId} on Spacescan.io`}
       role='button'
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.stopPropagation();
-          openUrl(`https://spacescan.io/coin/0x${coinId}`);
+          openUrl(url);
         }
       }}
     >
@@ -244,10 +253,71 @@ const ClawbackHeader = ({
   </Button>
 );
 
-const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) =>
-  row.original.clawback_timestamp
-    ? formatTimestamp(row.original.clawback_timestamp, 'short', 'short')
-    : t`No expiration`;
+const ClawbackVersionHeader = ({
+  sortMode,
+  sortDirection,
+  onSortModeChange,
+  onSortDirectionChange,
+  setCurrentPage,
+}: {
+  sortMode: CoinSortMode;
+  sortDirection: boolean;
+  onSortModeChange: (mode: CoinSortMode) => void;
+  onSortDirectionChange: (ascending: boolean) => void;
+  setCurrentPage: (page: number) => void;
+}) => (
+  <Button
+    className='px-0'
+    variant='link'
+    onClick={() => {
+      if (sortMode === 'clawback_version') {
+        onSortDirectionChange(!sortDirection);
+      } else {
+        onSortModeChange('clawback_version');
+        onSortDirectionChange(false);
+      }
+      setCurrentPage(0);
+    }}
+  >
+    <Trans>Clawback Version</Trans>
+    {sortMode === 'clawback_version' ? (
+      sortDirection ? (
+        <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+      ) : (
+        <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+      )
+    ) : (
+      <span className='ml-2 w-4 h-4' />
+    )}
+  </Button>
+);
+
+const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) => {
+  const expiration = row.original.clawback_timestamp;
+  if (expiration == null) {
+    return t`No expiration`;
+  }
+
+  const lockSeconds = Number(expiration);
+  if (!Number.isFinite(lockSeconds)) {
+    return t`No expiration`;
+  }
+
+  // V1 stores relative seconds; unlock = birth block time + timelock.
+  if (row.original.clawback_version === 1) {
+    const created = row.original.created_timestamp;
+    if (created == null) {
+      // The unlock time isn't known until the coin is confirmed and its block time is synced.
+      return row.original.created_height == null ? t`Pending` : t`Unknown`;
+    }
+    return formatTimestamp(Number(created) + lockSeconds, 'short', 'short');
+  }
+
+  return formatTimestamp(lockSeconds, 'short', 'short');
+};
+
+const ClawbackVersionCell = ({ row }: { row: Row<CoinRecord> }) =>
+  row.original.clawback_version;
 
 const SpentHeader = ({
   sortMode,
@@ -326,7 +396,9 @@ const SpentCell = ({ row }: { row: Row<CoinRecord> }) =>
       : row.original.transaction_id
         ? t`Pending...`
         : row.original.offer_id
-          ? t`Locked in offer`
+          ? offersEnabled
+            ? t`Locked in offer`
+            : t`Locked`
           : '';
 
 // Wrapper components to eliminate remaining inline arrow functions
@@ -382,6 +454,16 @@ const ClawbackHeaderWrapper = (props: CoinListProps) => (
   />
 );
 
+const ClawbackVersionHeaderWrapper = (props: CoinListProps) => (
+  <ClawbackVersionHeader
+    sortMode={props.sortMode}
+    sortDirection={props.sortDirection}
+    onSortModeChange={props.onSortModeChange}
+    onSortDirectionChange={props.onSortDirectionChange}
+    setCurrentPage={props.setCurrentPage}
+  />
+);
+
 const AmountCellWrapper = ({
   row,
   precision,
@@ -403,7 +485,9 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
     accessorKey: 'coin_id',
     size: 100,
     header: () => <CoinIdHeaderWrapper {...props} />,
-    cell: CoinIdCell,
+    cell: ({ row }: { row: Row<CoinRecord> }) => (
+      <CoinIdCell row={row} isTestnet={props.isTestnet} />
+    ),
   },
   {
     accessorKey: 'amount',
@@ -419,23 +503,33 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
     size: 140,
     cell: ConfirmedCell,
   },
-  props.clawback
-    ? {
-        accessorKey: 'clawback_timestamp',
-        header: () => <ClawbackHeaderWrapper {...props} />,
-        size: 120,
-        cell: ClawbackCell,
-      }
-    : {
-        accessorKey: 'spent_height',
-        header: () => <SpentHeaderWrapper {...props} />,
-        size: 120,
-        cell: SpentCell,
-      },
+  {
+    accessorKey: 'spent_height',
+    header: () => <SpentHeaderWrapper {...props} />,
+    size: 120,
+    cell: SpentCell,
+  },
+  ...(props.clawback
+    ? [
+        {
+          accessorKey: 'clawback_timestamp',
+          header: () => <ClawbackHeaderWrapper {...props} />,
+          size: 120,
+          cell: ClawbackCell,
+        },
+        {
+          accessorKey: 'clawback_version',
+          header: () => <ClawbackVersionHeaderWrapper {...props} />,
+          size: 120,
+          cell: ClawbackVersionCell,
+        },
+      ]
+    : []),
 ];
 
 export interface CoinListProps {
   precision: number;
+  isTestnet: boolean;
   coins: CoinRecord[];
   selectedCoins: RowSelectionState;
   setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;
@@ -444,6 +538,9 @@ export interface CoinListProps {
   totalPages: number;
   setCurrentPage: (page: number) => void;
   maxRows: number;
+  pageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
+  pageSizeOptions?: number[];
   actions?: React.ReactNode;
   // Backend sorting and filtering props
   sortMode: CoinSortMode;
@@ -534,6 +631,9 @@ export default function CoinList(props: CoinListProps) {
           size='sm'
           align='between'
           actions={props.actions}
+          pageSize={props.pageSize}
+          onPageSizeChange={props.onPageSizeChange}
+          pageSizeOptions={props.pageSizeOptions}
         />
       </div>
     </div>

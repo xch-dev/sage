@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE assets SET\n                name = COALESCE((SELECT display_name FROM nfts WHERE nfts.asset_id = assets.id), ?),\n                description = ?,\n                is_sensitive_content = ?\n            WHERE hash = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "909f4ed4fe701175d4f2df402f37764d8f827715c6d3368b1a66077a4c5820ce"
+}

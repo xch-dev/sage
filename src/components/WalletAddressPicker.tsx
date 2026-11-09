@@ -1,0 +1,93 @@
+import { commands, WalletInfo } from '@/bindings';
+import { useWallet } from '@/contexts/WalletContext';
+import { useErrors } from '@/hooks/useErrors';
+import { toCustomError } from '@/lib/errors';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { WalletIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Button } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
+
+interface WalletAddressPickerProps {
+  onSelect: (address: string) => void;
+}
+
+export function WalletAddressPicker({ onSelect }: WalletAddressPickerProps) {
+  const { wallet } = useWallet();
+  const { addError } = useErrors();
+  const [otherWallets, setOtherWallets] = useState<WalletInfo[]>([]);
+  const [loadingFingerprint, setLoadingFingerprint] = useState<number | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!wallet) return;
+
+    commands
+      .getWallets({})
+      .then(({ wallets }) => {
+        setOtherWallets(
+          wallets.filter(
+            (w) =>
+              w.fingerprint !== wallet.fingerprint &&
+              w.network_id === wallet.network_id,
+          ),
+        );
+      })
+      .catch((e) => addError(toCustomError(e)));
+  }, [wallet, addError]);
+
+  if (otherWallets.length === 0) return null;
+
+  const handleSelect = async (fingerprint: number) => {
+    if (!wallet) return;
+
+    setLoadingFingerprint(fingerprint);
+    try {
+      const { address } = await commands.getWalletAddress({
+        fingerprint,
+        network_id: wallet.network_id,
+      });
+      onSelect(address);
+    } catch (e) {
+      addError(toCustomError(e));
+    } finally {
+      setLoadingFingerprint(null);
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type='button'
+          variant='ghost'
+          size='sm'
+          className='h-auto py-0.5 px-1.5 text-xs text-muted-foreground hover:text-foreground gap-1'
+          aria-label={t`Insert address from another wallet`}
+        >
+          <WalletIcon className='h-3 w-3' aria-hidden='true' />
+          <Trans>My wallets</Trans>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align='start'>
+        {otherWallets.map((w) => (
+          <DropdownMenuItem
+            key={w.fingerprint}
+            disabled={loadingFingerprint === w.fingerprint}
+            onSelect={() => handleSelect(w.fingerprint)}
+          >
+            {w.emoji && <span aria-hidden='true'>{w.emoji}</span>}
+            <span>{w.name}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

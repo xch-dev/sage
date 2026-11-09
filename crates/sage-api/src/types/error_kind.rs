@@ -11,4 +11,7 @@ pub enum ErrorKind {
     Internal,
     DatabaseMigration,
     Nfc,
+    /// One or more recipients couldn't be used. See the attached recipient errors.
+    Recipient,
+    AlreadyRunning,
 }

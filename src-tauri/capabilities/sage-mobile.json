@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile-capability",
+  "webviews": ["main"],
+  "platforms": ["android", "iOS"],
+  "permissions": [
+    "safe-area-insets:default",
+    "barcode-scanner:default",
+    "biometric:default",
+    "sage:default",
+    "sharesheet:allow-share-text"
+  ]
+}

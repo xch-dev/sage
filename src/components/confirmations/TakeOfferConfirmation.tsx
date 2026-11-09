@@ -1,5 +1,7 @@
 import { commands, OfferRecord, OfferSummary } from '@/bindings';
 import { Assets, CatPresence } from '@/components/Assets';
+import { MutableNftWarning } from '@/components/MutableNftWarning';
+import { mutableOfferNftLabels } from '@/lib/nftUpdater';
 import { Trans } from '@lingui/react/macro';
 import { ArrowUpIcon, ArrowDownIcon, HandshakeIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -13,6 +15,10 @@ interface TakeOfferConfirmationProps {
 export function TakeOfferConfirmation({ offer }: TakeOfferConfirmationProps) {
   const summary = 'summary' in offer ? offer.summary : offer;
   const [catPresence, setCatPresence] = useState<CatPresence>({});
+  const mutableNftLabels = [
+    ...mutableOfferNftLabels(summary.taker),
+    ...mutableOfferNftLabels(summary.maker),
+  ];
 
   useEffect(() => {
     commands.getCats({}).then((data) => {
@@ -36,6 +42,8 @@ export function TakeOfferConfirmation({ offer }: TakeOfferConfirmationProps) {
           recipient.
         </Trans>
       </ConfirmationAlert>
+
+      <MutableNftWarning labels={mutableNftLabels} />
 
       <div className='grid grid-cols-1 gap-2'>
         <ConfirmationCard>

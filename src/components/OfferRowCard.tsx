@@ -1,9 +1,10 @@
-import { commands, OfferRecord, TransactionResponse } from '@/bindings';
-import ConfirmationDialog from '@/components/ConfirmationDialog';
-import { CancelOfferDialog } from '@/components/dialogs/CancelOfferDialog';
+import { OfferRecord } from '@/bindings';
+import { CancelOffersFlow } from '@/components/dialogs/CancelOffersFlow';
 import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
 import { DuplicateOfferDialog } from '@/components/dialogs/DuplicateOfferDialog';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
+import { OfferTileCard, offerSummaryLabel } from '@/components/OfferTileCard';
+import { SelectableCard, SelectionState } from '@/components/SelectableCard';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,15 +14,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
-import { amount } from '@/lib/formTypes';
-import { toMojos } from '@/lib/utils';
-import { useWalletState } from '@/state';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { t } from '@lingui/core/macro';
+import { CardSize } from '@/hooks/useNftParams';
+import { deleteOffers } from '@/lib/offers';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import BigNumber from 'bignumber.js';
 import {
   CircleOff,
   CopyIcon,
@@ -31,18 +29,23 @@ import {
   TrashIcon,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
-import { z } from 'zod';
-import { CancelOfferConfirmation } from './confirmations/CancelOfferConfirmation';
+import { useNavigate } from 'react-router-dom';
 
 interface OfferRowCardProps {
   record: OfferRecord;
   refresh: () => void;
+  selectionState?: SelectionState;
+  size?: CardSize;
 }
 
-export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
-  const walletState = useWalletState();
+export function OfferRowCard({
+  record,
+  refresh,
+  selectionState = null,
+  size = CardSize.Large,
+}: OfferRowCardProps) {
+  const navigate = useNavigate();
+  const { isTransactionDisabled } = useWallet();
   const { addError } = useErrors();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
@@ -52,157 +55,135 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
     (a) => a.asset.kind === 'token',
   );
 
-  const cancelSchema = z.object({
-    fee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
-  });
+  const actions = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant='ghost'
+          size='icon'
+          className='-mr-1.5 flex-shrink-0'
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MoreVertical className='h-5 w-5' aria-hidden='true' />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align='end'>
+        <DropdownMenuGroup>
+          <DropdownMenuItem
+            className='cursor-pointer'
+            onClick={(e) => {
+              e.stopPropagation();
+              writeText(record.offer);
+            }}
+          >
+            <CopyIcon className='mr-2 h-4 w-4' aria-hidden='true' />
+            <span>
+              <Trans>Copy</Trans>
+            </span>
+          </DropdownMenuItem>
 
-  const cancelForm = useForm<z.infer<typeof cancelSchema>>({
-    resolver: zodResolver(cancelSchema),
-  });
+          <DropdownMenuItem
+            className='cursor-pointer'
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsDeleteOpen(true);
+            }}
+          >
+            <TrashIcon className='mr-2 h-4 w-4' aria-hidden='true' />
+            <span>
+              <Trans>Delete</Trans>
+            </span>
+          </DropdownMenuItem>
 
-  const [response, setResponse] = useState<TransactionResponse | null>(null);
+          <DropdownMenuItem
+            className='cursor-pointer'
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsCancelOpen(true);
+            }}
+            disabled={record.status !== 'active' || isTransactionDisabled}
+          >
+            <CircleOff className='mr-2 h-4 w-4' aria-hidden='true' />
+            <Trans>Cancel</Trans>
+          </DropdownMenuItem>
 
-  const cancelHandler = (values: z.infer<typeof cancelSchema>) => {
-    const fee = toMojos(values.fee, walletState.sync.unit.precision);
+          <DropdownMenuSeparator />
 
-    commands
-      .cancelOffer({
-        offer_id: record.offer_id,
-        fee,
-      })
-      .then((result) => {
-        setResponse(result);
-      })
-      .catch(addError)
-      .finally(() => setIsCancelOpen(false));
-  };
+          <DropdownMenuItem
+            className='cursor-pointer'
+            onClick={(e) => {
+              e.stopPropagation();
+              writeText(record.offer_id);
+            }}
+          >
+            <Tags className='mr-2 h-4 w-4' />
+            <span>
+              <Trans>Copy ID</Trans>
+            </span>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem
+            className='cursor-pointer'
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsDuplicateOpen(true);
+            }}
+            disabled={!isTokenOnlyOffer || isTransactionDisabled}
+          >
+            <CopyPlus className='mr-2 h-4 w-4' aria-hidden='true' />
+            <span>
+              <Trans>Duplicate</Trans>
+            </span>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <>
-      <Link to={`/offers/view_saved/${record.offer_id.trim()}`}>
-        <OfferSummaryCard
-          record={record}
-          content={
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='-mr-1.5 flex-shrink-0'
-                >
-                  <MoreVertical className='h-5 w-5' aria-hidden='true' />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end'>
-                <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      writeText(record.offer);
-                    }}
-                  >
-                    <CopyIcon className='mr-2 h-4 w-4' aria-hidden='true' />
-                    <span>
-                      <Trans>Copy</Trans>
-                    </span>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsDeleteOpen(true);
-                    }}
-                  >
-                    <TrashIcon className='mr-2 h-4 w-4' aria-hidden='true' />
-                    <span>
-                      <Trans>Delete</Trans>
-                    </span>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsCancelOpen(true);
-                    }}
-                    disabled={record.status !== 'active'}
-                  >
-                    <CircleOff className='mr-2 h-4 w-4' aria-hidden='true' />
-                    <Trans>Cancel</Trans>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      writeText(record.offer_id);
-                    }}
-                  >
-                    <Tags className='mr-2 h-4 w-4' />
-                    <span>
-                      <Trans>Copy ID</Trans>
-                    </span>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem
-                    className='cursor-pointer'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsDuplicateOpen(true);
-                    }}
-                    disabled={!isTokenOnlyOffer}
-                  >
-                    <CopyPlus className='mr-2 h-4 w-4' aria-hidden='true' />
-                    <span>
-                      <Trans>Duplicate</Trans>
-                    </span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          }
-        />
-      </Link>
+      <SelectableCard
+        selectionState={selectionState}
+        className='rounded-lg transition-all'
+        ariaLabel={
+          size === CardSize.Small ? offerSummaryLabel(record) : undefined
+        }
+        onOpen={() => navigate(`/offers/view_saved/${record.offer_id.trim()}`)}
+      >
+        {size === CardSize.Small ? (
+          <OfferTileCard
+            record={record}
+            selectionState={selectionState}
+            content={actions}
+          />
+        ) : (
+          <OfferSummaryCard
+            record={record}
+            selectionState={selectionState}
+            content={actions}
+          />
+        )}
+      </SelectableCard>
 
       <DeleteOfferDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
         offerCount={1}
         onDelete={() => {
-          commands
-            .deleteOffer({ offer_id: record.offer_id })
-            .then(() => refresh())
+          deleteOffers([record.offer_id])
+            .then(refresh)
             .catch(addError)
             .finally(() => setIsDeleteOpen(false));
         }}
       />
 
-      <CancelOfferDialog
+      <CancelOffersFlow
         open={isCancelOpen}
         onOpenChange={setIsCancelOpen}
-        form={cancelForm}
-        onSubmit={cancelHandler}
-      />
-
-      <ConfirmationDialog
-        response={response}
-        showRecipientDetails={false}
-        close={() => setResponse(null)}
+        offers={[record]}
         onConfirm={refresh}
-        additionalData={{
-          title: t`Cancel Offer`,
-          content: response && <CancelOfferConfirmation offers={[record]} />,
-        }}
       />
 
       <DuplicateOfferDialog

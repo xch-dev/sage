@@ -5,6 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { dexieAssetUrl } from '@/lib/urls';
 import { formatUsdPrice, getAssetDisplayName, toDecimal } from '@/lib/utils';
 import { PricedTokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
@@ -34,6 +35,7 @@ export interface TokenActionHandlers {
 
 export const columns = (
   actionHandlers?: TokenActionHandlers,
+  isTestnet = false,
 ): ColumnDef<PricedTokenRecord>[] => [
   {
     id: 'icon',
@@ -201,7 +203,7 @@ export const columns = (
                   <DropdownMenuItem
                     onClick={() => {
                       openUrl(
-                        `https://dexie.space/offers/XCH/${record.asset_id}`,
+                        dexieAssetUrl(record.asset_id ?? '', isTestnet),
                       ).catch((error) => {
                         toast.error(t`Failed to open dexie.space: ${error}`);
                       });

@@ -19,7 +19,10 @@ use chia_wallet_sdk::{
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rand::Rng;
-use tokio::{sync::mpsc, time::timeout};
+use tokio::{
+    sync::mpsc,
+    time::{Instant, timeout},
+};
 use tracing::{debug, info, warn};
 
 use crate::{SyncCommand, WalletError, WalletPeer};
@@ -131,7 +134,7 @@ impl SyncManager {
                     };
 
                     if message.msg_type != ProtocolMessageTypes::Handshake {
-                        return Err(ClientError::InvalidResponse(
+                        Err(ClientError::InvalidResponse(
                             vec![ProtocolMessageTypes::Handshake],
                             message.msg_type,
                         ))?;
@@ -141,15 +144,15 @@ impl SyncManager {
                         Handshake::from_bytes(&message.data).map_err(ClientError::from)?;
 
                     if handshake.node_type != NodeType::Introducer {
-                        return Err(ClientError::WrongNodeType(
+                        Err(ClientError::WrongNodeType(
                             NodeType::Introducer,
                             handshake.node_type,
                         ))?;
                     }
 
                     if handshake.network_id != network_id {
-                        return Err(ClientError::WrongNetwork(
-                            network_id.to_string(),
+                        Err(ClientError::WrongNetwork(
+                            network_id.clone(),
                             handshake.network_id,
                         ))?;
                     }
@@ -220,7 +223,7 @@ impl SyncManager {
                     debug!("Failed to request peers from {}: {}", ip, error);
                     self.state.lock().await.ban(
                         ip,
-                        Duration::from_secs(300),
+                        Duration::from_mins(5),
                         "failed to request peers",
                     );
                 }
@@ -259,7 +262,7 @@ impl SyncManager {
                 if ban {
                     self.state.lock().await.ban(
                         ip,
-                        Duration::from_secs(300),
+                        Duration::from_mins(5),
                         "invalid ip in peer list",
                     );
                 }
@@ -317,7 +320,7 @@ impl SyncManager {
                     } else if !force {
                         self.state.lock().await.ban(
                             socket_addr.ip(),
-                            Duration::from_secs(60 * 10),
+                            Duration::from_mins(10),
                             "could not add peer",
                         );
                     }
@@ -327,7 +330,7 @@ impl SyncManager {
                     if !force {
                         self.state.lock().await.ban(
                             socket_addr.ip(),
-                            Duration::from_secs(60 * 10),
+                            Duration::from_mins(10),
                             "failed to connect",
                         );
                     }
@@ -337,7 +340,7 @@ impl SyncManager {
                     if !force {
                         self.state.lock().await.ban(
                             socket_addr.ip(),
-                            Duration::from_secs(60 * 10),
+                            Duration::from_mins(10),
                             "connection timed out",
                         );
                     }
@@ -434,7 +437,7 @@ impl SyncManager {
             } else if message.height > height.saturating_add(3) {
                 state.ban(
                     existing_peer.socket_addr().ip(),
-                    Duration::from_secs(900),
+                    Duration::from_mins(15),
                     "peer is behind",
                 );
             }
@@ -444,6 +447,7 @@ impl SyncManager {
             peer: WalletPeer::new(peer),
             claimed_peak: message.height,
             header_hash: message.header_hash,
+            last_peak_at: Instant::now(),
             user_managed,
             receive_message_task: tokio::spawn(async move {
                 while let Some(message) = receiver.recv().await {

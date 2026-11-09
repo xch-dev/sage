@@ -1,0 +1,21 @@
+html,
+body,
+#root {
+  background: transparent;
+}
+
+body {
+  margin: 0;
+  color: hsl(var(--foreground));
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background: transparent;
+    color: hsl(var(--foreground));
+  }
+}

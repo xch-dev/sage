@@ -33,7 +33,7 @@ interface MarketplaceCardProps {
   offer: string;
   offerId: string;
   offerSummary: OfferSummary | OfferState;
-  network: 'mainnet' | 'testnet' | 'unknown';
+  isTestnet: boolean;
   marketplace: MarketplaceConfig;
 }
 
@@ -41,44 +41,43 @@ export function MarketplaceCard({
   offer,
   offerId,
   offerSummary,
-  network,
+  isTestnet,
   marketplace,
 }: MarketplaceCardProps) {
   const [isOnMarketplace, setIsOnMarketplace] = useState<boolean | null>(null);
   const [offerHash, setOfferHash] = useState<string>('');
   const isMobile = platform() === 'ios' || platform() === 'android';
+  const marketplaceName = marketplace.name;
 
   useEffect(() => {
     let isMounted = true;
 
-    if (network !== 'unknown' && marketplace.isSupported(offerSummary, false)) {
+    if (marketplace.isSupported(offerSummary, false)) {
       getOfferHash(offer).then((hash) => {
         if (isMounted) setOfferHash(hash);
       });
 
-      marketplace
-        .isOnMarketplace(offer, offerId, network === 'testnet')
-        .then((isOn) => {
-          if (isMounted) setIsOnMarketplace(isOn);
-        });
+      marketplace.isOnMarketplace(offer, offerId, isTestnet).then((isOn) => {
+        if (isMounted) setIsOnMarketplace(isOn);
+      });
     }
 
     return () => {
       isMounted = false;
     };
-  }, [network, offerId, offer, marketplace, offerSummary]);
+  }, [isTestnet, offerId, offer, marketplace, offerSummary]);
 
   const handleMarketplaceAction = async () => {
     if (!offer) return;
 
     if (isOnMarketplace) {
-      openUrl(marketplace.getMarketplaceLink(offerHash, network === 'testnet'));
+      openUrl(marketplace.getMarketplaceLink(offerHash, isTestnet));
     } else {
-      const toastId = toast.loading(t`Uploading to ${marketplace.name}...`);
+      const toastId = toast.loading(t`Uploading to ${marketplaceName}...`);
       try {
-        await marketplace.uploadToMarketplace(offer, network === 'testnet');
+        await marketplace.uploadToMarketplace(offer, isTestnet);
         toast.update(toastId, {
-          render: t`Uploaded to ${marketplace.name}!`,
+          render: t`Uploaded to ${marketplaceName}!`,
           type: 'success',
           isLoading: false,
           autoClose: 3000,
@@ -101,10 +100,10 @@ export function MarketplaceCard({
     try {
       const marketplaceLink = marketplace.getMarketplaceLink(
         offerHash,
-        network === 'testnet',
+        isTestnet,
       );
       await shareText(marketplaceLink, {
-        title: t`${marketplace.name} link`,
+        title: t`${marketplaceName} link`,
         mimeType: 'text/uri-list',
       });
     } catch (error: unknown) {
@@ -118,7 +117,7 @@ export function MarketplaceCard({
     try {
       const marketplaceLink = marketplace.getMarketplaceLink(
         offerHash,
-        network === 'testnet',
+        isTestnet,
       );
       await navigator.clipboard.writeText(marketplaceLink);
       toast.success(t`Link copied to clipboard`);
@@ -138,10 +137,7 @@ export function MarketplaceCard({
           type='button'
           onClick={handleMarketplaceAction}
           className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
-          title={marketplace.getMarketplaceLink(
-            offerHash,
-            network === 'testnet',
-          )}
+          title={marketplace.getMarketplaceLink(offerHash, isTestnet)}
         >
           <img
             src={marketplace.logo}
@@ -150,9 +146,9 @@ export function MarketplaceCard({
           />
           <span className='text-sm'>
             {isOnMarketplace ? (
-              <Trans>View on {marketplace.name}</Trans>
+              <Trans>View on {marketplaceName}</Trans>
             ) : (
-              <Trans>Upload to {marketplace.name}</Trans>
+              <Trans>Upload to {marketplaceName}</Trans>
             )}
           </span>
           {isOnMarketplace && <ExternalLink className='h-4 w-4' />}
@@ -183,10 +179,7 @@ export function MarketplaceCard({
 
       {isOnMarketplace && (
         <StyledQRCode
-          data={marketplace.getMarketplaceLink(
-            offerHash,
-            network === 'testnet',
-          )}
+          data={marketplace.getMarketplaceLink(offerHash, isTestnet)}
           width={200}
           height={200}
           cornersSquareOptions={{

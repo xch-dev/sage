@@ -16,22 +16,58 @@ import {
   handleGetNfts,
   handleSend,
   handleSignMessageByAddress,
+  handleUpdateCat,
 } from './commands/high-level';
+import { handleAddContact, handleGetContacts } from './commands/contacts';
+import {
+  handleGetHandle,
+  handleGetOwnedHandles,
+  handleResolveHandle,
+} from './commands/xchandles';
 import {
   handleCancelOffer,
   handleCreateOffer,
   handleTakeOffer,
 } from './commands/offers';
+import { t } from '@lingui/core/macro';
 
 export interface HandlerContext {
   promptIfEnabled: () => Promise<boolean>;
+  /** True when the active wallet has no signing keys (cold/watch-only). */
+  isReadOnly: boolean;
 }
+
+const SIGNING_COMMANDS = new Set<WalletConnectCommand>([
+  'chip0002_signCoinSpends',
+  'chip0002_signMessage',
+  'chia_createOffer',
+  'chia_takeOffer',
+  'chia_cancelOffer',
+  'chia_send',
+  'chia_signMessageByAddress',
+  'chia_bulkMintNfts',
+]);
 
 export const handleCommand = async (
   command: WalletConnectCommand,
   params: unknown,
   context: HandlerContext,
 ) => {
+  // Cancelling an offer off-chain only deletes it locally, so nothing is signed.
+  const isOffChainCancel =
+    command === 'chia_cancelOffer' &&
+    (params as { offChain?: unknown } | null)?.offChain === true;
+
+  if (
+    context.isReadOnly &&
+    SIGNING_COMMANDS.has(command) &&
+    !isOffChainCancel
+  ) {
+    throw new Error(
+      t`This wallet is read-only and cannot sign, so ${command} is not available`,
+    );
+  }
+
   switch (command) {
     case 'chip0002_connect':
       return await handleConnect();
@@ -70,6 +106,18 @@ export const handleCommand = async (
       );
     case 'chia_bulkMintNfts':
       return await handleBulkMintNfts(parseCommand(command, params), context);
+    case 'chia_updateCat':
+      return await handleUpdateCat(parseCommand(command, params));
+    case 'chia_resolveHandle':
+      return await handleResolveHandle(parseCommand(command, params));
+    case 'chia_getHandle':
+      return await handleGetHandle(parseCommand(command, params));
+    case 'chia_getOwnedHandles':
+      return await handleGetOwnedHandles(parseCommand(command, params));
+    case 'chia_getContacts':
+      return await handleGetContacts(parseCommand(command, params));
+    case 'chia_addContact':
+      return await handleAddContact(parseCommand(command, params));
     default:
       throw new Error(`Unknown command: ${command}`);
   }

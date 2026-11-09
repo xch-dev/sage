@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
+  Navigate,
   Route,
   RouterProvider,
 } from 'react-router-dom';
@@ -25,6 +26,7 @@ import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import { WalletProvider } from './contexts/WalletContext';
+import { StartupError } from './components/StartupError';
 import useInitialization from './hooks/useInitialization';
 import { useTransactionFailures } from './hooks/useTransactionFailures';
 import { loadCatalog } from './i18n';
@@ -50,13 +52,17 @@ import QRScanner from './pages/QrScanner';
 import { SavedOffer } from './pages/SavedOffer';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
-import { Swap } from './pages/Swap';
 import Themes from './pages/Themes';
 import Token from './pages/Token';
 import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
+import { AppsProvider } from '@/contexts/AppsContext.tsx';
+import { HandleChangeDialog } from '@/components/HandleChangeDialog';
+import { RustThemeSync } from '@/components/RustThemeSync.tsx';
+import { Apps } from '@/pages/Apps.tsx';
+import { platform } from '@tauri-apps/plugin-os';
 
 // Theme-aware toast container component
 function ThemeAwareToastContainer() {
@@ -86,6 +92,10 @@ function ThemeAwareToastContainer() {
     />
   );
 }
+
+const currentPlatform = platform();
+const supportsSageApps =
+  currentPlatform !== 'android' && currentPlatform !== 'ios';
 
 const router = createHashRouter(
   createRoutesFromElements(
@@ -133,8 +143,13 @@ const router = createHashRouter(
         <Route path='view/:offer' element={<Offer />} />
         <Route path='view_saved/:offer_id' element={<SavedOffer />} />
       </Route>
-      <Route path='/swap' element={<Wallet />}>
-        <Route path='' element={<Swap />} />
+      <Route path='/apps' element={<Wallet />}>
+        <Route
+          index
+          element={
+            supportsSageApps ? <Apps /> : <Navigate to='/wallet' replace />
+          }
+        />
       </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />
@@ -160,6 +175,7 @@ export default function App() {
           <ErrorProvider>
             <BiometricProvider>
               <AppInner />
+              <HandleChangeDialog />
               <ThemeAwareToastContainer />
             </BiometricProvider>
           </ErrorProvider>
@@ -170,11 +186,10 @@ export default function App() {
 }
 
 function AppInner() {
-  const initialized = useInitialization();
+  const { initialized, startupError } = useInitialization();
   const { locale } = useLanguage();
   const [isLocaleInitialized, setIsLocaleInitialized] = useState(false);
 
-  // Enable global transaction failure handling
   useTransactionFailures();
 
   useEffect(() => {
@@ -182,20 +197,33 @@ function AppInner() {
       await loadCatalog(locale);
       setIsLocaleInitialized(true);
     };
-    initLocale();
+    void initLocale();
   }, [locale]);
+
+  if (startupError) {
+    return (
+      isLocaleInitialized && (
+        <I18nProvider i18n={i18n}>
+          <StartupError error={startupError} />
+        </I18nProvider>
+      )
+    );
+  }
 
   return (
     initialized &&
     isLocaleInitialized && (
       <I18nProvider i18n={i18n}>
         <WalletProvider>
+          <RustThemeSync />
           <PeerProvider>
-            <WalletConnectProvider>
-              <PriceProvider>
-                <RouterProvider router={router} />
-              </PriceProvider>
-            </WalletConnectProvider>
+            <AppsProvider>
+              <WalletConnectProvider>
+                <PriceProvider>
+                  <RouterProvider router={router} />
+                </PriceProvider>
+              </WalletConnectProvider>
+            </AppsProvider>
           </PeerProvider>
         </WalletProvider>
       </I18nProvider>

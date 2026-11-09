@@ -1,5 +1,6 @@
 import {
   commands,
+  OfferHandleNft,
   OfferRecordStatus,
   OfferSummary,
   TakeOfferResponse,
@@ -10,10 +11,16 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Loading } from '@/components/Loading';
 import { OfferCard } from '@/components/OfferCard';
+import {
+  isOfferHandleBlocked,
+  OfferHandleNftWarning,
+} from '@/components/OfferHandleNftWarning';
+import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { resolveOfferData } from '@/lib/offerData';
 import { toMojos } from '@/lib/utils';
@@ -22,10 +29,12 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useNetwork } from '@/hooks/useNetwork';
 
 export function Offer() {
   const { offer } = useParams();
   const { addError } = useErrors();
+  const { isReadOnly } = useWallet();
   const walletState = useWalletState();
   const navigate = useNavigate();
 
@@ -33,9 +42,11 @@ export function Offer() {
   const [loadingStatus, setLoadingStatus] = useState(t`Initializing...`);
   const [summary, setSummary] = useState<OfferSummary | null>(null);
   const [status, setStatus] = useState<OfferRecordStatus | null>(null);
+  const [handleNfts, setHandleNfts] = useState<OfferHandleNft[]>([]);
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
   const [fee, setFee] = useState('');
   const [resolvedOffer, setResolvedOffer] = useState<string | null>(null);
+  const { isTestnet } = useNetwork();
 
   const resolveOffer = useCallback(async () => {
     if (!offer) return;
@@ -44,12 +55,13 @@ export function Offer() {
     setLoadingStatus(t`Fetching offer details...`);
 
     try {
-      const resolvedOffer = await resolveOfferData(offer);
+      const resolvedOffer = await resolveOfferData(offer, isTestnet);
       setResolvedOffer(resolvedOffer);
 
       const data = await commands.viewOffer({ offer: resolvedOffer });
       setSummary(data.offer);
       setStatus(data.status);
+      setHandleNfts(data.handle_nfts ?? []);
       setLoadingStatus(t`Processing offer data...`);
     } catch (error) {
       addError(error as CustomError);
@@ -57,7 +69,7 @@ export function Offer() {
     } finally {
       setIsLoading(false);
     }
-  }, [offer, addError, navigate]);
+  }, [offer, isTestnet, addError, navigate]);
 
   useEffect(() => {
     resolveOffer();
@@ -76,6 +88,13 @@ export function Offer() {
 
   const take = async () => {
     if (!resolvedOffer || !summary) return;
+
+    // Taking an offer signs inline, so there is no unsigned bundle to export.
+    // Guarded here as well as on the button, since Enter in the fee input
+    // also triggers this.
+    if (isReadOnly) return;
+
+    if (isOfferHandleBlocked(handleNfts)) return;
 
     // Check for expired options in the offered side (maker)
     const currentTime = Math.floor(Date.now() / 1000);
@@ -139,21 +158,25 @@ export function Offer() {
                 }
               />
 
+              <OfferHandleNftWarning handleNfts={handleNfts} className='mt-4' />
+
               <div className='mt-4 flex gap-2'>
                 <Button variant='outline' onClick={importOffer}>
                   <Trans>Import Offer</Trans>
                 </Button>
 
-                <Button
+                <ReadOnlyButton
+                  requiresSigning
                   onClick={take}
                   disabled={
                     status === 'completed' ||
                     status === 'cancelled' ||
-                    status === 'expired'
+                    status === 'expired' ||
+                    isOfferHandleBlocked(handleNfts)
                   }
                 >
                   <Trans>Take Offer</Trans>
-                </Button>
+                </ReadOnlyButton>
               </div>
             </>
           )

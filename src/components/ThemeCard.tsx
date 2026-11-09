@@ -39,6 +39,7 @@ export function ThemeCard({
   const { addError } = useErrors();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const themeName = theme.displayName;
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -101,8 +102,8 @@ export function ThemeCard({
                 disabled={isDeleting}
                 variant='ghost'
                 size='icon'
-                aria-label={t`Delete theme ${theme.displayName}`}
-                title={t`Delete theme ${theme.displayName}`}
+                aria-label={t`Delete theme ${themeName}`}
+                title={t`Delete theme ${themeName}`}
               >
                 <Trash2
                   className='h-4 w-4 text-destructive'
@@ -160,8 +161,8 @@ export function ThemeCard({
                 disabled={isDeleting}
                 variant='ghost'
                 size='icon'
-                aria-label={t`Delete theme ${theme.displayName}`}
-                title={t`Delete theme ${theme.displayName}`}
+                aria-label={t`Delete theme ${themeName}`}
+                title={t`Delete theme ${themeName}`}
               >
                 <Trash2
                   className='h-4 w-4 text-destructive'
@@ -203,7 +204,7 @@ export function ThemeCard({
             <DialogDescription>
               <Trans>
                 Are you sure you want to delete the theme &quot;
-                {theme.displayName}&quot;?
+                {themeName}&quot;?
               </Trans>
             </DialogDescription>
           </DialogHeader>

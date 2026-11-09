@@ -1,5 +1,6 @@
 import { commands, NftRecord, OptionRecord, TokenRecord } from '@/bindings';
 import { AssetIcon } from '@/components/AssetIcon';
+import { MutableNftWarning } from '@/components/MutableNftWarning';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,6 +13,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
+import { isMutableNft, mutableNftLabel } from '@/lib/nftUpdater';
 import {
   emptyNftRecord,
   fromMojos,
@@ -53,6 +55,8 @@ function AssetDisplay({
   type: 'offered' | 'requested';
 }) {
   const [nftDetailsList, setNftDetailsList] = useState<NftRecord[]>([]);
+  // Includes NFTs whose updater couldn't be determined
+  const [mutableNftLabels, setMutableNftLabels] = useState<string[]>([]);
   const [loadingNfts, setLoadingNfts] = useState(false);
   const [optionDetailsList, setOptionDetailsList] = useState<OptionRecord[]>(
     [],
@@ -147,28 +151,65 @@ function AssetDisplay({
   }, [assets.tokens]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Returns the NFT's record, and its warning label if it may be mutable
+    const fetchNftDetail = async (
+      nftId: string,
+    ): Promise<[NftRecord, string | null]> => {
+      try {
+        const { nft } = await commands.getNft({ nft_id: nftId });
+        if (nft) {
+          return [
+            nft,
+            isMutableNft(nft.metadata_updater_kind)
+              ? mutableNftLabel(nft.name, nftId)
+              : null,
+          ];
+        }
+      } catch {
+        // Fall through to looking it up below
+      }
+
+      // NFTs that aren't in the wallet, such as requested ones, are looked up from
+      // the network. If that fails, the NFT can't be assumed to be append-only.
+      try {
+        const updater = await commands.getNftMetadataUpdater({
+          nft_id: nftId,
+        });
+        const isMutable =
+          updater.metadata_updater_kind === null ||
+          isMutableNft(updater.metadata_updater_kind);
+        const record = emptyNftRecord(nftId);
+        return [
+          { ...record, name: updater.name ?? record.name },
+          isMutable ? mutableNftLabel(updater.name, nftId) : null,
+        ];
+      } catch {
+        return [emptyNftRecord(nftId), mutableNftLabel(null, nftId)];
+      }
+    };
+
     const fetchNftDetails = async () => {
       setLoadingNfts(true);
 
-      const displayableNfts: NftRecord[] = [];
-      for (const nftId of nftIds) {
-        try {
-          const nftRecordResponse = await commands.getNft({ nft_id: nftId });
-          if (nftRecordResponse.nft) {
-            displayableNfts.push(nftRecordResponse.nft);
-          } else {
-            displayableNfts.push(emptyNftRecord(nftId));
-          }
-        } catch {
-          displayableNfts.push(emptyNftRecord(nftId));
-        }
-      }
-      setNftDetailsList(displayableNfts);
+      const details = await Promise.all(nftIds.map(fetchNftDetail));
 
+      // A later run has started, so these results are stale
+      if (cancelled) return;
+
+      setNftDetailsList(details.map(([nft]) => nft));
+      setMutableNftLabels(
+        details.flatMap(([, label]) => (label === null ? [] : [label])),
+      );
       setLoadingNfts(false);
     };
 
     fetchNftDetails();
+
+    return () => {
+      cancelled = true;
+    };
   }, [nftIds]);
 
   useEffect(() => {
@@ -288,6 +329,9 @@ function AssetDisplay({
               </p>
             )}
           </ScrollArea>
+          {!loadingNfts && (
+            <MutableNftWarning labels={mutableNftLabels} className='mt-2' />
+          )}
         </div>
       )}
 
@@ -424,10 +468,7 @@ export function MakeOfferConfirmationDialog({
           const resp = await commands.getToken({ asset_id: token.asset_id });
           if (resp.token) {
             const neededMojos = BigNumber(
-              toMojos(
-                token.amount?.toString() || '0',
-                resp.token.precision,
-              ),
+              toMojos(token.amount?.toString() || '0', resp.token.precision),
             ).multipliedBy(copies);
             const haveMojos = BigNumber(resp.token.selectable_balance);
             if (neededMojos.gt(haveMojos)) {
@@ -723,6 +764,8 @@ export function MakeOfferConfirmationDialog({
                 );
                 if (!isSupported) return null;
 
+                const marketplaceName = marketplace.name;
+
                 return (
                   <div
                     key={marketplace.id}
@@ -743,13 +786,13 @@ export function MakeOfferConfirmationDialog({
                       className='flex flex-col'
                     >
                       <span>
-                        <Trans>Upload to {marketplace.name}</Trans>
+                        <Trans>Upload to {marketplaceName}</Trans>
                       </span>
                       {enabledMarketplaces[marketplace.id] && (
                         <span className='text-xs text-muted-foreground'>
                           <Trans>
                             This will make your offer(s) immediately public and
-                            takeable on {marketplace.name}.
+                            takeable on {marketplaceName}.
                           </Trans>
                         </span>
                       )}

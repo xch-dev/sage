@@ -59,6 +59,8 @@ pub async fn fetch_minter_hash(
     let mut parent_id = launcher_id;
 
     for _ in 0..5 {
+        let is_pending = peer.is_pending_spend(parent_id);
+
         let Some(parent_spend) = peer
             .fetch_optional_coin_spend(parent_id, genesis_challenge)
             .await?
@@ -81,7 +83,11 @@ pub async fn fetch_minter_hash(
 
         parent_id = parent_spend.coin.parent_coin_info;
 
-        sleep(Duration::from_secs(1)).await;
+        // Coins from our own pending transaction are already known locally, so there's
+        // no propagation delay to wait out before looking up their parent in turn.
+        if !is_pending {
+            sleep(Duration::from_secs(1)).await;
+        }
     }
 
     if minter_hash.is_none()

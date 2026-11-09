@@ -14,6 +14,18 @@ interface NavLinkProps extends PropsWithChildren {
   ariaCurrent?: 'page' | 'step' | 'location' | 'date' | 'time' | true | false;
 }
 
+function isActiveRoute(pathname: string, url: string): boolean {
+  if (pathname === url) {
+    return true;
+  }
+
+  if (url === '/') {
+    return false;
+  }
+
+  return pathname.startsWith(url);
+}
+
 export function NavLink({
   url,
   children,
@@ -24,9 +36,7 @@ export function NavLink({
 }: NavLinkProps) {
   const location = useLocation();
   const isActive =
-    typeof url === 'string' &&
-    (location.pathname === url ||
-      (url !== '/' && location.pathname.startsWith(url)));
+    typeof url === 'string' && isActiveRoute(location.pathname, url);
 
   const baseClassName = `flex items-center gap-3 transition-all ${
     isCollapsed ? 'justify-center p-2 rounded-full' : 'px-2 rounded-lg py-1.5'

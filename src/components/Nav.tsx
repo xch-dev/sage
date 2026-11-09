@@ -4,13 +4,14 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { usePeers } from '@/hooks/usePeers';
+import { offersEnabled, optionsEnabled } from '@/lib/features';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   ArrowDownUp,
-  ArrowLeftRight,
+  Blocks,
   BookUser,
   Cog,
   FilePenLine,
@@ -34,6 +35,7 @@ export function TopNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
   const isIos = platform() === 'ios';
+  const isMobile = platform() === 'android' || isIos;
 
   return (
     <nav
@@ -68,7 +70,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         <SquareUserRound className={className} aria-hidden='true' />
       </NavLink>
 
-      {!isIos && (
+      {optionsEnabled && (
         <NavLink
           url={'/options'}
           isCollapsed={isCollapsed}
@@ -78,21 +80,13 @@ export function TopNav({ isCollapsed }: NavProps) {
         </NavLink>
       )}
 
-      <NavLink
-        url={'/offers'}
-        isCollapsed={isCollapsed}
-        message={<Trans>Offers</Trans>}
-      >
-        <Handshake className={className} aria-hidden='true' />
-      </NavLink>
-
-      {!isIos && (
+      {offersEnabled && (
         <NavLink
-          url={'/swap'}
+          url={'/offers'}
           isCollapsed={isCollapsed}
-          message={<Trans>Swap</Trans>}
+          message={<Trans>Offers</Trans>}
         >
-          <ArrowLeftRight className={className} aria-hidden='true' />
+          <Handshake className={className} aria-hidden='true' />
         </NavLink>
       )}
 
@@ -103,7 +97,6 @@ export function TopNav({ isCollapsed }: NavProps) {
       >
         <BookUser className={className} aria-hidden='true' />
       </NavLink>
-
       <NavLink
         url={'/transactions'}
         isCollapsed={isCollapsed}
@@ -111,6 +104,15 @@ export function TopNav({ isCollapsed }: NavProps) {
       >
         <ArrowDownUp className={className} />
       </NavLink>
+      {!isMobile && (
+        <NavLink
+          url={'/apps'}
+          isCollapsed={isCollapsed}
+          message={<Trans>Apps</Trans>}
+        >
+          <Blocks className={className} aria-hidden='true' />
+        </NavLink>
+      )}
     </nav>
   );
 }

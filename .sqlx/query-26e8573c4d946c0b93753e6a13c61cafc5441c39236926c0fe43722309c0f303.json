@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE xchandles SET status = 2, status_reason = 'reorg'\n        WHERE status = 0 AND (\n            slot_confirmation_height BETWEEN ? + 1 AND ?\n            OR resolved_confirmation_height BETWEEN ? + 1 AND ?\n            OR verified_height BETWEEN ? + 1 AND ?\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "26e8573c4d946c0b93753e6a13c61cafc5441c39236926c0fe43722309c0f303"
+}

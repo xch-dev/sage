@@ -1,4 +1,4 @@
-import { KeyInfo } from '@/bindings';
+import { WalletInfo } from '@/bindings';
 import {
   Tooltip,
   TooltipContent,
@@ -8,13 +8,14 @@ import {
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { t } from '@lingui/core/macro';
-import { PanelLeft, PanelLeftClose } from 'lucide-react';
+import { Eye, PanelLeft, PanelLeftClose, Snowflake } from 'lucide-react';
 import { PropsWithChildren } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Insets } from 'tauri-plugin-safe-area-insets';
 import { useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
+import { Banner } from './Banner';
 import { WalletSwitcher } from './WalletSwitcher';
 
 function WalletTransitionWrapper({
@@ -22,7 +23,7 @@ function WalletTransitionWrapper({
   props,
   insets,
 }: PropsWithChildren<{ props: LayoutProps; insets: Insets }>) {
-  const { isSwitching, wallet } = useWallet();
+  const { isSwitching, wallet, isReadOnly, isWatchOnly } = useWallet();
 
   // Only show content if we have a wallet or we're not switching
   // This prevents old wallet data from showing during transition
@@ -43,7 +44,33 @@ function WalletTransitionWrapper({
           : 'env(safe-area-inset-bottom)',
       }}
     >
-      {shouldShow ? children : null}
+      {shouldShow ? (
+        <>
+          {isWatchOnly ? (
+            <Banner
+              message={t`Watch-only wallet — these addresses can't be spent from here`}
+              aria-label={t`Watch-only wallet`}
+              icon={
+                <Eye className='h-3 w-3 flex-shrink-0' aria-hidden='true' />
+              }
+            />
+          ) : (
+            isReadOnly && (
+              <Banner
+                message={t`Read-only wallet — transactions require private keys`}
+                aria-label={t`Read-only wallet`}
+                icon={
+                  <Snowflake
+                    className='h-3 w-3 flex-shrink-0'
+                    aria-hidden='true'
+                  />
+                }
+              />
+            )
+          )}
+          {children}
+        </>
+      ) : null}
     </div>
   );
 }
@@ -52,7 +79,7 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
 type LayoutProps = PropsWithChildren<object> & {
   transparentBackground?: boolean;
-  wallet?: KeyInfo;
+  wallet?: WalletInfo;
 };
 
 export function FullLayout(props: LayoutProps) {
@@ -99,7 +126,6 @@ export function FullLayout(props: LayoutProps) {
                     aria-label={
                       isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`
                     }
-                    aria-expanded={!isCollapsed}
                   >
                     {isCollapsed ? (
                       <PanelLeft className='h-5 w-5' aria-hidden='true' />

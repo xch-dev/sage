@@ -10,6 +10,8 @@ import {
 import { LoadingButton } from '@/components/ui/loading-button';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import { useWallet } from '@/contexts/WalletContext';
+import { IDENTITY_SIGNATURE, stringifySpendBundle } from '@/lib/spendBundle';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -20,6 +22,7 @@ import {
   AlertCircleIcon,
   ArrowUpIcon,
   ArrowUpRightIcon,
+  AtSignIcon,
   BadgeMinus,
   BadgePlus,
   BoxIcon,
@@ -35,12 +38,15 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { commands, TakeOfferResponse, TransactionResponse } from '../bindings';
 import { formatNumber } from '../i18n';
+import { AddressLabels } from './AddressLabels';
 import { calculateTransaction } from './AdvancedTransactionSummary';
 import { CopyButton } from './CopyButton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { ReadOnlyButton } from './ReadOnlyButton';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -65,6 +71,9 @@ export default function ConfirmationDialog({
 
   const { addError } = useErrors();
   const { promptIfEnabled } = useBiometric();
+  const { isReadOnly, allowUnsigned } = useWallet();
+
+  const isColdWalletUnsignedMode = isReadOnly && allowUnsigned;
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
@@ -77,6 +86,12 @@ export default function ConfirmationDialog({
     }
   }, [response]);
 
+  useEffect(() => {
+    if (response !== null && isColdWalletUnsignedMode) {
+      setActiveTab('json');
+    }
+  }, [response, isColdWalletUnsignedMode]);
+
   const reset = () => {
     setPending(false);
     setSignature(null);
@@ -87,22 +102,20 @@ export default function ConfirmationDialog({
     ? calculateTransaction(walletState.sync.unit, response.summary)
     : { spent: [], created: [] };
   const fee = BigNumber(response?.summary.fee || 0);
+  const handles = response?.summary.handles ?? [];
   const isHighFee = fee.isGreaterThan(1000_000_000); // Adjust threshold as needed
 
-  const json = JSON.stringify(
+  const json =
     response === null
-      ? null
-      : 'coin_spends' in response
-        ? {
-            coin_spends: response.coin_spends,
-            aggregated_signature:
-              signature ||
-              '0xc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-          }
-        : response.spend_bundle,
-    null,
-    2,
-  ).replace(/"amount": "(.*?)"/g, '"amount": $1');
+      ? 'null'
+      : stringifySpendBundle(
+          'coin_spends' in response
+            ? {
+                coin_spends: response.coin_spends,
+                aggregated_signature: signature || IDENTITY_SIGNATURE,
+              }
+            : response.spend_bundle,
+        );
 
   const copyJson = () => {
     writeText(json);
@@ -269,6 +282,49 @@ export default function ConfirmationDialog({
                   </div>
                 )}
 
+                {handles.length > 0 && (
+                  <div className='mb-4'>
+                    <h3 className='text-sm font-medium mb-2 flex items-center'>
+                      <AtSignIcon className='h-4 w-4 mr-1' aria-hidden='true' />
+                      <Trans>Handles</Trans>
+                    </h3>
+                    <div className='space-y-2'>
+                      {handles.map((handle) => (
+                        <div
+                          key={handle.handle}
+                          className='rounded-md border p-2 text-sm space-y-1'
+                        >
+                          <div className='flex items-center gap-2'>
+                            <span className='font-medium'>
+                              @{handle.handle}
+                            </span>
+                            {handle.cached ? (
+                              <Badge variant='outline'>
+                                <Trans>Verified recently</Trans>
+                              </Badge>
+                            ) : (
+                              <Badge variant='outline'>
+                                <Trans>Verified</Trans>
+                              </Badge>
+                            )}
+                          </div>
+                          <div className='font-mono text-xs break-all'>
+                            {handle.address}
+                          </div>
+                          <HandleUpdatedHeight height={handle.updated_height} />
+                        </div>
+                      ))}
+                      <div className='text-xs text-muted-foreground'>
+                        <Trans>
+                          Handles are checked again before submitting. If any
+                          resolve to a different address by then, nothing is
+                          sent.
+                        </Trans>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {showRecipientDetails && (
                   <div>
                     <h3 className='text-sm font-medium mb-2 flex items-center'>
@@ -279,83 +335,87 @@ export default function ConfirmationDialog({
                       <Trans>Sending</Trans>
                     </h3>
                     <div className='space-y-4'>
-                      {Object.entries(groupedAssets).map(([key, group]) => (
-                        <div
-                          key={key}
-                          className='flex flex-col gap-1.5 rounded-md border p-3'
-                        >
-                          <div className='flex items-center justify-between'>
-                            <Badge className='max-w-[100px]'>
-                              <span className='truncate'>{group.badge}</span>
-                            </Badge>
-                            <div className='flex items-center'>
-                              <ArrowUpRightIcon
-                                className='h-4 w-4 mr-1 text-blue-500'
-                                aria-hidden='true'
-                              />
-                              <Trans>Total:</Trans>{' '}
-                              <span className='font-medium text-foreground ml-1'>
-                                {group.totalAmount} {group.ticker}
-                              </span>
-                            </div>
-                          </div>
-
-                          <Separator className='my-2' />
-
-                          <div className='flex flex-col gap-2'>
-                            <div className='text-sm font-medium text-muted-foreground flex items-center justify-between'>
+                      {Object.entries(groupedAssets).map(([key, group]) => {
+                        const groupLabel = group.label;
+                        const recipientCount = group.recipients.length;
+                        return (
+                          <div
+                            key={key}
+                            className='flex flex-col gap-1.5 rounded-md border p-3'
+                          >
+                            <div className='flex items-center justify-between'>
+                              <Badge className='max-w-[100px]'>
+                                <span className='truncate'>{group.badge}</span>
+                              </Badge>
                               <div className='flex items-center'>
-                                <Trans>To:</Trans>{' '}
-                                {group.recipients.length > 1 && (
-                                  <span className='ml-1 text-xs px-1.5 py-0.5 rounded-full'>
-                                    <Trans id='sending_to_recipients'>
-                                      Sending <span>{group.label}</span> to{' '}
-                                      <span>{group.recipients.length}</span>{' '}
-                                      recipients
-                                    </Trans>
-                                  </span>
-                                )}
+                                <ArrowUpRightIcon
+                                  className='h-4 w-4 mr-1 text-blue-500'
+                                  aria-hidden='true'
+                                />
+                                <Trans>Total:</Trans>{' '}
+                                <span className='font-medium text-foreground ml-1'>
+                                  {group.totalAmount} {group.ticker}
+                                </span>
                               </div>
                             </div>
 
-                            <div
-                              className={
-                                group.recipients.length > 3
-                                  ? 'max-h-[150px] overflow-y-auto pr-1'
-                                  : ''
-                              }
-                            >
-                              {group.recipients.map((address) => (
-                                <div
-                                  key={address}
-                                  className='flex items-center gap-1.5 min-w-0 w-full pl-2'
-                                >
-                                  <ForwardIcon
-                                    className='w-4 h-4 text-blue-500 shrink-0'
-                                    aria-hidden='true'
-                                  />
-                                  <div className='text-sm truncate flex-1'>
-                                    {address}
-                                  </div>
-                                  {address !== t`Permanently Burned` &&
-                                    address !== t`You` &&
-                                    address !== t`Change` && (
-                                      <CopyButton
-                                        value={address}
-                                        className='h-4 w-4 shrink-0'
-                                        onCopy={() =>
-                                          toast.success(
-                                            t`Address copied to clipboard`,
-                                          )
-                                        }
-                                      />
-                                    )}
+                            <Separator className='my-2' />
+
+                            <div className='flex flex-col gap-2'>
+                              <div className='text-sm font-medium text-muted-foreground flex items-center justify-between'>
+                                <div className='flex items-center'>
+                                  <Trans>To:</Trans>{' '}
+                                  {group.recipients.length > 1 && (
+                                    <span className='ml-1 text-xs px-1.5 py-0.5 rounded-full'>
+                                      <Trans id='sending_to_recipients'>
+                                        Sending <span>{groupLabel}</span> to{' '}
+                                        <span>{recipientCount}</span> recipients
+                                      </Trans>
+                                    </span>
+                                  )}
                                 </div>
-                              ))}
+                              </div>
+
+                              <div
+                                className={
+                                  group.recipients.length > 3
+                                    ? 'max-h-[150px] overflow-y-auto pr-1'
+                                    : ''
+                                }
+                              >
+                                {group.recipients.map((address) => (
+                                  <div
+                                    key={address}
+                                    className='flex items-center gap-1.5 min-w-0 w-full pl-2'
+                                  >
+                                    <ForwardIcon
+                                      className='w-4 h-4 text-blue-500 shrink-0'
+                                      aria-hidden='true'
+                                    />
+                                    <div className='text-sm truncate flex-1'>
+                                      {address}
+                                    </div>
+                                    <AddressLabels address={address} compact />
+                                    {address !== t`Permanently Burned` &&
+                                      address !== t`You` &&
+                                      address !== t`Change` && (
+                                        <CopyButton
+                                          value={address}
+                                          className='h-4 w-4 shrink-0'
+                                          onCopy={() =>
+                                            toast.success(
+                                              t`Address copied to clipboard`,
+                                            )
+                                          }
+                                        />
+                                      )}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       {created.filter(
                         (item) =>
@@ -472,6 +532,7 @@ export default function ConfirmationDialog({
                               <div className='text-sm truncate flex-1'>
                                 {item.address}
                               </div>
+                              <AddressLabels address={item.address} compact />
                               {item.address !== t`Permanently Burned` &&
                                 item.address !== t`You` &&
                                 item.address !== t`Change` && (
@@ -512,7 +573,7 @@ export default function ConfirmationDialog({
                 </Alert>
 
                 <div className='flex items-center gap-2 mt-4'>
-                  <Button
+                  <ReadOnlyButton
                     size='sm'
                     onClick={async () => {
                       if (await promptIfEnabled()) {
@@ -534,7 +595,7 @@ export default function ConfirmationDialog({
                           .catch(addError);
                       }
                     }}
-                    disabled={!!signature}
+                    disabled={!!signature || isReadOnly}
                   >
                     {signature ? (
                       <>
@@ -547,7 +608,7 @@ export default function ConfirmationDialog({
                     ) : (
                       <Trans>Sign Transaction</Trans>
                     )}
-                  </Button>
+                  </ReadOnlyButton>
 
                   <Button
                     variant='outline'
@@ -606,59 +667,92 @@ export default function ConfirmationDialog({
           <Button variant='ghost' onClick={reset}>
             <Trans>Cancel</Trans>
           </Button>
-          <LoadingButton
-            loading={pending}
-            loadingText={t`Submitting`}
-            onClick={() => {
-              setPending(true);
+          {isColdWalletUnsignedMode ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className='inline-flex cursor-not-allowed'>
+                  <LoadingButton
+                    disabled
+                    loading={false}
+                    loadingText=''
+                    className='pointer-events-none'
+                  >
+                    <Trans>Submit</Trans>
+                  </LoadingButton>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <Trans>
+                  Cold wallets cannot sign transactions. Copy the JSON and sign
+                  externally.
+                </Trans>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <LoadingButton
+              loading={pending}
+              loadingText={t`Submitting`}
+              onClick={() => {
+                setPending(true);
 
-              (async () => {
-                let finalSignature: string | null = signature;
+                (async () => {
+                  let finalSignature: string | null = signature;
 
-                if (
-                  !finalSignature &&
-                  response !== null &&
-                  'coin_spends' in response
-                ) {
-                  if (!(await promptIfEnabled())) return;
+                  if (
+                    !finalSignature &&
+                    response !== null &&
+                    'coin_spends' in response
+                  ) {
+                    if (!(await promptIfEnabled())) return;
+
+                    const data = await commands
+                      .signCoinSpends({
+                        coin_spends: response.coin_spends,
+                      })
+                      .catch(addError);
+
+                    if (!data) return reset();
+
+                    finalSignature = data.spend_bundle.aggregated_signature;
+                  }
 
                   const data = await commands
-                    .signCoinSpends({
-                      coin_spends: response.coin_spends,
+                    .submitTransaction({
+                      spend_bundle: {
+                        coin_spends:
+                          response === null
+                            ? []
+                            : 'coin_spends' in response
+                              ? response.coin_spends
+                              : response.spend_bundle.coin_spends,
+                        aggregated_signature: finalSignature ?? '',
+                      },
                     })
                     .catch(addError);
 
                   if (!data) return reset();
 
-                  finalSignature = data.spend_bundle.aggregated_signature;
-                }
-
-                const data = await commands
-                  .submitTransaction({
-                    spend_bundle: {
-                      coin_spends:
-                        response === null
-                          ? []
-                          : 'coin_spends' in response
-                            ? response.coin_spends
-                            : response.spend_bundle.coin_spends,
-                      aggregated_signature: finalSignature ?? '',
-                    },
-                  })
-                  .catch(addError);
-
-                if (!data) return reset();
-
-                toast.success(t`Transaction submitted successfully`);
-                onConfirm?.();
-                reset();
-              })().finally(() => setPending(false));
-            }}
-          >
-            <Trans>Submit</Trans>
-          </LoadingButton>
+                  toast.success(t`Transaction submitted successfully`);
+                  onConfirm?.();
+                  reset();
+                })().finally(() => setPending(false));
+              }}
+            >
+              <Trans>Submit</Trans>
+            </LoadingButton>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function HandleUpdatedHeight({ height }: { height: number }) {
+  const updatedHeight = height.toLocaleString();
+
+  return (
+    <div className='text-xs text-muted-foreground'>
+      <Trans>Last updated at height {updatedHeight}</Trans>
+    </div>
   );
 }

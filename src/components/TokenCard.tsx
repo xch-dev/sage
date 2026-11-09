@@ -1,5 +1,6 @@
 import { NumberFormat } from '@/components/NumberFormat';
 import { QRCodeDialog } from '@/components/QRCodeDialog';
+import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -20,6 +21,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fromMojos } from '@/lib/utils';
+import { useNetwork } from '@/hooks/useNetwork';
+import { dexieAssetUrl } from '@/lib/urls';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -37,7 +40,7 @@ import {
   Send,
 } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { TokenRecord } from '../bindings';
 import { AssetIcon } from './AssetIcon';
@@ -60,6 +63,8 @@ export function TokenCard({
   onUpdate,
 }: TokenCardProps) {
   const walletState = useWalletState();
+  const navigate = useNavigate();
+  const { isTestnet } = useNetwork();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
@@ -134,12 +139,15 @@ export function TokenCard({
           <ReceiveAddress className='mt-2' />
 
           <div className='flex gap-2 mt-2 flex-wrap'>
-            <Link to={`/wallet/send/${asset.asset_id ?? 'xch'}`}>
-              <Button variant='outline'>
-                <Send className='mr-2 h-4 w-4' aria-hidden='true' />{' '}
-                <Trans>Send</Trans>
-              </Button>
-            </Link>
+            <ReadOnlyButton
+              variant='outline'
+              onClick={() =>
+                navigate(`/wallet/send/${asset.asset_id ?? 'xch'}`)
+              }
+            >
+              <Send className='mr-2 h-4 w-4' aria-hidden='true' />{' '}
+              <Trans>Send</Trans>
+            </ReadOnlyButton>
             <Button variant='outline' onClick={() => setIsReceiveOpen(true)}>
               <HandHelping className='mr-2 h-4 w-4' aria-hidden='true' />
               <Trans>Receive</Trans>
@@ -177,7 +185,7 @@ export function TokenCard({
                   <DropdownMenuItem
                     onClick={() => {
                       openUrl(
-                        `https://dexie.space/offers/XCH/${asset.asset_id}`,
+                        dexieAssetUrl(asset.asset_id ?? '', isTestnet),
                       ).catch((error) => {
                         toast.error(t`Failed to open dexie.space: ${error}`);
                       });
