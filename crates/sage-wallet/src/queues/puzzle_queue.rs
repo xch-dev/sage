@@ -10,8 +10,8 @@ use tokio::{
 use tracing::{debug, info, warn};
 
 use crate::{
-    ChildKind, PeerState, PuzzleContext, SyncCommand, SyncEvent, WalletError, WalletPeer,
-    database::insert_puzzle, validate_wallet_coin,
+    ChildKind, PeerState, PuzzleContext, SyncCommand, SyncEvent, VaultStateChanges, WalletError,
+    WalletPeer, database::insert_puzzle, is_relevant_child, validate_wallet_coin,
 };
 
 #[derive(Debug)]
@@ -98,11 +98,19 @@ impl PuzzleQueue {
 
         let mut subscriptions = Vec::new();
         let mut send_events = false;
+        let mut vault_events = Vec::new();
 
         while let Some((addr, root, synced_coins)) = futures.next().await {
             match synced_coins {
                 Ok(synced_coins) => {
                     let mut tx = self.db.tx().await?;
+
+                    // Syncing a vault coin's children, which finds the next vault coin or shows
+                    // that the vault was melted, can change the vault's state.
+                    let mut vault_states = VaultStateChanges::default();
+                    vault_states
+                        .record_coin(&mut tx, root.coin_state.coin.coin_id())
+                        .await?;
 
                     if root.is_children_unsynced {
                         debug!(
@@ -151,18 +159,7 @@ impl PuzzleQueue {
                         };
 
                         // We don't want to insert child coins that we don't own.
-                        let custody_p2_puzzle_hashes = kind.custody_p2_puzzle_hashes();
-
-                        let mut is_relevant = false;
-
-                        for custody_p2_puzzle_hash in custody_p2_puzzle_hashes {
-                            if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
-                                is_relevant = true;
-                                break;
-                            }
-                        }
-
-                        if !is_relevant {
+                        if !is_relevant_child(&mut tx, &kind).await? {
                             if is_root {
                                 warn!(
                                     "Deleting unexpected coin {coin_id} because it is not relevant to this wallet"
@@ -184,6 +181,10 @@ impl PuzzleQueue {
                         }
 
                         send_events = true;
+
+                        if let Some(launcher_id) = kind.vault_launcher_id() {
+                            vault_states.record(&mut tx, launcher_id).await?;
+                        }
 
                         if let Some(height) = item.coin_state.created_height {
                             tx.insert_height(height).await?;
@@ -215,6 +216,8 @@ impl PuzzleQueue {
                             }
                         }
                     }
+
+                    vault_events.extend(vault_states.events(&mut tx).await?);
 
                     tx.commit().await?;
                 }
@@ -254,6 +257,10 @@ impl PuzzleQueue {
                 .send(SyncEvent::PuzzleBatchSynced)
                 .await
                 .ok();
+        }
+
+        for event in vault_events {
+            self.sync_sender.send(event).await.ok();
         }
         Ok(())
     }

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            MAX(p2_singletons.nonce) AS \"max_nonce?: i64\",\n            MAX(CASE WHEN EXISTS (\n                SELECT 1 FROM coins WHERE coins.p2_puzzle_id = p2_singletons.p2_puzzle_id\n            ) THEN p2_singletons.nonce END) AS \"max_used_nonce?: i64\"\n        FROM p2_singletons\n        WHERE p2_singletons.launcher_id = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "max_nonce?: i64",
+        "ordinal": 0,
+        "type_info": "Null"
+      },
+      {
+        "name": "max_used_nonce?: i64",
+        "ordinal": 1,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "e344678b517efd16e3295c09eb79afec536a55df577a5f333c76e598102c64ca"
+}
