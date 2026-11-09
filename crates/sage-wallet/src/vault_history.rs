@@ -67,8 +67,8 @@ pub const MAX_RECOVERY_SEARCH: usize = 1_500_000;
 /// even when the timelock is given.
 pub const MAX_RECOVERY_CANDIDATES: usize = 4096;
 
-/// How many custodies a vault's recovery side is searched for in at most, from the latest. Each
-/// search can take seconds.
+/// How many custodies other than the current one a vault's recovery side is searched for in at
+/// most, from the latest. Each search can take seconds.
 pub const MAX_RECOVERY_SEARCHES: usize = 2;
 
 /// How deeply an M of N proof is followed, which is far more than any vault's members need.
@@ -631,16 +631,16 @@ pub struct RebuiltVaultConfig {
     pub is_current: bool,
 }
 
-/// Rebuilds the config of the latest custody that a vault's spends reveal, from the latest spend
-/// back. Up to `max_spends` spends are checked.
+/// Rebuilds the config of a vault's current custody from its spends, from the latest spend back. Up
+/// to `max_spends` spends are checked.
 ///
-/// This is usually the vault's current custody, since a vault is recreated with the same custody
-/// by most spends. But it's an older one if the current custody hasn't been spent through yet, for
-/// example after a rekey without memos, or while recovery is pending, so the caller must check.
+/// The current custody can only be rebuilt once it's been spent through. Until then, for example
+/// after a rekey without memos, or while recovery is pending, the latest older custody that can be
+/// rebuilt is returned instead, so the caller must check.
 ///
 /// A custody without recovery is rebuilt from its spends alone. A custody with recovery needs a
-/// search for its recovery side, which is skipped without one, and is only done for the latest
-/// [`MAX_RECOVERY_SEARCHES`] custodies.
+/// search for its recovery side, which is skipped without one, and is only done for the current
+/// custody and the latest [`MAX_RECOVERY_SEARCHES`] others.
 ///
 /// The config is verified against its custody hash, so it can be trusted.
 pub async fn rebuild_vault_config(
@@ -655,11 +655,17 @@ pub async fn rebuild_vault_config(
         .ok_or(VaultHistoryError::NotFound)?;
 
     let latest = *lineage.last().ok_or(VaultHistoryError::NotFound)?;
+    let is_current = |custody_hash: Bytes32| {
+        SingletonArgs::curry_tree_hash(launcher_id, custody_hash.into())
+            == latest.coin.puzzle_hash.into()
+    };
 
     let search = search.map(Arc::new);
 
     let mut reveals: HashMap<Bytes32, CustodyReveal> = HashMap::new();
     let mut recoveries: HashMap<Bytes32, Option<RecoveryMatch>> = HashMap::new();
+    let mut older_searches = 0;
+    let mut older: Option<VaultConfigRow> = None;
 
     let spent = lineage
         .iter()
@@ -675,6 +681,13 @@ pub async fn rebuild_vault_config(
         };
 
         let custody_hash = reveal.custody_hash;
+        let current = is_current(custody_hash);
+
+        // Once an older custody is rebuilt, only the current one could be better. A vault can go
+        // back to a custody it had before, so its older spends can still complete it.
+        if older.is_some() && !current {
+            continue;
+        }
 
         let reveal = if let Some(existing) = reveals.get_mut(&custody_hash) {
             existing.merge(&reveal);
@@ -691,11 +704,15 @@ pub async fn rebuild_vault_config(
             // only searched for once.
             let recovery = if let Some(recovery) = recoveries.get(&custody_hash) {
                 recovery.clone()
-            } else if recoveries.len() >= MAX_RECOVERY_SEARCHES {
-                // Older custodies are only needed if the latest ones can't be rebuilt, which is
-                // usually because the keys are wrong, so they aren't searched for too.
+            } else if !current && older_searches >= MAX_RECOVERY_SEARCHES {
+                // Older custodies are only needed if the current one can't be rebuilt, which is
+                // usually because the keys are wrong, so they aren't all searched for.
                 None
             } else {
+                if !current {
+                    older_searches += 1;
+                }
+
                 let search = search.clone();
                 let custody_member_hash = custody_side.hash;
                 let top_level_hash = reveal.top_level_hash;
@@ -732,16 +749,28 @@ pub async fn rebuild_vault_config(
         if vault_hashes(&config)
             .is_ok_and(|hashes| hashes.custody_hash == TreeHash::from(custody_hash))
         {
-            return Ok(RebuiltVaultConfig {
-                row: VaultConfigRow {
-                    custody_hash,
-                    layout: VaultLayout::Custody(config),
-                    source: VaultConfigSource::Reconstructed,
-                },
-                is_current: SingletonArgs::curry_tree_hash(launcher_id, custody_hash.into())
-                    == latest.coin.puzzle_hash.into(),
-            });
+            let row = VaultConfigRow {
+                custody_hash,
+                layout: VaultLayout::Custody(config),
+                source: VaultConfigSource::Reconstructed,
+            };
+
+            if current {
+                return Ok(RebuiltVaultConfig {
+                    row,
+                    is_current: true,
+                });
+            }
+
+            older = Some(row);
         }
+    }
+
+    if let Some(row) = older {
+        return Ok(RebuiltVaultConfig {
+            row,
+            is_current: false,
+        });
     }
 
     if reveals.is_empty() {
