@@ -30,6 +30,11 @@ export function AssetLink({ asset, className = '' }: AssetLinkProps) {
       // no dedicated profile page yet
       link = null;
       break;
+    case 'vault':
+      // Only a vault wallet syncs its vault's coins, so this is always the open
+      // wallet's own vault.
+      link = '/vault';
+      break;
     default:
       return null;
   }
