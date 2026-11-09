@@ -15,6 +15,10 @@ pub enum VaultState {
     RecoveryPending {
         /// When the coin that started recovery was created, once its block's timestamp is known.
         started_at: Option<u64>,
+        /// When the current coin was created, once its block's timestamp is known. The timelock is
+        /// relative to the current coin, so recovery can only finish once it has passed since then,
+        /// and recreating the vault while recovery is pending restarts it.
+        timelock_from: Option<u64>,
     },
     Melted,
 }
@@ -250,7 +254,11 @@ async fn vault_status(
         .iter()
         .rposition(|row| row.created_height.is_some() && row.spent_height.is_none());
 
-    let Some(index) = current.or_else(|| coins.len().checked_sub(1)) else {
+    // Without one, the latest confirmed coin is the melted one, unless nothing is confirmed yet.
+    let Some(index) = current
+        .or_else(|| coins.iter().rposition(|row| row.created_height.is_some()))
+        .or_else(|| coins.len().checked_sub(1))
+    else {
         return Ok(Some(VaultStatus {
             launcher_id,
             coin: None,
@@ -286,6 +294,7 @@ async fn vault_status(
 
         VaultState::RecoveryPending {
             started_at: start.created_timestamp,
+            timelock_from: coin.created_timestamp,
         }
     } else {
         VaultState::Active

@@ -70,7 +70,7 @@ CREATE TABLE vault_config_members (
   key BLOB NOT NULL,
   is_fast_forward BOOLEAN NOT NULL,
   FOREIGN KEY (vault_config_id) REFERENCES vault_configs(id) ON DELETE CASCADE,
-  UNIQUE (vault_config_id, is_recovery, kind, key)
+  UNIQUE (vault_config_id, is_recovery, kind, key, is_fast_forward)
 );
 
 CREATE INDEX idx_vault_config_members_vault_config_id ON vault_config_members(vault_config_id);

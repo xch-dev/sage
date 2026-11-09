@@ -219,6 +219,11 @@ async fn stores_vault_configs() -> anyhow::Result<()> {
                     launcher_id: Bytes32::new([4; 32]),
                     fast_forward: true,
                 },
+                // The same launcher id without fast forward is a different member.
+                VaultMember::Singleton {
+                    launcher_id: Bytes32::new([4; 32]),
+                    fast_forward: false,
+                },
             ],
             3,
         ),
@@ -408,7 +413,7 @@ async fn vault_state_follows_lineage() -> anyhow::Result<()> {
     );
 
     // Starting recovery, and then recreating the vault while it's pending, keeps the time it
-    // started.
+    // started, but restarts the timelock.
     set_coin_state(&db, eve, Some(10), Some(11)).await?;
     let started = Coin::new(eve.coin_id(), Bytes32::new([6; 32]), 1);
     insert_vault_coin(&db, launcher_id, started, Some(recovery_hash), Some(11)).await?;
@@ -420,7 +425,8 @@ async fn vault_state_follows_lineage() -> anyhow::Result<()> {
     assert_eq!(
         status.state,
         VaultState::RecoveryPending {
-            started_at: Some(1100)
+            started_at: Some(1100),
+            timelock_from: Some(1200),
         }
     );
     assert_eq!(status.coin.unwrap().coin, recreated);
@@ -453,9 +459,10 @@ async fn vault_state_follows_lineage() -> anyhow::Result<()> {
     let status = db.vault_status(launcher_id).await?.unwrap();
     assert!(matches!(status.state, VaultState::RecoveryPending { .. }));
 
+    // The coin whose creation the reorg undid is still stored, but isn't confirmed, so it isn't
+    // taken for the latest coin.
     let mut tx = db.tx().await?;
     tx.set_children_synced(started.coin_id()).await?;
-    tx.delete_coin(recreated.coin_id()).await?;
     tx.commit().await?;
 
     let status = db.vault_status(launcher_id).await?.unwrap();
