@@ -871,6 +871,83 @@ async fn test_vault_offer_coins() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// A CAT is only the vault's if it's really locked to it, since anyone can write the memos that
+/// claim it is.
+#[test(tokio::test)]
+async fn test_vault_offer_cats() -> anyhow::Result<()> {
+    let test = TestWallet::new(0).await?;
+
+    let config = vault_config(
+        &BlsPair::new(1),
+        &BlsPair::new(2),
+        VaultVersion::ForceSingletonRecreation,
+    );
+    let vault = mint(&test, &config, true).await?;
+    let launcher_id = vault.launcher_id();
+    track(&test, launcher_id).await?;
+    wait_for_coin(&test, &vault, is_active).await?;
+
+    let address = p2_singleton_puzzle_hash(launcher_id, 0);
+    let funder = BlsPair::new(1000);
+    let funder_hash: Bytes32 = StandardLayer::new(funder.pk).tree_hash().into();
+    let (locked_funding, unrelated_funding) = {
+        let mut sim = test.sim.lock().await;
+        (
+            sim.new_coin(funder_hash, 300),
+            sim.new_coin(funder_hash, 200),
+        )
+    };
+
+    let mut ctx = SpendContext::new();
+
+    let fixed = Conditions::new().reserve_fee(300);
+    let fixed_spend = ctx.delegated_spend(fixed.clone())?;
+    let quoted_hash = ctx.tree_hash(fixed_spend.puzzle).into();
+    let locked: Bytes32 = P2ConditionsOrSingleton::from_quoted_conditions_hash(
+        launcher_id,
+        0,
+        quoted_hash,
+        P2ConditionsOrSingletonVersion::FixedPuzzleMember,
+    )
+    .tree_hash()
+    .into();
+
+    // A pre-split CAT locked to the vault, and one with the same kind of memos which isn't.
+    let memos = ctx.memos(&(address, (fixed, ())))?;
+    let (issue, locked_cats) = Cat::single_issuance(
+        &mut ctx,
+        locked_funding.coin_id(),
+        None,
+        300,
+        Conditions::new().create_coin(locked, 300, memos),
+    )?;
+    StandardLayer::new(funder.pk).spend(&mut ctx, locked_funding, issue)?;
+
+    let unrelated_memos = ctx.memos(&(address, (Conditions::new().reserve_fee(1), ())))?;
+    let (issue, unrelated_cats) = Cat::single_issuance(
+        &mut ctx,
+        unrelated_funding.coin_id(),
+        None,
+        200,
+        Conditions::new().create_coin(Bytes32::new([9; 32]), 200, unrelated_memos),
+    )?;
+    StandardLayer::new(funder.pk).spend(&mut ctx, unrelated_funding, issue)?;
+
+    push(&test, ctx.take(), &[funder.sk]).await?;
+
+    let locked_asset_id = locked_cats[0].info.asset_id;
+    let unrelated_asset_id = unrelated_cats[0].info.asset_id;
+    let db = &test.wallet.db;
+
+    wait_until(|| async { Ok(db.cat_balance(locked_asset_id).await? == 300) }).await?;
+
+    // The unrelated CAT was in the same block, and left nothing behind.
+    assert!(db.asset(unrelated_asset_id).await?.is_none());
+    assert_eq!(db.cat_balance(unrelated_asset_id).await?, 0);
+
+    Ok(())
+}
+
 #[test(tokio::test)]
 async fn test_vault_resumes_after_restart() -> anyhow::Result<()> {
     let mut test = TestWallet::new(0).await?;
