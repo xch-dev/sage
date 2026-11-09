@@ -5,8 +5,9 @@
 //! vault that owns it.
 
 use chia_wallet_sdk::{
-    driver::P2Singleton,
+    driver::{Layer, P2Singleton, SingletonLayer},
     prelude::*,
+    puzzles::DELEGATED_PUZZLE_FEEDER_HASH,
     types::puzzles::{
         DelegatedPuzzleFeederArgs, INDEX_WRAPPER_HASH, IndexWrapperArgs, SingletonMember,
     },
@@ -30,8 +31,8 @@ pub async fn fetch_latest_vault_coin(
 }
 
 /// Follows a vault from its launcher, returning each of its singleton coins in order, from the eve
-/// coin to the latest coin. Returns `None` if the launcher doesn't exist or hasn't created a
-/// singleton yet.
+/// coin to the latest coin. Returns `None` if the launcher doesn't exist, hasn't created a
+/// singleton yet, or created a singleton that isn't a vault, such as an NFT or a DID.
 pub async fn fetch_vault_lineage(
     peer: &WalletPeer,
     launcher_id: Bytes32,
@@ -61,7 +62,55 @@ pub async fn fetch_vault_lineage(
         coin_id = child.coin.coin_id();
     }
 
+    // Any singleton has a lineage, so the inner puzzle of the first spent coin must be a vault's.
+    // An unspent eve coin doesn't reveal its puzzle, so it can't be told apart.
+    if let Some(spent) = lineage
+        .iter()
+        .find(|coin_state| coin_state.spent_height.is_some())
+        && let Some(spent_height) = spent.spent_height
+    {
+        let (puzzle, _solution) = peer
+            .fetch_puzzle_solution(spent.coin.coin_id(), spent_height)
+            .await?;
+
+        if !is_vault_puzzle(&puzzle) {
+            return Ok(None);
+        }
+    }
+
     Ok((!lineage.is_empty()).then_some(lineage))
+}
+
+/// Whether a singleton's puzzle has a vault's inner puzzle, which is the top level of a MIPS tree.
+/// The tree itself isn't checked, since a vault's custody can be anything.
+pub fn is_vault_puzzle(puzzle: &Program) -> bool {
+    let mut allocator = Allocator::new();
+    let Ok(puzzle) = puzzle.to_clvm(&mut allocator) else {
+        return false;
+    };
+
+    let Ok(Some(singleton)) =
+        SingletonLayer::<Puzzle>::parse_puzzle(&allocator, Puzzle::parse(&allocator, puzzle))
+    else {
+        return false;
+    };
+
+    let Some(index) = singleton.inner_puzzle.as_curried() else {
+        return false;
+    };
+
+    if index.mod_hash != INDEX_WRAPPER_HASH {
+        return false;
+    }
+
+    let Ok(index) = IndexWrapperArgs::<usize, NodePtr>::from_clvm(&allocator, index.args) else {
+        return false;
+    };
+
+    index.nonce == 0
+        && Puzzle::parse(&allocator, index.inner_puzzle)
+            .as_curried()
+            .is_some_and(|feeder| feeder.mod_hash == DELEGATED_PUZZLE_FEEDER_HASH.into())
 }
 
 /// What was found about the vault that owns an address.
@@ -159,6 +208,30 @@ mod tests {
         let member = ctx.curry(SingletonMember::new(Bytes32::new([1; 32])))?;
         let puzzle = ctx.serialize(&member)?;
         assert_eq!(parse_p2_singleton(&puzzle), None);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_is_vault_puzzle() -> anyhow::Result<()> {
+        let mut ctx = SpendContext::new();
+        let launcher_id = Bytes32::new([1; 32]);
+
+        // A P2 singleton has a vault's inner puzzle layout, so it stands in for a vault here.
+        let delegated_spend = ctx.delegated_spend(Conditions::new())?;
+        let vault_inner = P2Singleton::new(Bytes32::new([2; 32]), 0)
+            .spend(&mut ctx, Bytes32::new([3; 32]), 1, delegated_spend)?
+            .puzzle;
+        let vault = SingletonLayer::new(launcher_id, vault_inner).construct_puzzle(&mut ctx)?;
+        assert!(is_vault_puzzle(&ctx.serialize(&vault)?));
+
+        // A singleton with another inner puzzle, such as an NFT or a DID, isn't a vault.
+        let other_inner = ctx.curry(SingletonMember::new(Bytes32::new([4; 32])))?;
+        let other = SingletonLayer::new(launcher_id, other_inner).construct_puzzle(&mut ctx)?;
+        assert!(!is_vault_puzzle(&ctx.serialize(&other)?));
+
+        // Nor is a puzzle that isn't a singleton.
+        assert!(!is_vault_puzzle(&ctx.serialize(&vault_inner)?));
 
         Ok(())
     }
