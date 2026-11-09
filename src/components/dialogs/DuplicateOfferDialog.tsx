@@ -53,6 +53,7 @@ export function DuplicateOfferDialog({
         }}
         offerState={offerState}
         splitNftOffers={false}
+        preSplitFee={null}
         fee={offerState.fee}
         enabledMarketplaces={enabledMarketplaces}
         setEnabledMarketplaces={setEnabledMarketplaces}
@@ -67,6 +68,7 @@ export function DuplicateOfferDialog({
         }}
         offerState={offerState}
         splitNftOffers={false}
+        preSplitFee={null}
         enabledMarketplaces={enabledMarketplaces}
         copies={copies}
         clearOfferState={onClose}

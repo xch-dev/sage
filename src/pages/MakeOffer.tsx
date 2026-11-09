@@ -34,6 +34,14 @@ export function MakeOffer() {
   const [splitNftOffers, setSplitNftOffers] = useState(
     location.state?.splitNftOffers || false,
   );
+  const [preSplit, setPreSplit] = useState(false);
+  const [preSplitFee, setPreSplitFee] = useState('');
+
+  // Each separate NFT offer would split coins of its own, and the change from
+  // one split can't be spent on the next offer until it's confirmed.
+  const isSplittingNftOffers =
+    splitNftOffers && state.offered.nfts.filter((n) => n).length > 1;
+  const isPreSplitting = preSplit && !isSplittingNftOffers;
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
@@ -119,7 +127,9 @@ export function MakeOffer() {
     }
   };
 
-  const offerCopies = canCopyOffer(state) ? copies : 1;
+  // Copies can't be pre-split, since the change from one copy's split can't
+  // fund the next until it's confirmed.
+  const offerCopies = canCopyOffer(state) && !isPreSplitting ? copies : 1;
 
   const invalid =
     state.expiration !== null &&
@@ -234,6 +244,50 @@ export function MakeOffer() {
                 />
               )}
             </div>
+
+            <div className='flex flex-col gap-2'>
+              <div className='flex items-center gap-2 min-h-9'>
+                <label htmlFor='pre-split'>
+                  <Trans>Pre-split coins</Trans>
+                </label>
+                <Switch
+                  id='pre-split'
+                  checked={isPreSplitting}
+                  disabled={isSplittingNftOffers}
+                  onCheckedChange={setPreSplit}
+                />
+
+                {isPreSplitting && (
+                  <div className='relative ml-auto w-40'>
+                    <FeeAmountInput
+                      id='pre-split-fee'
+                      aria-label={t`Split fee`}
+                      className='pr-12'
+                      value={preSplitFee}
+                      onValueChange={(values: { value: string }) => {
+                        setPreSplitFee(values.value);
+                      }}
+                    />
+                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                      <span className='text-muted-foreground text-sm'>
+                        {walletState.sync.unit.ticker}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className='text-sm text-muted-foreground'>
+                {isSplittingNftOffers ? (
+                  <Trans>Not available when each NFT gets its own offer.</Trans>
+                ) : isPreSplitting ? (
+                  <Trans>
+                    The offer is shared once the split is confirmed.
+                  </Trans>
+                ) : (
+                  <Trans>Keeps the rest of your balance spendable.</Trans>
+                )}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -267,6 +321,7 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           fee={state.fee || '0'}
+          preSplitFee={isPreSplitting ? preSplitFee : null}
           enabledMarketplaces={enabledMarketplaces}
           setEnabledMarketplaces={setEnabledMarketplaces}
           copies={offerCopies}
@@ -278,6 +333,7 @@ export function MakeOffer() {
           onOpenChange={handleProgressDialogClose}
           offerState={state}
           splitNftOffers={splitNftOffers}
+          preSplitFee={isPreSplitting ? preSplitFee : null}
           enabledMarketplaces={enabledMarketplaces}
           copies={offerCopies}
           clearOfferState={() => {

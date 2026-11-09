@@ -2817,7 +2817,15 @@ coin_ids?: string[] | null;
  * handle which resolves to a different address than the one last sent to must be
  * confirmed here before it can be used.
  */
-confirmed_handles?: HandleConfirmation[] }
+confirmed_handles?: HandleConfirmation[]; 
+/**
+ * If set, the XCH and CAT coins the offer would spend are first split into coins of the
+ * exact amounts it offers, in a transaction paying this fee, so the rest of the balance
+ * isn't locked up by the offer. The offer is always imported, and stays pending until
+ * that transaction is confirmed, so it shouldn't be shared before then. If the coins are
+ * already the exact amounts, nothing is split.
+ */
+pre_split_fee?: Amount | null }
 /**
  * Response with created offer
  */
@@ -2829,7 +2837,12 @@ offer: string;
 /**
  * Offer ID
  */
-offer_id: string }
+offer_id: string; 
+/**
+ * The ID of the transaction splitting the offer's coins, if they had to be split. The
+ * offer is pending until it's confirmed.
+ */
+pre_split_transaction_id: string | null }
 export type MintNftAction = { 
 /**
  * The parent asset id of the minted NFT

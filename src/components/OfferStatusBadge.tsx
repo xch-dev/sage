@@ -14,8 +14,9 @@ export function offerStatusLabel(status: OfferRecordStatus): string {
   switch (status) {
     case 'active':
       return t`Active`;
+    // Pending offers are waiting for the coins they spend to be split.
     case 'pending':
-      return t`Pending`;
+      return t`Splitting Coins`;
     case 'completed':
       return t`Completed`;
     case 'cancelled':

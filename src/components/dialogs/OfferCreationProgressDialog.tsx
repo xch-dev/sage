@@ -9,14 +9,16 @@ import {
 } from '@/components/ui/dialog';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
+import { useWallet } from '@/contexts/WalletContext';
 import { useNetwork } from '@/hooks/useNetwork';
 import { useOfferProcessor } from '@/hooks/useOfferProcessor';
 import { marketplaces } from '@/lib/marketplaces';
+import { queuePendingOfferUpload } from '@/lib/pendingOfferUploads';
 import { OfferState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { LoaderCircleIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -25,6 +27,7 @@ interface OfferCreationProgressDialogProps {
   onOpenChange: (open: boolean) => void;
   offerState: OfferState;
   splitNftOffers: boolean;
+  preSplitFee: string | null;
   enabledMarketplaces?: Record<string, boolean>;
   clearOfferState: (offers: string[]) => void;
   copies?: number;
@@ -35,11 +38,15 @@ export function OfferCreationProgressDialog({
   onOpenChange,
   offerState,
   splitNftOffers,
+  preSplitFee,
   enabledMarketplaces,
   clearOfferState,
   copies = 1,
 }: OfferCreationProgressDialogProps) {
   const { addError } = useErrors();
+  const { wallet } = useWallet();
+  const fingerprint = wallet?.fingerprint ?? null;
+  const queuedOfferIds = useRef(new Set<string>());
   const { isTestnet, isUnknown } = useNetwork();
   const [isUploading, setIsUploading] = useState(false);
   const [hasStartedProcessing, setHasStartedProcessing] = useState(false);
@@ -64,6 +71,7 @@ export function OfferCreationProgressDialog({
     offerState,
     splitNftOffers,
     copies,
+    preSplitFee,
     onProcessingEnd: () => {
       // Don't auto-close on success
     },
@@ -94,6 +102,41 @@ export function OfferCreationProgressDialog({
           return;
         }
 
+        // Marketplaces reject offers whose coins don't exist yet, so offers
+        // whose coins are being split are uploaded once that's confirmed.
+        if (fingerprint !== null) {
+          for (const createdOffer of createdOffers) {
+            // This effect can run again while the dialog is open, by which
+            // point the offer may already have been uploaded and forgotten.
+            if (
+              !createdOffer.isPending ||
+              queuedOfferIds.current.has(createdOffer.offerId)
+            ) {
+              continue;
+            }
+
+            queuedOfferIds.current.add(createdOffer.offerId);
+
+            queuePendingOfferUpload({
+              fingerprint,
+              offerId: createdOffer.offerId,
+              offer: createdOffer.offer,
+              isTestnet,
+              marketplaceIds: enabledMarketplaceConfigs.map(
+                (marketplace) => marketplace.id,
+              ),
+            });
+          }
+        }
+
+        const readyOffers = createdOffers.filter(
+          (createdOffer) => !createdOffer.isPending,
+        );
+
+        if (readyOffers.length === 0) {
+          return;
+        }
+
         setIsUploading(true);
         setCurrentStep('uploading');
 
@@ -104,12 +147,15 @@ export function OfferCreationProgressDialog({
           if (!isMounted || isCanceling) break;
           setCurrentMarketplaceIndex(marketplaceIndex);
 
-          for (const [offerIndex, individualOffer] of createdOffers.entries()) {
+          for (const [offerIndex, individualOffer] of readyOffers.entries()) {
             if (!isMounted || isCanceling) break;
             setCurrentOfferIndex(offerIndex);
             try {
-              await marketplace.uploadToMarketplace(individualOffer, isTestnet);
-              if (offerIndex < createdOffers.length - 1) {
+              await marketplace.uploadToMarketplace(
+                individualOffer.offer,
+                isTestnet,
+              );
+              if (offerIndex < readyOffers.length - 1) {
                 // rate limit
                 await delay(500);
               }
@@ -142,6 +188,7 @@ export function OfferCreationProgressDialog({
     }
   }, [
     createdOffers,
+    fingerprint,
     isTestnet,
     isUnknown,
     addError,
@@ -215,10 +262,14 @@ export function OfferCreationProgressDialog({
 
   const handleDone = () => {
     clearProcessedOffers();
-    clearOfferState(createdOffers);
+    clearOfferState(createdOffers.map((createdOffer) => createdOffer.offer));
   };
 
   const createdOfferCount = createdOffers.length;
+  // Offers still waiting on their coin split are uploaded later instead.
+  const uploadingOfferCount = createdOffers.filter(
+    (createdOffer) => !createdOffer.isPending,
+  ).length;
 
   const uploadedToMarketplaces = Object.values(enabledMarketplaces ?? {}).some(
     Boolean,
@@ -253,6 +304,42 @@ export function OfferCreationProgressDialog({
     );
   };
 
+  const hasPendingOffers = createdOffers.some(
+    (createdOffer) => createdOffer.isPending,
+  );
+
+  const getPendingMessage = () => {
+    if (createdOffers.length > 1) {
+      return uploadedToMarketplaces ? (
+        <Trans>
+          {createdOfferCount} offers have been created, and their coins are
+          being split to the exact amounts they offer. They will be uploaded to
+          the selected marketplaces once that is confirmed, and shouldn&apos;t
+          be shared until then.
+        </Trans>
+      ) : (
+        <Trans>
+          {createdOfferCount} offers have been created, and their coins are
+          being split to the exact amounts they offer. They shouldn&apos;t be
+          shared until that is confirmed.
+        </Trans>
+      );
+    }
+
+    return uploadedToMarketplaces ? (
+      <Trans>
+        Your offer has been created, and its coins are being split to the exact
+        amounts it offers. It will be uploaded to the selected marketplaces once
+        that is confirmed, and shouldn&apos;t be shared until then.
+      </Trans>
+    ) : (
+      <Trans>
+        Your offer has been created, and its coins are being split to the exact
+        amounts it offers. It shouldn&apos;t be shared until that is confirmed.
+      </Trans>
+    );
+  };
+
   const getProgressMessage = () => {
     if (isProcessing || isUploading) {
       const offerNumber = currentOfferIndex + 1;
@@ -271,7 +358,7 @@ export function OfferCreationProgressDialog({
         const marketplaceName = currentMarketplace.name;
         return (
           <Trans>
-            Uploading offer {offerNumber} of {createdOfferCount} to{' '}
+            Uploading offer {offerNumber} of {uploadingOfferCount} to{' '}
             {marketplaceName}
             ...
           </Trans>
@@ -318,6 +405,8 @@ export function OfferCreationProgressDialog({
                   {getProgressMessage()}
                 </p>
               </div>
+            ) : hasPendingOffers ? (
+              getPendingMessage()
             ) : createdOffers.length > 1 ? (
               uploadedToMarketplaces ? (
                 <Trans>

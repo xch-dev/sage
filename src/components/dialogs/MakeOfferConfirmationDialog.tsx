@@ -39,6 +39,7 @@ interface MakeOfferConfirmationDialogProps {
   offerState: OfferState;
   splitNftOffers: boolean;
   fee: string;
+  preSplitFee: string | null;
   enabledMarketplaces?: Record<string, boolean>;
   setEnabledMarketplaces?: (marketplaces: Record<string, boolean>) => void;
   copies: number;
@@ -423,6 +424,7 @@ export function MakeOfferConfirmationDialog({
   offerState,
   splitNftOffers,
   fee,
+  preSplitFee,
   enabledMarketplaces,
   setEnabledMarketplaces,
   copies,
@@ -560,7 +562,10 @@ export function MakeOfferConfirmationDialog({
       ? null
       : expirationTimestamp(offerState.expiration);
   const expiresAtLabel = formatTimestamp(expiresAt);
-  const canCopy = !isSplitting && canCopyOffer(offerState);
+  // Each copy would split coins of its own, and the change from one split
+  // can't fund the next until it's confirmed.
+  const canCopy =
+    !isSplitting && preSplitFee === null && canCopyOffer(offerState);
   const numberOfOffers = isSplitting ? numOfferedNfts : 1;
 
   const feePerOffer = fee || '0';
@@ -786,6 +791,43 @@ export function MakeOfferConfirmationDialog({
               {balanceError && (
                 <p className='text-sm text-destructive mt-1'>{balanceError}</p>
               )}
+            </div>
+          )}
+
+          {preSplitFee !== null && (
+            <div>
+              <h3 className='text-md font-semibold mb-1'>
+                <Trans>Pre-split Coins</Trans>
+              </h3>
+              <p className='text-sm'>
+                <Trans>Split Fee:</Trans>{' '}
+                <NumberFormat
+                  value={preSplitFee || '0'}
+                  minimumFractionDigits={2}
+                  maximumFractionDigits={xchToken?.precision ?? 12}
+                />{' '}
+                {xchToken
+                  ? getAssetDisplayName(xchToken.name, xchToken.ticker, 'token')
+                  : 'XCH'}
+              </p>
+              <p className='text-xs text-muted-foreground'>
+                <Trans>
+                  If the coins you&apos;re offering add up to more than the
+                  offered amounts, they will first be split into coins of the
+                  exact amounts, so the rest of your balance stays spendable.
+                  The offer stays pending, and won&apos;t be uploaded to
+                  marketplaces, until that transaction is confirmed.
+                </Trans>
+              </p>
+              {onCopiesChange != null &&
+                !isSplitting &&
+                canCopyOffer(offerState) && (
+                  <p className='text-xs text-muted-foreground mt-1'>
+                    <Trans>
+                      Turn off pre-splitting to create multiple copies.
+                    </Trans>
+                  </p>
+                )}
             </div>
           )}
 
