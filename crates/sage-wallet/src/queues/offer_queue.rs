@@ -264,3 +264,267 @@ impl OfferQueue {
         Ok(is_created.then_some(OfferStatus::Active))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::cell::Cell;
+
+    use chia_wallet_sdk::driver::encode_offer;
+    use sage_database::OfferRow;
+    use test_log::test;
+
+    use crate::{Offered, PreSplitOffer, Requested, TestWallet};
+
+    use super::*;
+
+    /// Makes an offer of 300 mojos from a wallet with a single 1000 mojo coin, so the coin has
+    /// to be split.
+    async fn pre_split_offer(wallet: &TestWallet) -> anyhow::Result<(SpendBundle, Vec<CoinSpend>)> {
+        let PreSplitOffer {
+            offer,
+            split_coin_spends,
+        } = wallet
+            .wallet
+            .make_pre_split_offer(
+                Offered {
+                    xch: 300,
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 1,
+                    ..Default::default()
+                },
+                None,
+                0,
+            )
+            .await?;
+
+        Ok((offer, split_coin_spends.expect("the coin should be split")))
+    }
+
+    fn offer_coins(offer: &SpendBundle) -> anyhow::Result<Vec<Coin>> {
+        let mut allocator = Allocator::new();
+
+        Ok(Offer::from_spend_bundle(&mut allocator, offer)?
+            .cancellable_coin_spends()?
+            .into_iter()
+            .map(|coin_spend| coin_spend.coin)
+            .collect())
+    }
+
+    /// Saves an offer as pending, like making a pre-split offer does. Its coins are only
+    /// reserved for it if `reserve` is set and the wallet knows about them.
+    async fn insert_pending_offer(
+        wallet: &TestWallet,
+        offer: &SpendBundle,
+        reserve: bool,
+    ) -> anyhow::Result<Bytes32> {
+        let offer_id = offer.name();
+        let mut tx = wallet.wallet.db.tx().await?;
+
+        tx.insert_offer(OfferRow {
+            offer_id,
+            encoded_offer: encode_offer(offer)?,
+            expiration_height: None,
+            expiration_timestamp: None,
+            fee: 0,
+            status: OfferStatus::Pending,
+            inserted_timestamp: 0,
+        })
+        .await?;
+
+        if reserve {
+            for coin in offer_coins(offer)? {
+                tx.insert_offered_coin(offer_id, coin.coin_id()).await?;
+            }
+        }
+
+        tx.commit().await?;
+
+        Ok(offer_id)
+    }
+
+    async fn sign(wallet: &TestWallet, coin_spends: Vec<CoinSpend>) -> anyhow::Result<SpendBundle> {
+        Ok(wallet
+            .wallet
+            .sign_transaction(
+                SpendBundle::new(coin_spends, Signature::default()),
+                &wallet.agg_sig,
+                wallet.master_sk.clone(),
+                false,
+            )
+            .await?)
+    }
+
+    /// Waits for the offer's status to change, and returns the new status.
+    async fn next_offer_status(wallet: &mut TestWallet, offer_id: Bytes32) -> OfferStatus {
+        let status = Cell::new(None);
+
+        wallet
+            .consume_until(|event| {
+                if let SyncEvent::OfferUpdated {
+                    offer_id: updated_id,
+                    status: updated_status,
+                } = event
+                    && updated_id == offer_id
+                {
+                    status.set(Some(updated_status));
+                    return true;
+                }
+
+                false
+            })
+            .await;
+
+        status.get().expect("status should be set")
+    }
+
+    async fn selectable_amounts(wallet: &TestWallet) -> anyhow::Result<Vec<u64>> {
+        let mut amounts = wallet
+            .wallet
+            .db
+            .selectable_xch_coins()
+            .await?
+            .into_iter()
+            .map(|coin| coin.amount)
+            .collect::<Vec<_>>();
+
+        amounts.sort_unstable();
+
+        Ok(amounts)
+    }
+
+    #[test(tokio::test)]
+    async fn test_pending_offer_cancelled_when_split_fails() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+
+        let (offer, split_coin_spends) = pre_split_offer(&alice).await?;
+
+        // An unsigned split is rejected by the mempool, like a split that fails for any reason.
+        alice
+            .push_bundle(SpendBundle::new(split_coin_spends, Signature::default()))
+            .await?;
+        let offer_id = insert_pending_offer(&alice, &offer, true).await?;
+
+        assert_eq!(
+            next_offer_status(&mut alice, offer_id).await,
+            OfferStatus::Cancelled
+        );
+
+        // The coin that would have been split can be spent again.
+        assert_eq!(selectable_amounts(&alice).await?, vec![1000]);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_pending_offer_cancelled_when_split_coin_spent_elsewhere() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+
+        let (offer, _split_coin_spends) = pre_split_offer(&alice).await?;
+
+        // The coin the split would spend is spent by something else instead.
+        let mut ctx = SpendContext::new();
+        alice
+            .wallet
+            .spend(
+                &mut ctx,
+                vec![],
+                &[Action::send(
+                    Id::Xch,
+                    Bytes32::new([1; 32]),
+                    1000,
+                    Memos::None,
+                )],
+            )
+            .await?;
+        alice.transact(ctx.take()).await?;
+        alice.wait_for_coins().await;
+
+        let offer_id = insert_pending_offer(&alice, &offer, true).await?;
+
+        assert_eq!(
+            next_offer_status(&mut alice, offer_id).await,
+            OfferStatus::Cancelled
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_pending_offer_not_cancelled_before_split_syncs() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+
+        let (offer, split_coin_spends) = pre_split_offer(&alice).await?;
+        let split_coins = split_coin_spends
+            .iter()
+            .map(|coin_spend| coin_spend.coin)
+            .collect::<Vec<_>>();
+        let split = sign(&alice, split_coin_spends).await?;
+
+        alice.push_bundle(split).await?;
+        alice.wait_for_coins().await;
+
+        // Put the wallet back in the state it's in when the split has confirmed, but the wallet
+        // hasn't synced it yet: the coin being split looks unspent, and the wallet doesn't know
+        // about the split coins.
+        let mut tx = alice.wallet.db.tx().await?;
+
+        for coin in offer_coins(&offer)? {
+            tx.delete_coin(coin.coin_id()).await?;
+        }
+
+        for coin in split_coins {
+            let created_height = tx
+                .coin_heights(coin.coin_id())
+                .await?
+                .expect("the coin being split should be known")
+                .created_height;
+
+            tx.insert_coin(CoinState::new(coin, None, created_height))
+                .await?;
+        }
+
+        tx.commit().await?;
+
+        let offer_id = insert_pending_offer(&alice, &offer, true).await?;
+
+        // The wallet never syncs the split again here, so the offer stays pending, rather than
+        // being cancelled because the coin being split looks unspent.
+        sleep(Duration::from_secs(1)).await;
+
+        let row = alice
+            .wallet
+            .db
+            .offer(offer_id)
+            .await?
+            .expect("the offer should exist");
+        assert_eq!(row.status, OfferStatus::Pending);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_pending_offer_reserves_coins_again() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+
+        let (offer, split_coin_spends) = pre_split_offer(&alice).await?;
+        let split = sign(&alice, split_coin_spends).await?;
+
+        alice.push_bundle(split).await?;
+        alice.wait_for_coins().await;
+
+        // The offer's coins aren't reserved, like when the wallet forgot them while syncing.
+        let offer_id = insert_pending_offer(&alice, &offer, false).await?;
+
+        assert_eq!(
+            next_offer_status(&mut alice, offer_id).await,
+            OfferStatus::Active
+        );
+
+        // Only the change can be spent, since the split coin is reserved for the offer.
+        assert_eq!(selectable_amounts(&alice).await?, vec![700]);
+
+        Ok(())
+    }
+}
