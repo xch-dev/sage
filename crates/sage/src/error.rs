@@ -227,6 +227,11 @@ pub enum Error {
     #[error("Missing offer: {0}")]
     MissingOffer(Bytes32),
 
+    #[error(
+        "Offer {0} can't be cancelled on-chain until the transaction splitting its coins is confirmed"
+    )]
+    OfferPending(Bytes32),
+
     #[error("Coin already spent: {0}")]
     CoinSpent(Bytes32),
 
@@ -427,7 +432,8 @@ impl Error {
             | Self::DuplicateContactRecipient { .. }
             | Self::DuplicateContactName { .. }
             | Self::ContactNetworkMismatch(..)
-            | Self::OfferHandleNft(..) => ErrorKind::Api,
+            | Self::OfferHandleNft(..)
+            | Self::OfferPending(..) => ErrorKind::Api,
         }
     }
 

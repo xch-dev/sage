@@ -138,13 +138,15 @@ export function OfferCard({
                         : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
                 }`}
               >
-                {status === 'active' || status === 'pending'
-                  ? t`Pending`
-                  : status === 'completed'
-                    ? t`Taken`
-                    : status === 'cancelled'
-                      ? t`Cancelled`
-                      : t`Expired`}
+                {status === 'pending'
+                  ? t`Splitting Coins`
+                  : status === 'active'
+                    ? t`Pending`
+                    : status === 'completed'
+                      ? t`Taken`
+                      : status === 'cancelled'
+                        ? t`Cancelled`
+                        : t`Expired`}
               </div>
             )}
           </div>
@@ -258,18 +260,29 @@ export function OfferCard({
             </p>
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
-            <div className='flex flex-col md:flex-row items-start gap-8'>
-              {marketplaces.map((marketplace) => (
-                <MarketplaceCard
-                  key={marketplace.id}
-                  offer={offer || ''}
-                  offerId={offerId}
-                  offerSummary={offerSummary}
-                  isTestnet={isTestnet}
-                  marketplace={marketplace}
-                />
-              ))}
-            </div>
+            {status === 'pending' ? (
+              <p className='text-sm text-muted-foreground'>
+                <Trans>
+                  The coins for this offer are still being split, so
+                  marketplaces won&apos;t accept it yet. If you chose to upload
+                  it when you made it, that will happen once the split is
+                  confirmed.
+                </Trans>
+              </p>
+            ) : (
+              <div className='flex flex-col md:flex-row items-start gap-8'>
+                {marketplaces.map((marketplace) => (
+                  <MarketplaceCard
+                    key={marketplace.id}
+                    offer={offer || ''}
+                    offerId={offerId}
+                    offerSummary={offerSummary}
+                    isTestnet={isTestnet}
+                    marketplace={marketplace}
+                  />
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

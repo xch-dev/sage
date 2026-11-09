@@ -46,6 +46,14 @@ pub struct MakeOffer {
     /// confirmed here before it can be used.
     #[serde(default)]
     pub confirmed_handles: Vec<HandleConfirmation>,
+    /// If set, the XCH and CAT coins the offer would spend are first split into coins of the
+    /// exact amounts it offers, in a transaction paying this fee, so the rest of the balance
+    /// isn't locked up by the offer. The offer is always imported, and stays pending until
+    /// that transaction is confirmed, so it shouldn't be shared before then. If the coins are
+    /// already the exact amounts, nothing is split.
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub pre_split_fee: Option<Amount>,
 }
 
 /// Asset amount in an offer
@@ -76,6 +84,10 @@ pub struct MakeOfferResponse {
     pub offer: String,
     /// Offer ID
     pub offer_id: String,
+    /// The ID of the transaction splitting the offer's coins, if they had to be split. The
+    /// offer is pending until it's confirmed.
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub pre_split_transaction_id: Option<String>,
 }
 
 /// Accept an offer

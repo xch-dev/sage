@@ -31,6 +31,7 @@ interface MakeOfferConfirmationDialogProps {
   offerState: OfferState;
   splitNftOffers: boolean;
   fee: string;
+  preSplitFee: string | null;
   enabledMarketplaces?: Record<string, boolean>;
   setEnabledMarketplaces?: (marketplaces: Record<string, boolean>) => void;
 }
@@ -413,6 +414,7 @@ export function MakeOfferConfirmationDialog({
   offerState,
   splitNftOffers,
   fee,
+  preSplitFee,
   enabledMarketplaces,
   setEnabledMarketplaces,
 }: MakeOfferConfirmationDialogProps) {
@@ -600,6 +602,34 @@ export function MakeOfferConfirmationDialog({
                   </Trans>
                 </p>
               )}
+            </div>
+          )}
+
+          {preSplitFee !== null && (
+            <div>
+              <h3 className='text-md font-semibold mb-1'>
+                <Trans>Pre-split Coins</Trans>
+              </h3>
+              <p className='text-sm'>
+                <Trans>Split Fee:</Trans>{' '}
+                <NumberFormat
+                  value={preSplitFee || '0'}
+                  minimumFractionDigits={2}
+                  maximumFractionDigits={xchToken?.precision ?? 12}
+                />{' '}
+                {xchToken
+                  ? getAssetDisplayName(xchToken.name, xchToken.ticker, 'token')
+                  : 'XCH'}
+              </p>
+              <p className='text-xs text-muted-foreground'>
+                <Trans>
+                  If the coins you&apos;re offering add up to more than the
+                  offered amounts, they will first be split into coins of the
+                  exact amounts, so the rest of your balance stays spendable.
+                  The offer stays pending, and won&apos;t be uploaded to
+                  marketplaces, until that transaction is confirmed.
+                </Trans>
+              </p>
             </div>
           )}
 

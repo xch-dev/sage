@@ -33,6 +33,8 @@ export function MakeOffer() {
   const [splitNftOffers, setSplitNftOffers] = useState(
     location.state?.splitNftOffers || false,
   );
+  const [preSplit, setPreSplit] = useState(false);
+  const [preSplitFee, setPreSplitFee] = useState('');
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
@@ -225,6 +227,48 @@ export function MakeOffer() {
                 />
               )}
             </div>
+
+            <div className='flex flex-col gap-2'>
+              <div className='flex items-center gap-2'>
+                <label htmlFor='pre-split'>
+                  <Trans>Pre-split coins</Trans>
+                </label>
+                <Switch
+                  id='pre-split'
+                  checked={preSplit}
+                  onCheckedChange={setPreSplit}
+                />
+              </div>
+              <p className='text-sm text-muted-foreground'>
+                <Trans>
+                  Splits the coins being offered to the exact amounts first, so
+                  the offer doesn&apos;t lock up the rest of your balance. The
+                  offer can&apos;t be shared until the split is confirmed.
+                </Trans>
+              </p>
+
+              {preSplit && (
+                <div className='flex flex-col space-y-1.5'>
+                  <Label htmlFor='pre-split-fee'>
+                    <Trans>Split Fee</Trans>
+                  </Label>
+                  <div className='relative'>
+                    <FeeAmountInput
+                      id='pre-split-fee'
+                      className='pr-12'
+                      onValueChange={(values: { value: string }) => {
+                        setPreSplitFee(values.value);
+                      }}
+                    />
+                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                      <span className='text-muted-foreground text-sm'>
+                        {walletState.sync.unit.ticker}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -254,6 +298,7 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           fee={state.fee || '0'}
+          preSplitFee={preSplit ? preSplitFee : null}
           enabledMarketplaces={enabledMarketplaces}
           setEnabledMarketplaces={setEnabledMarketplaces}
         />
@@ -263,6 +308,7 @@ export function MakeOffer() {
           onOpenChange={handleProgressDialogClose}
           offerState={state}
           splitNftOffers={splitNftOffers}
+          preSplitFee={preSplit ? preSplitFee : null}
           enabledMarketplaces={enabledMarketplaces}
           clearOfferState={() => {
             setState(null);

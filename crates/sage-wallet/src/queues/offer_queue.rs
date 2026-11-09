@@ -49,7 +49,10 @@ impl OfferQueue {
             return Ok(());
         }
 
-        let offers = self.db.offers(Some(OfferStatus::Active)).await?;
+        // Pending offers spend coins that are still being split, and are checked the same way,
+        // since they can expire or have their coins spent like any other offer.
+        let mut offers = self.db.offers(Some(OfferStatus::Pending)).await?;
+        offers.extend(self.db.offers(Some(OfferStatus::Active)).await?);
 
         if offers.is_empty() {
             return Ok(());
@@ -107,6 +110,13 @@ impl OfferQueue {
         };
 
         let mut new_offer_statuses = HashMap::new();
+        let mut created_coin_ids = HashSet::new();
+
+        for coin_state in &coin_states {
+            if coin_state.created_height.is_some() {
+                created_coin_ids.insert(coin_state.coin.coin_id());
+            }
+        }
 
         for coin_state in coin_states {
             if let Some(offer_ids) = settlement_coin_ids.get(&coin_state.coin.coin_id()) {
@@ -131,7 +141,7 @@ impl OfferQueue {
         let peak_height = self.state.lock().await.peak().map_or(0, |peak| peak.0);
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
 
-        for offer in offers {
+        for offer in &offers {
             if offer
                 .expiration_height
                 .is_some_and(|height| height <= peak_height)
@@ -140,6 +150,49 @@ impl OfferQueue {
                 new_offer_statuses
                     .entry(offer.offer_id)
                     .or_insert(OfferStatus::Expired);
+            }
+        }
+
+        for offer in &offers {
+            if offer.status != OfferStatus::Pending
+                || new_offer_statuses.contains_key(&offer.offer_id)
+            {
+                continue;
+            }
+
+            let coin_ids = input_coin_ids
+                .iter()
+                .filter(|(_, offer_ids)| offer_ids.contains(&offer.offer_id))
+                .map(|(&coin_id, _)| coin_id)
+                .collect::<Vec<_>>();
+
+            if coin_ids
+                .iter()
+                .all(|coin_id| created_coin_ids.contains(coin_id))
+            {
+                // If the wallet saw the split's inputs spent before its coins were created, it
+                // forgot the coins until they synced again, which also dropped their reservation
+                // for the offer, so they're reserved again.
+                let mut tx = self.db.tx().await?;
+
+                for &coin_id in &coin_ids {
+                    tx.insert_offered_coin(offer.offer_id, coin_id).await?;
+                }
+
+                tx.commit().await?;
+
+                new_offer_statuses.insert(offer.offer_id, OfferStatus::Active);
+                continue;
+            }
+
+            // The wallet forgets the coins a transaction would have created if it fails, so if
+            // one of them isn't on-chain or known anymore, the split failed and the offer can
+            // never be taken.
+            for coin_id in coin_ids {
+                if !created_coin_ids.contains(&coin_id) && !self.db.is_known_coin(coin_id).await? {
+                    new_offer_statuses.insert(offer.offer_id, OfferStatus::Cancelled);
+                    break;
+                }
             }
         }
 

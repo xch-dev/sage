@@ -1,8 +1,8 @@
 use chia_wallet_sdk::{
     chia::puzzle_types::offer::{NotarizedPayment, Payment},
     driver::{
-        TransferNftById, calculate_royalty_payments, calculate_trade_price_amounts,
-        calculate_trade_prices,
+        FungibleSpends, TransferNftById, calculate_royalty_payments, calculate_trade_price_amounts,
+        calculate_trade_prices, coin_amount,
     },
     prelude::*,
     puzzles::SETTLEMENT_PAYMENT_HASH,
@@ -38,6 +38,16 @@ pub struct RequestedCat {
     pub hidden_puzzle_hash: Option<Bytes32>,
 }
 
+/// An offer whose coins may first need to be split to the exact amounts it offers.
+#[derive(Debug, Clone)]
+pub struct PreSplitOffer {
+    /// The unsigned offer.
+    pub offer: SpendBundle,
+    /// The unsigned coin spends that create the coins the offer spends, if the selected coins
+    /// weren't already the exact amounts. The offer can't be taken until they're confirmed.
+    pub split_coin_spends: Option<Vec<CoinSpend>>,
+}
+
 impl Wallet {
     pub async fn make_offer(
         &self,
@@ -45,6 +55,33 @@ impl Wallet {
         requested: Requested,
         expires_at: Option<u64>,
     ) -> Result<SpendBundle, WalletError> {
+        Ok(self
+            .make_offer_with_split(offered, requested, expires_at, None)
+            .await?
+            .offer)
+    }
+
+    /// Makes an offer which only locks up the amounts it offers. If the selected XCH or CAT coins
+    /// add up to more than that, they're first split into coins of the exact amounts, in a
+    /// transaction which pays `split_fee`, and the offer spends those coins instead.
+    pub async fn make_pre_split_offer(
+        &self,
+        offered: Offered,
+        requested: Requested,
+        expires_at: Option<u64>,
+        split_fee: u64,
+    ) -> Result<PreSplitOffer, WalletError> {
+        self.make_offer_with_split(offered, requested, expires_at, Some(split_fee))
+            .await
+    }
+
+    async fn make_offer_with_split(
+        &self,
+        offered: Offered,
+        requested: Requested,
+        expires_at: Option<u64>,
+        split_fee: Option<u64>,
+    ) -> Result<PreSplitOffer, WalletError> {
         let mut ctx = SpendContext::new();
         let mut asset_info = AssetInfo::new();
 
@@ -140,6 +177,19 @@ impl Wallet {
             .prepare_spends_for_selection(&mut ctx, &offered.selected_coin_ids)
             .await?;
         self.select_spends(&mut ctx, &mut spends, &actions).await?;
+
+        let mut split_coin_spends = None;
+
+        if let Some(split_fee) = split_fee
+            && has_change(&spends, &Deltas::from_actions(&actions))
+        {
+            let (coin_spends, pre_split_spends) = self
+                .pre_split_offer_coins(&mut ctx, spends, &actions, split_fee)
+                .await?;
+
+            spends = pre_split_spends;
+            split_coin_spends = Some(coin_spends);
+        }
 
         let nonce = Offer::nonce(spends.non_settlement_coin_ids());
 
@@ -276,6 +326,126 @@ impl Wallet {
             asset_info,
         )?;
 
-        Ok(offer.to_spend_bundle(&mut ctx)?)
+        Ok(PreSplitOffer {
+            offer: offer.to_spend_bundle(&mut ctx)?,
+            split_coin_spends,
+        })
     }
+
+    /// Spends the XCH and CAT coins selected for an offer, creating a coin of the exact amount
+    /// the offer needs of each, and returns those coin spends along with the [`Spends`] the offer
+    /// should use instead. Singletons aren't split, so they're spent by the offer directly.
+    async fn pre_split_offer_coins(
+        &self,
+        ctx: &mut SpendContext,
+        selected: Spends,
+        actions: &[Action],
+        split_fee: u64,
+    ) -> Result<(Vec<CoinSpend>, Spends), WalletError> {
+        let deltas = Deltas::from_actions(actions);
+        let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
+
+        // If the split coin went to the change address, it would have the same coin id as the
+        // change whenever their amounts match, so it goes to an unused address instead.
+        let split_puzzle_hash = self
+            .p2_puzzle_hashes(2, false, false)
+            .await?
+            .into_iter()
+            .find(|&puzzle_hash| puzzle_hash != change_puzzle_hash)
+            .ok_or(WalletError::InsufficientDerivations)?;
+
+        let fungible_amount = |id: &Id| coin_amount(deltas.get(id).map_or(0, |delta| delta.output));
+
+        let xch_amount = fungible_amount(&Id::Xch)?;
+        let mut cat_amounts = Vec::new();
+
+        for &id in selected.cats.keys() {
+            let amount = fungible_amount(&id)?;
+
+            if amount > 0 {
+                cat_amounts.push((id, amount));
+            }
+        }
+
+        let mut split_spends = Spends::new(change_puzzle_hash);
+
+        for item in &selected.xch.items {
+            split_spends.add(item.asset);
+        }
+
+        for cats in selected.cats.values() {
+            for item in &cats.items {
+                split_spends.add(item.asset);
+            }
+        }
+
+        let mut split_actions = vec![Action::fee(split_fee)];
+
+        if xch_amount > 0 {
+            split_actions.push(Action::send(
+                Id::Xch,
+                split_puzzle_hash,
+                xch_amount,
+                Memos::None,
+            ));
+        }
+
+        let hint = ctx.hint(split_puzzle_hash)?;
+
+        for &(id, amount) in &cat_amounts {
+            split_actions.push(Action::send(id, split_puzzle_hash, amount, hint));
+        }
+
+        // The split fee may need more XCH than the offer selected.
+        self.select_spends(ctx, &mut split_spends, &split_actions)
+            .await?;
+
+        let split_deltas = split_spends.apply(ctx, &split_actions)?;
+        let outputs = self
+            .complete_spends(ctx, &split_deltas, split_spends)
+            .await?;
+        let split_coin_spends = ctx.take();
+
+        // The offer keeps the singletons it selected, but not the coins that were split.
+        let mut spends = selected;
+        spends.xch = FungibleSpends::new();
+        spends.cats.clear();
+
+        if xch_amount > 0 {
+            let coin = outputs
+                .xch
+                .iter()
+                .find(|coin| coin.puzzle_hash == split_puzzle_hash && coin.amount == xch_amount)
+                .ok_or(WalletError::MissingPreSplitCoin)?;
+
+            spends.add(*coin);
+        }
+
+        for (id, amount) in cat_amounts {
+            let cat = outputs
+                .cats
+                .get(&id)
+                .and_then(|cats| {
+                    cats.iter().find(|cat| {
+                        cat.info.p2_puzzle_hash == split_puzzle_hash && cat.coin.amount == amount
+                    })
+                })
+                .ok_or(WalletError::MissingPreSplitCoin)?;
+
+            spends.add(*cat);
+        }
+
+        Ok((split_coin_spends, spends))
+    }
+}
+
+/// Whether the XCH or CAT coins selected add up to more than the actions need, leaving change.
+fn has_change(spends: &Spends, deltas: &Deltas) -> bool {
+    let output = |id: &Id| deltas.get(id).map_or(0, |delta| delta.output);
+
+    spends.xch.selected_amount() > output(&Id::Xch)
+        || spends
+            .cats
+            .iter()
+            .any(|(id, cats)| cats.selected_amount() > output(id))
 }

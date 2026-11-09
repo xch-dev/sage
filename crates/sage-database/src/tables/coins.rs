@@ -155,6 +155,10 @@ impl Database {
         selectable_cat_coins(&self.pool, asset_id).await
     }
 
+    pub async fn is_known_coin(&self, coin_id: Bytes32) -> Result<bool> {
+        is_known_coin(&self.pool, coin_id).await
+    }
+
     pub async fn coin_kind(&self, coin_id: Bytes32) -> Result<Option<CoinKind>> {
         coin_kind(&self.pool, coin_id).await
     }
