@@ -1,4 +1,5 @@
 use std::{
+    net::Ipv4Addr,
     sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -11,25 +12,27 @@ use chia_wallet_sdk::{
         },
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
-    client::Connector,
+    client::{Connector, PeerOptions},
     prelude::*,
     test::PeerSimulator,
 };
 use sage_config::TESTNET11;
-use sage_database::{Database, Derivation};
+use sage_database::{Database, Derivation, SharedDatabase};
 use sqlx::{SqlitePool, migrate};
 use tokio::{
+    net::TcpListener,
     sync::{
         Mutex,
         mpsc::{Receiver, Sender},
     },
     time::timeout,
 };
+use tokio_tungstenite::{accept_async, connect_async};
 use tracing::debug;
 
 use crate::{
     PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Transaction, Wallet,
-    insert_transaction,
+    WalletKind, WalletPeer, insert_transaction,
 };
 
 static INDEX: Mutex<u32> = Mutex::const_new(0);
@@ -39,6 +42,7 @@ pub struct TestWallet {
     pub sim: Arc<PeerSimulator>,
     pub agg_sig: AggSigConstants,
     pub peer: Peer,
+    pub pool: SqlitePool,
     pub wallet: Arc<Wallet>,
     pub master_sk: SecretKey,
     pub puzzle_hash: Bytes32,
@@ -88,8 +92,15 @@ impl TestWallet {
         let pool =
             SqlitePool::connect(&format!("file:testdb{db_index}?mode=memory&cache=shared")).await?;
         migrate!("../../migrations").run(&pool).await?;
-        let db = Database::new(pool);
+        let db = Database::new(pool.clone());
         db.run_rust_migrations("TXCH".to_string()).await?;
+
+        let shared_pool = SqlitePool::connect(&format!(
+            "file:testshareddb{db_index}?mode=memory&cache=shared"
+        ))
+        .await?;
+        migrate!("../../migrations").run(&shared_pool).await?;
+        let shared_db = SharedDatabase::new(shared_pool);
 
         let sk = BlsPair::default().sk.derive_unhardened(key_index);
         let pk = sk.public_key();
@@ -136,8 +147,9 @@ impl TestWallet {
         let state = Arc::new(Mutex::new(PeerState::default()));
         let wallet = Arc::new(Wallet::new(
             db,
+            shared_db,
             fingerprint,
-            intermediate_pk,
+            WalletKind::Bls { intermediate_pk },
             genesis_challenge,
             AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
             None,
@@ -165,6 +177,7 @@ impl TestWallet {
             sim,
             agg_sig: AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
             peer,
+            pool,
             wallet,
             master_sk: sk,
             puzzle_hash: puzzle_hash.into(),
@@ -251,6 +264,19 @@ impl TestWallet {
             .await;
     }
 
+    /// The custody puzzle hash the transaction history shows as the address for a coin.
+    pub async fn history_custody(&self, coin_id: Bytes32) -> anyhow::Result<Option<Bytes32>> {
+        let (transactions, _) = self.wallet.db.transactions(None, false, 1000, 0).await?;
+
+        let coin = transactions
+            .iter()
+            .flat_map(|transaction| transaction.created.iter().chain(&transaction.spent))
+            .find(|coin| coin.coin.coin_id() == coin_id)
+            .unwrap_or_else(|| panic!("coin {coin_id} is missing from the transaction history"));
+
+        Ok(coin.custody_p2_puzzle_hash)
+    }
+
     pub async fn new_block_with_current_time(&self) -> anyhow::Result<u64> {
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         let mut sim = self.sim.lock().await;
@@ -280,4 +306,25 @@ pub fn default_test_options() -> SyncOptions {
         },
         testing: true,
     }
+}
+
+/// Connects to a local websocket server that accepts the connection but never answers, like a
+/// peer whose connection silently died.
+pub async fn unresponsive_peer() -> anyhow::Result<WalletPeer> {
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+    let addr = listener.local_addr()?;
+
+    tokio::spawn(async move {
+        let mut connections = Vec::new();
+        while let Ok((stream, _)) = listener.accept().await {
+            if let Ok(ws) = accept_async(stream).await {
+                connections.push(ws);
+            }
+        }
+    });
+
+    let (ws, _) = connect_async(format!("ws://{addr}")).await?;
+    let (peer, _receiver) = Peer::from_websocket(ws, PeerOptions::default())?;
+
+    Ok(WalletPeer::new(peer))
 }

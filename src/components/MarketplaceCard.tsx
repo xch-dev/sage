@@ -47,6 +47,7 @@ export function MarketplaceCard({
   const [isOnMarketplace, setIsOnMarketplace] = useState<boolean | null>(null);
   const [offerHash, setOfferHash] = useState<string>('');
   const isMobile = platform() === 'ios' || platform() === 'android';
+  const marketplaceName = marketplace.name;
 
   useEffect(() => {
     let isMounted = true;
@@ -72,11 +73,11 @@ export function MarketplaceCard({
     if (isOnMarketplace) {
       openUrl(marketplace.getMarketplaceLink(offerHash, isTestnet));
     } else {
-      const toastId = toast.loading(t`Uploading to ${marketplace.name}...`);
+      const toastId = toast.loading(t`Uploading to ${marketplaceName}...`);
       try {
         await marketplace.uploadToMarketplace(offer, isTestnet);
         toast.update(toastId, {
-          render: t`Uploaded to ${marketplace.name}!`,
+          render: t`Uploaded to ${marketplaceName}!`,
           type: 'success',
           isLoading: false,
           autoClose: 3000,
@@ -102,7 +103,7 @@ export function MarketplaceCard({
         isTestnet,
       );
       await shareText(marketplaceLink, {
-        title: t`${marketplace.name} link`,
+        title: t`${marketplaceName} link`,
         mimeType: 'text/uri-list',
       });
     } catch (error: unknown) {
@@ -145,9 +146,9 @@ export function MarketplaceCard({
           />
           <span className='text-sm'>
             {isOnMarketplace ? (
-              <Trans>View on {marketplace.name}</Trans>
+              <Trans>View on {marketplaceName}</Trans>
             ) : (
-              <Trans>Upload to {marketplace.name}</Trans>
+              <Trans>Upload to {marketplaceName}</Trans>
             )}
           </span>
           {isOnMarketplace && <ExternalLink className='h-4 w-4' />}

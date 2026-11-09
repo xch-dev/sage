@@ -1,0 +1,5 @@
+{
+  "name": "app-install-system-app",
+  "private": true,
+  "type": "module"
+}

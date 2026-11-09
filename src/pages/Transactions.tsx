@@ -1,4 +1,5 @@
 import Container from '@/components/Container';
+import { ImportSpendBundleDialog } from '@/components/dialogs/ImportSpendBundleDialog';
 import Header from '@/components/Header';
 import { Loading } from '@/components/Loading';
 import { Pagination } from '@/components/Pagination';
@@ -19,19 +20,28 @@ import { Trans } from '@lingui/react/macro';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Info } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { events, TransactionRecord } from '../bindings';
+import {
+  commands,
+  events,
+  PendingTransactionRecord,
+  TransactionRecord,
+} from '../bindings';
 
 export function Transactions() {
   const { addError } = useErrors();
   const [params, setParams] = useTransactionsParams();
   const { page, pageSize, search, ascending, summarized } = params;
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
+  const [pendingTransactions, setPendingTransactions] = useState<
+    PendingTransactionRecord[]
+  >([]);
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const optionsRef = useRef<HTMLDivElement>(null);
   const [isOptionsVisible, setIsOptionsVisible] = useState(true);
   const listRef = useRef<HTMLDivElement>(null);
   const [isPaginationLoading, setIsPaginationLoading] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   useIntersectionObserver(optionsRef, ([entry]) => {
     setIsOptionsVisible(entry.isIntersecting);
@@ -42,15 +52,19 @@ export function Transactions() {
       if (showLoader) setIsLoading(true);
 
       try {
-        const result = await queryTransactions({
-          search,
-          ascending,
-          page,
-          pageSize,
-        });
+        const [result, pendingResult] = await Promise.all([
+          queryTransactions({
+            search,
+            ascending,
+            page,
+            pageSize,
+          }),
+          commands.getPendingTransactions({}),
+        ]);
 
         setTransactions(result.transactions);
         setTotalTransactions(result.total);
+        setPendingTransactions(pendingResult.transactions);
       } catch (error: unknown) {
         addError(error as CustomError);
       } finally {
@@ -71,6 +85,7 @@ export function Transactions() {
         case 'did_info':
         case 'nft_data':
         case 'puzzle_batch_synced':
+        case 'transaction_failed':
           updateTransactions(false);
       }
     });
@@ -154,17 +169,20 @@ export function Transactions() {
         <ReceiveAddress />
       </Header>
       <Container>
-        {transactions.length === 0 && !isLoading && !isPaginationLoading && (
-          <Alert className='mb-4'>
-            <Info className='h-4 w-4' aria-hidden='true' />
-            <AlertTitle>
-              <Trans>Note</Trans>
-            </AlertTitle>
-            <AlertDescription>
-              <Trans>You have not made any transactions yet.</Trans>
-            </AlertDescription>
-          </Alert>
-        )}
+        {transactions.length === 0 &&
+          pendingTransactions.length === 0 &&
+          !isLoading &&
+          !isPaginationLoading && (
+            <Alert className='mb-4'>
+              <Info className='h-4 w-4' aria-hidden='true' />
+              <AlertTitle>
+                <Trans>Note</Trans>
+              </AlertTitle>
+              <AlertDescription>
+                <Trans>You have not made any transactions yet.</Trans>
+              </AlertDescription>
+            </Alert>
+          )}
 
         <div ref={optionsRef}>
           <TransactionOptions
@@ -187,6 +205,7 @@ export function Transactions() {
                 ascending,
               })
             }
+            onImportSpendBundle={() => setIsImportOpen(true)}
           />
         </div>
 
@@ -207,6 +226,7 @@ export function Transactions() {
 
           <TransactionListView
             transactions={transactions}
+            pendingTransactions={pendingTransactions}
             onSortingChange={(value) => {
               setIsPaginationLoading(true);
               setParams({ ascending: value, page: 1 });
@@ -216,6 +236,12 @@ export function Transactions() {
           />
         </div>
       </Container>
+
+      <ImportSpendBundleDialog
+        open={isImportOpen}
+        setOpen={setIsImportOpen}
+        onSubmitted={() => updateTransactions(false)}
+      />
     </>
   );
 }

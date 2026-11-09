@@ -47,6 +47,10 @@ impl Database {
         candidates_for_download(&self.pool, check_every_seconds, max_failed_attempts, limit).await
     }
 
+    pub async fn file_has_data(&self, hash: Bytes32) -> Result<bool> {
+        file_has_data(&self.pool, hash).await
+    }
+
     pub async fn thumbnail(&self, hash: Bytes32) -> Result<Option<ResizedImage>> {
         resized_image(&self.pool, hash, ResizedImageKind::Thumbnail).await
     }
@@ -81,6 +85,10 @@ impl DatabaseTx<'_> {
         file_data(&mut *self.tx, hash).await
     }
 
+    pub async fn file_has_data(&mut self, hash: Bytes32) -> Result<bool> {
+        file_has_data(&mut *self.tx, hash).await
+    }
+
     pub async fn update_checked_uri(&mut self, hash: Bytes32, uri: String) -> Result<()> {
         update_checked_uri(&mut *self.tx, hash, uri).await
     }
@@ -106,6 +114,10 @@ impl DatabaseTx<'_> {
         data: Vec<u8>,
     ) -> Result<()> {
         insert_resized_image(&mut *self.tx, file_hash, kind, data).await
+    }
+
+    pub async fn delete_resized_images(&mut self, file_hash: Bytes32) -> Result<()> {
+        delete_resized_images(&mut *self.tx, file_hash).await
     }
 
     pub async fn icon(&mut self, hash: Bytes32) -> Result<Option<ResizedImage>> {
@@ -159,6 +171,20 @@ async fn file_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Optio
     Ok(row.and_then(|row| row.data))
 }
 
+async fn file_has_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<bool> {
+    let hash = hash.as_ref();
+
+    let count = query!(
+        "SELECT COUNT(*) AS count FROM files WHERE hash = ? AND data IS NOT NULL",
+        hash
+    )
+    .fetch_one(conn)
+    .await?
+    .count;
+
+    Ok(count > 0)
+}
+
 async fn full_file_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<FileData>> {
     let hash = hash.as_ref();
 
@@ -191,7 +217,7 @@ async fn candidates_for_download(
         SELECT hash, uri, last_checked_timestamp, failed_attempts
         FROM file_uris
         INNER JOIN files ON files.id = file_uris.file_id
-        WHERE data IS NULL
+        WHERE (data IS NULL OR NOT is_hash_match)
         AND (last_checked_timestamp IS NULL OR unixepoch() - last_checked_timestamp >= ?)
         AND failed_attempts < ?
         LIMIT ?
@@ -325,6 +351,19 @@ async fn insert_resized_image(
     Ok(())
 }
 
+async fn delete_resized_images(conn: impl SqliteExecutor<'_>, file_hash: Bytes32) -> Result<()> {
+    let file_hash = file_hash.as_ref();
+
+    query!(
+        "DELETE FROM resized_images WHERE file_id = (SELECT id FROM files WHERE hash = ?)",
+        file_hash
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
 async fn resized_image(
     conn: impl SqliteExecutor<'_>,
     hash: Bytes32,
@@ -407,4 +446,55 @@ async fn total_files(conn: impl SqliteExecutor<'_>) -> Result<u64> {
     .count
     .try_into()
     .map_err(crate::DatabaseError::PrecisionLost)
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::{SqlitePool, migrate};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_mismatched_files_are_retried() -> anyhow::Result<()> {
+        let pool = SqlitePool::connect("sqlite::memory:").await?;
+        migrate!("../../migrations").run(&pool).await?;
+        let db = Database::new(pool);
+
+        let hash = Bytes32::new([1; 32]);
+
+        let mut tx = db.tx().await?;
+        tx.insert_file(hash).await?;
+        tx.insert_file_uri(hash, "https://example.com/nft.png".to_string())
+            .await?;
+        tx.commit().await?;
+
+        assert_eq!(db.candidates_for_download(0, 3, 10).await?.len(), 1);
+        assert!(!db.file_has_data(hash).await?);
+
+        // A file that doesn't match its hash is saved, but still retried.
+        let mut tx = db.tx().await?;
+        tx.update_file(hash, vec![1], "image/png".to_string(), false)
+            .await?;
+        tx.insert_resized_image(hash, ResizedImageKind::Icon, vec![1])
+            .await?;
+        tx.commit().await?;
+
+        assert_eq!(db.candidates_for_download(0, 3, 10).await?.len(), 1);
+        assert!(db.file_has_data(hash).await?);
+
+        // Replacing it clears out the old resized images.
+        let mut tx = db.tx().await?;
+        tx.update_file(hash, vec![2], "image/png".to_string(), true)
+            .await?;
+        tx.delete_resized_images(hash).await?;
+        assert!(tx.icon(hash).await?.is_none());
+        tx.insert_resized_image(hash, ResizedImageKind::Icon, vec![2])
+            .await?;
+        tx.commit().await?;
+
+        assert_eq!(db.icon(hash).await?.map(|icon| icon.data), Some(vec![2]));
+        assert!(db.candidates_for_download(0, 3, 10).await?.is_empty());
+
+        Ok(())
+    }
 }

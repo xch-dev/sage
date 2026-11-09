@@ -46,6 +46,7 @@ export async function exportTokens(tokens: PricedTokenRecord[]) {
   } catch (error) {
     console.error('Failed to export tokens:', error);
     toast.dismiss();
-    toast.error(t`Failed to export tokens: ${error as string}`);
+    const message = error as string;
+    toast.error(t`Failed to export tokens: ${message}`);
   }
 }

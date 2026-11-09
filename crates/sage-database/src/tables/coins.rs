@@ -2,7 +2,7 @@ use chia_wallet_sdk::{
     chia::puzzle_types::{LineageProof, Proof},
     prelude::*,
 };
-use sqlx::{Row, SqliteExecutor, query};
+use sqlx::{QueryBuilder, Row, Sqlite, SqliteExecutor, SqlitePool, query};
 
 use crate::{
     AssetKind, Convert, Database, DatabaseError, DatabaseTx, Result, SerializedDid,
@@ -25,6 +25,7 @@ pub enum CoinSortMode {
     CreatedHeight,
     SpentHeight,
     ClawbackTimestamp,
+    ClawbackVersion,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -51,6 +52,9 @@ pub struct CoinRow {
     pub mempool_item_hash: Option<Bytes32>,
     pub offer_hash: Option<Bytes32>,
     pub clawback_timestamp: Option<u64>,
+    pub clawback_version: Option<u8>,
+    pub clawback_is_sender: bool,
+    pub clawback_is_receiver: bool,
     pub created_height: Option<u32>,
     pub spent_height: Option<u32>,
     pub created_timestamp: Option<u64>,
@@ -242,6 +246,10 @@ impl DatabaseTx<'_> {
         insert_coin(&mut *self.tx, coin_state).await
     }
 
+    pub async fn mark_coin_spent(&mut self, coin_id: Bytes32, spent_height: u32) -> Result<()> {
+        mark_coin_spent(&mut *self.tx, coin_id, spent_height).await
+    }
+
     pub async fn is_known_coin(&mut self, coin_id: Bytes32) -> Result<bool> {
         is_known_coin(&mut *self.tx, coin_id).await
     }
@@ -327,6 +335,24 @@ async fn insert_coin(conn: impl SqliteExecutor<'_>, coin_state: CoinState) -> Re
         amount,
         coin_state.created_height,
         coin_state.spent_height,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn mark_coin_spent(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+    spent_height: u32,
+) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+
+    query!(
+        "UPDATE coins SET spent_height = ? WHERE hash = ? AND spent_height IS NULL",
+        spent_height,
+        coin_id
     )
     .execute(conn)
     .await?;
@@ -482,12 +508,14 @@ async fn insert_lineage_proof(
     Ok(())
 }
 
+/// Unspent coins that are subscribed to by coin ID. XCH coins at public key (0), arbor (3) and
+/// external (4) puzzles are left out, since sync subscribes to those puzzle hashes.
 async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
     query!(
         "
         SELECT coin_hash FROM wallet_coins
         WHERE spent_height IS NULL
-        AND (asset_id != 0 OR p2_puzzle_kind != 0)
+        AND (asset_id != 0 OR p2_puzzle_kind NOT IN (0, 3, 4))
         "
     )
     .fetch_all(conn)
@@ -574,7 +602,9 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
         "
        SELECT
             parent_coin_hash, puzzle_hash, amount, spent_height, created_height, p2_puzzle_hash,
-            mempool_item_hash, offer_hash, created_timestamp, spent_timestamp, clawback_expiration_seconds AS clawback_timestamp
+            mempool_item_hash, offer_hash, created_timestamp, spent_timestamp,
+            clawback_expiration_seconds AS clawback_timestamp, clawback_version,
+            clawback_sender_p2_puzzle_id, clawback_receiver_p2_puzzle_id
         FROM wallet_coins
         WHERE coin_hash IN (",
     );
@@ -607,6 +637,13 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
                     .transpose()?,
                 kind: CoinKind::Xch,
                 clawback_timestamp: row.get::<Option<i64>, _>("clawback_timestamp").convert()?,
+                clawback_version: row.get::<Option<u8>, _>("clawback_version"),
+                clawback_is_sender: row
+                    .get::<Option<i64>, _>("clawback_sender_p2_puzzle_id")
+                    .is_some(),
+                clawback_is_receiver: row
+                    .get::<Option<i64>, _>("clawback_receiver_p2_puzzle_id")
+                    .is_some(),
                 created_height: row.get::<Option<u32>, _>("created_height"),
                 spent_height: row.get::<Option<u32>, _>("spent_height"),
                 created_timestamp: row.get::<Option<i64>, _>("created_timestamp").convert()?,
@@ -618,8 +655,14 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
     Ok(coins)
 }
 
+/// V1 stores a relative timelock and V2 an absolute expiration, so normalize both to the
+/// unix time at which the clawback unlocks for sorting.
+const CLAWBACK_UNLOCK_TIMESTAMP: &str = "CASE WHEN clawback_version = 1
+    THEN created_timestamp + clawback_expiration_seconds
+    ELSE clawback_expiration_seconds END";
+
 async fn coin_records(
-    conn: impl SqliteExecutor<'_>,
+    conn: &SqlitePool,
     asset_filter: AssetFilter,
     limit: u32,
     offset: u32,
@@ -635,30 +678,21 @@ async fn coin_records(
         CoinFilterMode::Clawback => "clawback_coins",
     };
 
-    let mut query = sqlx::QueryBuilder::new(format!(
+    let mut query = QueryBuilder::new(format!(
         "
         SELECT
             parent_coin_hash, puzzle_hash, amount,
             spent_height, created_height, p2_puzzle_hash,
             mempool_item_hash, offer_hash, created_timestamp, spent_timestamp,
             clawback_expiration_seconds AS clawback_timestamp,
+            clawback_version,
+            clawback_sender_p2_puzzle_id, clawback_receiver_p2_puzzle_id,
             COUNT(*) OVER () AS total_count
         FROM {table}
         ",
     ));
 
-    match asset_filter {
-        AssetFilter::Id(asset_id) => {
-            query.push(" WHERE asset_hash = ");
-            query.push_bind(asset_id.to_vec());
-        }
-        AssetFilter::Nfts => {
-            query.push(" WHERE asset_kind = 1");
-        }
-        AssetFilter::Dids => {
-            query.push(" WHERE asset_kind = 2");
-        }
-    }
+    push_asset_filter(&mut query, asset_filter);
 
     query.push(" ORDER BY ");
     match sort_mode {
@@ -670,9 +704,18 @@ async fn coin_records(
         CoinSortMode::CreatedHeight => query.push("created_height DESC NULLS FIRST"),
         CoinSortMode::SpentHeight if ascending => query.push("spent_height ASC NULLS LAST"),
         CoinSortMode::SpentHeight => query.push("spent_height DESC NULLS FIRST"),
-        CoinSortMode::ClawbackTimestamp if ascending => query.push("clawback_timestamp ASC"),
-        CoinSortMode::ClawbackTimestamp => query.push("clawback_timestamp DESC"),
+        CoinSortMode::ClawbackTimestamp if ascending => {
+            query.push(format!("{CLAWBACK_UNLOCK_TIMESTAMP} ASC NULLS LAST"))
+        }
+        CoinSortMode::ClawbackTimestamp => {
+            query.push(format!("{CLAWBACK_UNLOCK_TIMESTAMP} DESC NULLS FIRST"))
+        }
+        CoinSortMode::ClawbackVersion if ascending => query.push("clawback_version ASC"),
+        CoinSortMode::ClawbackVersion => query.push("clawback_version DESC"),
     };
+
+    // Ensure a stable order between pages when the sort column has ties
+    query.push(", coin_hash ASC");
 
     query.push(" LIMIT ");
     query.push_bind(limit as i64);
@@ -680,9 +723,24 @@ async fn coin_records(
     query.push_bind(offset as i64);
 
     let rows = query.build().fetch_all(conn).await?;
-    let total_count = rows
-        .first()
-        .map_or(Ok(0), |row| row.get::<i64, _>("total_count").try_into())?;
+    let total_count = if let Some(row) = rows.first() {
+        row.get::<i64, _>("total_count").try_into()?
+    } else {
+        // COUNT(*) OVER() has no row from which to read the total when the
+        // requested offset is beyond the end of the filtered result set.
+        // Run the equivalent count query so callers can recover to the last
+        // available page.
+        let mut count_query =
+            QueryBuilder::new(format!("SELECT COUNT(*) AS total_count FROM {table}"));
+        push_asset_filter(&mut count_query, asset_filter);
+
+        count_query
+            .build()
+            .fetch_one(conn)
+            .await?
+            .get::<i64, _>("total_count")
+            .try_into()?
+    };
     let coins = rows
         .into_iter()
         .map(|row| {
@@ -703,6 +761,13 @@ async fn coin_records(
                     .transpose()?,
                 kind: CoinKind::Xch,
                 clawback_timestamp: row.get::<Option<i64>, _>("clawback_timestamp").convert()?,
+                clawback_version: row.get::<Option<u8>, _>("clawback_version"),
+                clawback_is_sender: row
+                    .get::<Option<i64>, _>("clawback_sender_p2_puzzle_id")
+                    .is_some(),
+                clawback_is_receiver: row
+                    .get::<Option<i64>, _>("clawback_receiver_p2_puzzle_id")
+                    .is_some(),
                 created_height: row.get::<Option<u32>, _>("created_height"),
                 spent_height: row.get::<Option<u32>, _>("spent_height"),
                 created_timestamp: row
@@ -718,6 +783,21 @@ async fn coin_records(
         .collect::<Result<Vec<_>>>()?;
 
     Ok((coins, total_count))
+}
+
+fn push_asset_filter(query: &mut QueryBuilder<'_, Sqlite>, asset_filter: AssetFilter) {
+    match asset_filter {
+        AssetFilter::Id(asset_id) => {
+            query.push(" WHERE asset_hash = ");
+            query.push_bind(asset_id.to_vec());
+        }
+        AssetFilter::Nfts => {
+            query.push(" WHERE asset_kind = 1");
+        }
+        AssetFilter::Dids => {
+            query.push(" WHERE asset_kind = 2");
+        }
+    }
 }
 
 async fn selectable_xch_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {

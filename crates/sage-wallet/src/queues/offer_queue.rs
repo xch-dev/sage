@@ -99,7 +99,7 @@ impl OfferQueue {
                 warn!("Coin lookup failed for {}: {}", peer.socket_addr(), err);
                 self.state.lock().await.ban(
                     peer.socket_addr().ip(),
-                    Duration::from_secs(300),
+                    Duration::from_mins(5),
                     "coin lookup failed",
                 );
                 return Ok(());

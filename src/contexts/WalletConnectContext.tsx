@@ -1,11 +1,15 @@
 import {
   commands,
+  OfferHandleNft,
   OfferRecord,
   OfferSummary,
+  TokenRecord,
   TransactionSummary,
 } from '@/bindings';
 import { AdvancedTransactionSummary } from '@/components/AdvancedTransactionSummary';
+import { HandleResolution } from '@/components/HandleResolution';
 import { OfferCard } from '@/components/OfferCard';
+import { OfferHandleNftWarning } from '@/components/OfferHandleNftWarning';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,17 +22,21 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { LoadingButton } from '@/components/ui/loading-button';
+import { FeeAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
+import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useErrors } from '@/hooks/useErrors';
-import { decodeHexMessage, fromMojos, isHex } from '@/lib/utils';
+import { xchandlesEnabled } from '@/lib/features';
+import { decodeHexMessage, fromMojos, toMojos, isHex } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
   Params,
   WalletConnectCommand,
   walletConnectCommands,
 } from '@/walletconnect/commands';
+import { WalletConnectError } from '@/walletconnect/errors';
 import { handleCommand } from '@/walletconnect/handler';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -62,7 +70,7 @@ export const WalletConnectContext = createContext<
 type SessionRequest = SignClientTypes.EventArguments['session_request'];
 
 export function WalletConnectProvider({ children }: { children: ReactNode }) {
-  const { wallet } = useWallet();
+  const { wallet, isReadOnly } = useWallet();
   const { addError } = useErrors();
   const { promptIfEnabled } = useBiometric();
 
@@ -103,7 +111,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         const result = await handleCommand(
           method,
           request.params.request.params,
-          { promptIfEnabled },
+          { promptIfEnabled, isReadOnly },
         );
 
         await signClient.respond({
@@ -121,8 +129,27 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
             : typeof error === 'object' && error !== null && 'reason' in error
               ? (error.reason as string)
               : 'Request failed';
-        addError({ kind: 'walletconnect', reason: errorMessage });
+        // Declining a changed handle has already been shown to the user.
+        const declined =
+          typeof error === 'object' &&
+          error !== null &&
+          'kind' in error &&
+          error.kind === 'cancelled';
+
+        if (!declined) {
+          addError({ kind: 'walletconnect', reason: errorMessage });
+        }
         console.error('WalletConnect request failed:', error);
+
+        // Recipients which couldn't be used, such as a handle which changed
+        // hands, are passed on as JSON so the dApp can tell which one failed.
+        const recipients =
+          typeof error === 'object' &&
+          error !== null &&
+          'recipients' in error &&
+          Array.isArray(error.recipients)
+            ? error.recipients
+            : null;
 
         await signClient.respond({
           topic: request.topic,
@@ -132,12 +159,17 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
             error: {
               code: 4001,
               message: errorMessage,
+              ...(error instanceof WalletConnectError
+                ? { data: JSON.stringify({ code: error.code }) }
+                : recipients
+                  ? { data: JSON.stringify({ recipients }) }
+                  : {}),
             },
           },
         });
       }
     },
-    [signClient, addError, promptIfEnabled],
+    [signClient, addError, promptIfEnabled, isReadOnly],
   );
 
   useEffect(() => {
@@ -378,6 +410,112 @@ interface RequestDialogProps {
 
 interface CommandDialogProps<T extends WalletConnectCommand> {
   params: Partial<Params<T>>;
+  onFeeChange?: (feeMojos: string | null) => void;
+}
+
+function EditableFee({
+  suggestedFeeMojos,
+  onFeeChange,
+}: {
+  suggestedFeeMojos: string | number | undefined;
+  onFeeChange?: (feeMojos: string | null) => void;
+}) {
+  const walletState = useWalletState();
+  const { fee: defaultFee } = useDefaultFee();
+  const precision = walletState.sync.unit.precision;
+
+  const suggestedDisplay = fromMojos(
+    suggestedFeeMojos || 0,
+    precision,
+  ).toString();
+  const [feeValue, setFeeValue] = useState<string>(suggestedDisplay);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleFeeChange = (values: {
+    floatValue: number | undefined;
+    value: string;
+  }) => {
+    setFeeValue(values.value);
+    if (onFeeChange) {
+      onFeeChange(toMojos(values.value || '0', precision));
+    }
+  };
+
+  const applyDefaultFee = () => {
+    setFeeValue(defaultFee);
+    setIsEditing(true);
+    if (onFeeChange) {
+      onFeeChange(toMojos(defaultFee || '0', precision));
+    }
+  };
+
+  if (!isEditing) {
+    return (
+      <div>
+        <div className='font-medium'>
+          <Trans>Fee</Trans>{' '}
+          <span className='text-xs text-muted-foreground'>
+            (<Trans>suggested by dApp</Trans>)
+          </span>
+        </div>
+        <div className='flex items-center gap-2 mt-1'>
+          <div className='text-sm text-muted-foreground'>
+            {formatNumber({
+              value: fromMojos(suggestedFeeMojos || 0, precision),
+              minimumFractionDigits: 0,
+              maximumFractionDigits: precision,
+            })}{' '}
+            {walletState.sync.unit.ticker}
+          </div>
+          <Button
+            variant='outline'
+            size='sm'
+            className='h-6 text-xs'
+            onClick={() => setIsEditing(true)}
+          >
+            <Trans>Edit</Trans>
+          </Button>
+          {parseFloat(defaultFee) > 0 && (
+            <Button
+              variant='outline'
+              size='sm'
+              className='h-6 text-xs'
+              onClick={applyDefaultFee}
+            >
+              <Trans>Use default</Trans>
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className='font-medium'>
+        <Trans>Fee</Trans>
+      </div>
+      <div className='flex items-center gap-2 mt-1'>
+        <div className='flex-1'>
+          <FeeAmountInput value={feeValue} onValueChange={handleFeeChange} />
+        </div>
+        <Button
+          variant='ghost'
+          size='sm'
+          className='h-8 text-xs'
+          onClick={() => {
+            setFeeValue(suggestedDisplay);
+            setIsEditing(false);
+            if (onFeeChange) {
+              onFeeChange(null);
+            }
+          }}
+        >
+          <Trans>Reset</Trans>
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function SignCoinSpendsDialog({
@@ -479,27 +617,45 @@ function SignMessageByAddressDialog({
   );
 }
 
-function TakeOfferDialog({ params }: CommandDialogProps<'chia_takeOffer'>) {
+function TakeOfferDialog({
+  params,
+  onFeeChange,
+}: CommandDialogProps<'chia_takeOffer'>) {
   const [offer, setOffer] = useState<OfferSummary | null>(null);
+  const [handleNfts, setHandleNfts] = useState<OfferHandleNft[]>([]);
   const { addError } = useErrors();
 
   useEffect(() => {
     commands
       .viewOffer({ offer: params.offer ?? '' })
-      .then((data) => setOffer(data.offer))
+      .then((data) => {
+        setOffer(data.offer);
+        setHandleNfts(data.handle_nfts ?? []);
+      })
       .catch(addError);
   }, [params, addError]);
 
-  return offer ? (
-    <OfferCard summary={offer} />
-  ) : (
-    <div className='p-4 text-center'>
-      <Trans>Loading offer details...</Trans>
+  return (
+    <div className='space-y-4'>
+      <OfferHandleNftWarning handleNfts={handleNfts} className='mx-4' />
+      {offer ? (
+        <OfferCard summary={offer} />
+      ) : (
+        <div className='p-4 text-center'>
+          <Trans>Loading offer details...</Trans>
+        </div>
+      )}
+      <div className='px-4 pb-4'>
+        <EditableFee suggestedFeeMojos={params.fee} onFeeChange={onFeeChange} />
+      </div>
     </div>
   );
 }
 
-function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
+function CreateOfferDialog({
+  params,
+  onFeeChange,
+}: CommandDialogProps<'chia_createOffer'>) {
   const walletState = useWalletState();
   // Check if any requested assets are revocable
   const hasRevocableAssets = params.requestAssets?.some(
@@ -563,23 +719,15 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
           ))}
         </ul>
       </div>
-      <div>
-        <div className='font-medium'>Fee</div>
-        <div className='text-sm text-muted-foreground'>
-          {formatNumber({
-            value: fromMojos(params.fee || 0, walletState.sync.unit.precision),
-            minimumFractionDigits: 0,
-            maximumFractionDigits: walletState.sync.unit.precision,
-          })}{' '}
-          {walletState.sync.unit.ticker}
-        </div>
-      </div>
+      <EditableFee suggestedFeeMojos={params.fee} onFeeChange={onFeeChange} />
     </div>
   );
 }
 
-function CancelOfferDialog({ params }: CommandDialogProps<'chia_cancelOffer'>) {
-  const walletState = useWalletState();
+function CancelOfferDialog({
+  params,
+  onFeeChange,
+}: CommandDialogProps<'chia_cancelOffer'>) {
   const [record, setRecord] = useState<OfferRecord | null>(null);
   const { addError } = useErrors();
 
@@ -595,15 +743,17 @@ function CancelOfferDialog({ params }: CommandDialogProps<'chia_cancelOffer'>) {
       <div className='font-medium'>Offer ID</div>
       <div className='text-sm text-muted-foreground'>{params.id}</div>
 
-      <div className='font-medium'>Fee</div>
-      <div className='text-sm text-muted-foreground'>
-        {formatNumber({
-          value: fromMojos(params.fee || 0, walletState.sync.unit.precision),
-          minimumFractionDigits: 0,
-          maximumFractionDigits: walletState.sync.unit.precision,
-        })}{' '}
-        {walletState.sync.unit.ticker}
-      </div>
+      {params.offChain ? (
+        <div className='text-sm text-yellow-600 dark:text-yellow-400'>
+          <Trans>
+            This only deletes the offer from your wallet. It stays valid, so
+            anyone who already has it can still take it, and you will not be
+            able to cancel it on-chain unless you import it again.
+          </Trans>
+        </div>
+      ) : (
+        <EditableFee suggestedFeeMojos={params.fee} onFeeChange={onFeeChange} />
+      )}
 
       {record && (
         <div className='border rounded-md'>
@@ -614,7 +764,7 @@ function CancelOfferDialog({ params }: CommandDialogProps<'chia_cancelOffer'>) {
   );
 }
 
-function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
+function SendDialog({ params, onFeeChange }: CommandDialogProps<'chia_send'>) {
   const walletState = useWalletState();
 
   return (
@@ -624,6 +774,7 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
         <div className='text-sm truncate text-muted-foreground'>
           {params.address}
         </div>
+        <HandleResolution value={params.address ?? ''} />
       </div>
       <div>
         <div className='font-medium'>Amount</div>
@@ -641,21 +792,156 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
           {params.assetId ? 'CAT' : walletState.sync.unit.ticker}
         </div>
       </div>
-      <div>
-        <div className='font-medium'>Fee</div>
-        <div className='text-sm text-muted-foreground'>
-          {formatNumber({
-            value: fromMojos(params.fee || 0, walletState.sync.unit.precision),
-            minimumFractionDigits: 0,
-            maximumFractionDigits: walletState.sync.unit.precision,
-          })}{' '}
-          {walletState.sync.unit.ticker}
-        </div>
-      </div>
+      <EditableFee suggestedFeeMojos={params.fee} onFeeChange={onFeeChange} />
       {params.assetId && (
         <div>
           <div className='font-medium'>Asset Id</div>
           <div className='text-sm text-muted-foreground'>{params.assetId}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UpdateCatDialog({ params }: CommandDialogProps<'chia_updateCat'>) {
+  const [token, setToken] = useState<TokenRecord | null | undefined>(undefined);
+  const { addError } = useErrors();
+  const assetId = (params.assetId ?? '').toLowerCase().replace(/^0x/, '');
+
+  useEffect(() => {
+    commands
+      .getToken({ asset_id: assetId })
+      .then((data) => setToken(data.token))
+      .catch(addError);
+  }, [assetId, addError]);
+
+  const rows: [string, string | null | undefined, string | undefined][] = [
+    ['Name', token?.name, params.name],
+    ['Ticker', token?.ticker, params.ticker],
+    ['Description', token?.description, params.description],
+  ];
+
+  return (
+    <div className='space-y-4 p-4'>
+      <div className='rounded-lg bg-amber-50 dark:bg-amber-950 p-4 border border-amber-200 dark:border-amber-800'>
+        <div className='flex items-start gap-3'>
+          <AlertTriangleIcon className='h-5 w-5 text-amber-500 mt-0.5' />
+          <p className='text-sm text-amber-700 dark:text-amber-300'>
+            The site chose these labels. Anyone can name a token anything, so
+            check the asset id below before approving. This changes only how the
+            token is shown in this wallet.
+          </p>
+        </div>
+      </div>
+      <div className='space-y-2'>
+        <div className='font-medium'>Asset Id</div>
+        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded'>
+          {assetId}
+        </div>
+      </div>
+      {token === null && (
+        <div className='text-sm text-destructive'>
+          This wallet does not hold this CAT, so the request will fail.
+        </div>
+      )}
+      {rows
+        .filter(([, , proposed]) => proposed !== undefined)
+        .map(([label, current, proposed]) => (
+          <div key={label}>
+            <div className='font-medium'>{label}</div>
+            <div className='text-sm text-muted-foreground'>
+              {current ? `${current} → ` : ''}
+              <span className='text-foreground'>{proposed}</span>
+            </div>
+          </div>
+        ))}
+      {params.iconUrl && (
+        <div>
+          <div className='font-medium'>Icon</div>
+          <div className='flex items-center gap-3 mt-1'>
+            <img
+              src={params.iconUrl}
+              alt=''
+              className='h-10 w-10 rounded-full'
+              referrerPolicy='no-referrer'
+            />
+            <span className='text-xs text-muted-foreground break-all'>
+              {params.iconUrl}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GetContactsDialog({ params }: CommandDialogProps<'chia_getContacts'>) {
+  const search = params?.search;
+
+  return (
+    <div className='space-y-2 p-4'>
+      <p className='text-sm text-muted-foreground'>
+        {search ? (
+          <Trans>
+            The site wants to read the contacts in your address book matching{' '}
+            <span className='font-mono text-foreground'>{search}</span>,
+            including their names, notes, addresses and handles. Your address
+            book is shared by all of your wallets on this network.
+          </Trans>
+        ) : (
+          <Trans>
+            The site wants to read the contacts in your address book, including
+            their names, notes, addresses and handles. Your address book is
+            shared by all of your wallets on this network.
+          </Trans>
+        )}
+      </p>
+    </div>
+  );
+}
+
+function AddContactDialog({ params }: CommandDialogProps<'chia_addContact'>) {
+  return (
+    <div className='space-y-4 p-4'>
+      <div className='rounded-lg bg-amber-50 dark:bg-amber-950 p-4 border border-amber-200 dark:border-amber-800'>
+        <div className='flex items-start gap-3'>
+          <AlertTriangleIcon className='h-5 w-5 text-amber-500 mt-0.5' />
+          <p className='text-sm text-amber-700 dark:text-amber-300'>
+            <Trans>
+              The site chose this name. Only save it if you know this recipient
+              belongs to who the name says, since the contact will be offered
+              when you pick a recipient.
+            </Trans>
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className='font-medium'>
+          <Trans>Name</Trans>
+        </div>
+        <div className='text-sm text-muted-foreground break-words'>
+          {params.name}
+        </div>
+      </div>
+      <div>
+        <div className='font-medium'>
+          <Trans>Recipient</Trans>
+        </div>
+        <div className='text-sm text-muted-foreground font-mono break-all'>
+          {params.recipient}
+        </div>
+        {xchandlesEnabled && (
+          <HandleResolution value={params.recipient ?? ''} />
+        )}
+      </div>
+      {params.note && (
+        <div>
+          <div className='font-medium'>
+            <Trans>Note</Trans>
+          </div>
+          <div className='text-sm text-muted-foreground break-words'>
+            {params.note}
+          </div>
         </div>
       )}
     </div>
@@ -683,7 +969,18 @@ const COMMAND_COMPONENTS: {
   chia_cancelOffer: CancelOfferDialog,
   chia_send: SendDialog,
   chia_signMessageByAddress: SignMessageByAddressDialog,
+  chia_updateCat: UpdateCatDialog,
+  chia_getContacts: GetContactsDialog,
+  chia_addContact: AddContactDialog,
 };
+
+const COMMANDS_WITH_FEE = new Set<string>([
+  'chia_send',
+  'chia_createOffer',
+  'chia_cancelOffer',
+  'chia_takeOffer',
+  // 'chia_bulkMintNfts',  // not implemented yet, but will require fee override support when it is
+]);
 
 const COMMAND_METADATA: Partial<
   Record<
@@ -718,6 +1015,23 @@ const COMMAND_METADATA: Partial<
     title: 'Sign Message',
     description: "Sign a message with your address's private key",
   },
+  chia_updateCat: {
+    title: 'Update Token',
+    description: 'A site suggests how this token is shown in your wallet',
+  },
+  chia_getContacts: {
+    title: 'Share Address Book',
+    description: 'A site wants to read your contacts',
+  },
+  chia_addContact: {
+    title: 'Add Contact',
+    description: 'A site suggests a contact for your address book',
+  },
+};
+
+const OFF_CHAIN_CANCEL_METADATA = {
+  title: 'Delete Offer',
+  description: 'Review and delete the offer from your wallet',
 };
 
 function RequestDialog({
@@ -727,22 +1041,58 @@ function RequestDialog({
   signClient,
 }: RequestDialogProps) {
   const [isApproving, setIsApproving] = useState(false);
+  const [feeOverride, setFeeOverride] = useState<string | null>(null);
   const { currentTheme } = useTheme();
   const method = request.params.request.method as WalletConnectCommand;
   const params = request.params.request.params;
   const commandInfo = walletConnectCommands[method];
-  const metadata = COMMAND_METADATA[method] ?? {
-    title: 'WalletConnect Request',
-    description: `Would you like to authorize the "${method.split('_').slice(1).join(' ')}" request?`,
-  };
   const peerMetadata = signClient?.session.get(request.topic)?.peer.metadata;
 
-  const CommandComponent = COMMAND_COMPONENTS[method] ?? DefaultCommandDialog;
+  // The component is selected by `method`, so its params always match `parsedParams`.
+  const CommandComponent = (COMMAND_COMPONENTS[method] ??
+    DefaultCommandDialog) as (
+    props: CommandDialogProps<WalletConnectCommand>,
+  ) => JSX.Element;
 
   const parsedParams = useMemo(
     () => commandInfo.paramsType.parse(params),
     [params, commandInfo],
   );
+
+  // Deleting an offer locally doesn't create a transaction, so there's no fee.
+  const isOffChainCancel =
+    method === 'chia_cancelOffer' &&
+    (parsedParams as Params<'chia_cancelOffer'>).offChain === true;
+
+  const hasFee = COMMANDS_WITH_FEE.has(method) && !isOffChainCancel;
+
+  const metadata = (isOffChainCancel
+    ? OFF_CHAIN_CANCEL_METADATA
+    : COMMAND_METADATA[method]) ?? {
+    title: 'WalletConnect Request',
+    description: `Would you like to authorize the "${method.split('_').slice(1).join(' ')}" request?`,
+  };
+
+  const approveWithFee = useCallback(async () => {
+    if (feeOverride !== null && hasFee) {
+      const modifiedRequest = {
+        ...request,
+        params: {
+          ...request.params,
+          request: {
+            ...request.params.request,
+            params: {
+              ...request.params.request.params,
+              fee: feeOverride,
+            },
+          },
+        },
+      };
+      await approve(modifiedRequest);
+    } else {
+      await approve(request);
+    }
+  }, [request, approve, feeOverride, hasFee]);
 
   if (!commandInfo.confirm) {
     return null;
@@ -779,7 +1129,12 @@ function RequestDialog({
         </DialogHeader>
 
         <div className='max-h-[60vh] overflow-y-auto mb-2'>
-          {CommandComponent && <CommandComponent params={parsedParams ?? {}} />}
+          {CommandComponent && (
+            <CommandComponent
+              params={parsedParams ?? {}}
+              onFeeChange={hasFee ? setFeeOverride : undefined}
+            />
+          )}
         </div>
 
         <DialogFooter>
@@ -794,7 +1149,7 @@ function RequestDialog({
             onClick={async () => {
               setIsApproving(true);
               try {
-                await approve(request);
+                await approveWithFee();
               } finally {
                 setIsApproving(false);
               }

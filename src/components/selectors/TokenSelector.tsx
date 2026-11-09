@@ -131,6 +131,18 @@ export function TokenSelector({
     [],
   );
 
+  const renderSelectedToken = useCallback(
+    (token: TokenRecord | undefined) => {
+      const selectedToken =
+        token ??
+        (value === undefined
+          ? undefined
+          : tokens[value === null ? 'xch' : value]);
+      return selectedToken ? renderToken(selectedToken) : t`Select asset`;
+    },
+    [renderToken, tokens, value],
+  );
+
   return (
     <SearchableSelect
       value={value === null ? 'xch' : value}
@@ -138,6 +150,7 @@ export function TokenSelector({
       items={filteredTokens}
       getItemId={(token) => token.asset_id ?? 'xch'}
       renderItem={renderToken}
+      renderSelectedItem={renderSelectedToken}
       onSearchChange={setSearchTerm}
       shouldFilter={false}
       validateManualInput={isValidAssetId}

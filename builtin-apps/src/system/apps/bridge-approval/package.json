@@ -1,0 +1,8 @@
+{
+  "name": "bridge-approval-system-app",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "sage-system-app-sdk": "workspace:*"
+  }
+}

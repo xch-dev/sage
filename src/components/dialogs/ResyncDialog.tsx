@@ -1,5 +1,6 @@
 import { Resync } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
+import { offersEnabled } from '@/lib/features';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useState } from 'react';
@@ -64,16 +65,18 @@ export function ResyncDialog({
               />
             </div>
 
-            <div className='flex items-center gap-2 my-2'>
-              <label htmlFor='deleteOffers'>
-                <Trans>Delete saved offer files</Trans>
-              </label>
-              <Switch
-                id='deleteOffers'
-                checked={deleteOffers}
-                onCheckedChange={(value) => setDeleteOffers(value)}
-              />
-            </div>
+            {offersEnabled && (
+              <div className='flex items-center gap-2 my-2'>
+                <label htmlFor='deleteOffers'>
+                  <Trans>Delete saved offer files</Trans>
+                </label>
+                <Switch
+                  id='deleteOffers'
+                  checked={deleteOffers}
+                  onCheckedChange={(value) => setDeleteOffers(value)}
+                />
+              </div>
+            )}
 
             <div className='flex items-center gap-2 my-2'>
               <label htmlFor='deleteCache'>

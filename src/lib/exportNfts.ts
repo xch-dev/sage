@@ -117,6 +117,7 @@ export async function exportNfts(params: ExportParams) {
   } catch (error) {
     console.error('Failed to export NFTs:', error);
     toast.dismiss();
-    toast.error(t`Failed to export NFTs: ${error as string}`);
+    const message = error as string;
+    toast.error(t`Failed to export NFTs: ${message}`);
   }
 }

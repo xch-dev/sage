@@ -2,13 +2,15 @@ use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
 use chia_wallet_sdk::prelude::*;
+use itertools::Itertools;
 use sage_api::OptionAssets;
 use sage_api::{Amount, NftRoyalty, OfferAsset, OfferSummary};
-use sage_database::OfferStatus;
-use sage_wallet::WalletError;
+use sage_database::{NftUpdaterKindExt, OfferStatus};
+use sage_wallet::{FETCH_COINS_TIMEOUT, MAX_PEER_ATTEMPTS, WalletError, fetch_coins_from_peers};
 
 use crate::ConfirmationInfo;
 use crate::StatusCoinType;
+use crate::encode_nft_updater_kind;
 use crate::utils::offer_status::offer_expiration;
 use crate::{Error, Result, Sage};
 
@@ -28,8 +30,8 @@ impl Sage {
 
         let offered_amounts = offer.offered_coins().amounts();
         let requested_amounts = offer.requested_payments().amounts();
-        let offered_royalties = offer.offered_royalty_amounts();
-        let requested_royalties = offer.requested_royalty_amounts();
+        let offered_royalties = offer.offered_royalty_amounts()?;
+        let requested_royalties = offer.requested_royalty_amounts()?;
 
         let mut maker = Vec::new();
 
@@ -39,11 +41,12 @@ impl Sage {
             };
 
             maker.push(OfferAsset {
-                amount: Amount::u64(offered_amounts.xch),
-                royalty: Amount::u64(offered_royalties.xch),
+                amount: Amount::u128(offered_amounts.xch),
+                royalty: Amount::u128(offered_royalties.xch),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
                 option_assets: None,
+                nft_metadata_updater_kind: None,
             });
         }
 
@@ -54,11 +57,12 @@ impl Sage {
                 .and_then(|cat| cat.hidden_puzzle_hash);
 
             maker.push(OfferAsset {
-                amount: Amount::u64(amount),
-                royalty: Amount::u64(offered_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
+                amount: Amount::u128(amount),
+                royalty: Amount::u128(offered_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
                 asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
                 option_assets: None,
+                nft_metadata_updater_kind: None,
             });
         }
 
@@ -68,9 +72,12 @@ impl Sage {
                     &ctx,
                     launcher_id,
                     nft.info.metadata.ptr(),
+                    nft.info.metadata_updater_puzzle_hash,
                     &mut ConfirmationInfo::default(),
                 )
                 .await?;
+
+            let kind = nft.info.metadata_updater_kind();
 
             maker.push(OfferAsset {
                 amount: Amount::u64(nft.coin.amount),
@@ -85,6 +92,7 @@ impl Sage {
                     royalty_basis_points: nft.info.royalty_basis_points,
                 }),
                 option_assets: None,
+                nft_metadata_updater_kind: Some(encode_nft_updater_kind(kind)),
             });
         }
 
@@ -107,6 +115,7 @@ impl Sage {
                     strike_amount: Amount::u64(row.strike_amount),
                     expiration_seconds: row.expiration_seconds,
                 }),
+                nft_metadata_updater_kind: None,
             });
         }
 
@@ -118,11 +127,12 @@ impl Sage {
             };
 
             taker.push(OfferAsset {
-                amount: Amount::u64(requested_amounts.xch),
-                royalty: Amount::u64(requested_royalties.xch),
+                amount: Amount::u128(requested_amounts.xch),
+                royalty: Amount::u128(requested_royalties.xch),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
                 option_assets: None,
+                nft_metadata_updater_kind: None,
             });
         }
 
@@ -133,19 +143,25 @@ impl Sage {
                 .and_then(|cat| cat.hidden_puzzle_hash);
 
             taker.push(OfferAsset {
-                amount: Amount::u64(amount),
-                royalty: Amount::u64(*requested_royalties.cats.get(&asset_id).unwrap_or(&0)),
+                amount: Amount::u128(amount),
+                royalty: Amount::u128(*requested_royalties.cats.get(&asset_id).unwrap_or(&0)),
                 asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
                 option_assets: None,
+                nft_metadata_updater_kind: None,
             });
         }
 
         for (&launcher_id, payments) in &offer.requested_payments().nfts {
             let amount = payments
                 .iter()
-                .map(|p| p.payments.iter().map(|p| p.amount).sum::<u64>())
-                .sum::<u64>();
+                .map(|p| {
+                    p.payments
+                        .iter()
+                        .map(|p| u128::from(p.amount))
+                        .sum::<u128>()
+                })
+                .sum::<u128>();
 
             let nft = offer
                 .asset_info()
@@ -157,12 +173,15 @@ impl Sage {
                     &ctx,
                     launcher_id,
                     nft.metadata.ptr(),
+                    nft.metadata_updater_puzzle_hash,
                     &mut ConfirmationInfo::default(),
                 )
                 .await?;
 
+            let kind = nft.metadata_updater_kind();
+
             taker.push(OfferAsset {
-                amount: Amount::u64(amount),
+                amount: Amount::u128(amount),
                 royalty: Amount::u64(0),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: Some(NftRoyalty {
@@ -171,14 +190,20 @@ impl Sage {
                     royalty_basis_points: nft.royalty_basis_points,
                 }),
                 option_assets: None,
+                nft_metadata_updater_kind: Some(encode_nft_updater_kind(kind)),
             });
         }
 
         for (&launcher_id, payments) in &offer.requested_payments().options {
             let amount = payments
                 .iter()
-                .map(|p| p.payments.iter().map(|p| p.amount).sum::<u64>())
-                .sum::<u64>();
+                .map(|p| {
+                    p.payments
+                        .iter()
+                        .map(|p| u128::from(p.amount))
+                        .sum::<u128>()
+                })
+                .sum::<u128>();
 
             let asset = self.cache_option(launcher_id).await?;
 
@@ -187,7 +212,7 @@ impl Sage {
             };
 
             taker.push(OfferAsset {
-                amount: Amount::u64(amount),
+                amount: Amount::u128(amount),
                 royalty: Amount::u64(0),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
@@ -198,6 +223,7 @@ impl Sage {
                     strike_amount: Amount::u64(row.strike_amount),
                     expiration_seconds: row.expiration_seconds,
                 }),
+                nft_metadata_updater_kind: None,
             });
         }
 
@@ -221,24 +247,32 @@ impl Sage {
             offer_status = OfferStatus::Expired;
         }
 
-        let peer_state = self.peer_state.lock().await;
+        // Don't hold the peer lock across network requests, which would stall syncing.
+        let (peak, peers) = {
+            let peer_state = self.peer_state.lock().await;
+            let peers = peer_state
+                .peers_by_peak()
+                .take(MAX_PEER_ATTEMPTS)
+                .cloned()
+                .collect_vec();
+            (peer_state.peak(), peers)
+        };
 
         if let Some(expiration_height) = summary.expiration_height
-            && let Some((height, _)) = peer_state.peak()
+            && let Some((height, _)) = peak
             && height >= expiration_height
         {
             offer_status = OfferStatus::Expired;
         }
 
-        if !status.coins.is_empty()
-            && let Some(peer) = peer_state.acquire_peer()
-        {
-            let coin_states = peer
-                .fetch_coins(
-                    status.coins.keys().copied().collect(),
-                    wallet.genesis_challenge,
-                )
-                .await?;
+        if !status.coins.is_empty() && !peers.is_empty() {
+            let coin_states = fetch_coins_from_peers(
+                &peers,
+                status.coins.keys().copied().collect(),
+                wallet.genesis_challenge,
+                FETCH_COINS_TIMEOUT,
+            )
+            .await?;
 
             for coin_state in coin_states {
                 let Some(coin_type) = status.coins.get(&coin_state.coin.coin_id()) else {

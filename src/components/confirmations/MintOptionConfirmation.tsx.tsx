@@ -1,4 +1,5 @@
 import { TokenRecord } from '@/bindings';
+import { durationUntil } from '@/lib/expiration';
 import { getAssetDisplayName } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { Trans } from '@lingui/react/macro';
@@ -31,17 +32,22 @@ export function MintOptionConfirmation({
 }: MintOptionConfirmationProps) {
   const walletState = useWalletState();
 
+  // Uses the same rounding as the expiration input, so both show the same
+  // remaining time.
   const formatExpiration = (seconds: number) => {
-    const now = Math.floor(Date.now() / 1000);
-    const diff = seconds - now;
-    const days = Math.floor(diff / (24 * 60 * 60));
-    const hours = Math.floor((diff % (24 * 60 * 60)) / (60 * 60));
-    const minutes = Math.floor((diff % (60 * 60)) / 60);
+    const remaining = durationUntil(seconds);
+    const days = parseInt(remaining.days);
+    const hours = parseInt(remaining.hours);
+    const minutes = parseInt(remaining.minutes);
 
     if (days > 0) return `${days}d ${hours}h ${minutes}m`;
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
   };
+
+  const expiration = expirationSeconds
+    ? formatExpiration(expirationSeconds)
+    : '';
 
   return (
     <div className='space-y-4 text-xs'>
@@ -139,9 +145,7 @@ export function MintOptionConfirmation({
           title={<Trans>Expiration</Trans>}
         >
           <div className='text-muted-foreground'>
-            <Trans>
-              This option expires in {formatExpiration(expirationSeconds)}
-            </Trans>
+            <Trans>This option expires in {expiration}</Trans>
           </div>
         </ConfirmationCard>
       )}

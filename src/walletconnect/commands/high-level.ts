@@ -1,7 +1,36 @@
 import { commands } from '@/bindings';
+import { withHandleConfirmation } from '@/lib/handles';
 import { useWalletState } from '@/state';
 import { Params, Return } from '../commands';
 import { HandlerContext } from '../handler';
+
+export async function handleUpdateCat(
+  params: Params<'chia_updateCat'>,
+): Promise<Return<'chia_updateCat'>> {
+  const assetId = params.assetId.toLowerCase().replace(/^0x/, '');
+  const { token } = await commands.getToken({ asset_id: assetId });
+
+  // Only a CAT the wallet already knows can be labelled: this edits Sage's own
+  // record of it, it does not add an asset the wallet has never seen.
+  if (!token) {
+    throw new Error(
+      'This wallet does not hold that CAT yet, so there is nothing to label',
+    );
+  }
+
+  // Fields the site left out keep what the wallet already has.
+  await commands.updateCat({
+    record: {
+      ...token,
+      name: params.name ?? token.name,
+      ticker: params.ticker ?? token.ticker,
+      icon_url: params.iconUrl ?? token.icon_url,
+      description: params.description ?? token.description,
+    },
+  });
+
+  return {};
+}
 
 export async function handleGetNfts(
   params: Params<'chia_getNfts'>,
@@ -51,23 +80,33 @@ export async function handleSend(
     throw new Error('Authentication failed');
   }
 
-  if (params.assetId) {
-    await commands.sendCat({
-      asset_id: params.assetId,
-      address: params.address,
-      amount: params.amount,
-      fee: params.fee ?? 0,
-      memos: params.memos ?? [],
-      auto_submit: true,
-    });
+  // A handle which changed since it was last sent to is only sent to once the
+  // user confirms its new address.
+  const assetId = params.assetId;
+
+  if (assetId) {
+    await withHandleConfirmation((confirmed_handles) =>
+      commands.sendCat({
+        asset_id: assetId,
+        address: params.address,
+        amount: params.amount,
+        fee: params.fee ?? 0,
+        memos: params.memos ?? [],
+        auto_submit: true,
+        confirmed_handles,
+      }),
+    );
   } else {
-    await commands.sendXch({
-      address: params.address,
-      amount: params.amount,
-      fee: params.fee ?? 0,
-      memos: params.memos ?? [],
-      auto_submit: true,
-    });
+    await withHandleConfirmation((confirmed_handles) =>
+      commands.sendXch({
+        address: params.address,
+        amount: params.amount,
+        fee: params.fee ?? 0,
+        memos: params.memos ?? [],
+        auto_submit: true,
+        confirmed_handles,
+      }),
+    );
   }
 
   return {};
@@ -98,42 +137,45 @@ export async function handleBulkMintNfts(
     throw new Error('Authentication failed');
   }
 
-  const response = await commands.bulkMintNfts({
-    did_id: params.did,
-    fee: params.fee ?? 0,
-    auto_submit: true,
-    mints: params.nfts.map((nft) => {
-      if (nft.dataUris?.length && !nft.dataHash) {
-        throw new Error('Data hash is required if data uris are provided');
-      }
+  const response = await withHandleConfirmation((confirmed_handles) =>
+    commands.bulkMintNfts({
+      did_id: params.did,
+      fee: params.fee ?? 0,
+      auto_submit: true,
+      confirmed_handles,
+      mints: params.nfts.map((nft) => {
+        if (nft.dataUris?.length && !nft.dataHash) {
+          throw new Error('Data hash is required if data uris are provided');
+        }
 
-      if (nft.metadataUris?.length && !nft.metadataHash) {
-        throw new Error(
-          'Metadata hash is required if metadata uris are provided',
-        );
-      }
+        if (nft.metadataUris?.length && !nft.metadataHash) {
+          throw new Error(
+            'Metadata hash is required if metadata uris are provided',
+          );
+        }
 
-      if (nft.licenseUris?.length && !nft.licenseHash) {
-        throw new Error(
-          'License hash is required if license uris are provided',
-        );
-      }
+        if (nft.licenseUris?.length && !nft.licenseHash) {
+          throw new Error(
+            'License hash is required if license uris are provided',
+          );
+        }
 
-      return {
-        address: nft.address,
-        data_hash: nft.dataHash,
-        metadata_hash: nft.metadataHash,
-        license_hash: nft.licenseHash,
-        data_uris: nft.dataUris,
-        metadata_uris: nft.metadataUris,
-        license_uris: nft.licenseUris,
-        royalty_address: nft.royaltyAddress,
-        royalty_ten_thousandths: nft.royaltyTenThousandths,
-        edition_number: nft.editionNumber,
-        edition_total: nft.editionTotal,
-      };
+        return {
+          address: nft.address,
+          data_hash: nft.dataHash,
+          metadata_hash: nft.metadataHash,
+          license_hash: nft.licenseHash,
+          data_uris: nft.dataUris,
+          metadata_uris: nft.metadataUris,
+          license_uris: nft.licenseUris,
+          royalty_address: nft.royaltyAddress,
+          royalty_ten_thousandths: nft.royaltyTenThousandths,
+          edition_number: nft.editionNumber,
+          edition_total: nft.editionTotal,
+        };
+      }),
     }),
-  });
+  );
 
   return {
     nftIds: response.nft_ids,

@@ -1,10 +1,16 @@
 use std::{fs, time::Duration};
 
+use crate::{
+    app_state::{self, AppState, Initialized, RpcTask},
+    error::Result,
+};
 use chia_wallet_sdk::utils::Address;
 use reqwest::StatusCode;
 use sage::Error;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
+#[cfg(not(mobile))]
+use sage_apps::ensure_initial_sandbox_run;
 use sage_config::{NetworkConfig, Wallet, WalletDefaults};
 use sage_rpc::start_rpc;
 use serde::{Deserialize, Serialize};
@@ -12,11 +18,6 @@ use specta::{Type, specta};
 use tauri::{AppHandle, State, command};
 use tokio::time::sleep;
 use tracing::error;
-
-use crate::{
-    app_state::{self, AppState, Initialized, RpcTask},
-    error::Result,
-};
 
 #[command]
 #[specta]
@@ -28,15 +29,20 @@ pub async fn initialize(
 ) -> Result<()> {
     let mut initialized = initialized.0.lock().await;
 
-    if *initialized {
-        return Ok(());
+    // This runs again whenever the webview reloads. Initialization is never retried, since the app
+    // can't be used safely if it failed partway, so the original outcome is reported instead.
+    if let Some(result) = initialized.as_ref() {
+        return result.clone();
     }
 
-    *initialized = true;
-
     let mut sage = state.lock().await;
-    app_state::initialize(app_handle, &mut sage).await?;
+    let result = app_state::initialize(app_handle.clone(), &mut sage)
+        .await
+        .map_err(Into::into);
     drop(sage);
+
+    *initialized = Some(result.clone());
+    result?;
 
     let app_state = (*state).clone();
 
@@ -61,6 +67,14 @@ pub async fn initialize(
     }
 
     Ok(())
+}
+
+/// Exits the app. This is used when initialization fails, since Sage can't continue safely.
+#[command]
+#[specta]
+#[allow(clippy::needless_pass_by_value)] // Tauri commands can't take the handle by reference
+pub fn quit(app_handle: AppHandle) {
+    app_handle.exit(0);
 }
 
 impl_endpoints_tauri! {
@@ -154,8 +168,23 @@ pub async fn set_rpc_run_on_startup(
 
 #[command]
 #[specta]
-pub async fn switch_wallet(state: State<'_, AppState>) -> Result<()> {
-    state.lock().await.switch_wallet().await?;
+pub async fn switch_wallet(app_handle: AppHandle, state: State<'_, AppState>) -> Result<()> {
+    {
+        state.lock().await.switch_wallet().await?;
+    }
+
+    #[cfg(not(mobile))]
+    {
+        if let Err(err) = ensure_initial_sandbox_run(app_handle).await {
+            eprintln!("failed to start initial sandbox run: {err}");
+        }
+    }
+
+    #[cfg(mobile)]
+    {
+        let _ = app_handle;
+    }
+
     Ok(())
 }
 
@@ -204,6 +233,8 @@ pub async fn download_cni_offercode(code: String) -> Result<String> {
                 "Invalid offer code {code}: Server responded with code {}",
                 response.status()
             ),
+            handle_error_code: None,
+            recipients: None,
         });
     }
 

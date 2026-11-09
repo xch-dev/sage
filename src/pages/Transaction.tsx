@@ -57,9 +57,11 @@ export default function Transaction() {
     };
   }, [updateTransaction]);
 
+  const heightLabel = height ?? '';
+
   return (
     <>
-      <Header title={t`Transaction #${height ?? ''}`} />
+      <Header title={t`Transaction #${heightLabel}`} />
       <Container>
         <Card className='mb-6'>
           <CardHeader className='pb-2'>
@@ -118,6 +120,7 @@ export default function Transaction() {
                     asset={coin.asset}
                     amount={coin.amount}
                     coinId={coin.coin_id}
+                    address={coin.address}
                   />
                 ))}
               </CardContent>
@@ -138,6 +141,7 @@ export default function Transaction() {
                     asset={coin.asset}
                     amount={coin.amount}
                     coinId={coin.coin_id}
+                    address={coin.address}
                   />
                 ))}
               </CardContent>

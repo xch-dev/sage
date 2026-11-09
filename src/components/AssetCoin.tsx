@@ -1,4 +1,5 @@
 import { Amount, Asset, AssetKind } from '@/bindings';
+import { AddressLabels } from '@/components/AddressLabels';
 import { AssetIcon } from '@/components/AssetIcon';
 import { CopyButton } from '@/components/CopyButton';
 import { NumberFormat } from '@/components/NumberFormat';
@@ -13,11 +14,14 @@ interface AssetCoinProps {
   asset: Asset;
   amount: Amount;
   coinId: string | null;
+  /** The address the coin was sent to, if it should be shown. */
+  address?: string | null;
 }
 
-export function AssetCoin({ asset, amount, coinId }: AssetCoinProps) {
+export function AssetCoin({ asset, amount, coinId, address }: AssetCoinProps) {
   const { isTestnet } = useNetwork();
   const url = coinId ? spacescanCoinUrl(coinId, isTestnet) : null;
+  const coinIdLabel = coinId ?? '';
 
   return (
     <div className='rounded-xl border border-border bg-card text-card-foreground shadow p-4'>
@@ -26,7 +30,7 @@ export function AssetCoin({ asset, amount, coinId }: AssetCoinProps) {
         onClick={() => {
           if (url) openUrl(url);
         }}
-        aria-label={t`View coin ${coinId ?? ''} on Spacescan.io`}
+        aria-label={t`View coin ${coinIdLabel} on Spacescan.io`}
         role='button'
         tabIndex={0}
         onKeyDown={(e) => {
@@ -38,6 +42,7 @@ export function AssetCoin({ asset, amount, coinId }: AssetCoinProps) {
         <AssetAmount asset={asset} amount={amount} />
         {asset.asset_id && <Id kind={asset.kind} id={asset.asset_id} />}
         {coinId && <Id kind='coin' id={coinId} />}
+        {address && <CoinAddress address={address} />}
       </div>
     </div>
   );
@@ -70,6 +75,25 @@ function AssetAmount({ asset, amount }: AssetAmountProps) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function CoinAddress({ address }: { address: string }) {
+  return (
+    <div className='flex flex-wrap items-center gap-2 mt-2 text-sm text-muted-foreground'>
+      <span>{t`Address`}:</span>
+      <span className='font-mono' title={address}>
+        {formatAddress(address, 8, 6)}
+      </span>
+      <div onClick={(e) => e.stopPropagation()}>
+        <CopyButton
+          value={address}
+          className='h-6 w-6 p-0'
+          onCopy={() => toast.success(t`Address copied to clipboard`)}
+        />
+      </div>
+      <AddressLabels address={address} />
     </div>
   );
 }

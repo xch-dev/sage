@@ -1,4 +1,5 @@
 import { commands, events, NftCollectionRecord } from '@/bindings';
+import { useWallet } from '@/contexts/WalletContext';
 import { NO_COLLECTION_ID } from '@/hooks/useNftData';
 import { useNetwork } from '@/hooks/useNetwork';
 import { usePrices } from '@/hooks/usePrices';
@@ -95,6 +96,8 @@ async function fetchOwnedCollections(): Promise<NftCollectionRecord[]> {
 
 export function NftPriceProvider({ children }: { children: ReactNode }) {
   const { network, isTestnet } = useNetwork();
+  const { wallet } = useWallet();
+  const fingerprint = wallet?.fingerprint ?? null;
   const { getPriceInUsd } = usePrices();
 
   const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
@@ -117,8 +120,7 @@ export function NftPriceProvider({ children }: { children: ReactNode }) {
     refreshingRef.current = true;
 
     try {
-      const key = await commands.getKey({});
-      if (!key?.key) {
+      if (fingerprint === null) {
         setCollections([]);
         return;
       }
@@ -164,7 +166,7 @@ export function NftPriceProvider({ children }: { children: ReactNode }) {
       refreshingRef.current = false;
       setIsLoading(false);
     }
-  }, [isTestnet, setFloors]);
+  }, [fingerprint, isTestnet, setFloors]);
 
   useEffect(() => {
     // Don't fetch until network is loaded, mirroring PriceContext
