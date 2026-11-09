@@ -115,6 +115,19 @@ pub async fn insert_puzzle(
                 return Ok(false);
             }
 
+            // A CAT that isn't at one of our addresses is only ours if it's locked to fixed
+            // conditions or one of our vaults, as its memos claim. Anyone can write those memos, so
+            // this is checked before the coin can change anything about its asset.
+            if let Some(fixed_conditions) = fixed_conditions
+                && !tx.is_custody_p2_puzzle_hash(info.p2_puzzle_hash).await?
+                && !insert_conditions_or_singleton(tx, &fixed_conditions, info.p2_puzzle_hash)
+                    .await?
+            {
+                warn!("Deleting CAT coin {coin_id} because it isn't locked to one of our vaults");
+                tx.delete_coin(coin_id).await?;
+                return Ok(false);
+            }
+
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
             if let Some(hidden_puzzle_hash) = tx.existing_hidden_puzzle_hash(info.asset_id).await? {
@@ -171,18 +184,6 @@ pub async fn insert_puzzle(
 
             if let Some(clawback) = clawback {
                 tx.insert_clawback_p2_puzzle(clawback).await?;
-            }
-
-            // A CAT that isn't at one of our addresses is only ours if it's locked to fixed
-            // conditions or one of our vaults, as its memos claim.
-            if let Some(fixed_conditions) = fixed_conditions
-                && !tx.is_custody_p2_puzzle_hash(info.p2_puzzle_hash).await?
-                && !insert_conditions_or_singleton(tx, &fixed_conditions, info.p2_puzzle_hash)
-                    .await?
-            {
-                warn!("Deleting CAT coin {coin_id} because it isn't locked to one of our vaults");
-                tx.delete_coin(coin_id).await?;
-                return Ok(false);
             }
 
             tx.update_coin(coin_id, info.asset_id, info.p2_puzzle_hash)
