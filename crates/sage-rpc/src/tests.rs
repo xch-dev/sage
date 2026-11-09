@@ -36,11 +36,12 @@ use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
     Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CreateDid,
-    CreateTransaction, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater, GetOffer,
-    GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode, HandleStatus,
-    HandleVerification, Id as ApiId, ImportOffer, ImportWallet, Login, LookupAddressHandles,
-    MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind, OfferAmount, OfferAsset, OfferRecordStatus,
-    ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction, ViewOffer,
+    CreateTransaction, GetCats, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater,
+    GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode,
+    HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet, IssueCat, Login,
+    LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind, OfferAmount,
+    OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction,
+    ViewOffer,
 };
 use sage_api_macro::impl_endpoints;
 use sage_database::{OfferStatus, XchandleRow, XchandleStatus};
@@ -551,6 +552,112 @@ async fn test_pre_split_offer() -> Result<()> {
     }
 
     assert_eq!(amounts, vec![640]);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_pre_split_cat_offer() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(10_000).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    app.issue_cat(IssueCat {
+        name: "Split".to_string(),
+        ticker: "SPL".to_string(),
+        amount: Amount::u64(1000),
+        revocable: false,
+        fee: Amount::u64(0),
+        auto_submit: true,
+    })
+    .await?;
+    app.wait_for_coins().await;
+
+    let cat_id = app.get_cats(GetCats {}).await?.cats[0]
+        .asset_id
+        .clone()
+        .expect("the CAT has an asset id");
+    let asset_id = Bytes32::try_from(hex::decode(&cat_id)?)?;
+
+    let response = app
+        .make_offer(MakeOffer {
+            confirmed_handles: Vec::new(),
+            requested_assets: vec![OfferAmount {
+                asset_id: None,
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(1),
+            }],
+            offered_assets: vec![OfferAmount {
+                asset_id: Some(cat_id),
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(300),
+            }],
+            fee: Amount::u64(0),
+            receive_address: None,
+            expires_at_second: None,
+            auto_import: false,
+            coin_ids: None,
+            pre_split_fee: Some(Amount::u64(10)),
+        })
+        .await?;
+
+    assert!(response.pre_split_transaction_id.is_some());
+
+    let status = async |app: &TestApp| -> Result<OfferRecordStatus> {
+        Ok(app
+            .get_offer(GetOffer {
+                offer_id: response.offer_id.clone(),
+            })
+            .await?
+            .offer
+            .status)
+    };
+    assert!(matches!(status(&app).await?, OfferRecordStatus::Pending));
+
+    app.consume_until(|event| {
+        matches!(
+            event,
+            SyncEvent::OfferUpdated {
+                status: OfferStatus::Active,
+                ..
+            }
+        )
+    })
+    .await;
+    assert!(matches!(status(&app).await?, OfferRecordStatus::Active));
+
+    // Only the offered CAT amount is locked by the offer. The split fee comes out of the XCH
+    // left over from issuing the CAT, and the rest of both is spendable.
+    let mut amounts = (Vec::new(), Vec::new());
+
+    for _ in 0..100 {
+        let sage = app.sage.lock().await;
+        let db = &sage.wallet()?.db;
+
+        amounts = (
+            db.selectable_cat_coins(asset_id)
+                .await?
+                .iter()
+                .map(|cat| cat.coin.amount)
+                .collect::<Vec<_>>(),
+            db.selectable_xch_coins()
+                .await?
+                .iter()
+                .map(|coin| coin.amount)
+                .collect::<Vec<_>>(),
+        );
+
+        if !amounts.0.is_empty() && !amounts.1.is_empty() {
+            break;
+        }
+
+        drop(sage);
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+
+    assert_eq!(amounts, (vec![700], vec![8990]));
 
     Ok(())
 }

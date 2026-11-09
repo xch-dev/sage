@@ -235,7 +235,7 @@ export function MakeOffer() {
             </div>
 
             <div className='flex flex-col gap-2'>
-              <div className='flex items-center gap-2'>
+              <div className='flex items-center gap-2 min-h-9'>
                 <label htmlFor='pre-split'>
                   <Trans>Pre-split coins</Trans>
                 </label>
@@ -245,30 +245,12 @@ export function MakeOffer() {
                   disabled={isSplittingNftOffers}
                   onCheckedChange={setPreSplit}
                 />
-              </div>
-              <p className='text-sm text-muted-foreground'>
-                {isSplittingNftOffers ? (
-                  <Trans>
-                    Coins can&apos;t be pre-split when each NFT gets its own
-                    offer.
-                  </Trans>
-                ) : (
-                  <Trans>
-                    Splits the coins being offered to the exact amounts first,
-                    so the offer doesn&apos;t lock up the rest of your balance.
-                    The offer can&apos;t be shared until the split is confirmed.
-                  </Trans>
-                )}
-              </p>
 
-              {isPreSplitting && (
-                <div className='flex flex-col space-y-1.5'>
-                  <Label htmlFor='pre-split-fee'>
-                    <Trans>Split Fee</Trans>
-                  </Label>
-                  <div className='relative'>
+                {isPreSplitting && (
+                  <div className='relative ml-auto w-40'>
                     <FeeAmountInput
                       id='pre-split-fee'
+                      aria-label={t`Split fee`}
                       className='pr-12'
                       value={preSplitFee}
                       onValueChange={(values: { value: string }) => {
@@ -281,8 +263,19 @@ export function MakeOffer() {
                       </span>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+              <p className='text-sm text-muted-foreground'>
+                {isSplittingNftOffers ? (
+                  <Trans>Not available when each NFT gets its own offer.</Trans>
+                ) : isPreSplitting ? (
+                  <Trans>
+                    The offer is shared once the split is confirmed.
+                  </Trans>
+                ) : (
+                  <Trans>Keeps the rest of your balance spendable.</Trans>
+                )}
+              </p>
             </div>
           </div>
         </div>
