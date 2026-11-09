@@ -752,6 +752,33 @@ fn test_rejects_invalid_configs() {
         Err(VaultLayoutError::CustomMember)
     ));
 
+    config.custody = VaultSigners::new(vec![r1_a(), r1_a()], 1);
+    assert!(matches!(
+        vault_hashes(&config),
+        Err(VaultLayoutError::DuplicateMember)
+    ));
+
+    // The same key with and without fast forward are different members.
+    let r1_b_slow = match r1_b() {
+        VaultMember::Secp256r1 { public_key, .. } => VaultMember::Secp256r1 {
+            public_key,
+            fast_forward: false,
+        },
+        _ => unreachable!(),
+    };
+    config.custody = VaultSigners::new(vec![r1_b(), r1_b_slow], 1);
+    assert!(vault_hashes(&config).is_ok());
+
+    config
+        .recovery
+        .as_mut()
+        .expect("the vault has recovery")
+        .timelock = u64::MAX;
+    assert!(matches!(
+        vault_hashes(&config),
+        Err(VaultLayoutError::InvalidTimelock)
+    ));
+
     // A recovery whose post-recovery config doesn't match the recovery custody hash.
     let post_recovery = fixture("oneOfOne", VaultVersion::Legacy);
     let recovery = VaultRecoveryConfig {

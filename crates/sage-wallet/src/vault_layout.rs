@@ -77,6 +77,12 @@ pub enum VaultLayoutError {
     )]
     CustomMember,
 
+    #[error("Vault signers can't have the same member more than once")]
+    DuplicateMember,
+
+    #[error("The recovery timelock is too large to store")]
+    InvalidTimelock,
+
     #[error("The vault memo list is larger than {MAX_VAULT_MEMO_LIST_SIZE} bytes")]
     MemoTooLarge,
 
@@ -147,6 +153,10 @@ pub fn p2_singleton_puzzle_hash(launcher_id: Bytes32, nonce: usize) -> Bytes32 {
 pub fn vault_hashes(config: &VaultConfig) -> Result<VaultHashes, VaultLayoutError> {
     let custody_member_hash = signers_hash(&config.custody, vec![])?;
 
+    if let Some(recovery) = &config.recovery {
+        validate_timelock(recovery.timelock)?;
+    }
+
     let Some(recovery) = &config.recovery else {
         return Ok(VaultHashes {
             custody_hash: mips_puzzle_hash(0, vec![], signers_inner_hash(&config.custody), true),
@@ -211,6 +221,8 @@ pub fn build_vault_recovery(
     config: &VaultRecoveryConfig,
     post_recovery: &VaultConfig,
 ) -> Result<BuiltVault, VaultLayoutError> {
+    validate_timelock(config.recovery_timelock)?;
+
     let post_recovery = build_vault(allocator, post_recovery)?;
 
     if post_recovery.hashes.custody_hash != config.recovery_custody_hash.into() {
@@ -411,6 +423,23 @@ fn validate_signers(signers: &VaultSigners) -> Result<(), VaultLayoutError> {
         .any(|member| matches!(member, VaultMember::Custom { .. }))
     {
         return Err(VaultLayoutError::CustomMember);
+    }
+
+    // A repeated member would count more than once towards the threshold, so the SDK refuses to
+    // verify a memo with one, even though Cloud Wallet allowed it before September 2026.
+    for (index, member) in signers.members.iter().enumerate() {
+        if signers.members[..index].contains(member) {
+            return Err(VaultLayoutError::DuplicateMember);
+        }
+    }
+
+    Ok(())
+}
+
+/// Timelocks are stored as signed integers, so larger ones can't be stored.
+fn validate_timelock(timelock: u64) -> Result<(), VaultLayoutError> {
+    if i64::try_from(timelock).is_err() {
+        return Err(VaultLayoutError::InvalidTimelock);
     }
 
     Ok(())
