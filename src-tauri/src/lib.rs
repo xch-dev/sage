@@ -243,12 +243,18 @@ pub fn run() {
 
     let mut tauri_builder = tauri::Builder::default();
 
-    // The single instance plugin has to be registered before every other plugin
+    // The single instance plugin has to be registered before every other plugin. Its lock is
+    // keyed on the app identifier rather than the root, so it's skipped with `SAGE_ROOT` set,
+    // which would otherwise stop instances using different roots from running side by side.
+    // Deep links launched by the OS don't carry `SAGE_ROOT`, so they go to the default root.
     #[cfg(not(mobile))]
-    {
+    if sage_config::sage_root_override().is_none() {
         tauri_builder =
             tauri_builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
                 if let Some(window) = app.get_webview_window("main") {
+                    // Focusing alone leaves a minimized or hidden window where it is
+                    let _ = window.unminimize();
+                    let _ = window.show();
                     let _ = window.set_focus();
                 }
             }));

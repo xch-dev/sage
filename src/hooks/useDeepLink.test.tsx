@@ -282,14 +282,6 @@ describe('useDeepLink', () => {
       expect(mocks.toast.error).toHaveBeenCalledWith('Invalid deep link');
     });
 
-    it('handles a link once when several scan fields receive it', async () => {
-      await mount();
-      act(() => {
-        for (let i = 0; i < 4; i++) openInAppDeepLink('sage:send');
-      });
-      expect(mocks.toast.error).toHaveBeenCalledTimes(1);
-    });
-
     it('leaves other text for the field', async () => {
       await mount();
       expect(openInAppDeepLink(XCH)).toBe(false);

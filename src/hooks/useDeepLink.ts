@@ -15,22 +15,11 @@ const APP_INSTALL_ID = 'app-install';
 // Set while the hook is mounted, so scanned and pasted links share its handling
 let queueInAppLinks: ((urls: string[]) => void) | null = null;
 
-// A page with several scan fields hands one scanned result to each of them in
-// a single effect pass, so ignore repeats until that pass is over
-let inAppLinkThisTick: string | null = null;
-
 /** Opens a scanned or pasted `sage:` link; returns false if `text` isn't one. */
 export function openInAppDeepLink(text: string): boolean {
   if (!queueInAppLinks || !isDeepLink(text)) return false;
 
-  const url = text.trim();
-  if (url !== inAppLinkThisTick) {
-    inAppLinkThisTick = url;
-    queueMicrotask(() => {
-      inAppLinkThisTick = null;
-    });
-    queueInAppLinks([url]);
-  }
+  queueInAppLinks([text.trim()]);
   return true;
 }
 

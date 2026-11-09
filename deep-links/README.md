@@ -134,6 +134,17 @@ The parser treats a query string as `%26`-separated **only** when it contains no
 
 The consequence is that the `%26` form cannot carry a literal `&` inside a memo — every `%26` in that form is read as a separator. If a memo needs an `&`, use the literal-`&` separator form and accept that it won't work on Android.
 
+## Multiple instances (`SAGE_ROOT`)
+
+Without `SAGE_ROOT`, a second launch of Sage on Windows, Linux or macOS exits and hands its arguments, including any link, to the running instance, which comes to the front. That's how a link reaches an already-running Sage on Windows and Linux.
+
+That lock is keyed on the app identifier rather than the root, so it's skipped when `SAGE_ROOT` is set, and instances using different roots can still run side by side. Links opened by the OS don't carry `SAGE_ROOT`:
+
+- **Windows and Linux:** a link starts a process with the default root. It's handed to the default-root instance if one is running; otherwise it starts one. An instance using a custom root only gets a link it was launched with, e.g. `SAGE_ROOT=... sage "sage:send?address=..."`.
+- **macOS:** links go to the installed bundle through Launch Services, which picks a running copy of the bundle. Which root it uses isn't something Sage controls.
+
+Links scanned or pasted inside Sage open in that window, whatever its root.
+
 ## Platform-Specific Information
 
 ### macOS
