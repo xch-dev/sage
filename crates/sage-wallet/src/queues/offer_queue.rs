@@ -229,10 +229,19 @@ impl OfferQueue {
             };
 
             // When the split is confirmed or fails, the wallet stops tracking the coins it would
-            // create. If the coin being split was never spent, the split failed.
+            // create. If the coin being split was never spent, the split failed. The wallet may
+            // not have synced the spend yet, so a peer has to agree it's unspent.
+            let parent_unspent_on_chain = chain_coin_states
+                .get(&coin.parent_coin_info)
+                .is_some_and(|state| state.spent_height.is_none());
+
             if parent_heights.spent_height.is_none() {
-                tx.commit().await?;
-                return Ok(Some(OfferStatus::Cancelled));
+                if parent_unspent_on_chain {
+                    tx.commit().await?;
+                    return Ok(Some(OfferStatus::Cancelled));
+                }
+
+                continue;
             }
 
             // Otherwise it was spent, which only means the split failed if it was spent without

@@ -218,9 +218,9 @@ impl Sage {
             let transaction_id = split.name();
 
             // The offer has to be saved to keep the split coins from being spent on something
-            // else, but they only become known to the wallet once the split is submitted. So
-            // everything that could fail is done first, and the split fee isn't spent on an
-            // offer that can't be saved.
+            // else, but they only become known to the wallet once the split is submitted. So the
+            // lookups that can fail, which may reach the network, are done first, leaving only
+            // the database writes for afterwards.
             let prepared = self.prepare_offer_import(encoded_offer.clone()).await?;
 
             self.submit_unchecked(split).await?;

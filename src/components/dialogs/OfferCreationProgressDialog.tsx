@@ -18,7 +18,7 @@ import { OfferState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { LoaderCircleIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -44,6 +44,7 @@ export function OfferCreationProgressDialog({
   const { addError } = useErrors();
   const { wallet } = useWallet();
   const fingerprint = wallet?.fingerprint ?? null;
+  const queuedOfferIds = useRef(new Set<string>());
   const { isTestnet, isUnknown } = useNetwork();
   const [isUploading, setIsUploading] = useState(false);
   const [hasStartedProcessing, setHasStartedProcessing] = useState(false);
@@ -98,7 +99,16 @@ export function OfferCreationProgressDialog({
         // whose coins are being split are uploaded once that's confirmed.
         if (fingerprint !== null) {
           for (const createdOffer of createdOffers) {
-            if (!createdOffer.isPending) continue;
+            // This effect can run again while the dialog is open, by which
+            // point the offer may already have been uploaded and forgotten.
+            if (
+              !createdOffer.isPending ||
+              queuedOfferIds.current.has(createdOffer.offerId)
+            ) {
+              continue;
+            }
+
+            queuedOfferIds.current.add(createdOffer.offerId);
 
             queuePendingOfferUpload({
               fingerprint,

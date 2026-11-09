@@ -270,6 +270,7 @@ export function MakeOffer() {
                     <FeeAmountInput
                       id='pre-split-fee'
                       className='pr-12'
+                      value={preSplitFee}
                       onValueChange={(values: { value: string }) => {
                         setPreSplitFee(values.value);
                       }}
