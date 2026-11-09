@@ -360,9 +360,14 @@ fn test_recovery_search_limits() {
         Err(VaultHistoryError::InvalidRecoveryThreshold)
     ));
 
-    // A lone key is tried as either of its members, and repeated keys are only tried once.
-    let search = RecoverySearch::new(&[keys[0], keys[0]], None, vec![1]).unwrap();
+    // A lone key is tried as either of its members.
+    let search = RecoverySearch::new(&keys, None, vec![1]).unwrap();
     assert_eq!(search.candidates.len(), 2);
+
+    assert!(matches!(
+        RecoverySearch::new(&[keys[0], keys[0]], None, vec![1]),
+        Err(VaultHistoryError::DuplicateRecoveryKey)
+    ));
 
     // Several keys are tried as Cloud Wallet's members, with every threshold.
     let several: Vec<RecoveryKey> = (1..=3)

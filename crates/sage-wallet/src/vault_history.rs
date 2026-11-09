@@ -67,6 +67,10 @@ pub const MAX_RECOVERY_SEARCH: usize = 1_500_000;
 /// even when the timelock is given.
 pub const MAX_RECOVERY_CANDIDATES: usize = 4096;
 
+/// How many custodies a vault's recovery side is searched for in at most, from the latest. Each
+/// search can take seconds.
+pub const MAX_RECOVERY_SEARCHES: usize = 2;
+
 /// How deeply an M of N proof is followed, which is far more than any vault's members need.
 const MAX_PROOF_DEPTH: usize = 64;
 
@@ -101,6 +105,11 @@ pub enum VaultHistoryError {
 
     #[error("The recovery threshold must be between 1 and the number of recovery keys")]
     InvalidRecoveryThreshold,
+
+    #[error(
+        "The same recovery key was given more than once, for example as both a mnemonic and its public key"
+    )]
+    DuplicateRecoveryKey,
 
     #[error(
         "There are too many combinations of recovery keys, thresholds and timelocks to search. Give the recovery threshold or timelock."
@@ -237,11 +246,14 @@ impl RecoverySearch {
         threshold: Option<usize>,
         timelocks: Vec<u64>,
     ) -> Result<Self, VaultHistoryError> {
+        // The threshold is out of the number of keys, so a key that's given twice would make a
+        // threshold that looks valid fail.
         let mut unique = Vec::new();
         for key in keys {
-            if !unique.contains(key) {
-                unique.push(*key);
+            if unique.contains(key) {
+                return Err(VaultHistoryError::DuplicateRecoveryKey);
             }
+            unique.push(*key);
         }
 
         let thresholds: Vec<usize> = match threshold {
@@ -611,37 +623,43 @@ impl CurryHasher {
     }
 }
 
-/// Rebuilds the config of every custody that a vault's spends reveal, from the latest spend back,
-/// until its current custody is rebuilt. Up to `max_spends` spends are checked.
+/// A config rebuilt from a vault's spends.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RebuiltVaultConfig {
+    pub row: VaultConfigRow,
+    /// Whether it's the config of the vault's latest coin.
+    pub is_current: bool,
+}
+
+/// Rebuilds the config of the latest custody that a vault's spends reveal, from the latest spend
+/// back. Up to `max_spends` spends are checked.
+///
+/// This is usually the vault's current custody, since a vault is recreated with the same custody
+/// by most spends. But it's an older one if the current custody hasn't been spent through yet, for
+/// example after a rekey without memos, or while recovery is pending, so the caller must check.
 ///
 /// A custody without recovery is rebuilt from its spends alone. A custody with recovery needs a
-/// search for its recovery side, which is skipped without one.
+/// search for its recovery side, which is skipped without one, and is only done for the latest
+/// [`MAX_RECOVERY_SEARCHES`] custodies.
 ///
-/// The configs are verified against their custody hashes, so they can be trusted. The latest is
-/// first.
-pub async fn rebuild_vault_configs(
+/// The config is verified against its custody hash, so it can be trusted.
+pub async fn rebuild_vault_config(
     peer: &WalletPeer,
     launcher_id: Bytes32,
     genesis_challenge: Bytes32,
     search: Option<RecoverySearch>,
     max_spends: usize,
-) -> Result<Vec<VaultConfigRow>, VaultHistoryError> {
+) -> Result<RebuiltVaultConfig, VaultHistoryError> {
     let lineage = fetch_vault_lineage(peer, launcher_id, genesis_challenge)
         .await?
         .ok_or(VaultHistoryError::NotFound)?;
 
     let latest = *lineage.last().ok_or(VaultHistoryError::NotFound)?;
-    let is_current = |custody_hash: Bytes32| {
-        SingletonArgs::curry_tree_hash(launcher_id, custody_hash.into())
-            == latest.coin.puzzle_hash.into()
-    };
 
     let search = search.map(Arc::new);
 
     let mut reveals: HashMap<Bytes32, CustodyReveal> = HashMap::new();
     let mut recoveries: HashMap<Bytes32, Option<RecoveryMatch>> = HashMap::new();
-    let mut resolved = HashSet::new();
-    let mut configs = Vec::new();
 
     let spent = lineage
         .iter()
@@ -658,10 +676,6 @@ pub async fn rebuild_vault_configs(
 
         let custody_hash = reveal.custody_hash;
 
-        if resolved.contains(&custody_hash) {
-            continue;
-        }
-
         let reveal = if let Some(existing) = reveals.get_mut(&custody_hash) {
             existing.merge(&reveal);
             existing.clone()
@@ -677,6 +691,10 @@ pub async fn rebuild_vault_configs(
             // only searched for once.
             let recovery = if let Some(recovery) = recoveries.get(&custody_hash) {
                 recovery.clone()
+            } else if recoveries.len() >= MAX_RECOVERY_SEARCHES {
+                // Older custodies are only needed if the latest ones can't be rebuilt, which is
+                // usually because the keys are wrong, so they aren't searched for too.
+                None
             } else {
                 let search = search.clone();
                 let custody_member_hash = custody_side.hash;
@@ -714,21 +732,16 @@ pub async fn rebuild_vault_configs(
         if vault_hashes(&config)
             .is_ok_and(|hashes| hashes.custody_hash == TreeHash::from(custody_hash))
         {
-            resolved.insert(custody_hash);
-            configs.push(VaultConfigRow {
-                custody_hash,
-                layout: VaultLayout::Custody(config),
-                source: VaultConfigSource::Reconstructed,
+            return Ok(RebuiltVaultConfig {
+                row: VaultConfigRow {
+                    custody_hash,
+                    layout: VaultLayout::Custody(config),
+                    source: VaultConfigSource::Reconstructed,
+                },
+                is_current: SingletonArgs::curry_tree_hash(launcher_id, custody_hash.into())
+                    == latest.coin.puzzle_hash.into(),
             });
-
-            if is_current(custody_hash) {
-                break;
-            }
         }
-    }
-
-    if !configs.is_empty() {
-        return Ok(configs);
     }
 
     if reveals.is_empty() {

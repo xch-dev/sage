@@ -15,9 +15,10 @@ use sage_database::{
     VaultSigners, VaultState,
 };
 use sage_wallet::{
-    MAX_VAULT_SPENDS_CHECKED, RecoveryKey, RecoverySearch, VaultAddressLookup, VaultHistoryError,
-    WalletKind, common_recovery_timelocks, fetch_latest_vault_coin, find_vault_by_address,
-    parse_vault_config_file, rebuild_vault_configs, track_vault, vault_config_file, vault_hashes,
+    MAX_VAULT_SPENDS_CHECKED, RebuiltVaultConfig, RecoveryKey, RecoverySearch, VaultAddressLookup,
+    VaultHistoryError, WalletKind, common_recovery_timelocks, fetch_latest_vault_coin,
+    find_vault_by_address, parse_vault_config_file, rebuild_vault_config, track_vault,
+    vault_config_file, vault_hashes,
 };
 
 use crate::{
@@ -52,25 +53,30 @@ impl Sage {
 
         // The vault must exist, and a config file must rebuild its custody on chain, as must
         // recovery keys from its spends.
-        let configs = if let Some(candidates) = config_file {
+        // If a rebuilt config isn't the current one, it's still stored, since it's verified, but the
+        // current config stays unknown.
+        let config = if let Some(candidates) = config_file {
             let latest = self.latest_vault_coin(launcher_id).await?;
-            vec![matching_config(
+            Some(matching_config(
                 launcher_id,
                 candidates,
                 latest.coin.puzzle_hash,
-            )?]
+            )?)
         } else if let Some(recovery) = &req.recovery {
-            self.rebuild_configs(launcher_id, Some(recovery), MAX_VAULT_SPENDS_CHECKED)
-                .await?
+            Some(
+                self.rebuild_config(launcher_id, Some(recovery), MAX_VAULT_SPENDS_CHECKED)
+                    .await?
+                    .row,
+            )
         } else {
             // A vault without recovery is rebuilt from its spends alone. Otherwise, its config is
             // read from its memos, or stays unknown until it's rebuilt with its recovery keys.
             match self
-                .rebuild_configs(launcher_id, None, MAX_IMPORT_SPENDS_CHECKED)
+                .rebuild_config(launcher_id, None, MAX_IMPORT_SPENDS_CHECKED)
                 .await
             {
-                Ok(configs) => configs,
-                Err(Error::VaultHistory(..)) => Vec::new(),
+                Ok(rebuilt) => Some(rebuilt.row),
+                Err(Error::VaultHistory(..)) => None,
                 Err(error) => return Err(error),
             }
         };
@@ -101,7 +107,7 @@ impl Sage {
         let db = Database::new(self.connect_to_database(fingerprint).await?);
         let mut tx = db.tx().await?;
         track_vault(&mut tx, launcher_id).await?;
-        for config in &configs {
+        if let Some(config) = &config {
             tx.insert_vault_config(config).await?;
         }
         tx.commit().await?;
@@ -124,17 +130,32 @@ impl Sage {
         let status = wallet.db.vault_status(launcher_id).await?;
         let pre_recovery = latest_custody_config(&wallet.db, launcher_id).await?;
 
-        let (state, recovery_started_at) = match status.as_ref().map(|status| status.state) {
-            None | Some(VaultState::Unsynced) => (ApiVaultState::Unsynced, None),
-            Some(VaultState::Active) => (ApiVaultState::Active, None),
-            Some(VaultState::RecoveryPending { started_at, .. }) => {
-                (ApiVaultState::RecoveryPending, started_at)
-            }
-            Some(VaultState::Melted) => (ApiVaultState::Melted, None),
-        };
-
         let coin = status.as_ref().and_then(|status| status.coin);
-        let config = status.and_then(|status| status.config);
+        let config = status.as_ref().and_then(|status| status.config.clone());
+
+        let (state, recovery_started_at, recovery_finishes_at) =
+            match status.as_ref().map(|status| status.state) {
+                None | Some(VaultState::Unsynced) => (ApiVaultState::Unsynced, None, None),
+                Some(VaultState::Active) => (ApiVaultState::Active, None, None),
+                Some(VaultState::RecoveryPending {
+                    started_at,
+                    timelock_from,
+                }) => {
+                    let timelock = match config.as_ref().map(|row| &row.layout) {
+                        Some(VaultLayout::Recovery(config)) => Some(config.recovery_timelock),
+                        _ => None,
+                    };
+
+                    (
+                        ApiVaultState::RecoveryPending,
+                        started_at,
+                        timelock_from
+                            .zip(timelock)
+                            .and_then(|(from, timelock)| from.checked_add(timelock)),
+                    )
+                }
+                Some(VaultState::Melted) => (ApiVaultState::Melted, None, None),
+            };
 
         let signer_records = signers
             .iter()
@@ -155,6 +176,7 @@ impl Sage {
                 launcher_id: encode_vault_id(launcher_id)?,
                 state,
                 recovery_started_at,
+                recovery_finishes_at,
                 coin_id: coin.map(|row| hex::encode(row.coin.coin_id())),
                 custody_hash: coin.and_then(|row| row.custody_hash).map(hex::encode),
                 config: config
@@ -269,22 +291,28 @@ impl Sage {
         let wallet = self.wallet()?;
         let launcher_id = self.vault_launcher_id(wallet.fingerprint)?;
 
-        let configs = self
-            .rebuild_configs(launcher_id, req.recovery.as_ref(), MAX_VAULT_SPENDS_CHECKED)
+        let rebuilt = self
+            .rebuild_config(launcher_id, req.recovery.as_ref(), MAX_VAULT_SPENDS_CHECKED)
             .await?;
 
         let mut tx = wallet.db.tx().await?;
-        for config in &configs {
-            tx.insert_vault_config(config).await?;
-        }
+        tx.insert_vault_config(&rebuilt.row).await?;
         tx.commit().await?;
 
-        // The latest config is the vault's current custody, or the closest to it. Rebuilt configs
-        // are never in the recovery state.
-        let recovery = match configs.first().map(|config| &config.layout) {
-            Some(VaultLayout::Custody(config)) => config.recovery.as_ref(),
-            Some(VaultLayout::Recovery(_)) | None => return Err(Error::VaultConfigUnknown),
+        // Rebuilt configs are never in the recovery state.
+        let VaultLayout::Custody(config) = rebuilt.row.layout else {
+            return Err(Error::VaultConfigUnknown);
         };
+
+        // An older config is only useful while recovery is pending, when it's the config from before
+        // recovery started. Otherwise, the vault has changed since, for example by a rekey.
+        if !rebuilt.is_current
+            && latest_custody_config(&wallet.db, launcher_id).await? != Some(config.clone())
+        {
+            return Err(Error::VaultCustodyUnrevealed);
+        }
+
+        let recovery = config.recovery.as_ref();
 
         Ok(RebuildVaultConfigResponse {
             recovery_threshold: recovery
@@ -345,13 +373,13 @@ impl Sage {
         Ok(Database::new(self.connect_to_database(fingerprint).await?))
     }
 
-    /// Rebuilds a vault's configs from its spends, and its recovery keys if it has recovery.
-    async fn rebuild_configs(
+    /// Rebuilds a vault's latest config from its spends, and its recovery keys if it has recovery.
+    async fn rebuild_config(
         &self,
         launcher_id: Bytes32,
         recovery: Option<&VaultRecoveryKeys>,
         max_spends: usize,
-    ) -> Result<Vec<VaultConfigRow>> {
+    ) -> Result<RebuiltVaultConfig> {
         // No keys is the same as a vault without recovery.
         let search = recovery
             .filter(|recovery| !recovery.keys.is_empty())
@@ -365,7 +393,7 @@ impl Sage {
             .acquire_peer()
             .ok_or(Error::NoPeers)?;
 
-        match rebuild_vault_configs(
+        match rebuild_vault_config(
             &peer,
             launcher_id,
             self.network().genesis_challenge,
@@ -374,7 +402,7 @@ impl Sage {
         )
         .await
         {
-            Ok(configs) => Ok(configs),
+            Ok(rebuilt) => Ok(rebuilt),
             Err(VaultHistoryError::NotFound) => {
                 Err(Error::VaultNotFound(encode_vault_id(launcher_id)?))
             }
@@ -492,37 +520,44 @@ fn parse_recovery_key(key: &str) -> Result<RecoveryKey> {
     Ok(RecoveryKey::Bls(master_pk))
 }
 
-/// The config of the vault's latest coin which isn't in the recovery state. While recovery is
-/// pending, this is the config from before it started, whose custody can cancel it, and whose
-/// recovery members started it.
+/// The config of the vault's current coin, or while recovery is pending, the config from before it
+/// started, whose custody can cancel it, and whose recovery members started it. If the current
+/// coin's config isn't known, neither is this, since an older config may no longer apply, for
+/// example after a rekey.
 async fn latest_custody_config(db: &Database, launcher_id: Bytes32) -> Result<Option<VaultConfig>> {
-    // The current coin's config is matched by its puzzle hash if its custody hash isn't known.
-    if let Some(VaultConfigRow {
-        layout: VaultLayout::Custody(config),
-        ..
-    }) = db
-        .vault_status(launcher_id)
-        .await?
-        .and_then(|status| status.config)
-    {
-        return Ok(Some(config));
+    let Some(status) = db.vault_status(launcher_id).await? else {
+        return Ok(None);
+    };
+
+    match status.config.map(|row| row.layout) {
+        Some(VaultLayout::Custody(config)) => return Ok(Some(config)),
+        Some(VaultLayout::Recovery(_)) => {}
+        None => return Ok(None),
     }
 
-    for row in db.vault_coins(launcher_id).await?.into_iter().rev() {
-        let Some(custody_hash) = row.custody_hash else {
-            continue;
-        };
+    // The custody can recreate the vault while recovery is pending, so the coins in the recovery
+    // state are skipped, back to the coin that started it.
+    let recovery_hash = status.coin.and_then(|row| row.custody_hash);
 
-        if let Some(VaultConfigRow {
+    let started_by = db
+        .vault_coins(launcher_id)
+        .await?
+        .into_iter()
+        .rev()
+        .filter(|row| row.created_height.is_some())
+        .find(|row| row.custody_hash != recovery_hash);
+
+    let Some(custody_hash) = started_by.and_then(|row| row.custody_hash) else {
+        return Ok(None);
+    };
+
+    Ok(match db.vault_config(custody_hash).await? {
+        Some(VaultConfigRow {
             layout: VaultLayout::Custody(config),
             ..
-        }) = db.vault_config(custody_hash).await?
-        {
-            return Ok(Some(config));
-        }
-    }
-
-    Ok(None)
+        }) => Some(config),
+        _ => None,
+    })
 }
 
 fn is_member(signers: &VaultSigners, public_key: PublicKey) -> bool {
