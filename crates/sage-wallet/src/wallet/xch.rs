@@ -25,12 +25,7 @@ async fn unspent_clawback(
         return Err(WalletError::MissingCoin(coin_id));
     };
 
-    let Some(row) = db
-        .coins_by_ids(&[hex::encode(coin_id)])
-        .await?
-        .into_iter()
-        .next()
-    else {
+    let Some(row) = db.coins_by_ids(&[coin_id]).await?.into_iter().next() else {
         return Err(WalletError::MissingCoin(coin_id));
     };
 
@@ -352,11 +347,7 @@ mod tests {
         timestamp: u64,
     ) -> anyhow::Result<()> {
         for _ in 0..50 {
-            let rows = wallet
-                .wallet
-                .db
-                .coins_by_ids(&[hex::encode(coin_id)])
-                .await?;
+            let rows = wallet.wallet.db.coins_by_ids(&[coin_id]).await?;
             if let Some(row) = rows.first()
                 && let Some(height) = row.created_height
             {
@@ -378,11 +369,7 @@ mod tests {
                     .db
                     .insert_block(height, header_hash, Some(timestamp.try_into()?), false)
                     .await?;
-                let rows = wallet
-                    .wallet
-                    .db
-                    .coins_by_ids(&[hex::encode(coin_id)])
-                    .await?;
+                let rows = wallet.wallet.db.coins_by_ids(&[coin_id]).await?;
                 if rows.first().and_then(|r| r.created_timestamp) == Some(timestamp) {
                     return Ok(());
                 }

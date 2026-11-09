@@ -75,7 +75,7 @@ pub struct UnsyncedCoin {
 }
 
 impl Database {
-    pub async fn coins_by_ids(&self, coin_ids: &[String]) -> Result<Vec<CoinRow>> {
+    pub async fn coins_by_ids(&self, coin_ids: &[Bytes32]) -> Result<Vec<CoinRow>> {
         coins_by_ids(&self.pool, coin_ids).await
     }
 
@@ -100,7 +100,7 @@ impl Database {
         .await
     }
 
-    pub async fn are_coins_spendable(&self, coin_ids: &[String]) -> Result<bool> {
+    pub async fn are_coins_spendable(&self, coin_ids: &[Bytes32]) -> Result<bool> {
         are_coins_spendable(&self.pool, coin_ids).await
     }
 
@@ -299,7 +299,7 @@ impl DatabaseTx<'_> {
     }
 }
 
-async fn are_coins_spendable(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Result<bool> {
+async fn are_coins_spendable(conn: impl SqliteExecutor<'_>, coin_ids: &[Bytes32]) -> Result<bool> {
     if coin_ids.is_empty() {
         return Ok(false);
     }
@@ -314,7 +314,7 @@ async fn are_coins_spendable(conn: impl SqliteExecutor<'_>, coin_ids: &[String])
 
     let mut separated = query.separated(", ");
     for coin_id in coin_ids {
-        separated.push(format!("X'{coin_id}'"));
+        separated.push_bind(coin_id.to_vec());
     }
     separated.push_unseparated(")");
 
@@ -631,7 +631,7 @@ async fn selectable_token_balance(
     .sum()
 }
 
-async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Result<Vec<CoinRow>> {
+async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[Bytes32]) -> Result<Vec<CoinRow>> {
     let mut query = sqlx::QueryBuilder::new(
         "
        SELECT
@@ -645,7 +645,7 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
     let mut separated = query.separated(", ");
 
     for coin_id in coin_ids {
-        separated.push(format!("X'{coin_id}'"));
+        separated.push_bind(coin_id.to_vec());
     }
     separated.push_unseparated(")");
 

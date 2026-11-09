@@ -35,13 +35,14 @@ use rand_chacha::ChaCha8Rng;
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
-    Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CreateDid,
-    CreateTransaction, GetCats, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater,
-    GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode,
-    HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet, IssueCat, Login,
+    Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CoinFilterMode,
+    CoinSortMode, CreateDid, CreateTransaction, GetAreCoinsSpendable, GetCats, GetCoins,
+    GetCoinsByIds, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater, GetOffer,
+    GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode, HandleStatus,
+    HandleVerification, Id as ApiId, ImportOffer, ImportWallet, IssueCat, Login,
     LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind, OfferAmount,
     OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction,
-    ViewOffer,
+    ViewOffer, wallet_connect::FilterUnlockedCoins,
 };
 use sage_api_macro::impl_endpoints;
 use sage_database::{OfferStatus, XchandleRow, XchandleStatus};
@@ -362,6 +363,85 @@ async fn test_send_xch() -> Result<()> {
         .selectable_balance
         .to_u64();
     assert_eq!(balance, Some(2000));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_coin_id_lookups_reject_non_hex_input() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let coin_id = app
+        .get_coins(GetCoins {
+            asset_id: None,
+            offset: 0,
+            limit: 10,
+            sort_mode: CoinSortMode::default(),
+            filter_mode: CoinFilterMode::default(),
+            ascending: false,
+        })
+        .await?
+        .coins
+        .into_iter()
+        .next()
+        .expect("should have a coin")
+        .coin_id;
+
+    let coins = app
+        .get_coins_by_ids(GetCoinsByIds {
+            coin_ids: vec![coin_id.clone(), format!("0x{coin_id}")],
+        })
+        .await?
+        .coins;
+    assert_eq!(coins.len(), 1);
+    assert_eq!(coins[0].coin_id, coin_id);
+
+    assert!(
+        app.get_are_coins_spendable(GetAreCoinsSpendable {
+            coin_ids: vec![coin_id.clone()],
+        })
+        .await?
+        .spendable
+    );
+
+    // These used to be spliced into the SQL as X'...' literals, so this payload
+    // matched every coin in the wallet.
+    let injection = "00') OR 1=1 OR coin_hash IN (X'00".to_string();
+
+    assert!(
+        app.get_coins_by_ids(GetCoinsByIds {
+            coin_ids: vec![injection.clone()],
+        })
+        .await
+        .is_err()
+    );
+    assert!(
+        app.get_are_coins_spendable(GetAreCoinsSpendable {
+            coin_ids: vec![injection.clone()],
+        })
+        .await
+        .is_err()
+    );
+
+    let sage = app.sage.lock().await;
+    let unlocked = sage
+        .filter_unlocked_coins(FilterUnlockedCoins {
+            coin_ids: vec![coin_id.clone()],
+        })
+        .await?
+        .coin_ids;
+    assert_eq!(unlocked, vec![coin_id]);
+    assert!(
+        sage.filter_unlocked_coins(FilterUnlockedCoins {
+            coin_ids: vec![injection],
+        })
+        .await
+        .is_err()
+    );
 
     Ok(())
 }
