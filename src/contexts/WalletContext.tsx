@@ -4,6 +4,7 @@ import { useAddressContactsLifecycle } from '@/hooks/useAddressContacts';
 import { useAddressHandlesLifecycle } from '@/hooks/useAddressHandles';
 import { useErrors } from '@/hooks/useErrors';
 import { useColdWalletUnsigned } from '@/hooks/useColdWalletUnsigned';
+import { usePendingOfferUploadsLifecycle } from '@/hooks/usePendingOfferUploads';
 import { watchedAddresses } from '@/lib/walletKind';
 import { fetchState, initializeWalletState } from '@/state';
 import { createContext, useContext, useEffect, useState } from 'react';
@@ -77,6 +78,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   useAddressHandlesLifecycle(wallet?.fingerprint ?? null);
   useAddressContactsLifecycle(wallet?.fingerprint ?? null);
+  usePendingOfferUploadsLifecycle(wallet?.fingerprint ?? null);
 
   useEffect(() => {
     const init = async () => {

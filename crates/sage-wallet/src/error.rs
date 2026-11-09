@@ -122,6 +122,9 @@ pub enum WalletError {
     #[error("Cannot import offer that doesn't belong to this wallet")]
     CannotImportOffer,
 
+    #[error("The transaction splitting the offer's coins didn't create the expected coins")]
+    MissingPreSplitCoin,
+
     #[error(
         "NFT with id {0} doesn't use the default metadata updater, so URIs can't be appended to it"
     )]

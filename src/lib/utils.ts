@@ -1,4 +1,4 @@
-import { AssetKind, NftRecord, OfferRecordStatus } from '@/bindings';
+import { AssetKind, NftRecord } from '@/bindings';
 import { t } from '@lingui/core/macro';
 import { bech32m } from 'bech32';
 import BigNumber from 'bignumber.js';
@@ -12,16 +12,6 @@ export function cn(...inputs: ClassValue[]) {
 export function dbg<T>(value: T): T {
   console.log(value);
   return value;
-}
-
-export function getOfferStatus(status: OfferRecordStatus): string {
-  return status === 'active' || status === 'pending'
-    ? 'Pending'
-    : status === 'completed'
-      ? 'Completed'
-      : status === 'cancelled'
-        ? 'Cancelled'
-        : 'Expired';
 }
 
 export function deepMerge<T>(target: T, source: Partial<T>): T {
