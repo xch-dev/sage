@@ -51,7 +51,9 @@ export function OfferRowCard({
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
 
-  const isTokenOnlyOffer = record.summary.maker.every(
+  // Copies need their own coins, so only offers made purely of tokens (on
+  // both sides) can be duplicated.
+  const canDuplicate = [...record.summary.maker, ...record.summary.taker].every(
     (a) => a.asset.kind === 'token',
   );
 
@@ -130,7 +132,7 @@ export function OfferRowCard({
               e.stopPropagation();
               setIsDuplicateOpen(true);
             }}
-            disabled={!isTokenOnlyOffer || isTransactionDisabled}
+            disabled={!canDuplicate || isTransactionDisabled}
           >
             <CopyPlus className='mr-2 h-4 w-4' aria-hidden='true' />
             <span>

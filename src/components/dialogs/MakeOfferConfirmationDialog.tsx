@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
 import { isMutableNft, mutableNftLabel } from '@/lib/nftUpdater';
+import { canCopyOffer } from '@/lib/offers';
 import {
   emptyNftRecord,
   fromMojos,
@@ -437,35 +438,42 @@ export function MakeOfferConfirmationDialog({
       return;
     }
 
+    // Changing the number of copies starts a new check; a slower earlier
+    // one must not overwrite its result.
+    let isCurrent = true;
+
     const validate = async () => {
+      const { precision, ticker } = walletState.sync.unit;
+
       // XCH check: (fee + any XCH offered) × copies ≤ selectable_balance (mojos)
       const xchToken = offerState.offered.tokens.find(
-        (t) => t.asset_id === null,
+        (token) => token.asset_id === null,
       );
       const xchOfferedMojos = xchToken
-        ? BigNumber(toMojos(xchToken.amount?.toString() || '0', 12))
+        ? BigNumber(toMojos(xchToken.amount?.toString() || '0', precision))
         : BigNumber(0);
-      const feeMojos = BigNumber(toMojos(fee || '0', 12));
+      const feeMojos = BigNumber(toMojos(fee || '0', precision));
       const totalXchNeeded = xchOfferedMojos
         .plus(feeMojos)
         .multipliedBy(copies);
       const xchBalance = BigNumber(walletState.sync.selectable_balance);
 
       if (totalXchNeeded.gt(xchBalance)) {
-        const needed = fromMojos(totalXchNeeded.toString(), 12).toString();
-        const have = fromMojos(xchBalance.toString(), 12).toString();
+        const needed = fromMojos(totalXchNeeded, precision).toString();
+        const have = fromMojos(xchBalance, precision).toString();
         setBalanceError(
-          t`Insufficient XCH balance: need ${needed} XCH for ${copies} copies, have ${have}`,
+          t`Insufficient balance: need ${needed} ${ticker} for ${copies} copies, have ${have}`,
         );
         return;
       }
 
       // Per-CAT check: cat_amount × copies ≤ cat.selectable_balance (mojos)
       for (const token of offerState.offered.tokens.filter(
-        (t) => t.asset_id !== null,
+        (token) => token.asset_id !== null,
       )) {
         try {
           const resp = await commands.getToken({ asset_id: token.asset_id });
+          if (!isCurrent) return;
           if (resp.token) {
             const neededMojos = BigNumber(
               toMojos(token.amount?.toString() || '0', resp.token.precision),
@@ -496,16 +504,21 @@ export function MakeOfferConfirmationDialog({
         }
       }
 
-      setBalanceError(null);
+      if (isCurrent) setBalanceError(null);
     };
 
     validate();
+
+    return () => {
+      isCurrent = false;
+    };
   }, [
     copies,
     open,
     offerState.offered.tokens,
     fee,
     walletState.sync.selectable_balance,
+    walletState.sync.unit,
   ]);
 
   useEffect(() => {
@@ -534,6 +547,7 @@ export function MakeOfferConfirmationDialog({
   ).length;
 
   const isSplitting = splitNftOffers && numOfferedNfts > 1;
+  const canCopy = !isSplitting && canCopyOffer(offerState);
   const numberOfOffers = isSplitting ? numOfferedNfts : 1;
 
   const feePerOffer = fee || '0';
@@ -721,7 +735,7 @@ export function MakeOfferConfirmationDialog({
             </div>
           )}
 
-          {!isSplitting && onCopiesChange != null && (
+          {canCopy && onCopiesChange != null && (
             <div>
               <h3 className='text-md font-semibold mb-1'>
                 <Trans>Number of Copies</Trans>

@@ -1,5 +1,8 @@
-import { commands, OfferRecord } from '@/bindings';
+import { commands, OfferAsset, OfferRecord } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
+import { durationUntil } from '@/lib/expiration';
+import { fromMojos } from '@/lib/utils';
+import { Assets, OfferState } from '@/state';
 
 export async function deleteOffers(offerIds: string[]): Promise<void> {
   for (const offerId of offerIds) {
@@ -34,4 +37,53 @@ export async function fetchOfferRecords(
   }
 
   return records;
+}
+
+// Whether identical copies of an offer can be made. Each copy needs its own
+// coins, so an offer containing an NFT or option (on either side) can't be
+// copied: the offered ones only exist once, and royalties owed on requested
+// NFTs aren't known until the offer is built.
+export function canCopyOffer(state: OfferState): boolean {
+  return [state.offered, state.requested].every(
+    (assets) =>
+      assets.nfts.filter((n) => n).length === 0 &&
+      assets.options.filter((o) => o).length === 0,
+  );
+}
+
+// Rebuilds the make offer form state for a saved offer, so it can be created
+// again. Amounts use the same precisions useOfferProcessor converts them back
+// with. A timestamp expiration keeps the original offer's duration, counted
+// from when the copy is made; a block height expiration can't be expressed
+// and is dropped.
+export function offerStateFromRecord(record: OfferRecord): OfferState {
+  const { summary } = record;
+
+  const toAssets = (offerAssets: OfferAsset[]): Assets => ({
+    tokens: offerAssets
+      .filter((a) => a.asset.kind === 'token')
+      .map((a) => ({
+        asset_id: a.asset.asset_id,
+        amount: fromMojos(a.amount, a.asset.asset_id ? 3 : 12).toString(),
+      })),
+    nfts: offerAssets
+      .filter((a) => a.asset.kind === 'nft')
+      .map((a) => a.asset.asset_id ?? ''),
+    options: offerAssets
+      .filter((a) => a.asset.kind === 'option')
+      .map((a) => a.asset.asset_id ?? ''),
+  });
+
+  return {
+    offered: toAssets(summary.maker),
+    requested: toAssets(summary.taker),
+    fee: fromMojos(summary.fee, 12).toString(),
+    expiration:
+      summary.expiration_timestamp === null
+        ? null
+        : durationUntil(
+            summary.expiration_timestamp,
+            record.creation_timestamp,
+          ),
+  };
 }

@@ -15,6 +15,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { useNowSeconds } from '@/hooks/useNowSeconds';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { expirationError, futureExpirationTimestamp } from '@/lib/expiration';
+import { canCopyOffer } from '@/lib/offers';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -114,6 +115,8 @@ export function MakeOffer() {
       setIsProgressDialogOpen(false);
     }
   };
+
+  const offerCopies = canCopyOffer(state) ? copies : 1;
 
   const invalid =
     state.expiration !== null &&
@@ -263,7 +266,7 @@ export function MakeOffer() {
           fee={state.fee || '0'}
           enabledMarketplaces={enabledMarketplaces}
           setEnabledMarketplaces={setEnabledMarketplaces}
-          copies={copies}
+          copies={offerCopies}
           onCopiesChange={setCopies}
         />
 
@@ -273,7 +276,7 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           enabledMarketplaces={enabledMarketplaces}
-          copies={copies}
+          copies={offerCopies}
           clearOfferState={() => {
             setState(null);
             navigate('/offers', { replace: true });

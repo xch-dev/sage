@@ -1,4 +1,5 @@
 import { commands, OfferAmount } from '@/bindings';
+import { CustomError } from '@/contexts/ErrorContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { futureExpirationTimestamp } from '@/lib/expiration';
 import { toMojos } from '@/lib/utils';
@@ -9,7 +10,7 @@ import { useCallback, useRef, useState } from 'react';
 interface UseOfferProcessorProps {
   offerState: OfferState;
   splitNftOffers: boolean;
-  copies?: number; // NEW — default 1
+  copies?: number; // Identical offers to create when not splitting NFTs
   onProcessingEnd?: () => void; // Callback for when offer processing (success or fail) is done
   onProgress?: (index: number) => void; // Callback for progress updates
 }
@@ -25,7 +26,7 @@ interface UseOfferProcessorReturn {
 export function useOfferProcessor({
   offerState,
   splitNftOffers,
-  copies = 1, // NEW
+  copies = 1,
   onProcessingEnd,
   onProgress,
 }: UseOfferProcessorProps): UseOfferProcessorReturn {
@@ -124,44 +125,59 @@ export function useOfferProcessor({
       } else {
         const newOffers: string[] = [];
 
+        const offeredAssets: OfferAmount[] = [
+          ...offeredTokens,
+          ...offerState.offered.nfts.map((nft) => ({
+            asset_id: nft,
+            amount: 1,
+          })),
+          ...offerState.offered.options.map((option) => ({
+            asset_id: option,
+            amount: 1,
+          })),
+        ];
+
+        const requestedAssets: OfferAmount[] = [
+          ...requestedTokens,
+          ...offerState.requested.nfts.map((nft) => ({
+            asset_id: nft,
+            amount: 1,
+          })),
+          ...offerState.requested.options.map((option) => ({
+            asset_id: option,
+            amount: 1,
+          })),
+        ];
+
         for (let copyIndex = 0; copyIndex < copies; copyIndex++) {
           if (isCancelled.current) break;
 
           onProgress?.(copyIndex);
 
-          const offeredAssets: OfferAmount[] = [
-            ...offeredTokens,
-            ...offerState.offered.nfts.map((nft) => ({
-              asset_id: nft,
-              amount: 1,
-            })),
-            ...offerState.offered.options.map((option) => ({
-              asset_id: option,
-              amount: 1,
-            })),
-          ];
-
-          const requestedAssets: OfferAmount[] = [
-            ...requestedTokens,
-            ...offerState.requested.nfts.map((nft) => ({
-              asset_id: nft,
-              amount: 1,
-            })),
-            ...offerState.requested.options.map((option) => ({
-              asset_id: option,
-              amount: 1,
-            })),
-          ];
-
-          const data = await commands.makeOffer({
-            offered_assets: offeredAssets,
-            requested_assets: requestedAssets,
-            fee: toMojos(
-              (offerState.fee || '0').toString(),
-              walletState.sync.unit.precision,
-            ),
-            expires_at_second: expiresAtSecond,
-          });
+          let data;
+          try {
+            data = await commands.makeOffer({
+              offered_assets: offeredAssets,
+              requested_assets: requestedAssets,
+              fee: toMojos(
+                (offerState.fee || '0').toString(),
+                walletState.sync.unit.precision,
+              ),
+              expires_at_second: expiresAtSecond,
+            });
+          } catch (err) {
+            // Offers made before the failure are already saved in the wallet,
+            // so say so rather than reporting the whole batch as failed.
+            if (newOffers.length > 0) {
+              const created = newOffers.length;
+              const reason = (err as CustomError)?.reason ?? String(err);
+              throw {
+                kind: (err as CustomError)?.kind ?? 'invalid',
+                reason: t`Created ${created} of ${copies} offers, then failed: ${reason}`,
+              } satisfies CustomError;
+            }
+            throw err;
+          }
 
           if (!isCancelled.current) {
             newOffers.push(data.offer);
