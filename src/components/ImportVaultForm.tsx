@@ -1,5 +1,6 @@
 import { commands } from '@/bindings';
 import { EmojiPicker } from '@/components/EmojiPicker';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -25,6 +26,7 @@ import { fetchState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -66,9 +68,10 @@ export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
     mode: 'onChange',
   });
 
+  // A new source starts out empty, without an error until something's entered.
   const changeSource = (value: string) => {
     setSource(value as VaultSource);
-    form.setValue('value', '', { shouldValidate: true });
+    form.resetField('value', { defaultValue: '' });
   };
 
   const submit = (values: z.infer<typeof formSchema>) => {
@@ -172,15 +175,28 @@ export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
           name='value'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>
-                {source === 'launcher_id' ? (
-                  <Trans>Launcher ID</Trans>
-                ) : source === 'address' ? (
-                  <Trans>Vault Address</Trans>
-                ) : (
-                  <Trans>Config File</Trans>
+              <div className='flex items-center justify-between gap-2'>
+                <FormLabel>
+                  {source === 'launcher_id' ? (
+                    <Trans>Launcher ID</Trans>
+                  ) : source === 'address' ? (
+                    <Trans>Vault Address</Trans>
+                  ) : (
+                    <Trans>Config File</Trans>
+                  )}
+                </FormLabel>
+                {source === 'config' && (
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <Upload className='h-4 w-4 mr-2' aria-hidden='true' />
+                    <Trans>Choose File</Trans>
+                  </Button>
                 )}
-              </FormLabel>
+              </div>
               <FormControl>
                 {source === 'config' ? (
                   <Textarea className='resize-none h-28 font-mono' {...field} />
@@ -201,8 +217,8 @@ export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
                   </Trans>
                 ) : (
                   <Trans>
-                    A config file exported from Sage or Chia Cloud Wallet. It
-                    must match the vault on chain.
+                    A config file exported from Sage or Chia Cloud Wallet,
+                    pasted or chosen. It must match the vault on chain.
                   </Trans>
                 )}
               </FormDescription>
@@ -211,15 +227,7 @@ export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
           )}
         />
 
-        {source === 'config' ? (
-          <button
-            type='button'
-            className='text-sm underline text-muted-foreground'
-            onClick={() => fileRef.current?.click()}
-          >
-            <Trans>Choose a file</Trans>
-          </button>
-        ) : (
+        {source !== 'config' && (
           <VaultRecoveryFields
             value={recoveryInput}
             onChange={setRecoveryInput}
