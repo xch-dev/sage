@@ -13,6 +13,9 @@
 //!   vault with its new custody, and the CHIP-0043 memo of the new custody.
 //!
 //! Every nonce is 0. The CHIP-0043 memo list is `[memo]`, which reveals every key.
+//!
+//! Sage also supports vaults without recovery, which Cloud Wallet doesn't create. Their inner
+//! puzzle is only their custody, at the top level, with no 1 of 2.
 
 #[cfg(test)]
 mod tests;
@@ -44,7 +47,7 @@ use chia_wallet_sdk::{
         },
     },
 };
-use sage_database::{VaultConfig, VaultMember, VaultRecoveryConfig, VaultSigners};
+use sage_database::{VaultConfig, VaultMember, VaultRecovery, VaultRecoveryConfig, VaultSigners};
 use thiserror::Error;
 
 /// Cloud Wallet's memo lists are around a kilobyte, so this leaves plenty of room for large
@@ -104,10 +107,12 @@ pub enum VaultLayoutError {
 pub struct VaultHashes {
     /// The vault singleton's inner puzzle hash, which is the custody hash of [`VaultInfo`].
     pub custody_hash: TreeHash,
-    /// The hash of the left side of the top level 1 of 2, which can spend the vault.
+    /// The hash of the left side of the top level 1 of 2, which can spend the vault. A vault
+    /// without recovery has no 1 of 2, so this is the hash its custody would have inside one.
     pub custody_member_hash: TreeHash,
-    /// The hash of the right side of the top level 1 of 2, which starts or finishes recovery.
-    pub recovery_member_hash: TreeHash,
+    /// The hash of the right side of the top level 1 of 2, which starts or finishes recovery, if
+    /// the vault has recovery.
+    pub recovery_member_hash: Option<TreeHash>,
 }
 
 #[derive(Debug, Clone)]
@@ -141,13 +146,18 @@ pub fn p2_singleton_puzzle_hash(launcher_id: Bytes32, nonce: usize) -> Bytes32 {
 /// Calculates the hashes of a vault in its normal state, without allocating its memo.
 pub fn vault_hashes(config: &VaultConfig) -> Result<VaultHashes, VaultLayoutError> {
     let custody_member_hash = signers_hash(&config.custody, vec![])?;
-    let recovery_member_hash = signers_hash(
-        &config.recovery,
-        recovery_restrictions(
+
+    let Some(recovery) = &config.recovery else {
+        return Ok(VaultHashes {
+            custody_hash: mips_puzzle_hash(0, vec![], signers_inner_hash(&config.custody), true),
             custody_member_hash,
-            config.recovery_timelock,
-            config.version,
-        ),
+            recovery_member_hash: None,
+        });
+    };
+
+    let recovery_member_hash = signers_hash(
+        &recovery.signers,
+        recovery_restrictions(custody_member_hash, recovery.timelock, recovery.version),
     )?;
 
     Ok(top_level_hashes(custody_member_hash, recovery_member_hash))
@@ -162,7 +172,11 @@ pub fn build_vault(
 
     let custody = signers_memo(allocator, &config.custody, vec![])?;
 
-    let timelock = RestrictionMemo::timelock(allocator, config.recovery_timelock, true)?;
+    let Some(recovery) = &config.recovery else {
+        return finish_build(allocator, hashes, custody, None);
+    };
+
+    let timelock = RestrictionMemo::timelock(allocator, recovery.timelock, true)?;
 
     let mut wrappers = vec![WrapperMemo::force_1_of_2_restricted_variable(
         allocator,
@@ -179,14 +193,14 @@ pub fn build_vault(
 
     wrappers.push(WrapperMemo::prevent_multiple_create_coins());
 
-    if config.version == VaultVersion::ForceSingletonRecreation {
+    if recovery.version == VaultVersion::ForceSingletonRecreation {
         wrappers.push(WrapperMemo::force_singleton_recreation());
     }
 
     let restriction = RestrictionMemo::enforce_delegated_puzzle_wrappers(allocator, &wrappers)?;
-    let recovery = signers_memo(allocator, &config.recovery, vec![restriction])?;
+    let recovery = signers_memo(allocator, &recovery.signers, vec![restriction])?;
 
-    finish_build(allocator, hashes, custody, recovery, None)
+    finish_build(allocator, hashes, top_level_memo(custody, recovery), None)
 }
 
 /// Builds a vault whose recovery has started. The post-recovery config must rebuild
@@ -229,7 +243,12 @@ pub fn build_vault_recovery(
         MemoKind::Member(MemberMemo::new(finish_puzzle_hash.into(), finish_puzzle)),
     );
 
-    finish_build(allocator, hashes, custody, recovery, Some(finish_puzzle))
+    finish_build(
+        allocator,
+        hashes,
+        top_level_memo(custody, recovery),
+        Some(finish_puzzle),
+    )
 }
 
 /// Decodes and verifies the CHIP-0043 memo list attached to a vault singleton with the given
@@ -270,22 +289,26 @@ fn top_level_hashes(custody_member_hash: TreeHash, recovery_member_hash: TreeHas
             true,
         ),
         custody_member_hash,
-        recovery_member_hash,
+        recovery_member_hash: Some(recovery_member_hash),
     }
+}
+
+/// The memo of the top level 1 of 2 of `[custody, recovery]`.
+fn top_level_memo(custody: InnerPuzzleMemo, recovery: InnerPuzzleMemo) -> InnerPuzzleMemo {
+    InnerPuzzleMemo::new(
+        0,
+        vec![],
+        MemoKind::MofN(MofNMemo::new(1, vec![custody, recovery])),
+    )
 }
 
 fn finish_build(
     allocator: &mut Allocator,
     hashes: VaultHashes,
-    custody: InnerPuzzleMemo,
-    recovery: InnerPuzzleMemo,
+    top_level: InnerPuzzleMemo,
     recovery_finish_puzzle: Option<NodePtr>,
 ) -> Result<BuiltVault, VaultLayoutError> {
-    let memo = MipsMemo::new(InnerPuzzleMemo::new(
-        0,
-        vec![],
-        MemoKind::MofN(MofNMemo::new(1, vec![custody, recovery])),
-    ));
+    let memo = MipsMemo::new(top_level);
 
     // The memo and the hashes are built separately, so check that they agree, as Cloud Wallet does
     // before writing the memo.
@@ -436,13 +459,19 @@ fn signers_hash(
 ) -> Result<TreeHash, VaultLayoutError> {
     validate_signers(signers)?;
 
+    Ok(mips_puzzle_hash(
+        0,
+        restrictions,
+        signers_inner_hash(signers),
+        false,
+    ))
+}
+
+/// The hash of a signer tree inside its index wrapper and restrictions: the member, or an M of N
+/// of the members sorted by their hashes. The signers must be valid.
+fn signers_inner_hash(signers: &VaultSigners) -> TreeHash {
     if let [member] = signers.members.as_slice() {
-        return Ok(mips_puzzle_hash(
-            0,
-            restrictions,
-            member_puzzle_hash(*member),
-            false,
-        ));
+        return member_puzzle_hash(*member);
     }
 
     let mut member_hashes: Vec<TreeHash> = signers
@@ -453,12 +482,7 @@ fn signers_hash(
 
     member_hashes.sort();
 
-    Ok(mips_puzzle_hash(
-        0,
-        restrictions,
-        MofN::new(signers.threshold, member_hashes).inner_puzzle_hash(),
-        false,
-    ))
+    MofN::new(signers.threshold, member_hashes).inner_puzzle_hash()
 }
 
 fn member_memo(
@@ -544,19 +568,24 @@ fn decode_memo_list(
         return Err(VaultLayoutError::UnsupportedMemo);
     }
 
-    let MemoKind::MofN(top_level) = &top_level.kind else {
-        return Err(VaultLayoutError::UnsupportedMemo);
-    };
+    let ctx = MipsMemoContext::default();
 
-    let (1, [custody, recovery]) = (top_level.required, top_level.items.as_slice()) else {
-        return Err(VaultLayoutError::UnsupportedMemo);
+    // The recovery side is always restricted, so a top level without a restricted second item is
+    // the custody of a vault without recovery.
+    let (custody, recovery) = match &top_level.kind {
+        MemoKind::MofN(m_of_n) => match (m_of_n.required, m_of_n.items.as_slice()) {
+            (1, [custody, recovery]) if !recovery.restrictions.is_empty() => (custody, recovery),
+            _ => return decode_custody_only(allocator, &ctx, top_level, custody_hash),
+        },
+        MemoKind::Member(_) => {
+            return decode_custody_only(allocator, &ctx, top_level, custody_hash);
+        }
     };
 
     if !custody.restrictions.is_empty() || recovery.nonce != 0 {
         return Err(VaultLayoutError::UnsupportedMemo);
     }
 
-    let ctx = MipsMemoContext::default();
     let custody_signers = decode_signers(allocator, &ctx, custody)?;
 
     let [restriction] = recovery.restrictions.as_slice() else {
@@ -602,9 +631,11 @@ fn decode_memo_list(
 
             let config = VaultConfig {
                 custody: custody_signers,
-                recovery: decode_signers(allocator, &ctx, recovery)?,
-                recovery_timelock,
-                version,
+                recovery: Some(VaultRecovery {
+                    signers: decode_signers(allocator, &ctx, recovery)?,
+                    timelock: recovery_timelock,
+                    version,
+                }),
             };
 
             if vault_hashes(&config)?.custody_hash != custody_hash.into() {
@@ -664,6 +695,25 @@ fn decode_memo_list(
     };
 
     Ok(decoded)
+}
+
+/// Decodes the top level of a vault without recovery, which is only its custody.
+fn decode_custody_only(
+    allocator: &Allocator,
+    ctx: &MipsMemoContext,
+    top_level: &InnerPuzzleMemo,
+    custody_hash: Bytes32,
+) -> Result<DecodedVault, VaultLayoutError> {
+    let config = VaultConfig {
+        custody: decode_signers(allocator, ctx, top_level)?,
+        recovery: None,
+    };
+
+    if vault_hashes(&config)?.custody_hash != custody_hash.into() {
+        return Err(VaultLayoutError::HashMismatch);
+    }
+
+    Ok(DecodedVault::Custody(config))
 }
 
 /// Decodes a signer tree, ignoring the restrictions on its root, as in `decodeSignerTree`.

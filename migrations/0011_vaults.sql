@@ -35,14 +35,17 @@ CREATE INDEX idx_vault_coins_custody_hash ON vault_coins(custody_hash);
  *
  * A config in the recovery state has no recovery members or threshold. Instead, it has the custody
  * hash and amount that the vault is recreated with once recovery finishes.
+ *
+ * A vault without recovery is only its custody, so it has no recovery members, threshold, timelock
+ * or puzzle version, since the version only changes the recovery side.
  */
 CREATE TABLE vault_configs (
   id INTEGER NOT NULL PRIMARY KEY,
   custody_hash BLOB NOT NULL UNIQUE,
-  puzzle_version INTEGER NOT NULL,
+  puzzle_version INTEGER,
   custody_threshold INTEGER NOT NULL,
   recovery_threshold INTEGER,
-  recovery_timelock INTEGER NOT NULL,
+  recovery_timelock INTEGER,
   recovery_custody_hash BLOB,
   recovery_amount BLOB,
   source INTEGER NOT NULL
