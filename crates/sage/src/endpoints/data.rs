@@ -1,6 +1,6 @@
 use crate::{
     Error, Result, Sage, address_kind, encode_nft_updater_kind, parse_any_asset_id, parse_asset_id,
-    parse_collection_id, parse_did_id, parse_nft_id, parse_option_id,
+    parse_coin_ids, parse_collection_id, parse_did_id, parse_nft_id, parse_option_id,
 };
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chia_wallet_sdk::prelude::*;
@@ -168,7 +168,8 @@ impl Sage {
         req: GetAreCoinsSpendable,
     ) -> Result<GetAreCoinsSpendableResponse> {
         let wallet = self.wallet()?;
-        let spendable = wallet.db.are_coins_spendable(&req.coin_ids).await?;
+        let coin_ids = parse_coin_ids(req.coin_ids)?;
+        let spendable = wallet.db.are_coins_spendable(&coin_ids).await?;
 
         Ok(GetAreCoinsSpendableResponse { spendable })
     }
@@ -191,7 +192,8 @@ impl Sage {
 
     pub async fn get_coins_by_ids(&self, req: GetCoinsByIds) -> Result<GetCoinsByIdsResponse> {
         let wallet = self.wallet()?;
-        let rows = wallet.db.coins_by_ids(&req.coin_ids).await?;
+        let coin_ids = parse_coin_ids(req.coin_ids)?;
+        let rows = wallet.db.coins_by_ids(&coin_ids).await?;
         let mut coins = Vec::new();
 
         for row in rows {

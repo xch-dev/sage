@@ -1,5 +1,3 @@
-use std::slice;
-
 use chia_wallet_sdk::driver::{Clawback as ClawbackV1, ClawbackV2};
 use chia_wallet_sdk::{
     chia::{
@@ -38,11 +36,9 @@ impl Sage {
         let mut coin_ids = Vec::new();
 
         for coin_id in req.coin_ids {
-            if wallet
-                .db
-                .are_coins_spendable(slice::from_ref(&coin_id))
-                .await?
-            {
+            let parsed_coin_id = parse_coin_id(coin_id.clone())?;
+
+            if wallet.db.are_coins_spendable(&[parsed_coin_id]).await? {
                 coin_ids.push(coin_id);
             }
         }
