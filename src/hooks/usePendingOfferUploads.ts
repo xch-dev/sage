@@ -2,10 +2,14 @@ import { events } from '@/bindings';
 import { processPendingOfferUploads } from '@/lib/pendingOfferUploads';
 import { useEffect } from 'react';
 
+/** How often to check for failed uploads that are due to be tried again. */
+const RETRY_CHECK_MS = 30_000;
+
 /**
  * Uploads the wallet's offers to the marketplaces chosen when they were made,
  * once the transactions splitting their coins are confirmed. This is checked
- * when the wallet is opened, and whenever its coins or offers change.
+ * when the wallet is opened, whenever its coins or offers change, and
+ * periodically so that failed uploads are tried again.
  */
 export function usePendingOfferUploadsLifecycle(fingerprint: number | null) {
   useEffect(() => {
@@ -42,8 +46,11 @@ export function usePendingOfferUploadsLifecycle(fingerprint: number | null) {
       }
     });
 
+    const interval = setInterval(() => void process(), RETRY_CHECK_MS);
+
     return () => {
       unlisten.then((u) => u());
+      clearInterval(interval);
     };
   }, [fingerprint]);
 }

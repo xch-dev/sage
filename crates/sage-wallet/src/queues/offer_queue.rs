@@ -60,6 +60,7 @@ impl OfferQueue {
 
         let mut settlement_coin_ids = HashMap::new();
         let mut input_coin_ids = HashMap::new();
+        let mut pending_offer_coins = HashMap::new();
 
         for row in &offers {
             let mut allocator = Allocator::new();
@@ -74,13 +75,31 @@ impl OfferQueue {
                     .insert(row.offer_id);
             }
 
-            for coin_spend in offer.cancellable_coin_spends()? {
+            let input_coins = offer
+                .cancellable_coin_spends()?
+                .into_iter()
+                .map(|coin_spend| coin_spend.coin)
+                .collect::<Vec<_>>();
+
+            for coin in &input_coins {
                 input_coin_ids
-                    .entry(coin_spend.coin.coin_id())
+                    .entry(coin.coin_id())
                     .or_insert(HashSet::new())
                     .insert(row.offer_id);
             }
+
+            if row.status == OfferStatus::Pending {
+                pending_offer_coins.insert(row.offer_id, input_coins);
+            }
         }
+
+        // The parents of a pending offer's coins are the coins being split, which show whether
+        // the split can still happen.
+        let split_coin_ids = pending_offer_coins
+            .values()
+            .flatten()
+            .map(|coin| coin.parent_coin_info)
+            .collect::<HashSet<_>>();
 
         let Some(peer) = self.state.lock().await.acquire_peer() else {
             return Ok(());
@@ -90,8 +109,11 @@ impl OfferQueue {
             .fetch_coins(
                 settlement_coin_ids
                     .keys()
+                    .chain(input_coin_ids.keys())
+                    .chain(split_coin_ids.iter())
                     .copied()
-                    .chain(input_coin_ids.keys().copied())
+                    .collect::<HashSet<_>>()
+                    .into_iter()
                     .collect(),
                 self.genesis_challenge,
             )
@@ -110,15 +132,11 @@ impl OfferQueue {
         };
 
         let mut new_offer_statuses = HashMap::new();
-        let mut created_coin_ids = HashSet::new();
-
-        for coin_state in &coin_states {
-            if coin_state.created_height.is_some() {
-                created_coin_ids.insert(coin_state.coin.coin_id());
-            }
-        }
+        let mut chain_coin_states = HashMap::new();
 
         for coin_state in coin_states {
+            chain_coin_states.insert(coin_state.coin.coin_id(), coin_state);
+
             if let Some(offer_ids) = settlement_coin_ids.get(&coin_state.coin.coin_id()) {
                 for &offer_id in offer_ids {
                     new_offer_statuses.insert(offer_id, OfferStatus::Completed);
@@ -153,46 +171,16 @@ impl OfferQueue {
             }
         }
 
-        for offer in &offers {
-            if offer.status != OfferStatus::Pending
-                || new_offer_statuses.contains_key(&offer.offer_id)
-            {
+        for (offer_id, coins) in pending_offer_coins {
+            if new_offer_statuses.contains_key(&offer_id) {
                 continue;
             }
 
-            let coin_ids = input_coin_ids
-                .iter()
-                .filter(|(_, offer_ids)| offer_ids.contains(&offer.offer_id))
-                .map(|(&coin_id, _)| coin_id)
-                .collect::<Vec<_>>();
-
-            if coin_ids
-                .iter()
-                .all(|coin_id| created_coin_ids.contains(coin_id))
+            if let Some(status) = self
+                .pending_offer_status(offer_id, &coins, &chain_coin_states)
+                .await?
             {
-                // If the wallet saw the split's inputs spent before its coins were created, it
-                // forgot the coins until they synced again, which also dropped their reservation
-                // for the offer, so they're reserved again.
-                let mut tx = self.db.tx().await?;
-
-                for &coin_id in &coin_ids {
-                    tx.insert_offered_coin(offer.offer_id, coin_id).await?;
-                }
-
-                tx.commit().await?;
-
-                new_offer_statuses.insert(offer.offer_id, OfferStatus::Active);
-                continue;
-            }
-
-            // The wallet forgets the coins a transaction would have created if it fails, so if
-            // one of them isn't on-chain or known anymore, the split failed and the offer can
-            // never be taken.
-            for coin_id in coin_ids {
-                if !created_coin_ids.contains(&coin_id) && !self.db.is_known_coin(coin_id).await? {
-                    new_offer_statuses.insert(offer.offer_id, OfferStatus::Cancelled);
-                    break;
-                }
+                new_offer_statuses.insert(offer_id, status);
             }
         }
 
@@ -206,5 +194,64 @@ impl OfferQueue {
         }
 
         Ok(())
+    }
+    /// Checks whether the coins a pending offer spends have been created, so it can be shared,
+    /// or whether the transaction splitting them can no longer happen.
+    async fn pending_offer_status(
+        &self,
+        offer_id: Bytes32,
+        coins: &[Coin],
+        chain_coin_states: &HashMap<Bytes32, CoinState>,
+    ) -> Result<Option<OfferStatus>, WalletError> {
+        let mut is_created = true;
+        let mut tx = self.db.tx().await?;
+
+        for coin in coins {
+            let coin_id = coin.coin_id();
+
+            if let Some(heights) = tx.coin_heights(coin_id).await? {
+                // If the wallet saw the coins being split spent before it saw the split coins
+                // created, it forgot the split coins until they synced again, which also dropped
+                // their reservation for the offer. Reserving them again on every check keeps
+                // them from being selected for long in that case.
+                tx.insert_offered_coin(offer_id, coin_id).await?;
+
+                is_created &= heights.created_height.is_some();
+                continue;
+            }
+
+            is_created = false;
+
+            // The coin isn't known, so it either failed to be created, or it was created and
+            // the wallet is still syncing it.
+            let Some(parent_heights) = tx.coin_heights(coin.parent_coin_info).await? else {
+                continue;
+            };
+
+            // When the split is confirmed or fails, the wallet stops tracking the coins it would
+            // create. If the coin being split was never spent, the split failed.
+            if parent_heights.spent_height.is_none() {
+                tx.commit().await?;
+                return Ok(Some(OfferStatus::Cancelled));
+            }
+
+            // Otherwise it was spent, which only means the split failed if it was spent without
+            // creating the coin. A peer which has seen the spend has seen the coin created too.
+            let parent_spent = chain_coin_states
+                .get(&coin.parent_coin_info)
+                .is_some_and(|state| state.spent_height.is_some());
+            let coin_created = chain_coin_states
+                .get(&coin_id)
+                .is_some_and(|state| state.created_height.is_some());
+
+            if parent_spent && !coin_created {
+                tx.commit().await?;
+                return Ok(Some(OfferStatus::Cancelled));
+            }
+        }
+
+        tx.commit().await?;
+
+        Ok(is_created.then_some(OfferStatus::Active))
     }
 }

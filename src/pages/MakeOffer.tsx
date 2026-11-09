@@ -35,6 +35,12 @@ export function MakeOffer() {
   );
   const [preSplit, setPreSplit] = useState(false);
   const [preSplitFee, setPreSplitFee] = useState('');
+
+  // Each separate NFT offer would split coins of its own, and the change from
+  // one split can't be spent on the next offer until it's confirmed.
+  const isSplittingNftOffers =
+    splitNftOffers && state.offered.nfts.filter((n) => n).length > 1;
+  const isPreSplitting = preSplit && !isSplittingNftOffers;
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
@@ -235,19 +241,27 @@ export function MakeOffer() {
                 </label>
                 <Switch
                   id='pre-split'
-                  checked={preSplit}
+                  checked={isPreSplitting}
+                  disabled={isSplittingNftOffers}
                   onCheckedChange={setPreSplit}
                 />
               </div>
               <p className='text-sm text-muted-foreground'>
-                <Trans>
-                  Splits the coins being offered to the exact amounts first, so
-                  the offer doesn&apos;t lock up the rest of your balance. The
-                  offer can&apos;t be shared until the split is confirmed.
-                </Trans>
+                {isSplittingNftOffers ? (
+                  <Trans>
+                    Coins can&apos;t be pre-split when each NFT gets its own
+                    offer.
+                  </Trans>
+                ) : (
+                  <Trans>
+                    Splits the coins being offered to the exact amounts first,
+                    so the offer doesn&apos;t lock up the rest of your balance.
+                    The offer can&apos;t be shared until the split is confirmed.
+                  </Trans>
+                )}
               </p>
 
-              {preSplit && (
+              {isPreSplitting && (
                 <div className='flex flex-col space-y-1.5'>
                   <Label htmlFor='pre-split-fee'>
                     <Trans>Split Fee</Trans>
@@ -298,7 +312,7 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           fee={state.fee || '0'}
-          preSplitFee={preSplit ? preSplitFee : null}
+          preSplitFee={isPreSplitting ? preSplitFee : null}
           enabledMarketplaces={enabledMarketplaces}
           setEnabledMarketplaces={setEnabledMarketplaces}
         />
@@ -308,7 +322,7 @@ export function MakeOffer() {
           onOpenChange={handleProgressDialogClose}
           offerState={state}
           splitNftOffers={splitNftOffers}
-          preSplitFee={preSplit ? preSplitFee : null}
+          preSplitFee={isPreSplitting ? preSplitFee : null}
           enabledMarketplaces={enabledMarketplaces}
           clearOfferState={() => {
             setState(null);

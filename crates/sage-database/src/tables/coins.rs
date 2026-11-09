@@ -9,6 +9,12 @@ use crate::{
     SerializedDidInfo, SerializedNft, SerializedNftInfo,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CoinHeights {
+    pub created_height: Option<u32>,
+    pub spent_height: Option<u32>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CoinKind {
     Xch,
@@ -155,10 +161,6 @@ impl Database {
         selectable_cat_coins(&self.pool, asset_id).await
     }
 
-    pub async fn is_known_coin(&self, coin_id: Bytes32) -> Result<bool> {
-        is_known_coin(&self.pool, coin_id).await
-    }
-
     pub async fn coin_kind(&self, coin_id: Bytes32) -> Result<Option<CoinKind>> {
         coin_kind(&self.pool, coin_id).await
     }
@@ -256,6 +258,12 @@ impl DatabaseTx<'_> {
 
     pub async fn is_known_coin(&mut self, coin_id: Bytes32) -> Result<bool> {
         is_known_coin(&mut *self.tx, coin_id).await
+    }
+
+    /// The heights a coin was created and spent at, if the wallet knows about it. A coin which
+    /// hasn't been created yet is one that a pending transaction will create.
+    pub async fn coin_heights(&mut self, coin_id: Bytes32) -> Result<Option<CoinHeights>> {
+        coin_heights(&mut *self.tx, coin_id).await
     }
 
     pub async fn update_coin(
@@ -362,6 +370,28 @@ async fn mark_coin_spent(
     .await?;
 
     Ok(())
+}
+
+async fn coin_heights(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<CoinHeights>> {
+    let row = sqlx::query("SELECT created_height, spent_height FROM coins WHERE hash = ?")
+        .bind(coin_id.as_ref())
+        .fetch_optional(conn)
+        .await?;
+
+    let Some(row) = row else {
+        return Ok(None);
+    };
+
+    let created_height: Option<i64> = row.try_get("created_height")?;
+    let spent_height: Option<i64> = row.try_get("spent_height")?;
+
+    Ok(Some(CoinHeights {
+        created_height: created_height.map(u32::try_from).transpose()?,
+        spent_height: spent_height.map(u32::try_from).transpose()?,
+    }))
 }
 
 async fn is_known_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<bool> {

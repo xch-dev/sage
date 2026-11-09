@@ -3,6 +3,7 @@ import { Assets } from '@/components/Assets';
 import { MarketplaceCard } from '@/components/MarketplaceCard';
 import { MutableNftWarning } from '@/components/MutableNftWarning';
 import { NumberFormat } from '@/components/NumberFormat';
+import { offerStatusLabel } from '@/components/OfferStatusBadge';
 import { marketplaces } from '@/lib/marketplaces';
 import { mutableOfferNftLabels } from '@/lib/nftUpdater';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
@@ -138,15 +139,7 @@ export function OfferCard({
                         : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
                 }`}
               >
-                {status === 'pending'
-                  ? t`Splitting Coins`
-                  : status === 'active'
-                    ? t`Pending`
-                    : status === 'completed'
-                      ? t`Taken`
-                      : status === 'cancelled'
-                        ? t`Cancelled`
-                        : t`Expired`}
+                {offerStatusLabel(status)}
               </div>
             )}
           </div>

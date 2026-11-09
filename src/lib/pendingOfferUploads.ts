@@ -14,10 +14,21 @@ export interface PendingOfferUpload {
   offerId: string;
   offer: string;
   isTestnet: boolean;
+  /** The marketplaces it hasn't been uploaded to yet. */
   marketplaceIds: string[];
+  /** How many times in a row uploading it has failed. */
+  failures?: number;
+  /** When to try uploading it again after a failure, in milliseconds. */
+  retryAt?: number;
 }
 
 const STORAGE_KEY = 'pendingOfferUploads';
+
+/** How many times in a row an upload can fail before it's given up on. */
+export const MAX_UPLOAD_FAILURES = 5;
+
+/** How long to wait after the first failed upload, doubled after each one. */
+const RETRY_DELAY_MS = 30_000;
 
 function load(): PendingOfferUpload[] {
   try {
@@ -34,6 +45,19 @@ function save(uploads: PendingOfferUpload[]) {
 
 function remove(offerId: string) {
   save(load().filter((upload) => upload.offerId !== offerId));
+}
+
+function update(upload: PendingOfferUpload) {
+  if (upload.marketplaceIds.length === 0) {
+    remove(upload.offerId);
+    return;
+  }
+
+  save(
+    load().map((existing) =>
+      existing.offerId === upload.offerId ? upload : existing,
+    ),
+  );
 }
 
 async function isWalletOpen(fingerprint: number) {
@@ -57,11 +81,18 @@ export function queuePendingOfferUpload(upload: PendingOfferUpload) {
 /**
  * Uploads the queued offers of a wallet which are no longer pending. Offers
  * which can never be taken, or which were deleted, are forgotten instead.
+ * Failed uploads are tried again later, with a growing delay, and given up on
+ * after failing several times in a row.
  */
-export async function processPendingOfferUploads(fingerprint: number) {
+export async function processPendingOfferUploads(
+  fingerprint: number,
+  now = Date.now(),
+) {
   const uploads = load().filter((upload) => upload.fingerprint === fingerprint);
 
   for (const upload of uploads) {
+    if (upload.retryAt !== undefined && upload.retryAt > now) continue;
+
     let status;
 
     try {
@@ -80,25 +111,57 @@ export async function processPendingOfferUploads(fingerprint: number) {
 
     if (status === 'pending') continue;
 
-    // It's forgotten before uploading, so that it's never uploaded twice.
-    remove(upload.offerId);
+    if (status !== 'active') {
+      remove(upload.offerId);
+      continue;
+    }
 
-    if (status !== 'active') continue;
+    let { marketplaceIds } = upload;
+    const errors: [string, string][] = [];
 
     for (const marketplace of marketplaces) {
-      if (!upload.marketplaceIds.includes(marketplace.id)) continue;
+      if (!marketplaceIds.includes(marketplace.id)) continue;
 
       const marketplaceName = marketplace.name;
 
       try {
         await marketplace.uploadToMarketplace(upload.offer, upload.isTestnet);
-        toast.success(t`Uploaded offer to ${marketplaceName}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        toast.error(
-          t`Failed to upload offer to ${marketplaceName}: ${message}`,
-        );
+        console.warn(`Failed to upload offer to ${marketplaceName}`, error);
+        errors.push([marketplaceName, message]);
+        continue;
       }
+
+      toast.success(t`Uploaded offer to ${marketplaceName}`);
+
+      // It's forgotten as soon as it's uploaded, so that it's never uploaded
+      // to the same marketplace twice.
+      marketplaceIds = marketplaceIds.filter((id) => id !== marketplace.id);
+      update({ ...upload, marketplaceIds });
+    }
+
+    if (errors.length === 0) {
+      remove(upload.offerId);
+      continue;
+    }
+
+    const failures = (upload.failures ?? 0) + 1;
+
+    if (failures < MAX_UPLOAD_FAILURES) {
+      update({
+        ...upload,
+        marketplaceIds,
+        failures,
+        retryAt: now + RETRY_DELAY_MS * 2 ** (failures - 1),
+      });
+      continue;
+    }
+
+    remove(upload.offerId);
+
+    for (const [marketplaceName, message] of errors) {
+      toast.error(t`Failed to upload offer to ${marketplaceName}: ${message}`);
     }
   }
 }
