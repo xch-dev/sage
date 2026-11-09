@@ -26,7 +26,8 @@ export function AmountCell({ amount, assetKind, precision }: AmountCellProps) {
       >
         {assetKind === 'nft' ||
         assetKind === 'did' ||
-        assetKind === 'option' ? (
+        assetKind === 'option' ||
+        assetKind === 'vault' ? (
           amountNum.eq(0) ? (
             <Trans>Edited</Trans>
           ) : amountNum.gt(0) ? (
