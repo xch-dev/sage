@@ -1,0 +1,248 @@
+import { commands } from '@/bindings';
+import { EmojiPicker } from '@/components/EmojiPicker';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { VaultRecoveryFields } from '@/components/VaultRecoveryFields';
+import { useWallet } from '@/contexts/WalletContext';
+import { useErrors } from '@/hooks/useErrors';
+import {
+  EMPTY_RECOVERY,
+  RecoveryInput,
+  vaultRecoveryKeys,
+} from '@/lib/vaultRecovery';
+import { fetchState } from '@/state';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { Upload } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import * as z from 'zod';
+
+export type VaultSource = 'launcher_id' | 'address' | 'config';
+
+interface ImportVaultFormProps {
+  /** A launcher id to start with, such as one found from a watched address. */
+  launcherId?: string;
+}
+
+/** Imports an existing vault as a read-only wallet, from its launcher id, an
+ *  address it has spent from, or a config file. A vault without memos needs its
+ *  config file, or its recovery keys with its launcher id or address, unless
+ *  it has no recovery. */
+export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
+  const navigate = useNavigate();
+  const { addError } = useErrors();
+  const { setWallet } = useWallet();
+  const [pending, setPending] = useState(false);
+  const [source, setSource] = useState<VaultSource>('launcher_id');
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [recoveryInput, setRecoveryInput] =
+    useState<RecoveryInput>(EMPTY_RECOVERY);
+  // A config file already has the recovery keys and timelock.
+  const recovery =
+    source === 'config' ? null : vaultRecoveryKeys(recoveryInput);
+
+  const formSchema = z.object({
+    name: z.string().min(1),
+    value: z.string().trim().min(1),
+    emoji: z.string().nullable().optional(),
+  });
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: '', value: launcherId ?? '' },
+    mode: 'onChange',
+  });
+
+  // A new source starts out empty, without an error until something's entered.
+  const changeSource = (value: string) => {
+    setSource(value as VaultSource);
+    form.resetField('value', { defaultValue: '' });
+  };
+
+  const submit = (values: z.infer<typeof formSchema>) => {
+    if (recovery === undefined) return;
+
+    setPending(true);
+
+    const value = values.value.trim();
+
+    commands
+      .importVault({
+        name: values.name,
+        launcher_id: source === 'launcher_id' ? value : null,
+        address: source === 'address' ? value : null,
+        config: source === 'config' ? value : null,
+        recovery,
+        emoji: values.emoji || null,
+      })
+      .then(async () => {
+        await fetchState();
+        const data = await commands.getWallet({});
+        setWallet(data.wallet);
+        navigate('/wallet');
+      })
+      .catch(addError)
+      .finally(() => setPending(false));
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(submit)} className='space-y-4 py-4'>
+        <FormField
+          control={form.control}
+          name='name'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                <Trans>Wallet Name</Trans>
+              </FormLabel>
+              <FormControl>
+                <Input required {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='emoji'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                <Trans>Wallet Emoji (Optional)</Trans>
+              </FormLabel>
+              <FormControl>
+                <div className='flex items-center gap-2'>
+                  <EmojiPicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder={t`Choose an emoji`}
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Tabs value={source} onValueChange={changeSource}>
+          <TabsList className='w-full'>
+            <TabsTrigger value='launcher_id' className='flex-1'>
+              <Trans>Launcher ID</Trans>
+            </TabsTrigger>
+            <TabsTrigger value='address' className='flex-1'>
+              <Trans>Address</Trans>
+            </TabsTrigger>
+            <TabsTrigger value='config' className='flex-1'>
+              <Trans>Config File</Trans>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <input
+          ref={fileRef}
+          type='file'
+          accept='application/json,.json'
+          className='hidden'
+          onChange={async (event) => {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (!file) return;
+            form.setValue('value', await file.text(), {
+              shouldValidate: true,
+            });
+          }}
+        />
+
+        <FormField
+          control={form.control}
+          name='value'
+          render={({ field }) => (
+            <FormItem>
+              <div className='flex items-center justify-between gap-2'>
+                <FormLabel>
+                  {source === 'launcher_id' ? (
+                    <Trans>Launcher ID</Trans>
+                  ) : source === 'address' ? (
+                    <Trans>Vault Address</Trans>
+                  ) : (
+                    <Trans>Config File</Trans>
+                  )}
+                </FormLabel>
+                {source === 'config' && (
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <Upload className='h-4 w-4 mr-2' aria-hidden='true' />
+                    <Trans>Choose File</Trans>
+                  </Button>
+                )}
+              </div>
+              <FormControl>
+                {source === 'config' ? (
+                  <Textarea className='resize-none h-28 font-mono' {...field} />
+                ) : (
+                  <Input required {...field} />
+                )}
+              </FormControl>
+              <FormDescription>
+                {source === 'launcher_id' ? (
+                  <Trans>
+                    The vault&apos;s launcher ID. Its config is read from the
+                    memos on chain, if it has them.
+                  </Trans>
+                ) : source === 'address' ? (
+                  <Trans>
+                    An address the vault has already spent from. An address that
+                    has only received coins doesn&apos;t reveal its vault yet.
+                  </Trans>
+                ) : (
+                  <Trans>
+                    A config file exported from Sage or Chia Cloud Wallet,
+                    pasted or chosen. It must match the vault on chain.
+                  </Trans>
+                )}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {source !== 'config' && (
+          <VaultRecoveryFields
+            value={recoveryInput}
+            onChange={setRecoveryInput}
+          />
+        )}
+
+        <LoadingButton
+          type='submit'
+          loading={pending}
+          loadingText={t`Importing`}
+          disabled={!form.formState.isValid || recovery === undefined}
+        >
+          <Trans>Import</Trans>
+        </LoadingButton>
+      </form>
+    </Form>
+  );
+}

@@ -47,7 +47,9 @@ export default function Addresses() {
       : 'receive';
 
   const { addError } = useErrors();
-  const { isWatchOnly } = useWallet();
+  const { isWatchOnly, isVault } = useWallet();
+  // Watch and vault wallets don't derive addresses or sign messages.
+  const isKeyless = isWatchOnly || isVault;
   const walletState = useWalletState();
   const ticker = walletState.sync.unit.ticker;
   const [hardened, setHardened] = useState(false);
@@ -105,7 +107,7 @@ export default function Addresses() {
   return (
     <>
       <Header title={title} alwaysShowChildren>
-        {tab === 'receive' && !isWatchOnly && (
+        {tab === 'receive' && !isKeyless && (
           <Button variant='outline' onClick={() => openSignMessage('')}>
             <SignatureIcon className='h-4 w-4 mr-2' aria-hidden='true' />
             <Trans>Sign Message</Trans>
@@ -137,7 +139,7 @@ export default function Addresses() {
             <Card>
               <CardHeader>
                 <CardTitle className='text-lg font-medium'>
-                  {isWatchOnly ? (
+                  {isKeyless ? (
                     <Trans>Receive Address</Trans>
                   ) : (
                     <Trans>Fresh Address</Trans>
@@ -148,6 +150,11 @@ export default function Addresses() {
                     <Trans>
                       The first address this wallet watches. Funds sent here
                       can&apos;t be spent from Sage.
+                    </Trans>
+                  ) : isVault ? (
+                    <Trans>
+                      The vault&apos;s address, which stays the same when its
+                      keys change or it&apos;s recovered.
                     </Trans>
                   ) : (
                     <Trans>
@@ -223,7 +230,7 @@ export default function Addresses() {
               </CardContent>
             </Card>
 
-            {isWatchOnly ? (
+            {isVault ? null : isWatchOnly ? (
               <WatchedAddressesCard />
             ) : (
               <Card className='max-w-full'>

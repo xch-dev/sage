@@ -17,7 +17,10 @@ use sage_api::{ErrorKind, HandleErrorCode, RecipientError};
 use sage_assets::UriError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
-use sage_wallet::{SyncCommand, WalletError, XchandlesApiError, XchandlesError};
+use sage_wallet::{
+    SyncCommand, VaultConfigFileError, VaultHistoryError, WalletError, XchandlesApiError,
+    XchandlesError,
+};
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
 use tokio::{sync::mpsc::error::SendError, time::error::Elapsed};
@@ -142,6 +145,60 @@ pub enum Error {
 
     #[error("Wallet {0} isn't a watch wallet")]
     NotWatchWallet(u32),
+
+    #[error("Wallet {0} isn't a vault")]
+    NotVaultWallet(u32),
+
+    #[error(
+        "Import a vault from one of its launcher id, an address it has spent from, or a config file. Recovery keys can only be given with a launcher id or address."
+    )]
+    VaultImportSource,
+
+    #[error("No vault with launcher id {0} was found on chain")]
+    VaultNotFound(String),
+
+    #[error(
+        "No coins have been spent from this address yet, so the vault it belongs to can't be found. You can watch the address instead, until the vault spends from it."
+    )]
+    VaultAddressNeverSpent,
+
+    #[error("The coins spent from this address weren't spent by a vault")]
+    NotVaultAddress,
+
+    #[error(
+        "The vault config doesn't match the vault on chain. The vault may have changed since the config was exported, for example by recovery, or the config may have been modified."
+    )]
+    VaultConfigMismatch,
+
+    #[error(
+        "The vault's config isn't known yet. Import its config file, or rebuild it from the vault's spends, first."
+    )]
+    VaultConfigUnknown,
+
+    #[error(
+        "Invalid recovery key. Enter its public key in hex, the mnemonic or secret key of a BLS key, or the vault1 id of a vault."
+    )]
+    InvalidRecoveryKey,
+
+    #[error("The recovery timelock must be at least one second")]
+    InvalidRecoveryTimelock,
+
+    #[error("The recovery threshold must be between 1 and the number of recovery keys")]
+    InvalidRecoveryThreshold,
+
+    #[error(
+        "The vault's current custody hasn't been spent through yet, so its config can't be rebuilt from its spends. Only an older config was found, which the vault has changed from."
+    )]
+    VaultCustodyUnrevealed,
+
+    #[error("Key {0} isn't a custody or recovery member of this vault")]
+    NotVaultMember(u32),
+
+    #[error("{0}")]
+    VaultConfigFile(#[from] VaultConfigFileError),
+
+    #[error("{0}")]
+    VaultHistory(VaultHistoryError),
 
     #[error("Not logged in")]
     NotLoggedIn,
@@ -385,7 +442,8 @@ impl Error {
             | Self::MissingNft(..)
             | Self::MissingOption(..)
             | Self::MissingOffer(..)
-            | Self::MissingContact(..) => ErrorKind::NotFound,
+            | Self::MissingContact(..)
+            | Self::VaultNotFound(..) => ErrorKind::NotFound,
             Self::Bls(..)
             | Self::Hex(..)
             | Self::InvalidKey
@@ -395,6 +453,19 @@ impl Error {
             | Self::KeyExists(..)
             | Self::NoWatchAddresses
             | Self::NotWatchWallet(..)
+            | Self::NotVaultWallet(..)
+            | Self::VaultImportSource
+            | Self::VaultAddressNeverSpent
+            | Self::NotVaultAddress
+            | Self::VaultConfigMismatch
+            | Self::VaultConfigUnknown
+            | Self::InvalidRecoveryKey
+            | Self::InvalidRecoveryTimelock
+            | Self::InvalidRecoveryThreshold
+            | Self::VaultCustodyUnrevealed
+            | Self::NotVaultMember(..)
+            | Self::VaultConfigFile(..)
+            | Self::VaultHistory(..)
             | Self::InvalidMnemonic(..)
             | Self::TryFromSlice(..)
             | Self::TryFromInt(..)
@@ -452,6 +523,15 @@ impl Error {
             error if error.is_unavailable() => HandleErrorCode::Unavailable,
             _ => HandleErrorCode::VerificationFailed,
         })
+    }
+}
+
+impl From<VaultHistoryError> for Error {
+    fn from(error: VaultHistoryError) -> Self {
+        match error {
+            VaultHistoryError::Wallet(error) => Self::Wallet(error),
+            error => Self::VaultHistory(error),
+        }
     }
 }
 

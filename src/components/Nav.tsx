@@ -4,7 +4,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { usePeers } from '@/hooks/usePeers';
-import { offersEnabled, optionsEnabled } from '@/lib/features';
+import { useWallet } from '@/contexts/WalletContext';
+import { offersEnabled, optionsEnabled, vaultsEnabled } from '@/lib/features';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -16,6 +17,7 @@ import {
   Cog,
   FilePenLine,
   Handshake,
+  Landmark,
   Images,
   LogOut,
   MonitorCheck,
@@ -36,6 +38,8 @@ export function TopNav({ isCollapsed }: NavProps) {
 
   const isIos = platform() === 'ios';
   const isMobile = platform() === 'android' || isIos;
+
+  const { isVault } = useWallet();
 
   return (
     <nav
@@ -87,6 +91,16 @@ export function TopNav({ isCollapsed }: NavProps) {
           message={<Trans>Offers</Trans>}
         >
           <Handshake className={className} aria-hidden='true' />
+        </NavLink>
+      )}
+
+      {vaultsEnabled && isVault && (
+        <NavLink
+          url={'/vault'}
+          isCollapsed={isCollapsed}
+          message={<Trans>Vault</Trans>}
+        >
+          <Landmark className={className} aria-hidden='true' />
         </NavLink>
       )}
 

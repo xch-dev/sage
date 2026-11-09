@@ -9,7 +9,7 @@ use chia_wallet_sdk::{
 };
 use sage_database::{DatabaseTx, Derivation};
 
-use crate::{WalletError, WalletKind};
+use crate::{WalletError, WalletKind, p2_singleton_puzzle_hash};
 
 use super::Wallet;
 
@@ -91,11 +91,12 @@ impl Wallet {
             return Ok(change_p2_puzzle_hash);
         }
 
-        // Change only comes from spends, which watch wallets can't make.
-        if matches!(self.kind, WalletKind::Watch) {
-            return Err(WalletError::WatchOnly);
+        match self.kind {
+            WalletKind::Bls { .. } => Ok(self.p2_puzzle_hashes(1, false, true).await?[0]),
+            // Change only comes from spends, which watch wallets can't make.
+            WalletKind::Watch => Err(WalletError::WatchOnly),
+            // A vault's change goes to its first address.
+            WalletKind::Vault { launcher_id } => Ok(p2_singleton_puzzle_hash(launcher_id, 0)),
         }
-
-        Ok(self.p2_puzzle_hashes(1, false, true).await?[0])
     }
 }
