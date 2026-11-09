@@ -6,13 +6,13 @@ use crate::{Asset, AssetKind, Convert, Database, Result};
 /// Resolves a coin's p2 puzzle to the wallet's own custody puzzle hash, if there is one.
 /// Requires `p2_puzzles` to be joined for the coin, followed by [`CUSTODY_JOINS`].
 ///
-/// Only public key (0) and arbor (3) puzzles are plain custody. Wrappers such as clawbacks (1)
-/// and option underlyings (2) resolve to the receiver or creator, but only when that's one of
-/// our own custody puzzles. Anything else, including counterparty puzzle hashes and p2 puzzle
+/// Only public key (0), arbor (3) and external (4) puzzles are plain custody. Wrappers such as
+/// clawbacks (1) and option underlyings (2) resolve to the receiver or creator, but only when
+/// that's one of our own custody puzzles. Anything else, including counterparty puzzle hashes and p2 puzzle
 /// kinds this query doesn't know about, resolves to `NULL` so it's never shown as an address.
 pub(crate) const CUSTODY_COLUMNS: &str = "
     CASE
-        WHEN p2_puzzles.kind IN (0, 3) THEN p2_puzzles.hash
+        WHEN p2_puzzles.kind IN (0, 3, 4) THEN p2_puzzles.hash
         WHEN p2_puzzles.kind = 1 THEN clawback_receiver.hash
         WHEN p2_puzzles.kind = 2 THEN option_creator.hash
     END AS custody_p2_puzzle_hash";
@@ -21,11 +21,11 @@ pub(crate) const CUSTODY_JOINS: &str = "
     LEFT JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id
     LEFT JOIN p2_puzzles AS clawback_receiver
         ON clawback_receiver.hash = clawbacks.receiver_puzzle_hash
-        AND clawback_receiver.kind IN (0, 3)
+        AND clawback_receiver.kind IN (0, 3, 4)
     LEFT JOIN p2_options ON p2_options.p2_puzzle_id = p2_puzzles.id
     LEFT JOIN p2_puzzles AS option_creator
         ON option_creator.hash = p2_options.creator_puzzle_hash
-        AND option_creator.kind IN (0, 3)";
+        AND option_creator.kind IN (0, 3, 4)";
 
 #[derive(Debug, Clone)]
 pub struct Transaction {

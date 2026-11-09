@@ -1,19 +1,20 @@
 import { OfferRecord } from '@/bindings';
 import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
+import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
-import { deleteOffers } from '@/lib/offers';
+import { deleteOffers, fetchOfferRecords } from '@/lib/offers';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { CircleOff, TrashIcon } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'react-toastify';
 import { CancelOffersFlow } from './dialogs/CancelOffersFlow';
 import { MultiSelectActionBar } from './MultiSelectActionBar';
 import { DropdownMenuItem, DropdownMenuSeparator } from './ui/dropdown-menu';
 
 export interface OffersMultiSelectActionsProps {
   selected: string[];
-  offers: OfferRecord[];
   onConfirm: () => void;
   onSelectAll?: () => void;
   onClearSelection?: () => void;
@@ -21,7 +22,6 @@ export interface OffersMultiSelectActionsProps {
 
 export function OffersMultiSelectActions({
   selected,
-  offers,
   onConfirm,
   onSelectAll,
   onClearSelection,
@@ -31,15 +31,38 @@ export function OffersMultiSelectActions({
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [isLoadingCancel, setIsLoadingCancel] = useState(false);
+
+  // Populated only once the user opens the cancel flow, with a fresh,
+  // filtered-to-active read of the selected offers (see openCancelFlow).
+  // Selections can span pages, and an offer can be deleted or completed after
+  // it was selected, so we can't trust records fetched earlier for the
+  // selection.
+  const [cancelOffers, setCancelOffers] = useState<OfferRecord[]>([]);
 
   const selectedCount = selected.length;
-  const selectedOffers = offers.filter((offer) =>
-    selected.includes(offer.offer_id),
-  );
-  const activeSelectedOffers = selectedOffers.filter(
-    (offer) => offer.status === 'active',
-  );
-  const activeSelectedCount = activeSelectedOffers.length;
+  const cancelOffersCount = cancelOffers.length;
+
+  const openCancelFlow = async () => {
+    setIsLoadingCancel(true);
+
+    try {
+      const records = await fetchOfferRecords(selected, (error) =>
+        addError(error as CustomError),
+      );
+      const activeOffers = records.filter((offer) => offer.status === 'active');
+
+      if (activeOffers.length === 0) {
+        toast.info(t`None of the selected offers are active`);
+        return;
+      }
+
+      setCancelOffers(activeOffers);
+      setIsCancelOpen(true);
+    } finally {
+      setIsLoadingCancel(false);
+    }
+  };
 
   return (
     <>
@@ -53,10 +76,12 @@ export function OffersMultiSelectActions({
       >
         <DropdownMenuItem
           className='cursor-pointer'
-          disabled={isTransactionDisabled || activeSelectedCount === 0}
+          disabled={
+            isTransactionDisabled || selectedCount === 0 || isLoadingCancel
+          }
           onClick={(e) => {
             e.stopPropagation();
-            setIsCancelOpen(true);
+            openCancelFlow();
           }}
           aria-label={t`Cancel ${selectedCount} selected offers`}
         >
@@ -86,12 +111,12 @@ export function OffersMultiSelectActions({
       <CancelOffersFlow
         open={isCancelOpen}
         onOpenChange={setIsCancelOpen}
-        offers={activeSelectedOffers}
+        offers={cancelOffers}
         onConfirm={onConfirm}
         title={<Trans>Cancel selected offers?</Trans>}
         description={
           <Trans>
-            This will cancel the {activeSelectedCount} active offers in your
+            This will cancel the {cancelOffersCount} active offers in your
             selection on-chain with a transaction, preventing them from being
             taken even if someone has the original offer files.
           </Trans>

@@ -13,6 +13,8 @@ pub enum P2PuzzleKind {
     Clawback,
     Option,
     Arbor,
+    /// A puzzle hash that's watched, whose puzzle reveal is unknown.
+    External,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -21,6 +23,8 @@ pub enum P2Puzzle {
     Clawback(Clawback),
     Option(Underlying),
     Arbor(PublicKey),
+    /// A watched puzzle hash. Its coins can't be spent, since the puzzle reveal is unknown.
+    External,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -113,6 +117,7 @@ impl Database {
 
                 Ok(P2Puzzle::Arbor(key))
             }
+            P2PuzzleKind::External => Ok(P2Puzzle::External),
         }
     }
 
@@ -131,6 +136,28 @@ impl Database {
 
     pub async fn max_derivation_index(&self, is_hardened: bool) -> Result<Option<u32>> {
         max_derivation_index(&self.pool, is_hardened).await
+    }
+
+    pub async fn external_p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
+        external_p2_puzzle_hashes(&self.pool).await
+    }
+
+    /// Custody puzzle hashes that haven't been synced from the start of the chain to the end yet.
+    pub async fn unsynced_custody_p2_puzzle_hashes(&self) -> Result<Vec<Bytes32>> {
+        unsynced_custody_p2_puzzle_hashes(&self.pool).await
+    }
+
+    /// Marks puzzle hashes as synced from the start of the chain to the end.
+    pub async fn mark_p2_puzzles_synced(&self, p2_puzzle_hashes: &[Bytes32]) -> Result<()> {
+        let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+
+        for &p2_puzzle_hash in p2_puzzle_hashes {
+            mark_p2_puzzle_synced(&mut *tx, p2_puzzle_hash).await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(())
     }
 }
 
@@ -183,10 +210,25 @@ impl DatabaseTx<'_> {
     pub async fn insert_arbor_p2_puzzle(&mut self, key: PublicKey) -> Result<()> {
         insert_arbor_p2_puzzle(&mut *self.tx, key).await
     }
+
+    pub async fn external_p2_puzzle_hashes(&mut self) -> Result<Vec<Bytes32>> {
+        external_p2_puzzle_hashes(&mut *self.tx).await
+    }
+
+    /// Watches a puzzle hash, so that its coins count as the wallet's own.
+    pub async fn insert_external_p2_puzzle(&mut self, p2_puzzle_hash: Bytes32) -> Result<()> {
+        insert_external_p2_puzzle(&mut *self.tx, p2_puzzle_hash).await
+    }
+
+    /// Stops watching a puzzle hash, and deletes the coins that were synced for it. They're
+    /// synced again from scratch if it's watched again.
+    pub async fn delete_external_p2_puzzle(&mut self, p2_puzzle_hash: Bytes32) -> Result<()> {
+        delete_external_p2_puzzle(&mut *self.tx, p2_puzzle_hash).await
+    }
 }
 
 async fn custody_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
-    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3)")
+    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4)")
         .fetch_all(conn)
         .await?
         .into_iter()
@@ -221,7 +263,7 @@ async fn is_custody_p2_puzzle_hash(
     let puzzle_hash = puzzle_hash.as_ref();
 
     Ok(query!(
-        "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind IN (0, 3)",
+        "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind IN (0, 3, 4)",
         puzzle_hash
     )
     .fetch_one(conn)
@@ -482,6 +524,79 @@ async fn insert_arbor_p2_puzzle(conn: impl SqliteExecutor<'_>, key: PublicKey) -
     Ok(())
 }
 
+async fn external_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    query!("SELECT hash FROM p2_puzzles WHERE kind = 4")
+        .fetch_all(conn)
+        .await?
+        .into_iter()
+        .map(|row| row.hash.convert())
+        .collect()
+}
+
+async fn unsynced_custody_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
+    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4) AND is_synced = FALSE")
+        .fetch_all(conn)
+        .await?
+        .into_iter()
+        .map(|row| row.hash.convert())
+        .collect()
+}
+
+async fn mark_p2_puzzle_synced(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<()> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    query!(
+        "UPDATE p2_puzzles SET is_synced = TRUE WHERE hash = ?",
+        p2_puzzle_hash
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn insert_external_p2_puzzle(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<()> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    query!(
+        "INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 4)",
+        p2_puzzle_hash
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn delete_external_p2_puzzle(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<()> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    query!(
+        "
+        DELETE FROM coins WHERE p2_puzzle_id = (
+            SELECT id FROM p2_puzzles WHERE hash = ? AND kind = 4
+        );
+
+        DELETE FROM p2_puzzles WHERE hash = ? AND kind = 4;
+        ",
+        p2_puzzle_hash,
+        p2_puzzle_hash,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
 async fn p2_puzzle_kind(
     conn: impl SqliteExecutor<'_>,
     p2_puzzle_hash: Bytes32,
@@ -497,6 +612,7 @@ async fn p2_puzzle_kind(
         1 => P2PuzzleKind::Clawback,
         2 => P2PuzzleKind::Option,
         3 => P2PuzzleKind::Arbor,
+        4 => P2PuzzleKind::External,
         _ => return Err(DatabaseError::InvalidEnumVariant),
     })
 }

@@ -243,6 +243,10 @@ impl BridgeMethod for WalletSignCoinSpends {
         true
     }
 
+    fn requires_signing(&self) -> bool {
+        true
+    }
+
     async fn prepare_approval(
         &self,
         _ctx: BridgeContext<'_>,

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE xchandles SET status = ?, status_reason = ?\n        WHERE registry_launcher_id = ? AND handle = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "4ec7631cd6c07b87dad212b696943412d4091857a475d534b83f1b15c22d09fb"
+}

@@ -1,5 +1,6 @@
 import {
   commands,
+  OfferHandleNft,
   OfferRecordStatus,
   OfferSummary,
   TakeOfferResponse,
@@ -11,6 +12,10 @@ import { DeepLinkNotice } from '@/components/DeepLinkNotice';
 import Header from '@/components/Header';
 import { Loading } from '@/components/Loading';
 import { OfferCard } from '@/components/OfferCard';
+import {
+  isOfferHandleBlocked,
+  OfferHandleNftWarning,
+} from '@/components/OfferHandleNftWarning';
 import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -41,6 +46,7 @@ export function Offer() {
   const [loadingStatus, setLoadingStatus] = useState(t`Initializing...`);
   const [summary, setSummary] = useState<OfferSummary | null>(null);
   const [status, setStatus] = useState<OfferRecordStatus | null>(null);
+  const [handleNfts, setHandleNfts] = useState<OfferHandleNft[]>([]);
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
   // Prefilled from the URL (e.g. deep links); the route remounts per URL
   const [fee, setFee] = useState(() => {
@@ -65,6 +71,7 @@ export function Offer() {
       const data = await commands.viewOffer({ offer: resolvedOffer });
       setSummary(data.offer);
       setStatus(data.status);
+      setHandleNfts(data.handle_nfts ?? []);
       setLoadingStatus(t`Processing offer data...`);
     } catch (error) {
       addError(error as CustomError);
@@ -96,6 +103,8 @@ export function Offer() {
     // Guarded here as well as on the button, since Enter in the fee input
     // also triggers this.
     if (isReadOnly) return;
+
+    if (isOfferHandleBlocked(handleNfts)) return;
 
     // Check for expired options in the offered side (maker)
     const currentTime = Math.floor(Date.now() / 1000);
@@ -165,6 +174,8 @@ export function Offer() {
                 }
               />
 
+              <OfferHandleNftWarning handleNfts={handleNfts} className='mt-4' />
+
               <div className='mt-4 flex gap-2'>
                 <Button variant='outline' onClick={importOffer}>
                   <Trans>Import Offer</Trans>
@@ -176,7 +187,8 @@ export function Offer() {
                   disabled={
                     status === 'completed' ||
                     status === 'cancelled' ||
-                    status === 'expired'
+                    status === 'expired' ||
+                    isOfferHandleBlocked(handleNfts)
                   }
                 >
                   <Trans>Take Offer</Trans>

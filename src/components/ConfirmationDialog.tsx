@@ -22,6 +22,7 @@ import {
   AlertCircleIcon,
   ArrowUpIcon,
   ArrowUpRightIcon,
+  AtSignIcon,
   BadgeMinus,
   BadgePlus,
   BoxIcon,
@@ -37,6 +38,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { commands, TakeOfferResponse, TransactionResponse } from '../bindings';
 import { formatNumber } from '../i18n';
+import { AddressLabels } from './AddressLabels';
 import { calculateTransaction } from './AdvancedTransactionSummary';
 import { CopyButton } from './CopyButton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -100,6 +102,7 @@ export default function ConfirmationDialog({
     ? calculateTransaction(walletState.sync.unit, response.summary)
     : { spent: [], created: [] };
   const fee = BigNumber(response?.summary.fee || 0);
+  const handles = response?.summary.handles ?? [];
   const isHighFee = fee.isGreaterThan(1000_000_000); // Adjust threshold as needed
 
   const json =
@@ -279,6 +282,49 @@ export default function ConfirmationDialog({
                   </div>
                 )}
 
+                {handles.length > 0 && (
+                  <div className='mb-4'>
+                    <h3 className='text-sm font-medium mb-2 flex items-center'>
+                      <AtSignIcon className='h-4 w-4 mr-1' aria-hidden='true' />
+                      <Trans>Handles</Trans>
+                    </h3>
+                    <div className='space-y-2'>
+                      {handles.map((handle) => (
+                        <div
+                          key={handle.handle}
+                          className='rounded-md border p-2 text-sm space-y-1'
+                        >
+                          <div className='flex items-center gap-2'>
+                            <span className='font-medium'>
+                              @{handle.handle}
+                            </span>
+                            {handle.cached ? (
+                              <Badge variant='outline'>
+                                <Trans>Verified recently</Trans>
+                              </Badge>
+                            ) : (
+                              <Badge variant='outline'>
+                                <Trans>Verified</Trans>
+                              </Badge>
+                            )}
+                          </div>
+                          <div className='font-mono text-xs break-all'>
+                            {handle.address}
+                          </div>
+                          <HandleUpdatedHeight height={handle.updated_height} />
+                        </div>
+                      ))}
+                      <div className='text-xs text-muted-foreground'>
+                        <Trans>
+                          Handles are checked again before submitting. If any
+                          resolve to a different address by then, nothing is
+                          sent.
+                        </Trans>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {showRecipientDetails && (
                   <div>
                     <h3 className='text-sm font-medium mb-2 flex items-center'>
@@ -349,6 +395,7 @@ export default function ConfirmationDialog({
                                     <div className='text-sm truncate flex-1'>
                                       {address}
                                     </div>
+                                    <AddressLabels address={address} compact />
                                     {address !== t`Permanently Burned` &&
                                       address !== t`You` &&
                                       address !== t`Change` && (
@@ -485,6 +532,7 @@ export default function ConfirmationDialog({
                               <div className='text-sm truncate flex-1'>
                                 {item.address}
                               </div>
+                              <AddressLabels address={item.address} compact />
                               {item.address !== t`Permanently Burned` &&
                                 item.address !== t`You` &&
                                 item.address !== t`Change` && (
@@ -696,5 +744,15 @@ export default function ConfirmationDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function HandleUpdatedHeight({ height }: { height: number }) {
+  const updatedHeight = height.toLocaleString();
+
+  return (
+    <div className='text-xs text-muted-foreground'>
+      <Trans>Last updated at height {updatedHeight}</Trans>
+    </div>
   );
 }

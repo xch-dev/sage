@@ -1,9 +1,14 @@
 mod maintenance;
+mod nft_metadata;
 mod serialized_primitives;
 mod tables;
 mod utils;
 
+#[cfg(test)]
+mod tests;
+
 pub use maintenance::*;
+pub use nft_metadata::*;
 pub use serialized_primitives::*;
 pub use tables::*;
 
@@ -54,6 +59,12 @@ impl Database {
             tx.set_rust_migration_version(1).await?;
         }
 
+        if version < 2 {
+            info!("Migrating to version 2 - parsing display names of mutable NFTs");
+            tx.backfill_nft_display_names().await?;
+            tx.set_rust_migration_version(2).await?;
+        }
+
         tx.commit().await?;
 
         Ok(())
@@ -92,6 +103,49 @@ impl<'a> DatabaseTx<'a> {
             .await?;
 
         Ok(())
+    }
+}
+
+/// The database shared by every wallet on a network, for what isn't specific to one wallet:
+/// the address book, and the handle mappings Sage has verified.
+///
+/// It's created with the same migrations as wallet databases, so that its queries are
+/// checked against the same schema at compile time, but only the `xchandles` and `contacts`
+/// tables are used in it. Queries for those tables are only available here, so they can't
+/// be run against a wallet's database by mistake, and none of them read the wallet tables,
+/// which are always empty here.
+///
+/// The `xchandles` table was first created for wallet databases, which may still have rows
+/// in it from before, but nothing reads them anymore.
+#[derive(Debug, Clone)]
+pub struct SharedDatabase {
+    pub(crate) pool: SqlitePool,
+}
+
+impl SharedDatabase {
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
+
+    /// Begins a transaction that may write.
+    pub async fn tx(&self) -> Result<SharedDatabaseTx<'_>> {
+        let tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        Ok(SharedDatabaseTx { tx })
+    }
+}
+
+#[derive(Debug)]
+pub struct SharedDatabaseTx<'a> {
+    pub(crate) tx: SqliteTransaction<'a, Sqlite>,
+}
+
+impl SharedDatabaseTx<'_> {
+    pub async fn commit(self) -> Result<()> {
+        Ok(self.tx.commit().await?)
+    }
+
+    pub async fn rollback(self) -> Result<()> {
+        Ok(self.tx.rollback().await?)
     }
 }
 

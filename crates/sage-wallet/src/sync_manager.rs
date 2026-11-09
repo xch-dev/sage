@@ -17,7 +17,7 @@ use sage_config::Network;
 use tokio::{
     sync::{Mutex, mpsc},
     task::JoinHandle,
-    time::{sleep, timeout},
+    time::{Instant, sleep, timeout},
 };
 use tracing::{debug, info, warn};
 use wallet_sync::{add_new_subscriptions, incremental_sync, sync_wallet};
@@ -156,6 +156,12 @@ impl SyncManager {
 
                     self.clear_subscriptions().await;
                     self.abort_wallet_tasks();
+
+                    // Queued subscriptions belong to the previous wallet. Syncing them under the
+                    // new one would put its coin states in the wrong database.
+                    self.pending_coin_subscriptions.clear();
+                    self.pending_puzzle_subscriptions.clear();
+
                     self.wallet = wallet;
                     self.options.delta_sync = delta_sync;
 
@@ -173,7 +179,7 @@ impl SyncManager {
                     {
                         self.state.lock().await.reset();
                         self.abort_wallet_tasks();
-                        self.network = network;
+                        self.network = *network;
                         let _ = self
                             .event_sender
                             .send(SyncEvent::NetworkChanged {
@@ -301,10 +307,31 @@ impl SyncManager {
             ProtocolMessageTypes::NewPeakWallet => {
                 let message =
                     NewPeakWallet::from_bytes(&message.data).map_err(ClientError::from)?;
-                self.state
-                    .lock()
-                    .await
-                    .update_peak(ip, message.height, message.header_hash);
+
+                let previous_peak = {
+                    let mut state = self.state.lock().await;
+                    let previous_peak = state.peak_of(ip).map(|(height, _)| height);
+                    state.update_peak(ip, message.height, message.header_hash);
+                    previous_peak
+                };
+
+                // When the chain is extended, the fork point is the previous peak. A fork point
+                // below it means blocks were rolled back, so handle mappings verified against
+                // them must be verified again. The peer can only have rolled back blocks up to
+                // its previous peak, so a lagging peer doesn't affect anything verified above.
+                if let Some(wallet) = self.wallet.as_ref()
+                    && let Some(previous_peak) = previous_peak
+                    && message.fork_point_with_previous_peak < previous_peak
+                    && let Err(error) = wallet
+                        .shared_db
+                        .invalidate_xchandles_between(
+                            message.fork_point_with_previous_peak,
+                            previous_peak,
+                        )
+                        .await
+                {
+                    warn!("Failed to invalidate handle mappings after a reorg: {error}");
+                }
             }
             ProtocolMessageTypes::CoinStateUpdate => {
                 let message =
@@ -364,6 +391,8 @@ impl SyncManager {
     }
 
     async fn update(&mut self) {
+        self.drop_silent_peers().await;
+
         let peer_count = self.state.lock().await.peer_count();
 
         if peer_count < self.options.target_peers && self.options.discover_peers {
@@ -378,6 +407,21 @@ impl SyncManager {
 
         self.update_tasks().await;
         self.poll_tasks().await;
+    }
+
+    /// Removes silent peers without banning them. After the computer wakes from sleep, live
+    /// peers can look silent too, and a fresh connection to one is fine.
+    async fn drop_silent_peers(&self) {
+        if !self.network.drop_silent_peers {
+            return;
+        }
+
+        let mut state = self.state.lock().await;
+
+        for ip in state.silent_peers(Instant::now(), self.options.timeouts.peer_silence) {
+            info!("Dropping peer {ip}, which stopped sending new peaks");
+            state.remove_peer(ip);
+        }
     }
 
     async fn update_tasks(&mut self) {
@@ -652,5 +696,114 @@ impl SyncManager {
                 info!("Refreshed query planner statistics after initial sync");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chia_wallet_sdk::{client::Connector, test::PeerSimulator};
+    use sage_config::TESTNET11;
+
+    use crate::default_test_options;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn switching_wallets_drops_pending_subscriptions() -> anyhow::Result<()> {
+        let options = SyncOptions {
+            target_peers: 0,
+            discover_peers: false,
+            dns_batch_size: 0,
+            connection_batch_size: 0,
+            max_peer_age_seconds: 0,
+            delta_sync: true,
+            puzzle_batch_size_per_peer: 0,
+            timeouts: Timeouts::default(),
+            testing: true,
+        };
+
+        let (mut manager, sender, _events) = SyncManager::new(
+            options,
+            Arc::new(Mutex::new(PeerState::default())),
+            None,
+            TESTNET11.clone(),
+            Connector::Plain,
+        );
+
+        sender
+            .send(SyncCommand::SubscribeCoins {
+                coin_ids: vec![Bytes32::new([1; 32])],
+            })
+            .await?;
+        sender
+            .send(SyncCommand::SubscribePuzzles {
+                puzzle_hashes: vec![Bytes32::new([2; 32])],
+            })
+            .await?;
+        manager.process_commands().await;
+
+        assert_eq!(manager.pending_coin_subscriptions.len(), 1);
+        assert_eq!(manager.pending_puzzle_subscriptions.len(), 1);
+
+        sender
+            .send(SyncCommand::SwitchWallet {
+                wallet: None,
+                delta_sync: true,
+            })
+            .await?;
+        manager.process_commands().await;
+
+        assert!(manager.pending_coin_subscriptions.is_empty());
+        assert!(manager.pending_puzzle_subscriptions.is_empty());
+
+        Ok(())
+    }
+
+    /// Returns the simulator too, so the peer's connection stays open.
+    async fn manager_with_sim_peer(
+        network: Network,
+    ) -> anyhow::Result<(SyncManager, PeerSimulator)> {
+        let mut options = default_test_options();
+        options.timeouts.peer_silence = Duration::ZERO;
+
+        let (mut manager, _sender, _events) = SyncManager::new(
+            options,
+            Arc::new(Mutex::new(PeerState::default())),
+            None,
+            network,
+            Connector::Plain,
+        );
+
+        let sim = PeerSimulator::new().await?;
+        let (peer, receiver) = sim.connect_raw().await?;
+        assert!(manager.try_add_peer(peer, receiver, true, false).await);
+
+        Ok((manager, sim))
+    }
+
+    #[tokio::test]
+    async fn silent_peer_is_dropped() -> anyhow::Result<()> {
+        let (manager, _sim) = manager_with_sim_peer(TESTNET11.clone()).await?;
+
+        manager.drop_silent_peers().await;
+
+        assert_eq!(manager.state.lock().await.peer_count(), 0);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn silent_peer_is_kept_when_disabled_for_network() -> anyhow::Result<()> {
+        let (manager, _sim) = manager_with_sim_peer(Network {
+            drop_silent_peers: false,
+            ..TESTNET11.clone()
+        })
+        .await?;
+
+        manager.drop_silent_peers().await;
+
+        assert_eq!(manager.state.lock().await.peer_count(), 1);
+
+        Ok(())
     }
 }

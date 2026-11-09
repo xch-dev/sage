@@ -1,6 +1,7 @@
 import { Wallet } from 'lucide-react';
 import type { RustBridgeApprovalRequest } from 'sage-system-app-sdk';
 import { parseMojos, parseXchFee } from './fee';
+import { sendXchHandleState } from './handle';
 import { ApprovalDetailRow, ApprovalMetaPill } from './shared';
 
 interface Props {
@@ -10,6 +11,8 @@ interface Props {
   working: boolean;
   feeInput: string;
   onFeeInputChange: (value: string) => void;
+  handleChangeAcknowledged: boolean;
+  onHandleChangeAcknowledgedChange: (value: boolean) => void;
 }
 
 function truncateMiddle(value: string, maxLength = 120) {
@@ -33,8 +36,11 @@ export function SendXchApprovalCard({
   working,
   feeInput,
   onFeeInputChange,
+  handleChangeAcknowledged,
+  onHandleChangeAcknowledgedChange,
 }: Props) {
   const summary = approval.summary;
+  const handle = sendXchHandleState(approval);
 
   const amount = parseMojos(summary.amount);
   const selectedFee = parseXchFee(feeInput);
@@ -85,10 +91,69 @@ export function SendXchApprovalCard({
           value={amount ? `${amount.xch} XCH` : 'Invalid amount'}
         />
         <ApprovalDetailRow label='To' value={summary.address} mono breakAll />
+        {handle?.address ? (
+          <ApprovalDetailRow
+            label={handle.cached ? 'Resolves to (cached)' : 'Resolves to'}
+            value={handle.address}
+            mono
+            breakAll
+          />
+        ) : null}
+        {handle?.address && handle.updatedHeight !== null ? (
+          <ApprovalDetailRow
+            label='Last updated'
+            value={`Height ${handle.updatedHeight.toLocaleString()}`}
+          />
+        ) : null}
         {hasMemos ? (
           <ApprovalDetailRow label='Memos' value={`${memos.length} attached`} />
         ) : null}
       </div>
+
+      {handle?.error ? (
+        <div className='rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive'>
+          {handle.handle} could not be verified, so this can't be approved.{' '}
+          {handle.error}
+        </div>
+      ) : null}
+
+      {handle?.address && handle.cached ? (
+        <div className='rounded-lg border p-2 text-xs text-muted-foreground'>
+          {handle.handle} couldn't be verified right now, so the address it was
+          verified as recently is shown.
+        </div>
+      ) : null}
+
+      {handle?.address && handle.previousAddress ? (
+        <div className='space-y-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs'>
+          <div className='font-medium text-destructive'>
+            {handle.handle} has changed since you last used it
+          </div>
+          <div>
+            It may have changed hands. Only continue if you trust the new
+            address.
+          </div>
+          <div>
+            <div className='text-muted-foreground'>Previous address</div>
+            <div className='break-all font-mono'>{handle.previousAddress}</div>
+          </div>
+          <div>
+            <div className='text-muted-foreground'>New address</div>
+            <div className='break-all font-mono'>{handle.address}</div>
+          </div>
+          <label className='flex items-center gap-2'>
+            <input
+              type='checkbox'
+              disabled={working}
+              checked={handleChangeAcknowledged}
+              onChange={(event) =>
+                onHandleChangeAcknowledgedChange(event.target.checked)
+              }
+            />
+            Send to the new address
+          </label>
+        </div>
+      ) : null}
 
       <div className='space-y-3 px-1 pt-1'>
         <div>

@@ -32,18 +32,26 @@ macro_rules! sage_commands {
     ($($extra_command:tt)*) => {
         collect_commands![
             commands::initialize,
+            commands::quit,
             commands::login,
             commands::logout,
             commands::resync,
             commands::generate_mnemonic,
-            commands::import_key,
-            commands::delete_key,
+            commands::import_wallet,
+            commands::import_watch_wallet,
+            commands::add_watch_addresses,
+            commands::remove_watch_addresses,
+            commands::delete_wallet,
             commands::delete_database,
-            commands::rename_key,
-            commands::get_keys,
+            commands::rename_wallet,
             commands::set_wallet_emoji,
-            commands::get_key,
+            commands::get_wallet,
+            commands::get_wallets,
             commands::get_wallet_address,
+            commands::get_key,
+            commands::get_keys,
+            commands::add_key,
+            commands::delete_key,
             commands::get_secret_key,
             commands::send_xch,
             commands::bulk_send_xch,
@@ -62,6 +70,7 @@ macro_rules! sage_commands {
             commands::mint_option,
             commands::transfer_options,
             commands::exercise_options,
+            commands::cancel_options,
             commands::add_nft_uri,
             commands::assign_nfts_to_did,
             commands::finalize_clawback,
@@ -75,6 +84,18 @@ macro_rules! sage_commands {
             commands::get_database_stats,
             commands::perform_database_maintenance,
             commands::check_address,
+            commands::resolve_handle,
+            commands::get_handle,
+            commands::get_handles,
+            commands::lookup_address_handles,
+            commands::get_contacts,
+            commands::get_contact,
+            commands::add_contact,
+            commands::update_contact,
+            commands::delete_contact,
+            commands::lookup_address_contacts,
+            commands::export_contacts,
+            commands::import_contacts,
             commands::get_derivations,
             commands::get_are_coins_spendable,
             commands::get_spendable_coin_count,
@@ -94,6 +115,7 @@ macro_rules! sage_commands {
             commands::get_nft_data,
             commands::get_nft_icon,
             commands::get_nft_thumbnail,
+            commands::get_nft_metadata_updater,
             commands::get_pending_transactions,
             commands::get_transaction,
             commands::get_transactions,
@@ -350,7 +372,7 @@ pub fn run() {
             let path = root_override.unwrap_or(default_root);
             let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
 
-            app.manage(Initialized(Mutex::new(false)));
+            app.manage(Initialized(Mutex::new(None)));
             app.manage(RpcTask(Mutex::new(None)));
             app.manage(app_state);
 
@@ -576,6 +598,59 @@ mod tests {
         let identifier = load_data_store_identifier(dir.path()).unwrap();
 
         assert_eq!(load_data_store_identifier(dir.path()).unwrap(), identifier);
+    }
+
+    /// The commands a permission file allows.
+    fn allowed_commands(permissions: &str) -> Vec<String> {
+        let permissions: toml::Value = toml::from_str(permissions).unwrap();
+
+        permissions["permission"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|permission| permission["commands"]["allow"].as_array().unwrap())
+            .map(|command| command.as_str().unwrap().to_string())
+            .collect()
+    }
+
+    /// Webviews can only call commands that a permission allows, and a command they aren't
+    /// allowed to call fails without an error Sage can show. So every registered command has to
+    /// be allowed for the main webview, or for app webviews in `bridge.toml`, and the names the
+    /// main webview is allowed to call have to still exist.
+    #[test]
+    fn permissions_allow_every_command() {
+        let commands: Vec<&str> = include_str!("lib.rs")
+            .lines()
+            .map(str::trim)
+            .filter_map(|line| {
+                line.strip_prefix("commands::")
+                    .or_else(|| line.strip_prefix("apps::"))
+            })
+            .filter_map(|line| line.strip_suffix(','))
+            .collect();
+
+        let main_host = allowed_commands(include_str!("../permissions/main-host.toml"));
+        let bridge = allowed_commands(include_str!("../permissions/bridge.toml"));
+
+        assert!(commands.contains(&"get_wallets"));
+        assert!(commands.contains(&"apps_list_installed_apps"));
+
+        for command in &commands {
+            assert!(
+                main_host
+                    .iter()
+                    .chain(&bridge)
+                    .any(|allowed| allowed == command),
+                "`{command}` isn't allowed in any permission file"
+            );
+        }
+
+        for name in &main_host {
+            assert!(
+                commands.contains(&name.as_str()),
+                "`{name}` in main-host.toml isn't a command"
+            );
+        }
     }
 
     #[test]

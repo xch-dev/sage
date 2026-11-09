@@ -31,6 +31,7 @@ import {
   HandCoins,
   MoreVerticalIcon,
   SendIcon,
+  Undo2,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -85,6 +86,23 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
                   <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
                   <Trans>Exercise</Trans>
                 </DropdownMenuItem>
+
+                {option.is_creator && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      actionHandlers.onCancel(option);
+                    }}
+                    disabled={
+                      isActionDisabled ||
+                      option.expiration_seconds * 1000 <= Date.now()
+                    }
+                  >
+                    <Undo2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <Trans>Cancel</Trans>
+                  </DropdownMenuItem>
+                )}
 
                 <DropdownMenuItem
                   className='cursor-pointer'

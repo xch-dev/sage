@@ -112,17 +112,29 @@
 | ---------- | ------------------------- |
 | Capability | `wallet.get_coins_by_ids` |
 
+## `wallet.getContacts`
+
+| Field      | Value                 |
+| ---------- | --------------------- |
+| Capability | `wallet.get_contacts` |
+
 ## `wallet.getDerivations`
 
 | Field      | Value                    |
 | ---------- | ------------------------ |
 | Capability | `wallet.get_derivations` |
 
-## `wallet.getKey`
+## `wallet.getHandle`
 
-| Field      | Value            |
-| ---------- | ---------------- |
-| Capability | `wallet.get_key` |
+| Field      | Value                   |
+| ---------- | ----------------------- |
+| Capability | `wallet.resolve_handle` |
+
+## `wallet.getHandles`
+
+| Field      | Value                |
+| ---------- | -------------------- |
+| Capability | `wallet.get_handles` |
 
 ## `wallet.getPendingTransactions`
 
@@ -172,11 +184,35 @@
 | ---------- | -------------------- |
 | Capability | `wallet.get_version` |
 
+## `wallet.getWallet`
+
+| Field      | Value               |
+| ---------- | ------------------- |
+| Capability | `wallet.get_wallet` |
+
 ## `wallet.getXchUsdPrice`
 
 | Field      | Value                      |
 | ---------- | -------------------------- |
 | Capability | `wallet.get_xch_usd_price` |
+
+## `wallet.lookupAddressContacts`
+
+| Field      | Value                 |
+| ---------- | --------------------- |
+| Capability | `wallet.get_contacts` |
+
+## `wallet.lookupAddressHandles`
+
+| Field      | Value                |
+| ---------- | -------------------- |
+| Capability | `wallet.get_handles` |
+
+## `wallet.resolveHandle`
+
+| Field      | Value                   |
+| ---------- | ----------------------- |
+| Capability | `wallet.resolve_handle` |
 
 ## `wallet.sendTransaction`
 

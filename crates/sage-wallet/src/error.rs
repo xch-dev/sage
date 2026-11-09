@@ -48,6 +48,9 @@ pub enum WalletError {
     #[error("Peer misbehaved")]
     PeerMisbehaved,
 
+    #[error("No peers are connected")]
+    NoPeers,
+
     #[error("Subscription limit reached")]
     SubscriptionLimitReached,
 
@@ -71,6 +74,12 @@ pub enum WalletError {
 
     #[error("Insufficient derivations")]
     InsufficientDerivations,
+
+    #[error("This kind of wallet doesn't derive addresses")]
+    DerivationsNotSupported,
+
+    #[error("Watch-only wallets can't create or sign transactions")]
+    WatchOnly,
 
     #[error("Missing secret key")]
     UnknownPublicKey,
@@ -112,6 +121,20 @@ pub enum WalletError {
 
     #[error("Cannot import offer that doesn't belong to this wallet")]
     CannotImportOffer,
+
+    #[error(
+        "NFT with id {0} doesn't use the default metadata updater, so URIs can't be appended to it"
+    )]
+    NftMetadataNotAppendOnly(Bytes32),
+
+    #[error("Option contract with id {0} wasn't minted by this wallet")]
+    NotOptionCreator(Bytes32),
+
+    #[error("Cancelling an option requires a coin of its strike asset, of any amount")]
+    MissingStrikeCoin,
+
+    #[error("Cancelling an option requires an XCH coin, of any amount")]
+    MissingMeltCoin,
 
     #[error("NFT option contracts are not supported")]
     NftOptionNotSupported,

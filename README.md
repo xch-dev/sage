@@ -9,7 +9,7 @@ Sage is a fast, open source light wallet for [Chia](https://www.chia.net). It sy
 - **XCH and CATs** - Send, receive, and manage XCH and Chia Asset Tokens, or issue your own tokens.
 - **NFTs** - Mint, view, organize, and transfer NFTs and collections.
 - **DIDs** - Create and manage Decentralized Identifiers.
-- **Offers** - Make, take, and manage Chia offer files for trustless peer-to-peer trading, plus token swaps.
+- **Offers** - Make, take, and manage Chia offer files for trustless peer-to-peer trading.
 - **Options** - Mint and exercise option contracts.
 - **WalletConnect** - Connect to dApps and DeFi services.
 - **Apps** - Run sandboxed apps inside the wallet, built with the Sage App SDK.
@@ -24,6 +24,10 @@ Sage is built on the foundation of [chia_rs](https://github.com/Chia-Network/chi
 ## Installation
 
 Download the latest build for your platform from the [releases page](https://github.com/xch-dev/sage/releases). For iOS, join the [public TestFlight](https://testflight.apple.com/join/BmUdFXpP).
+
+On Linux (x64), install a downloaded Flatpak with
+`flatpak install --user ./Sage_VERSION_x64.flatpak`, replacing `VERSION` with the release version. See the
+[Flatpak packaging guide](src-tauri/flatpak/README.md) for building and updating.
 
 If you want to build from source, see the [Development](#development) section for instructions.
 
