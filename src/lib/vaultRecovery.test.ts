@@ -40,6 +40,7 @@ describe('recoveryKeys', () => {
   it('takes one key per line, keeping the spaces in mnemonics', () => {
     expect(recoveryKeys(' ab \n\n  cd ef\n')).toEqual(['ab', 'cd ef']);
     expect(recoveryKeys('   ')).toEqual([]);
+    expect(recoveryKeys('ab\n ab ')).toEqual(['ab']);
   });
 });
 
@@ -76,8 +77,17 @@ describe('vaultRecoveryKeys', () => {
     expect(
       vaultRecoveryKeys(input('ab', '', { days: 'x', hours: '', minutes: '' })),
     ).toBeUndefined();
-    expect(vaultRecoveryKeys(input('ab', '0'))).toBeUndefined();
+    expect(vaultRecoveryKeys(input('ab\ncd', '0'))).toBeUndefined();
     expect(vaultRecoveryKeys(input('ab\ncd', '3'))).toBeUndefined();
-    expect(vaultRecoveryKeys(input('ab', '1.5'))).toBeUndefined();
+    expect(vaultRecoveryKeys(input('ab\ncd', '1.5'))).toBeUndefined();
+  });
+
+  it('ignores the hidden threshold of a lone key', () => {
+    expect(vaultRecoveryKeys(input('ab', '2'))).toEqual({
+      keys: ['ab'],
+      threshold: null,
+      timelock: null,
+    });
+    expect(vaultRecoveryKeys(input('ab\nab', '2'))?.threshold).toBeNull();
   });
 });

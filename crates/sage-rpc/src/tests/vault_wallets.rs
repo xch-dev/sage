@@ -59,6 +59,17 @@ async fn spend_from_address(
     config: &VaultConfig,
     custody: &SecretKey,
 ) -> Result<Vault> {
+    spend_vault_to(app, vault, config, custody, vault.info.custody_hash.into()).await
+}
+
+/// Like [`spend_from_address`], but recreates the vault with a new custody hash, without a memo.
+async fn spend_vault_to(
+    app: &TestApp,
+    vault: &Vault,
+    config: &VaultConfig,
+    custody: &SecretKey,
+    new_custody_hash: Bytes32,
+) -> Result<Vault> {
     let mut sim = app.sim.lock().await;
     let mut ctx = SpendContext::new();
 
@@ -79,11 +90,7 @@ async fn spend_from_address(
     let coin_id = ctx.alloc(&coin.coin_id())?;
     let hashes = vault_hashes(config)?;
     let conditions = Conditions::new()
-        .create_coin(
-            vault.info.custody_hash.into(),
-            vault.coin.amount,
-            Memos::None,
-        )
+        .create_coin(new_custody_hash, vault.coin.amount, Memos::None)
         .send_message(
             MessageFlags::PUZZLE.encode(MessageSide::Sender)
                 | MessageFlags::COIN.encode(MessageSide::Receiver),
@@ -114,7 +121,7 @@ async fn spend_from_address(
 
     sim.spend_coins(ctx.take(), slice::from_ref(custody))?;
 
-    Ok(vault.child(vault.info.custody_hash, vault.coin.amount))
+    Ok(vault.child(new_custody_hash.into(), vault.coin.amount))
 }
 
 async fn wait_for_peer(app: &TestApp) -> Result<()> {
@@ -642,6 +649,91 @@ async fn test_import_vault_without_recovery() -> Result<()> {
     // It's exported without recovery.
     let exported = app.export_vault_config(ExportVaultConfig {}).await?.config;
     assert_eq!(parse_vault_config_file(&exported)?.candidates, [config]);
+
+    Ok(())
+}
+
+/// After a rekey without memos, the old config no longer applies, so it isn't used for the new
+/// custody.
+#[tokio::test]
+async fn test_rebuild_after_rekey() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let old_custody = BlsPair::new(1);
+    let new_custody = BlsPair::new(3);
+    let recovery = BlsPair::new(2);
+    let old_config = vault_config(old_custody.pk, recovery.pk);
+    let new_config = vault_config(new_custody.pk, recovery.pk);
+
+    let vault = mint_vault(&app, &old_config, false).await?;
+    let launcher_id = vault.info.launcher_id;
+    let vault = spend_from_address(&app, &vault, &old_config, &old_custody.sk).await?;
+    let vault = spend_vault_to(
+        &app,
+        &vault,
+        &old_config,
+        &old_custody.sk,
+        vault_hashes(&new_config)?.custody_hash.into(),
+    )
+    .await?;
+
+    wait_for_peer(&app).await?;
+
+    // Only the old custody has been spent through, so only its config can be rebuilt, and the
+    // current one stays unknown.
+    let recovery_keys = || Some(recovery_key(hex::encode(recovery.pk.to_bytes()), Some(60)));
+    let fingerprint = app
+        .import_vault(import(Some(launcher_id), None, recovery_keys()))
+        .await?
+        .fingerprint;
+
+    let record = wait_for_vault(&mut app, |record| {
+        record.coin_id == Some(hex::encode(vault.coin.coin_id()))
+    })
+    .await?;
+    assert!(record.config.is_none());
+
+    // The old custody key isn't a member anymore.
+    let error = app
+        .attach_vault_signer(AttachVaultSigner {
+            fingerprint,
+            key: hex::encode(old_custody.sk.to_bytes()),
+        })
+        .await
+        .expect_err("the current config isn't known");
+    assert!(error.to_string().contains("isn't known"), "{error}");
+
+    let error = app
+        .export_vault_config(ExportVaultConfig {})
+        .await
+        .expect_err("the current config isn't known");
+    assert!(error.to_string().contains("isn't known"), "{error}");
+
+    let error = app
+        .rebuild_vault_config(RebuildVaultConfig {
+            recovery: recovery_keys(),
+        })
+        .await
+        .expect_err("the current custody hasn't been spent through");
+    assert!(error.to_string().contains("hasn't been spent"), "{error}");
+
+    // Once the new custody has been spent through, it's rebuilt.
+    let _vault = spend_from_address(&app, &vault, &new_config, &new_custody.sk).await?;
+
+    let rebuilt = app
+        .rebuild_vault_config(RebuildVaultConfig {
+            recovery: recovery_keys(),
+        })
+        .await?;
+    assert_eq!(rebuilt.recovery_timelock, Some(60));
+
+    let record = app.get_vault(GetVault {}).await?.vault;
+    assert_eq!(
+        record
+            .config
+            .map(|config| config.custody.members[0].key.clone()),
+        Some(hex::encode(new_custody.pk.to_bytes()))
+    );
 
     Ok(())
 }

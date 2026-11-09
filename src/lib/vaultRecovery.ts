@@ -54,13 +54,15 @@ export const EMPTY_RECOVERY: RecoveryInput = {
   timelock: EMPTY_TIMELOCK,
 };
 
-/** The recovery keys entered one per line, without empty lines. Mnemonics
- *  have spaces, so they can't be split on anything else. */
+/** The recovery keys entered one per line, without empty or repeated lines.
+ *  Mnemonics have spaces, so they can't be split on anything else. */
 export function recoveryKeys(text: string): string[] {
-  return text
+  const keys = text
     .split('\n')
     .map((key) => key.trim())
     .filter((key) => key !== '');
+
+  return [...new Set(keys)];
 }
 
 /** The recovery keys to rebuild a vault's config with, or `null` if no keys
@@ -74,7 +76,9 @@ export function vaultRecoveryKeys({
   const parsed = recoveryKeys(keys);
   if (parsed.length === 0) return null;
 
-  const trimmed = threshold.trim();
+  // A lone key's threshold is always 1, and its field is hidden, so anything
+  // left in it is ignored.
+  const trimmed = parsed.length > 1 ? threshold.trim() : '';
   let parsedThreshold: number | null = null;
 
   if (trimmed !== '') {

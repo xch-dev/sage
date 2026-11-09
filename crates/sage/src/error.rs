@@ -186,6 +186,11 @@ pub enum Error {
     #[error("The recovery threshold must be between 1 and the number of recovery keys")]
     InvalidRecoveryThreshold,
 
+    #[error(
+        "The vault's current custody hasn't been spent through yet, so its config can't be rebuilt from its spends. Only an older config was found, which the vault has changed from."
+    )]
+    VaultCustodyUnrevealed,
+
     #[error("Key {0} isn't a custody or recovery member of this vault")]
     NotVaultMember(u32),
 
@@ -457,6 +462,7 @@ impl Error {
             | Self::InvalidRecoveryKey
             | Self::InvalidRecoveryTimelock
             | Self::InvalidRecoveryThreshold
+            | Self::VaultCustodyUnrevealed
             | Self::NotVaultMember(..)
             | Self::VaultConfigFile(..)
             | Self::VaultHistory(..)

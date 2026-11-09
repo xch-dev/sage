@@ -245,6 +245,9 @@ export default function Vault() {
   const recoveryStartedAt = vault?.recovery_started_at
     ? new Date(vault.recovery_started_at * 1000).toLocaleString()
     : null;
+  const recoveryFinishesAt = vault?.recovery_finishes_at
+    ? new Date(vault.recovery_finishes_at * 1000).toLocaleString()
+    : null;
   const recoveryDuration =
     config?.recovery_timelock != null
       ? formatDuration(config.recovery_timelock)
@@ -304,6 +307,15 @@ export default function Vault() {
                     the vault moves to its new custody once the timelock
                     expires.
                   </Trans>
+                )}
+                {recoveryFinishesAt && (
+                  <>
+                    {' '}
+                    <Trans>
+                      It can be finished from {recoveryFinishesAt}, which is
+                      later if the vault is recreated before then.
+                    </Trans>
+                  </>
                 )}
               </p>
             )}

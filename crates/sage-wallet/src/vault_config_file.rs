@@ -37,6 +37,11 @@ pub enum VaultConfigFileError {
 
     #[error("Custom members can't be written to a vault config file")]
     CustomMember,
+
+    #[error(
+        "This vault has a member which doesn't fast forward the way Cloud Wallet's members do, which a vault config file can't describe"
+    )]
+    NonStandardMember,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -249,6 +254,21 @@ fn write_members(members: &[VaultMember]) -> Result<Vec<MemberFile>, VaultConfig
     members
         .iter()
         .map(|member| {
+            // Files don't say whether members fast forward, so they're read as Cloud Wallet's
+            // members for their curve. Anything else wouldn't rebuild the vault once it's imported.
+            let standard = match *member {
+                VaultMember::Bls { public_key, .. } => VaultMember::bls(public_key),
+                VaultMember::Secp256r1 { public_key, .. } => VaultMember::secp256r1(public_key),
+                VaultMember::Secp256k1 { public_key, .. } => VaultMember::secp256k1(public_key),
+                VaultMember::Passkey { public_key, .. } => VaultMember::passkey(public_key),
+                VaultMember::Singleton { launcher_id, .. } => VaultMember::singleton(launcher_id),
+                VaultMember::Custom { .. } => return Err(VaultConfigFileError::CustomMember),
+            };
+
+            if *member != standard {
+                return Err(VaultConfigFileError::NonStandardMember);
+            }
+
             let (public_key, curve) = match member {
                 VaultMember::Bls { public_key, .. } => {
                     (hex_string(&public_key.to_bytes()), Curve::Bls12381)
@@ -442,6 +462,22 @@ mod tests {
         assert!(matches!(
             vault_config_file(Bytes32::default(), &custom),
             Err(VaultConfigFileError::CustomMember)
+        ));
+
+        // A BLS member which fast forwards would be read back as one which doesn't.
+        let fast_forward = VaultConfig {
+            custody: VaultSigners::new(
+                vec![VaultMember::Bls {
+                    public_key: BlsPair::new(9).pk,
+                    fast_forward: true,
+                }],
+                1,
+            ),
+            ..config(VaultVersion::Legacy)
+        };
+        assert!(matches!(
+            vault_config_file(Bytes32::default(), &fast_forward),
+            Err(VaultConfigFileError::NonStandardMember)
         ));
     }
 }

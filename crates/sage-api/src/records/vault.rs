@@ -11,6 +11,10 @@ pub struct VaultRecord {
     /// When recovery was started, in unix seconds, while it's pending and the block's timestamp
     /// is known
     pub recovery_started_at: Option<u64>,
+    /// When recovery can be finished, in unix seconds, while it's pending and the block's timestamp
+    /// is known. The timelock restarts whenever the vault is recreated, so this can be later than
+    /// the recovery timelock after it started
+    pub recovery_finishes_at: Option<u64>,
     /// The id of the vault's latest singleton coin, once it's been synced
     pub coin_id: Option<String>,
     /// The inner puzzle hash of the vault's latest coin, if it's known

@@ -4309,6 +4309,12 @@ launcher_id: string; state: VaultState;
  */
 recovery_started_at: number | null; 
 /**
+ * When recovery can be finished, in unix seconds, while it's pending and the block's timestamp
+ * is known. The timelock restarts whenever the vault is recreated, so this can be later than
+ * the recovery timelock after it started
+ */
+recovery_finishes_at: number | null; 
+/**
  * The id of the vault's latest singleton coin, once it's been synced
  */
 coin_id: string | null; 
