@@ -7,8 +7,12 @@ vi.mock('@/bindings', () => ({
   commands: { getOffer: (...args: unknown[]) => getOffer(...args) },
 }));
 
-const { canCopyOffer, fetchOfferRecords, offerStateFromRecord } =
-  await import('./offers');
+const {
+  canCopyOffer,
+  canDuplicateOffer,
+  fetchOfferRecords,
+  offerStateFromRecord,
+} = await import('./offers');
 
 beforeEach(() => getOffer.mockReset());
 
@@ -146,6 +150,14 @@ describe('offerStateFromRecord', () => {
     expect(state.expiration).toEqual({ days: '1', hours: '2', minutes: '5' });
   });
 
+  it('uses the fallback for an offer that had expired before it was saved', () => {
+    const created = 1_000_000;
+    const fallback = { days: '1', hours: '0', minutes: '0' };
+    const record = offerRecord({ expiration_timestamp: created - 60 }, created);
+    expect(offerStateFromRecord(record, fallback).expiration).toEqual(fallback);
+    expect(offerStateFromRecord(record).expiration).toBeNull();
+  });
+
   it('drops a block height expiration', () => {
     const state = offerStateFromRecord(
       offerRecord({ expiration_height: 5_000_000 }),
@@ -216,5 +228,28 @@ describe('canCopyOffer', () => {
         expiration: null,
       }),
     ).toBe(true);
+  });
+});
+
+describe('canDuplicateOffer', () => {
+  it('allows offers made only of tokens', () => {
+    const record = offerRecord({
+      maker: [offerAsset('token', 'cat', 1)],
+      taker: [offerAsset('token', null, 1)],
+    });
+    expect(canDuplicateOffer(record)).toBe(true);
+  });
+
+  it('rejects any NFT, option or DID on either side', () => {
+    for (const kind of ['nft', 'option', 'did'] as const) {
+      const other = offerAsset(kind, `${kind}1abc`, 1);
+      const token = offerAsset('token', null, 1);
+      expect(
+        canDuplicateOffer(offerRecord({ maker: [other], taker: [token] })),
+      ).toBe(false);
+      expect(
+        canDuplicateOffer(offerRecord({ maker: [token], taker: [other] })),
+      ).toBe(false);
+    }
   });
 });

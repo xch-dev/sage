@@ -113,6 +113,9 @@ export function MakeOffer() {
   const handleProgressDialogClose = (isOpen: boolean) => {
     if (!isOpen) {
       setIsProgressDialogOpen(false);
+      // Creation failed or was cancelled; start a retry from one copy so it
+      // can't add to offers that were already made.
+      setCopies(1);
     }
   };
 

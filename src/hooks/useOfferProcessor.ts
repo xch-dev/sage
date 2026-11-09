@@ -13,6 +13,9 @@ interface UseOfferProcessorProps {
   copies?: number; // Identical offers to create when not splitting NFTs
   onProcessingEnd?: () => void; // Callback for when offer processing (success or fail) is done
   onProgress?: (index: number) => void; // Callback for progress updates
+  // Called instead of throwing when a copy fails after others were created,
+  // since those are already saved in the wallet and can still be used.
+  onPartialFailure?: (error: CustomError) => void;
 }
 
 interface UseOfferProcessorReturn {
@@ -29,6 +32,7 @@ export function useOfferProcessor({
   copies = 1,
   onProcessingEnd,
   onProgress,
+  onPartialFailure,
 }: UseOfferProcessorProps): UseOfferProcessorReturn {
   const walletState = useWalletState();
   const { promptIfEnabled } = useBiometric();
@@ -166,17 +170,15 @@ export function useOfferProcessor({
               expires_at_second: expiresAtSecond,
             });
           } catch (err) {
-            // Offers made before the failure are already saved in the wallet,
-            // so say so rather than reporting the whole batch as failed.
-            if (newOffers.length > 0) {
-              const created = newOffers.length;
-              const reason = (err as CustomError)?.reason ?? String(err);
-              throw {
-                kind: (err as CustomError)?.kind ?? 'invalid',
-                reason: t`Created ${created} of ${copies} offers, then failed: ${reason}`,
-              } satisfies CustomError;
-            }
-            throw err;
+            if (newOffers.length === 0 || !onPartialFailure) throw err;
+
+            const created = newOffers.length;
+            const reason = (err as CustomError)?.reason ?? String(err);
+            onPartialFailure({
+              kind: (err as CustomError)?.kind ?? 'invalid',
+              reason: t`Created ${created} of ${copies} offers, then failed: ${reason}`,
+            });
+            break;
           }
 
           if (!isCancelled.current) {
@@ -206,6 +208,7 @@ export function useOfferProcessor({
     promptIfEnabled,
     onProcessingEnd,
     onProgress,
+    onPartialFailure,
   ]);
 
   return {

@@ -1,6 +1,6 @@
 import { commands, OfferAsset, OfferRecord } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
-import { durationUntil } from '@/lib/expiration';
+import { durationUntil, Expiration } from '@/lib/expiration';
 import { fromMojos } from '@/lib/utils';
 import { Assets, OfferState } from '@/state';
 
@@ -51,12 +51,28 @@ export function canCopyOffer(state: OfferState): boolean {
   );
 }
 
+// Whether a saved offer can be duplicated. This checks the record itself
+// rather than offerStateFromRecord's result, which has nowhere to put a DID
+// and would silently drop it.
+export function canDuplicateOffer(record: OfferRecord): boolean {
+  return [...record.summary.maker, ...record.summary.taker].every(
+    (a) => a.asset.kind === 'token',
+  );
+}
+
 // Rebuilds the make offer form state for a saved offer, so it can be created
 // again. Amounts use the same precisions useOfferProcessor converts them back
-// with. A timestamp expiration keeps the original offer's duration, counted
-// from when the copy is made; a block height expiration can't be expressed
-// and is dropped.
-export function offerStateFromRecord(record: OfferRecord): OfferState {
+// with.
+//
+// A timestamp expiration keeps the original offer's duration, counted from
+// when the copy is made. The duration is measured from when the offer was
+// saved to this wallet, which for an imported offer is later than when it was
+// made; if it had already expired by then, `fallbackExpiration` is used
+// instead. A block height expiration can't be expressed and is dropped.
+export function offerStateFromRecord(
+  record: OfferRecord,
+  fallbackExpiration: Expiration | null = null,
+): OfferState {
   const { summary } = record;
 
   const toAssets = (offerAssets: OfferAsset[]): Assets => ({
@@ -74,16 +90,18 @@ export function offerStateFromRecord(record: OfferRecord): OfferState {
       .map((a) => a.asset.asset_id ?? ''),
   });
 
+  let expiration: Expiration | null = null;
+  if (summary.expiration_timestamp !== null) {
+    expiration =
+      summary.expiration_timestamp > record.creation_timestamp
+        ? durationUntil(summary.expiration_timestamp, record.creation_timestamp)
+        : fallbackExpiration;
+  }
+
   return {
     offered: toAssets(summary.maker),
     requested: toAssets(summary.taker),
     fee: fromMojos(summary.fee, 12).toString(),
-    expiration:
-      summary.expiration_timestamp === null
-        ? null
-        : durationUntil(
-            summary.expiration_timestamp,
-            record.creation_timestamp,
-          ),
+    expiration,
   };
 }

@@ -49,9 +49,10 @@ export function OfferCreationProgressDialog({
   );
   const [currentMarketplaceIndex, setCurrentMarketplaceIndex] = useState(0);
   const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
-  const totalOffers = splitNftOffers
-    ? offerState.offered.nfts.filter((n) => n).length
-    : copies;
+  const numOfferedNfts = offerState.offered.nfts.filter((n) => n).length;
+  // Matches how useOfferProcessor decides whether to split.
+  const totalOffers =
+    splitNftOffers && numOfferedNfts > 1 ? numOfferedNfts : copies;
 
   const {
     createdOffers,
@@ -69,6 +70,9 @@ export function OfferCreationProgressDialog({
     onProgress: (index: number) => {
       setCurrentOfferIndex(index);
     },
+    // The offers made before the failure still go on to be uploaded and
+    // shown as created.
+    onPartialFailure: addError,
   });
 
   // Handle uploads when offers are created
@@ -267,7 +271,8 @@ export function OfferCreationProgressDialog({
         const marketplaceName = currentMarketplace.name;
         return (
           <Trans>
-            Uploading offer {offerNumber} of {totalOffers} to {marketplaceName}
+            Uploading offer {offerNumber} of {createdOfferCount} to{' '}
+            {marketplaceName}
             ...
           </Trans>
         );

@@ -12,11 +12,13 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { expirationTimestamp } from '@/lib/expiration';
 import { marketplaces } from '@/lib/marketplaces';
 import { isMutableNft, mutableNftLabel } from '@/lib/nftUpdater';
 import { canCopyOffer } from '@/lib/offers';
 import {
   emptyNftRecord,
+  formatTimestamp,
   fromMojos,
   getAssetDisplayName,
   toMojos,
@@ -429,12 +431,14 @@ export function MakeOfferConfirmationDialog({
   const [xchToken, setXchToken] = useState<TokenRecord | null>(null);
   const walletState = useWalletState();
   const [balanceError, setBalanceError] = useState<string | null>(null);
+  const [isCheckingBalance, setIsCheckingBalance] = useState(false);
 
   useEffect(() => {
     // Balance validation only runs when copies > 1 — single-copy offers
     // rely on the blockchain to reject insufficient balance at signing time.
     if (!open || copies <= 1) {
       setBalanceError(null);
+      setIsCheckingBalance(false);
       return;
     }
 
@@ -507,7 +511,10 @@ export function MakeOfferConfirmationDialog({
       if (isCurrent) setBalanceError(null);
     };
 
-    validate();
+    setIsCheckingBalance(true);
+    validate().finally(() => {
+      if (isCurrent) setIsCheckingBalance(false);
+    });
 
     return () => {
       isCurrent = false;
@@ -547,6 +554,12 @@ export function MakeOfferConfirmationDialog({
   ).length;
 
   const isSplitting = splitNftOffers && numOfferedNfts > 1;
+  // Recomputed on each render, so it tracks the time the dialog is open.
+  const expiresAt =
+    offerState.expiration === null
+      ? null
+      : expirationTimestamp(offerState.expiration);
+  const expiresAtLabel = formatTimestamp(expiresAt);
   const canCopy = !isSplitting && canCopyOffer(offerState);
   const numberOfOffers = isSplitting ? numOfferedNfts : 1;
 
@@ -599,6 +612,13 @@ export function MakeOfferConfirmationDialog({
                 </Trans>
               </p>
             )}
+            <p className='text-sm text-muted-foreground'>
+              {expiresAt === null ? (
+                <Trans>Does not expire.</Trans>
+              ) : (
+                <Trans>Expires {expiresAtLabel}.</Trans>
+              )}
+            </p>
           </div>
 
           <div className='grid grid-cols-2 gap-4'>
@@ -822,7 +842,10 @@ export function MakeOfferConfirmationDialog({
           <Button variant='outline' onClick={() => onOpenChange(false)}>
             <Trans>Cancel</Trans>
           </Button>
-          <Button onClick={handleConfirm} disabled={!!balanceError}>
+          <Button
+            onClick={handleConfirm}
+            disabled={!!balanceError || isCheckingBalance}
+          >
             <Trans>Confirm & Create</Trans>
           </Button>
         </DialogFooter>

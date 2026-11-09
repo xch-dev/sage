@@ -1,59 +1,55 @@
 import { OfferRecord } from '@/bindings';
 import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
 import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
+import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { offerStateFromRecord } from '@/lib/offers';
 import { useMemo, useRef, useState } from 'react';
 
 interface DuplicateOfferDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   record: OfferRecord;
-  onDone: () => void;
+  // Called once the flow ends, whether it was cancelled, failed or finished.
+  // Any offers created before a failure are already saved in the wallet.
+  onClose: () => void;
 }
 
 // Creates copies of a saved offer through the same confirmation and progress
-// dialogs used by the make offer page.
+// dialogs used by the make offer page. Mount it only while duplicating, and
+// outside the offer list, so that a list refresh can't unmount it mid-run.
 export function DuplicateOfferDialog({
-  open,
-  onOpenChange,
   record,
-  onDone,
+  onClose,
 }: DuplicateOfferDialogProps) {
-  const offerState = useMemo(() => offerStateFromRecord(record), [record]);
+  const { expiry } = useDefaultOfferExpiry();
+  // Keyed on primitives, since the expiry object is rebuilt every render.
+  const offerState = useMemo(
+    () =>
+      offerStateFromRecord(
+        record,
+        expiry.enabled
+          ? { days: expiry.days, hours: expiry.hours, minutes: expiry.minutes }
+          : null,
+      ),
+    [record, expiry.enabled, expiry.days, expiry.hours, expiry.minutes],
+  );
   const [copies, setCopies] = useState(1);
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
     Record<string, boolean>
   >({});
-  const [isProgressOpen, setIsProgressOpen] = useState(false);
-  // The confirmation dialog closes itself right after confirming, which must
-  // not reset the choices the progress dialog is about to use.
+  const [step, setStep] = useState<'confirm' | 'progress'>('confirm');
+  // The confirmation dialog closes itself right after confirming, which
+  // must not end the flow.
   const confirmedRef = useRef(false);
-
-  const reset = () => {
-    setCopies(1);
-    setEnabledMarketplaces({});
-  };
-
-  // Runs whether creation finished or failed partway, since any offers that
-  // were made are already in the wallet.
-  const finish = () => {
-    setIsProgressOpen(false);
-    reset();
-    onDone();
-  };
 
   return (
     <>
       <MakeOfferConfirmationDialog
-        open={open}
+        open={step === 'confirm'}
         onOpenChange={(isOpen) => {
-          onOpenChange(isOpen);
-          if (!isOpen && !confirmedRef.current) reset();
-          confirmedRef.current = false;
+          if (!isOpen && !confirmedRef.current) onClose();
         }}
         onConfirm={() => {
           confirmedRef.current = true;
-          setIsProgressOpen(true);
+          setStep('progress');
         }}
         offerState={offerState}
         splitNftOffers={false}
@@ -65,15 +61,15 @@ export function DuplicateOfferDialog({
       />
 
       <OfferCreationProgressDialog
-        open={isProgressOpen}
+        open={step === 'progress'}
         onOpenChange={(isOpen) => {
-          if (!isOpen) finish();
+          if (!isOpen) onClose();
         }}
         offerState={offerState}
         splitNftOffers={false}
         enabledMarketplaces={enabledMarketplaces}
         copies={copies}
-        clearOfferState={finish}
+        clearOfferState={onClose}
       />
     </>
   );

@@ -1,7 +1,6 @@
 import { OfferRecord } from '@/bindings';
 import { CancelOffersFlow } from '@/components/dialogs/CancelOffersFlow';
 import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
-import { DuplicateOfferDialog } from '@/components/dialogs/DuplicateOfferDialog';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { OfferTileCard, offerSummaryLabel } from '@/components/OfferTileCard';
 import { SelectableCard, SelectionState } from '@/components/SelectableCard';
@@ -17,7 +16,7 @@ import {
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { CardSize } from '@/hooks/useNftParams';
-import { deleteOffers } from '@/lib/offers';
+import { canDuplicateOffer, deleteOffers } from '@/lib/offers';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import {
@@ -34,6 +33,7 @@ import { useNavigate } from 'react-router-dom';
 interface OfferRowCardProps {
   record: OfferRecord;
   refresh: () => void;
+  onDuplicate: (record: OfferRecord) => void;
   selectionState?: SelectionState;
   size?: CardSize;
 }
@@ -41,6 +41,7 @@ interface OfferRowCardProps {
 export function OfferRowCard({
   record,
   refresh,
+  onDuplicate,
   selectionState = null,
   size = CardSize.Large,
 }: OfferRowCardProps) {
@@ -49,13 +50,6 @@ export function OfferRowCard({
   const { addError } = useErrors();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
-  const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
-
-  // Copies need their own coins, so only offers made purely of tokens (on
-  // both sides) can be duplicated.
-  const canDuplicate = [...record.summary.maker, ...record.summary.taker].every(
-    (a) => a.asset.kind === 'token',
-  );
 
   const actions = (
     <DropdownMenu>
@@ -130,9 +124,9 @@ export function OfferRowCard({
             className='cursor-pointer'
             onClick={(e) => {
               e.stopPropagation();
-              setIsDuplicateOpen(true);
+              onDuplicate(record);
             }}
-            disabled={!canDuplicate || isTransactionDisabled}
+            disabled={!canDuplicateOffer(record) || isTransactionDisabled}
           >
             <CopyPlus className='mr-2 h-4 w-4' aria-hidden='true' />
             <span>
@@ -186,13 +180,6 @@ export function OfferRowCard({
         onOpenChange={setIsCancelOpen}
         offers={[record]}
         onConfirm={refresh}
-      />
-
-      <DuplicateOfferDialog
-        open={isDuplicateOpen}
-        onOpenChange={setIsDuplicateOpen}
-        record={record}
-        onDone={refresh}
       />
     </>
   );
