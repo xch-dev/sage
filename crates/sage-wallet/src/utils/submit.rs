@@ -74,9 +74,33 @@ pub async fn submit_transaction(
         ack
     );
 
-    if ack.status == 1 {
-        return Ok(Status::Pending);
-    }
+    Ok(ack_status(ack.status, ack.error))
+}
 
-    Ok(Status::Failed(ack.status, ack.error))
+fn ack_status(status: u8, error: Option<String>) -> Status {
+    // 1 is SUCCESS (in the mempool) and 2 is PENDING (held by the node, for example
+    // until a timelock passes). Either way the transaction can still be confirmed.
+    if status == 1 || status == 2 {
+        Status::Pending
+    } else {
+        Status::Failed(status, error)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pending_acks_are_not_failures() {
+        assert_eq!(ack_status(1, None), Status::Pending);
+        assert_eq!(
+            ack_status(2, Some("ASSERT_HEIGHT_ABSOLUTE_FAILED".to_string())),
+            Status::Pending
+        );
+        assert_eq!(
+            ack_status(3, Some("DOUBLE_SPEND".to_string())),
+            Status::Failed(3, Some("DOUBLE_SPEND".to_string()))
+        );
+    }
 }

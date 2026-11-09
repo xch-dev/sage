@@ -1,4 +1,8 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use chia_wallet_sdk::prelude::*;
 use sage_database::Database;
@@ -10,11 +14,18 @@ use tracing::{info, warn};
 
 use crate::{PeerState, Status, SyncEvent, WalletError, submit_to_peers};
 
+const RESUBMIT_INTERVAL: Duration = Duration::from_mins(2);
+const BATCH_SIZE: usize = 3;
+
 #[derive(Debug)]
 pub struct TransactionQueue {
     db: Database,
     state: Arc<Mutex<PeerState>>,
     sync_sender: mpsc::Sender<SyncEvent>,
+    /// When each item was last submitted, whatever the outcome. Only `Status::Pending`
+    /// updates the database timestamp, so without this an item that keeps coming back
+    /// as `Status::Unknown` would be picked first every batch and starve the rest.
+    last_attempts: HashMap<Bytes32, Instant>,
 }
 
 impl TransactionQueue {
@@ -27,6 +38,7 @@ impl TransactionQueue {
             db,
             state,
             sync_sender,
+            last_attempts: HashMap::new(),
         }
     }
 
@@ -46,7 +58,19 @@ impl TransactionQueue {
 
         let mut spend_bundles = Vec::new();
 
-        let rows = self.db.mempool_items_to_submit(120, 3).await?;
+        let now = Instant::now();
+
+        self.last_attempts
+            .retain(|_, attempted_at| now.duration_since(*attempted_at) < RESUBMIT_INTERVAL);
+
+        let rows: Vec<_> = self
+            .db
+            .mempool_items_to_submit(RESUBMIT_INTERVAL.as_secs().cast_signed())
+            .await?
+            .into_iter()
+            .filter(|row| !self.last_attempts.contains_key(&row.hash))
+            .take(BATCH_SIZE)
+            .collect();
 
         if rows.is_empty() {
             return Ok(());
@@ -76,6 +100,8 @@ impl TransactionQueue {
                     .map(|cs| cs.coin.coin_id())
                     .collect::<Vec<_>>()
             );
+
+            self.last_attempts.insert(transaction_id, Instant::now());
 
             match submit_to_peers(&peers, spend_bundle).await? {
                 Status::Pending => {
