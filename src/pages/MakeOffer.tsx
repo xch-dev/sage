@@ -1,4 +1,5 @@
 import Container from '@/components/Container';
+import { ExpirationInput } from '@/components/ExpirationInput';
 import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
 import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
 import Header from '@/components/Header';
@@ -7,11 +8,13 @@ import { AssetSelector } from '@/components/selectors/AssetSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { FeeAmountInput, IntegerInput } from '@/components/ui/masked-input';
+import { FeeAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
+import { useNowSeconds } from '@/hooks/useNowSeconds';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
+import { expirationError, futureExpirationTimestamp } from '@/lib/expiration';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -26,9 +29,18 @@ export function MakeOffer() {
   const walletState = useWalletState();
   const navigate = useNavigate();
   const { addError } = useErrors();
+  const now = useNowSeconds();
   const [splitNftOffers, setSplitNftOffers] = useState(
     location.state?.splitNftOffers || false,
   );
+  const [preSplit, setPreSplit] = useState(false);
+  const [preSplitFee, setPreSplitFee] = useState('');
+
+  // Each separate NFT offer would split coins of its own, and the change from
+  // one split can't be spent on the next offer until it's confirmed.
+  const isSplittingNftOffers =
+    splitNftOffers && state.offered.nfts.filter((n) => n).length > 1;
+  const isPreSplitting = preSplit && !isSplittingNftOffers;
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
@@ -37,16 +49,10 @@ export function MakeOffer() {
 
   const makeAction = () => {
     if (state.expiration !== null) {
-      const days = parseInt(state.expiration.days) || 0;
-      const hours = parseInt(state.expiration.hours) || 0;
-      const minutes = parseInt(state.expiration.minutes) || 0;
-      const totalSeconds = days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60;
-
-      if (totalSeconds <= 0) {
-        addError({
-          kind: 'invalid',
-          reason: t`Expiration must be at least 1 second in the future`,
-        });
+      try {
+        futureExpirationTimestamp(state.expiration);
+      } catch (error) {
+        addError({ kind: 'invalid', reason: (error as Error).message });
         return;
       }
     }
@@ -116,9 +122,7 @@ export function MakeOffer() {
 
   const invalid =
     state.expiration !== null &&
-    (parseInt(state.expiration.days) || 0) === 0 &&
-    (parseInt(state.expiration.hours) || 0) === 0 &&
-    (parseInt(state.expiration.minutes) || 0) === 0;
+    expirationError(state.expiration, now) !== undefined;
 
   return (
     <>
@@ -223,77 +227,55 @@ export function MakeOffer() {
               </div>
 
               {state.expiration !== null && (
-                <div className='flex gap-2'>
-                  <div className='relative'>
-                    <IntegerInput
-                      className='pr-12'
-                      value={state.expiration?.days ?? ''}
-                      placeholder='0'
-                      min={0}
-                      onValueChange={(values) => {
-                        if (!state.expiration) return;
-                        setState({
-                          expiration: {
-                            ...state.expiration,
-                            days: values.value,
-                          },
-                        });
-                      }}
-                    />
-                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-muted-foreground text-sm'>
-                        <Trans>Days</Trans>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className='relative'>
-                    <IntegerInput
-                      className='pr-12'
-                      value={state.expiration?.hours ?? ''}
-                      placeholder='0'
-                      min={0}
-                      onValueChange={(values) => {
-                        if (!state.expiration) return;
-                        setState({
-                          expiration: {
-                            ...state.expiration,
-                            hours: values.value,
-                          },
-                        });
-                      }}
-                    />
-                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-muted-foreground text-sm'>
-                        <Trans>Hours</Trans>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className='relative'>
-                    <IntegerInput
-                      className='pr-12'
-                      value={state.expiration?.minutes ?? ''}
-                      placeholder='0'
-                      min={0}
-                      onValueChange={(values) => {
-                        if (!state.expiration) return;
-                        setState({
-                          expiration: {
-                            ...state.expiration,
-                            minutes: values.value,
-                          },
-                        });
-                      }}
-                    />
-                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-muted-foreground text-sm'>
-                        <Trans>Minutes</Trans>
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <ExpirationInput
+                  value={state.expiration}
+                  onChange={(expiration) => setState({ expiration })}
+                />
               )}
+            </div>
+
+            <div className='flex flex-col gap-2'>
+              <div className='flex items-center gap-2 min-h-9'>
+                <label htmlFor='pre-split'>
+                  <Trans>Pre-split coins</Trans>
+                </label>
+                <Switch
+                  id='pre-split'
+                  checked={isPreSplitting}
+                  disabled={isSplittingNftOffers}
+                  onCheckedChange={setPreSplit}
+                />
+
+                {isPreSplitting && (
+                  <div className='relative ml-auto w-40'>
+                    <FeeAmountInput
+                      id='pre-split-fee'
+                      aria-label={t`Split fee`}
+                      className='pr-12'
+                      value={preSplitFee}
+                      onValueChange={(values: { value: string }) => {
+                        setPreSplitFee(values.value);
+                      }}
+                    />
+                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                      <span className='text-muted-foreground text-sm'>
+                        {walletState.sync.unit.ticker}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className='text-sm text-muted-foreground'>
+                {isSplittingNftOffers ? (
+                  <Trans>Not available when each NFT gets its own offer.</Trans>
+                ) : isPreSplitting ? (
+                  <Trans>
+                    The offer is shared once the split is confirmed.
+                  </Trans>
+                ) : (
+                  <Trans>Keeps the rest of your balance spendable.</Trans>
+                )}
+              </p>
             </div>
           </div>
         </div>
@@ -324,6 +306,7 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           fee={state.fee || '0'}
+          preSplitFee={isPreSplitting ? preSplitFee : null}
           enabledMarketplaces={enabledMarketplaces}
           setEnabledMarketplaces={setEnabledMarketplaces}
         />
@@ -333,6 +316,7 @@ export function MakeOffer() {
           onOpenChange={handleProgressDialogClose}
           offerState={state}
           splitNftOffers={splitNftOffers}
+          preSplitFee={isPreSplitting ? preSplitFee : null}
           enabledMarketplaces={enabledMarketplaces}
           clearOfferState={() => {
             setState(null);

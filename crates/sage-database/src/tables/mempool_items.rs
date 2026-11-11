@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use chia_wallet_sdk::prelude::*;
 use sqlx::{Row, SqliteConnection, SqliteExecutor, query};
 
-use crate::tables::transactions::create_transaction_coin;
+use crate::tables::transactions::{CUSTODY_COLUMNS, CUSTODY_JOINS, create_transaction_coin};
 use crate::{Convert, Database, DatabaseTx, Result, TransactionCoin};
 
 #[derive(Debug, Clone)]
@@ -354,7 +354,7 @@ async fn mempool_items_with_coins(
 ) -> Result<Vec<MempoolItemWithCoins>> {
     use std::collections::HashMap;
 
-    let rows = sqlx::query(
+    let sql = format!(
         "
         SELECT
             mempool_items.hash AS item_hash,
@@ -365,7 +365,6 @@ async fn mempool_items_with_coins(
             coins.amount,
             mempool_coins.is_input,
             mempool_coins.is_output,
-            p2_puzzles.hash AS p2_puzzle_hash,
             assets.hash AS asset_hash,
             assets.name AS asset_name,
             assets.ticker AS asset_ticker,
@@ -375,17 +374,19 @@ async fn mempool_items_with_coins(
             assets.description AS asset_description,
             assets.is_visible AS asset_is_visible,
             assets.is_sensitive_content AS asset_is_sensitive_content,
-            assets.hidden_puzzle_hash AS asset_hidden_puzzle_hash
+            assets.hidden_puzzle_hash AS asset_hidden_puzzle_hash,
+            {CUSTODY_COLUMNS}
         FROM mempool_items
         INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
         INNER JOIN coins ON coins.id = mempool_coins.coin_id
         INNER JOIN assets ON assets.id = coins.asset_id
         LEFT JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id
+        {CUSTODY_JOINS}
         ORDER BY mempool_items.submitted_timestamp DESC, mempool_items.hash ASC
-        ",
-    )
-    .fetch_all(conn)
-    .await?;
+        "
+    );
+
+    let rows = sqlx::query(&sql).fetch_all(conn).await?;
 
     // Group rows by mempool item hash, preserving order
     let mut order: Vec<Bytes32> = Vec::new();

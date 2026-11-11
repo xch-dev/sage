@@ -120,6 +120,7 @@ export default function Transaction() {
                     asset={coin.asset}
                     amount={coin.amount}
                     coinId={coin.coin_id}
+                    address={coin.address}
                   />
                 ))}
               </CardContent>
@@ -140,6 +141,7 @@ export default function Transaction() {
                     asset={coin.asset}
                     amount={coin.amount}
                     coinId={coin.coin_id}
+                    address={coin.address}
                   />
                 ))}
               </CardContent>

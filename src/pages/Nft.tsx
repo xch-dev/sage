@@ -2,6 +2,7 @@ import { AddressItem } from '@/components/AddressItem';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { LabeledItem } from '@/components/LabeledItem';
+import { MutableNftBadge } from '@/components/MutableNftBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useErrors } from '@/hooks/useErrors';
@@ -10,6 +11,7 @@ import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { offersEnabled } from '@/lib/features';
 import { getMintGardenProfile } from '@/lib/marketplaces';
 import { isAudio, isImage, isJson, isText, nftUri } from '@/lib/nftUri';
+import { isMutableNft, mutableNftExplanation } from '@/lib/nftUpdater';
 import {
   DexieAsset,
   DexieOffer,
@@ -22,7 +24,8 @@ import {
   mintGardenNftUrl,
   spacescanNftUrl,
 } from '@/lib/urls';
-import { formatTimestamp, getOfferStatus } from '@/lib/utils';
+import { formatTimestamp } from '@/lib/utils';
+import { offerStatusLabel } from '@/components/OfferStatusBadge';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -264,6 +267,17 @@ export default function Nft() {
                   label={t`Launcher ID`}
                   address={nft?.launcher_id ?? ''}
                 />
+
+                {nft && isMutableNft(nft.metadata_updater_kind) && (
+                  <LabeledItem label={t`Metadata`} content={null}>
+                    <div className='flex flex-col items-start gap-1'>
+                      <MutableNftBadge kind={nft.metadata_updater_kind} />
+                      <p className='text-sm text-muted-foreground'>
+                        {mutableNftExplanation(nft.metadata_updater_kind)}
+                      </p>
+                    </div>
+                  </LabeledItem>
+                )}
 
                 {nft?.edition_total != null &&
                   (nft?.edition_total === 0 || nft?.edition_total > 1) && (
@@ -558,7 +572,9 @@ export default function Nft() {
                     <div className='flex flex-col gap-1'>
                       <div className='grid gap-2'>
                         {offersForAsset.map((localOffer) => {
-                          const offerStatus = getOfferStatus(localOffer.status);
+                          const offerStatus = offerStatusLabel(
+                            localOffer.status,
+                          );
                           const createdAt = localOffer.creation_timestamp
                             ? formatTimestamp(
                                 localOffer.creation_timestamp,

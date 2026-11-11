@@ -8,8 +8,45 @@ use chia_wallet_sdk::{
     prelude::*,
 };
 use tokio::time::timeout;
+use tracing::warn;
 
 use crate::WalletError;
+
+/// How long a single peer has to answer a coin state request.
+pub const FETCH_COINS_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// How many peers to try before giving up on a request.
+pub const MAX_PEER_ATTEMPTS: usize = 3;
+
+/// Fetches coin states from the first of `peers` that answers, trying up to
+/// [`MAX_PEER_ATTEMPTS`] of them in order. A connection can die without closing, so a peer that
+/// doesn't answer in time shouldn't fail the request while other peers are connected.
+pub async fn fetch_coins_from_peers(
+    peers: &[WalletPeer],
+    coin_ids: Vec<Bytes32>,
+    genesis_challenge: Bytes32,
+    attempt_timeout: Duration,
+) -> Result<Vec<CoinState>, WalletError> {
+    let mut last_error = WalletError::NoPeers;
+
+    for peer in peers.iter().take(MAX_PEER_ATTEMPTS) {
+        match peer
+            .fetch_coins_within(coin_ids.clone(), genesis_challenge, attempt_timeout)
+            .await
+        {
+            Ok(coin_states) => return Ok(coin_states),
+            Err(error) => {
+                warn!(
+                    "Failed to fetch coin states from peer {}: {error}",
+                    peer.socket_addr()
+                );
+                last_error = error;
+            }
+        }
+    }
+
+    Err(last_error)
+}
 
 #[derive(Debug, Clone)]
 pub struct WalletPeer {
@@ -95,6 +132,16 @@ impl WalletPeer {
         coin_ids: Vec<Bytes32>,
         genesis_challenge: Bytes32,
     ) -> Result<Vec<CoinState>, WalletError> {
+        self.fetch_coins_within(coin_ids, genesis_challenge, FETCH_COINS_TIMEOUT)
+            .await
+    }
+
+    async fn fetch_coins_within(
+        &self,
+        coin_ids: Vec<Bytes32>,
+        genesis_challenge: Bytes32,
+        duration: Duration,
+    ) -> Result<Vec<CoinState>, WalletError> {
         let mut coin_states = HashMap::new();
         let mut unknown_coin_ids = Vec::new();
 
@@ -107,7 +154,7 @@ impl WalletPeer {
         }
 
         let peer_coins = timeout(
-            Duration::from_secs(10),
+            duration,
             self.peer
                 .request_coin_state(unknown_coin_ids, None, genesis_challenge, false),
         )
@@ -291,6 +338,35 @@ impl WalletPeer {
         })
     }
 
+    /// Looks up the unspent coins with a puzzle hash, without subscribing to it. Also returns
+    /// whether the peer sent all of them, since it may only send the first batch.
+    pub async fn fetch_unspent_coins_by_puzzle_hash(
+        &self,
+        puzzle_hash: Bytes32,
+        genesis_challenge: Bytes32,
+    ) -> Result<(Vec<CoinState>, bool), WalletError> {
+        let response = timeout(
+            Duration::from_secs(10),
+            self.peer.request_puzzle_state(
+                vec![puzzle_hash],
+                None,
+                genesis_challenge,
+                CoinStateFilters::new(false, true, false, 0),
+                false,
+            ),
+        )
+        .await??
+        .map_err(|_| WalletError::PeerMisbehaved)?;
+
+        let coin_states = response
+            .coin_states
+            .into_iter()
+            .filter(|state| state.coin.puzzle_hash == puzzle_hash && state.spent_height.is_none())
+            .collect();
+
+        Ok((coin_states, response.is_finished))
+    }
+
     pub async fn unsubscribe_coins(&self, coin_ids: Vec<Bytes32>) -> Result<(), WalletError> {
         timeout(
             Duration::from_secs(10),
@@ -302,6 +378,23 @@ impl WalletPeer {
     }
 
     pub async fn block_timestamp(&self, height: u32) -> Result<(Bytes32, u64), WalletError> {
+        let (header_hash, timestamp) = self.block_header_timestamp(height).await?;
+        Ok((header_hash, timestamp.ok_or(WalletError::PeerMisbehaved)?))
+    }
+
+    /// Returns the timestamp of the block at the given height, or `None` if it isn't a
+    /// transaction block and therefore has no timestamp.
+    pub async fn block_timestamp_if_transaction_block(
+        &self,
+        height: u32,
+    ) -> Result<Option<u64>, WalletError> {
+        Ok(self.block_header_timestamp(height).await?.1)
+    }
+
+    async fn block_header_timestamp(
+        &self,
+        height: u32,
+    ) -> Result<(Bytes32, Option<u64>), WalletError> {
         let header_block = timeout(
             Duration::from_secs(5),
             self.peer
@@ -315,9 +408,94 @@ impl WalletPeer {
             .as_ref()
             .map(|block| block.timestamp);
 
-        Ok((
-            header_block.header_hash(),
-            timestamp.ok_or(WalletError::PeerMisbehaved)?,
-        ))
+        Ok((header_block.header_hash(), timestamp))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Instant;
+
+    use chia_wallet_sdk::test::PeerSimulator;
+
+    use crate::unresponsive_peer;
+
+    use super::*;
+
+    const ATTEMPT_TIMEOUT: Duration = Duration::from_millis(500);
+
+    #[tokio::test]
+    async fn fetch_coins_from_peers_skips_unresponsive_peer() -> anyhow::Result<()> {
+        let sim = PeerSimulator::new().await?;
+        let coin = sim.lock().await.new_coin(Bytes32::default(), 1);
+        let responsive = WalletPeer::new(sim.connect().await?);
+        let peers = [unresponsive_peer().await?, responsive];
+
+        let coin_states = fetch_coins_from_peers(
+            &peers,
+            vec![coin.coin_id()],
+            TESTNET11_CONSTANTS.genesis_challenge,
+            ATTEMPT_TIMEOUT,
+        )
+        .await?;
+
+        assert_eq!(coin_states.len(), 1);
+        assert_eq!(coin_states[0].coin, coin);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn fetch_coins_from_peers_times_out_when_no_peer_answers() -> anyhow::Result<()> {
+        let peers = [unresponsive_peer().await?, unresponsive_peer().await?];
+        let start = Instant::now();
+
+        let result = fetch_coins_from_peers(
+            &peers,
+            vec![Bytes32::default()],
+            TESTNET11_CONSTANTS.genesis_challenge,
+            ATTEMPT_TIMEOUT,
+        )
+        .await;
+
+        assert!(matches!(result, Err(WalletError::Elapsed(..))));
+        assert!(start.elapsed() >= ATTEMPT_TIMEOUT * 2);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn fetch_coins_from_peers_stops_after_max_attempts() -> anyhow::Result<()> {
+        let mut peers = Vec::new();
+        for _ in 0..=MAX_PEER_ATTEMPTS {
+            peers.push(unresponsive_peer().await?);
+        }
+        let start = Instant::now();
+
+        let result = fetch_coins_from_peers(
+            &peers,
+            vec![Bytes32::default()],
+            TESTNET11_CONSTANTS.genesis_challenge,
+            ATTEMPT_TIMEOUT,
+        )
+        .await;
+
+        assert!(matches!(result, Err(WalletError::Elapsed(..))));
+        assert!(start.elapsed() < ATTEMPT_TIMEOUT * u32::try_from(MAX_PEER_ATTEMPTS + 1)?);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn fetch_coins_from_peers_requires_a_peer() {
+        let result = fetch_coins_from_peers(
+            &[],
+            vec![Bytes32::default()],
+            TESTNET11_CONSTANTS.genesis_challenge,
+            ATTEMPT_TIMEOUT,
+        )
+        .await;
+
+        assert!(matches!(result, Err(WalletError::NoPeers)));
     }
 }

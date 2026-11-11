@@ -6,6 +6,7 @@ import BigNumber from 'bignumber.js';
 import { BadgeMinus, BadgePlus, BoxIcon, ForwardIcon } from 'lucide-react';
 import { TransactionSummary, Unit } from '../bindings';
 import { formatNumber } from '../i18n';
+import { AddressLabels } from './AddressLabels';
 import { Badge } from './ui/badge';
 
 interface SpentCoin {
@@ -116,6 +117,7 @@ export function AdvancedTransactionSummary({
                   <div className='truncate text-muted-foreground text-sm'>
                     {created.address}
                   </div>
+                  <AddressLabels address={created.address} compact />
                 </div>
               </div>
             ))}
@@ -137,21 +139,31 @@ export function calculateTransaction(
   const spent: SpentCoin[] = [];
   const created: CreatedCoin[] = [];
 
-  for (const input of summary.inputs || []) {
+  const inputs = summary.inputs || [];
+  const inputCoinIds = new Set(inputs.map((input) => input.coin_id));
+  const outputCoinIds = new Set(
+    inputs.flatMap((input) => input.outputs.map((output) => output.coin_id)),
+  );
+
+  for (const input of inputs) {
+    const isEphemeral = outputCoinIds.has(input.coin_id);
+
     if (input.asset && !input.asset.asset_id) {
-      spent.push({
-        badge: 'Chia',
-        label: `${formatNumber({
-          value: fromMojos(input.amount, xch.precision),
-          minimumFractionDigits: 0,
-          maximumFractionDigits: xch.precision,
-        })} ${xch.ticker}`,
-        coinId: input.coin_id,
-        sort: 1,
-      });
+      if (!isEphemeral) {
+        spent.push({
+          badge: 'Chia',
+          label: `${formatNumber({
+            value: fromMojos(input.amount, xch.precision),
+            minimumFractionDigits: 0,
+            maximumFractionDigits: xch.precision,
+          })} ${xch.ticker}`,
+          coinId: input.coin_id,
+          sort: 1,
+        });
+      }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 
@@ -175,19 +187,21 @@ export function calculateTransaction(
     if (input.asset?.kind === 'token' && input.asset.asset_id) {
       const ticker = input.asset.ticker || 'CAT';
 
-      spent.push({
-        badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
-        label: `${formatNumber({
-          value: fromMojos(input.amount, 3),
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 3,
-        })} ${ticker}`,
-        coinId: input.coin_id,
-        sort: 2,
-      });
+      if (!isEphemeral) {
+        spent.push({
+          badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
+          label: `${formatNumber({
+            value: fromMojos(input.amount, 3),
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 3,
+          })} ${ticker}`,
+          coinId: input.coin_id,
+          sort: 2,
+        });
+      }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 
@@ -209,12 +223,7 @@ export function calculateTransaction(
     }
 
     if (input.asset?.kind === 'did') {
-      if (
-        !summary.inputs
-          .map((i) => i.outputs)
-          .flat()
-          .find((o) => o.coin_id === input.coin_id)
-      ) {
+      if (!isEphemeral) {
         spent.push({
           badge: t`Profile`,
           label: input.asset.name ?? t`Unnamed`,
@@ -224,7 +233,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 
@@ -244,12 +253,7 @@ export function calculateTransaction(
     }
 
     if (input.asset?.kind === 'nft') {
-      if (
-        !summary.inputs
-          .map((i) => i.outputs)
-          .flat()
-          .find((o) => o.coin_id === input.coin_id)
-      ) {
+      if (!isEphemeral) {
         spent.push({
           badge: 'NFT',
           label: input.asset.name ?? t`Unknown`,
@@ -259,7 +263,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 
@@ -279,12 +283,7 @@ export function calculateTransaction(
     }
 
     if (input.asset?.kind === 'option') {
-      if (
-        !summary.inputs
-          .map((i) => i.outputs)
-          .flat()
-          .find((o) => o.coin_id === input.coin_id)
-      ) {
+      if (!isEphemeral) {
         spent.push({
           badge: 'Option',
           label: input.asset.name ?? t`Untitled`,
@@ -294,7 +293,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 

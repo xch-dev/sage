@@ -24,7 +24,7 @@ semver = { workspace = true }
 hex = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
 sha2 = "0.10.9"
-uuid = { version = "1.19.0", features = ["v4", "serde"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
 tempfile = "3"
 zip = "8.5.1"
 mime_guess = "2"
@@ -37,3 +37,4 @@ futures = "0.3.32"
 
 [dev-dependencies]
 tempfile = { workspace = true }
+sage-wallet = { workspace = true }

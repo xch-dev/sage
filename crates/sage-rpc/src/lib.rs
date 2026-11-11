@@ -19,7 +19,7 @@ use axum::{
 use axum_server::tls_rustls::RustlsConfig;
 use rustls_config::load_rustls_config;
 use sage::Sage;
-use sage_api::ErrorKind;
+use sage_api::{ErrorKind, RecipientError, RecipientErrorKind};
 use sage_api_macro::impl_endpoints;
 use serde::Serialize;
 use tokio::sync::Mutex;
@@ -51,10 +51,15 @@ where
     match value {
         Ok(data) => Json(data).into_response(),
         Err(error) => {
+            if let Some(recipients) = error.recipient_errors() {
+                return recipient_error_response(error.to_string(), recipients);
+            }
+
             let status = match error.kind() {
-                ErrorKind::Api => StatusCode::BAD_REQUEST,
+                ErrorKind::Api | ErrorKind::Recipient => StatusCode::BAD_REQUEST,
                 ErrorKind::NotFound => StatusCode::NOT_FOUND,
                 ErrorKind::Unauthorized => StatusCode::UNAUTHORIZED,
+                ErrorKind::AlreadyRunning => StatusCode::CONFLICT,
                 ErrorKind::DatabaseMigration
                 | ErrorKind::Wallet
                 | ErrorKind::Internal
@@ -63,6 +68,36 @@ where
             (status, error.to_string()).into_response()
         }
     }
+}
+
+/// The body of an error caused by recipients which couldn't be used.
+#[derive(Serialize)]
+struct RecipientErrorBody<'a> {
+    kind: ErrorKind,
+    reason: String,
+    recipients: &'a [RecipientError],
+}
+
+/// Recipient errors are returned as JSON, so that callers can tell which recipients failed,
+/// and confirm a changed handle by sending its new address in `confirmed_handles`. A handle
+/// which changed is a conflict with what the caller expected, rather than a bad request.
+fn recipient_error_response(reason: String, recipients: &[RecipientError]) -> Response {
+    let status = if recipients
+        .iter()
+        .any(|recipient| recipient.kind == RecipientErrorKind::Changed)
+    {
+        StatusCode::CONFLICT
+    } else {
+        StatusCode::BAD_REQUEST
+    };
+
+    let body = RecipientErrorBody {
+        kind: ErrorKind::Recipient,
+        reason,
+        recipients,
+    };
+
+    (status, Json(body)).into_response()
 }
 
 pub async fn start_rpc(sage: Arc<Mutex<Sage>>) -> Result<()> {

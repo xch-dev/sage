@@ -1,9 +1,16 @@
 #[cfg(target_os = "windows")]
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+/// The WebView2 user data folder of a Windows profile. It must be absolute, because WebView2
+/// resolves relative paths against the process working directory.
+#[cfg(target_os = "windows")]
+pub fn windows_profiles_dir(webview_root: &Path) -> PathBuf {
+    webview_root.join("profiles")
+}
 
 #[cfg(target_os = "windows")]
-pub fn data_directory_for(directory_name: &str) -> PathBuf {
-    PathBuf::from("profiles").join(directory_name)
+pub fn windows_profile_dir(webview_root: &Path, directory_name: &str) -> PathBuf {
+    windows_profiles_dir(webview_root).join(directory_name)
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]

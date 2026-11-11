@@ -9,6 +9,12 @@ use crate::{
     SerializedDidInfo, SerializedNft, SerializedNftInfo,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CoinHeights {
+    pub created_height: Option<u32>,
+    pub spent_height: Option<u32>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CoinKind {
     Xch,
@@ -69,7 +75,7 @@ pub struct UnsyncedCoin {
 }
 
 impl Database {
-    pub async fn coins_by_ids(&self, coin_ids: &[String]) -> Result<Vec<CoinRow>> {
+    pub async fn coins_by_ids(&self, coin_ids: &[Bytes32]) -> Result<Vec<CoinRow>> {
         coins_by_ids(&self.pool, coin_ids).await
     }
 
@@ -94,7 +100,7 @@ impl Database {
         .await
     }
 
-    pub async fn are_coins_spendable(&self, coin_ids: &[String]) -> Result<bool> {
+    pub async fn are_coins_spendable(&self, coin_ids: &[Bytes32]) -> Result<bool> {
         are_coins_spendable(&self.pool, coin_ids).await
     }
 
@@ -254,6 +260,12 @@ impl DatabaseTx<'_> {
         is_known_coin(&mut *self.tx, coin_id).await
     }
 
+    /// The heights a coin was created and spent at, if the wallet knows about it. A coin which
+    /// hasn't been created yet is one that a pending transaction will create.
+    pub async fn coin_heights(&mut self, coin_id: Bytes32) -> Result<Option<CoinHeights>> {
+        coin_heights(&mut *self.tx, coin_id).await
+    }
+
     pub async fn update_coin(
         &mut self,
         coin_id: Bytes32,
@@ -287,7 +299,7 @@ impl DatabaseTx<'_> {
     }
 }
 
-async fn are_coins_spendable(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Result<bool> {
+async fn are_coins_spendable(conn: impl SqliteExecutor<'_>, coin_ids: &[Bytes32]) -> Result<bool> {
     if coin_ids.is_empty() {
         return Ok(false);
     }
@@ -302,7 +314,7 @@ async fn are_coins_spendable(conn: impl SqliteExecutor<'_>, coin_ids: &[String])
 
     let mut separated = query.separated(", ");
     for coin_id in coin_ids {
-        separated.push(format!("X'{coin_id}'"));
+        separated.push_bind(coin_id.to_vec());
     }
     separated.push_unseparated(")");
 
@@ -358,6 +370,28 @@ async fn mark_coin_spent(
     .await?;
 
     Ok(())
+}
+
+async fn coin_heights(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<CoinHeights>> {
+    let row = sqlx::query("SELECT created_height, spent_height FROM coins WHERE hash = ?")
+        .bind(coin_id.as_ref())
+        .fetch_optional(conn)
+        .await?;
+
+    let Some(row) = row else {
+        return Ok(None);
+    };
+
+    let created_height: Option<i64> = row.try_get("created_height")?;
+    let spent_height: Option<i64> = row.try_get("spent_height")?;
+
+    Ok(Some(CoinHeights {
+        created_height: created_height.map(u32::try_from).transpose()?,
+        spent_height: spent_height.map(u32::try_from).transpose()?,
+    }))
 }
 
 async fn is_known_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<bool> {
@@ -508,12 +542,14 @@ async fn insert_lineage_proof(
     Ok(())
 }
 
+/// Unspent coins that are subscribed to by coin ID. XCH coins at public key (0), arbor (3) and
+/// external (4) puzzles are left out, since sync subscribes to those puzzle hashes.
 async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
     query!(
         "
         SELECT coin_hash FROM wallet_coins
         WHERE spent_height IS NULL
-        AND (asset_id != 0 OR p2_puzzle_kind != 0)
+        AND (asset_id != 0 OR p2_puzzle_kind NOT IN (0, 3, 4))
         "
     )
     .fetch_all(conn)
@@ -595,7 +631,7 @@ async fn selectable_token_balance(
     .sum()
 }
 
-async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Result<Vec<CoinRow>> {
+async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[Bytes32]) -> Result<Vec<CoinRow>> {
     let mut query = sqlx::QueryBuilder::new(
         "
        SELECT
@@ -609,7 +645,7 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
     let mut separated = query.separated(", ");
 
     for coin_id in coin_ids {
-        separated.push(format!("X'{coin_id}'"));
+        separated.push_bind(coin_id.to_vec());
     }
     separated.push_unseparated(")");
 

@@ -1,23 +1,27 @@
+mod contacts;
 mod events;
 mod filter_unlocked_coins;
 mod get_asset_balance;
 mod get_asset_coins;
-mod get_key;
 mod get_public_keys;
 mod get_secret_key;
+mod get_wallet;
+mod handles;
 mod read_methods;
 mod send_transaction;
 mod send_xch;
 mod sign_coin_spends;
 mod sign_message;
 
+pub(crate) use contacts::*;
 pub(crate) use events::*;
 pub(crate) use filter_unlocked_coins::*;
 pub(crate) use get_asset_balance::*;
 pub(crate) use get_asset_coins::*;
-pub(crate) use get_key::*;
 pub(crate) use get_public_keys::*;
 pub(crate) use get_secret_key::*;
+pub(crate) use get_wallet::*;
+pub(crate) use handles::*;
 pub(crate) use read_methods::*;
 pub(crate) use send_transaction::*;
 pub(crate) use send_xch::*;
@@ -25,22 +29,24 @@ pub(crate) use sign_coin_spends::*;
 pub(crate) use sign_message::*;
 
 use sage::Sage;
-use sage_api::{GetKey, GetKeyResponse};
+use sage_api::{GetWallet, GetWalletResponse};
 
 use crate::{BridgeContext, BridgeMethodHandleError};
 
-pub(crate) fn current_scoped_key(
+pub(crate) fn current_scoped_wallet(
     ctx: &BridgeContext<'_>,
     sage: &Sage,
-) -> Result<(GetKeyResponse, u32), BridgeMethodHandleError> {
-    let response = sage.get_key(GetKey { fingerprint: None }).map_err(|err| {
-        BridgeMethodHandleError::internal_error(format!("failed to get current wallet key: {err}"))
-    })?;
+) -> Result<(GetWalletResponse, u32), BridgeMethodHandleError> {
+    let response = sage
+        .get_wallet(GetWallet { fingerprint: None })
+        .map_err(|err| {
+            BridgeMethodHandleError::internal_error(format!("failed to get current wallet: {err}"))
+        })?;
 
     let fingerprint = response
-        .key
+        .wallet
         .as_ref()
-        .map(|key| key.fingerprint)
+        .map(|wallet| wallet.fingerprint)
         .ok_or_else(|| {
             BridgeMethodHandleError::invalid_request("no wallet is currently selected")
         })?;

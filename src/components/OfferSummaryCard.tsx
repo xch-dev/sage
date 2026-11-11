@@ -1,9 +1,11 @@
 import { OfferAsset, OfferRecord } from '@/bindings';
 import { NumberFormat } from '@/components/NumberFormat';
-import { formatTimestamp, fromMojos, getOfferStatus } from '@/lib/utils';
+import { formatTimestamp, fromMojos } from '@/lib/utils';
+import { offerStatusLabel } from '@/components/OfferStatusBadge';
 import { t } from '@lingui/core/macro';
 import BigNumber from 'bignumber.js';
 import { AssetIcon } from './AssetIcon';
+import { MutableNftBadge } from './MutableNftBadge';
 import { SelectionState } from './SelectableCard';
 import { Checkbox } from './ui/checkbox';
 
@@ -19,7 +21,7 @@ export function OfferSummaryCard({
   selectionState = null,
 }: OfferSummaryCardProps) {
   return (
-    <div className='flex items-start gap-3 p-4 rounded-sm bg-card border border-border'>
+    <div className='flex items-start gap-3 p-4 rounded-lg bg-card border border-border shadow'>
       {selectionState !== null && (
         <Checkbox
           checked={selectionState[0]}
@@ -31,7 +33,7 @@ export function OfferSummaryCard({
       <div className='flex justify-between flex-1 min-w-0'>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
           <div className='flex flex-col gap-1'>
-            <div>{getOfferStatus(record.status)}</div>
+            <div>{offerStatusLabel(record.status)}</div>
             <div className='text-muted-foreground text-sm'>
               {new Date(record.creation_timestamp * 1000).toLocaleString()}
             </div>
@@ -73,7 +75,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
   return (
     <div className='flex flex-col gap-1 w-[125px] lg:w-[200px] xl:w-[300px]'>
       <div>{label}</div>
-      {assets.map(({ amount, royalty, asset }) => (
+      {assets.map(({ amount, royalty, asset, nft_metadata_updater_kind }) => (
         <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
           <AssetIcon asset={asset} size='md' />
           <div className='text-sm text-muted-foreground truncate'>
@@ -89,6 +91,10 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
             )}{' '}
             {asset.name ?? asset.ticker ?? t`Unknown`}
           </div>
+          <MutableNftBadge
+            kind={nft_metadata_updater_kind}
+            className='flex-shrink-0'
+          />
         </div>
       ))}
     </div>

@@ -4,6 +4,7 @@ import { nftUri } from '@/lib/nftUri';
 import { isValidAddress } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { MutableNftBadge } from '../MutableNftBadge';
 import { SearchableSelect } from './SearchableSelect';
 
 export interface NftSelectorProps {
@@ -169,8 +170,14 @@ export function NftSelector({
           loading='lazy'
         />
         <div className='flex flex-col min-w-0'>
-          <span className='truncate' role='text'>
-            {nft.name ?? 'Unknown NFT'}
+          <span className='flex items-center gap-1 min-w-0'>
+            <span className='truncate' role='text'>
+              {nft.name ?? 'Unknown NFT'}
+            </span>
+            <MutableNftBadge
+              kind={nft.metadata_updater_kind}
+              className='flex-shrink-0'
+            />
           </span>
           <span
             className='text-xs text-muted-foreground truncate'

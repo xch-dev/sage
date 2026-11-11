@@ -14,6 +14,8 @@ use tokio::{
     time::{Instant, sleep_until},
 };
 
+use crate::error;
+
 /// How long a burst of refresh events is collected before being emitted.
 const REFRESH_DEBOUNCE: Duration = Duration::from_millis(500);
 
@@ -58,7 +60,8 @@ impl RefreshEvent {
     }
 }
 
-pub struct Initialized(pub Mutex<bool>);
+/// The outcome of initialization, once it has been attempted.
+pub struct Initialized(pub Mutex<Option<error::Result<()>>>);
 
 pub struct RpcTask(pub Mutex<Option<JoinHandle<anyhow::Result<()>>>>);
 

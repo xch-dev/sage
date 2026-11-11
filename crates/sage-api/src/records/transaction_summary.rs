@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Amount, Asset};
+use crate::{Amount, Asset, HandleRecord};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -8,6 +8,10 @@ use crate::{Amount, Asset};
 pub struct TransactionSummary {
     pub fee: Amount,
     pub inputs: Vec<TransactionInput>,
+    /// The handle recipients of the transaction, and the verified addresses they were
+    /// resolved to
+    #[serde(default)]
+    pub handles: Vec<HandleRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
