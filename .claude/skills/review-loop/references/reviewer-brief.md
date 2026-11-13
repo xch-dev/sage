@@ -71,15 +71,14 @@ Database:
 - Are new queries parameterized (never values formatted into SQL), and do they hit an index where the table can be large?
 - Is a new migration safe on an existing wallet database with data in it, and is it a new file rather than an edit to an old one?
 - Are multi-step writes in a transaction where a partial write would leave the wallet inconsistent?
-- Does `.sqlx/` match the changed queries?
 
 API and frontend:
 
-- Do `sage-api` types, the handler, the entry in `endpoints.json` or `endpoints-tauri.json`, and `src/bindings.ts` agree? Is every new Tauri command registered in `sage_commands!` in `src-tauri/src/lib.rs` and allowed in `src-tauri/permissions/*.toml`? Was `src/bindings.ts` regenerated rather than edited by hand?
+- Do `sage-api` types, the handler, the entry in `endpoints.json` or `endpoints-tauri.json`, and `src/bindings.ts` agree? Is every new Tauri command registered in `src-tauri/src/lib.rs` (`sage_commands!` for `commands::*`, the desktop-only list for `apps::*`) and allowed in `src-tauri/permissions/*.toml`?
 - Does the UI handle loading, error and empty states, and show amounts with the right precision for the asset? Can a stale result from an earlier request overwrite a newer one, the same work be queued twice, or form state be lost when the user toggles something?
 - Are new user-facing strings wrapped with Lingui (`t`, `<Trans>`)? The `.po` catalogs should _not_ be changed in this PR.
 - Sage Apps and WalletConnect: does every method that moves funds or signs anything go through user approval, and does the approval show what will actually happen? Can a dApp or app learn more than it should (for example by probing lookups) or call a method often enough to abuse it?
-- Sage Apps bridge changes: was `docs/generated/` regenerated with `pnpm generate:app-docs`?
+- Does any new way into offers or options check `offersEnabled` / `optionsEnabled` from `src/lib/features.ts`? The iOS App Store build turns them off.
 
 The accepted risks listed under Settled are not open; don't report them, but do report problems next to them. Only those exact risks are settled: other untrusted input is still in scope.
 

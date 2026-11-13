@@ -55,16 +55,22 @@ The state file is the memory of the loop. Reviewers start with fresh context, an
 
 Work on a `rigidity/` branch (lowercase; never `Rigidity/`), unless you're continuing someone else's PR branch. For a bug fix, write the failing regression test first. The usual places:
 
-- **Endpoints**: request and response types in `crates/sage-api` (`requests/`, `records/`, `types/`) and the handler, a `Sage` method in `crates/sage/src/endpoints/<area>.rs`. Then list it in `crates/sage-api/endpoints.json` (generates the RPC route, client, CLI and Tauri command through `impl_endpoints!` / `impl_endpoints_tauri!`) or in `endpoints-tauri.json` (same, but Tauri only, left out of RPC, client and CLI). The few commands written by hand in `src-tauri/src/commands.rs` are in neither file. Every Tauri command, generated or hand-written, must also be registered in `sage_commands!` in `src-tauri/src/lib.rs` and allowed in `src-tauri/permissions/main-host.toml` (or `bridge.toml` for app webviews); a command missing from either fails at runtime without a compile error. The `permissions_allow_every_command` test in `lib.rs` checks the second, but only for commands already in `sage_commands!`. Endpoint tests go in `crates/sage-rpc/src/tests/` (the RPC run against the peer simulator) or in inline `#[cfg(test)]` modules in `crates/sage/src`.
-- **Bindings**: after changing a type the frontend sees or a Tauri command, run `pnpm generate:bindings` to refresh `src/bindings.ts`. Never edit `src/bindings.ts` by hand, and never launch the Sage app to regenerate it.
-- **Database**: queries in `crates/sage-database/src/tables/`. After adding or changing a `query!`, run `cargo sqlx prepare --workspace` and commit the `.sqlx/` changes with it. It needs a `.env` in the worktree root with `DATABASE_URL=sqlite://./test.sqlite` and a fresh `sqlx db reset -y` (see the README); a new worktree has no `.env`. Schema changes go in a new file under `migrations/`; never edit an existing migration, since wallets in the field have already run it. Migration and backfill tests go in `crates/sage-database/src/tests.rs`.
+- **Endpoints**: request and response types in `crates/sage-api` (`requests/`, `records/`, `types/`), and the handler as a `Sage` method in `crates/sage/src/endpoints/<area>.rs`. List it in `crates/sage-api/endpoints.json`, which generates the RPC route, client, CLI and Tauri command (`impl_endpoints!`, `impl_endpoints_tauri!`), or in `endpoints-tauri.json` for a Tauri command left out of RPC, client and CLI. The few commands written by hand in `src-tauri/src/commands.rs` are in neither file. Tests go in `crates/sage-rpc/src/tests/` (the RPC against the peer simulator) or inline in `crates/sage/src`.
+- **Registering Tauri commands** (fails only at runtime if missed): add every new command to `src-tauri/src/lib.rs`, in `sage_commands!` for `commands::*` (shared with mobile) or in `specta_builder()`'s desktop-only list for `apps::*` Sage Apps host commands, and allow it in `src-tauri/permissions/main-host.toml` (or `bridge.toml` for app webviews). The `permissions_allow_every_command` test catches a registered command that isn't allowed, but not one that was never registered.
+- **Database**: queries in `crates/sage-database/src/tables/`. Schema changes go in a new file under `migrations/`; never edit an existing migration, since wallets in the field have already run it. Migration and backfill tests go in `crates/sage-database/src/tests.rs`. `cargo sqlx prepare` needs a `.env` in the worktree root with `DATABASE_URL=sqlite://./test.sqlite` and a fresh `sqlx db reset -y` (see the README); a new worktree has no `.env`.
 - **Wallet and sync**: `crates/sage-wallet` (`wallet/` for spends, `sync_manager/` and `queues/` for syncing). Tests use the peer simulator in `crates/sage-wallet/src/test.rs`; follow the neighbouring tests rather than building a new harness.
-- **Frontend**: pages in `src/pages`, shared pieces in `src/components`, `src/hooks` and `src/lib`, WalletConnect in `src/walletconnect`. Wrap every new user-facing string with Lingui (`t`, `<Trans>`), but don't run `pnpm extract` or touch `src/locales/**/*.po`; the next release does that. Unit tests sit next to the file as `*.test.ts(x)` and run with Vitest. Run `pnpm install` first if `node_modules` is missing, as it is in a new worktree.
-- **Sage Apps**: the bridge, manifests and permissions in `crates/sage-apps` (tests inline, next to the code), the SDKs in `packages/` and the built-in apps in `builtin-apps/`. After changing a bridge method or capability, run `pnpm generate:app-docs` and commit `docs/generated/`. `pnpm generate:types` refreshes the SDK types in `packages/*/src/generated-types.ts`, which are gitignored and only matter for local type checks and `pnpm build`.
+- **Frontend**: pages in `src/pages`, shared pieces in `src/components`, `src/hooks` and `src/lib`, WalletConnect in `src/walletconnect`. Unit tests sit next to the file as `*.test.ts(x)` and run with Vitest. Wrap new strings with Lingui as `.claude/rules/translations.md` says. Run `pnpm install --frozen-lockfile` before the first frontend command; a new worktree's `node_modules` may be empty or stale.
+- **Sage Apps**: the bridge, manifests and permissions in `crates/sage-apps` (tests inline), the SDKs in `packages/` and the built-in apps in `builtin-apps/`. `pnpm generate:types` refreshes the gitignored SDK types for local type checks; `pnpm build` regenerates them itself.
 
 Follow `.claude/rules/*.md` (imports, generated artifacts, translations, validation). Use what's already there before writing helpers: look for an existing query, endpoint, hook or component that does most of the job, and follow the neighbouring code. A feature that exists on several surfaces (the Tauri UI, RPC and `sage-cli`, WalletConnect, the Sage Apps bridge) usually needs the change on each.
 
-Before each review round, including the first, regenerate whatever the change affects (`pnpm generate:bindings`, `cargo sqlx prepare --workspace`, `pnpm generate:app-docs`), check `git status --short`, and commit the output with the change that caused it, so reviewers see the real diff. Read each regenerated file: a change you didn't expect usually means a mistake.
+Before each review round, including the first, regenerate what the change affects, check `git status --short`, and commit the output with the change that caused it, so reviewers see the real diff:
+
+- a `sage-api` type or Tauri command: `pnpm generate:bindings` (`src/bindings.ts`)
+- a `query!` or a migration: `cargo sqlx prepare --workspace` (`.sqlx/`)
+- a Sage Apps bridge method or capability: `pnpm generate:app-docs` (`docs/generated/`)
+
+Read each regenerated file: a change you didn't expect usually means a mistake.
 
 Commit before the first review round, so each round's fixes are a separate diff.
 
@@ -106,24 +112,25 @@ Whatever the stop, still run the final checks and open or update the PR, so the 
 
 ## 6. Final checks
 
-These are the checks in the Tests job of `.github/workflows/build.yml`, plus `-D warnings` on clippy (stricter than CI), `pnpm lint` (required by `.claude/rules/validation.md`), the type check and the frontend unit tests. Run `pnpm install` first if `node_modules` is missing. Fix anything they report.
+These are the checks in the Tests job of `.github/workflows/build.yml`, plus `-D warnings` on clippy (stricter than CI), `pnpm lint` (required by `.claude/rules/validation.md`), the type check and the frontend unit tests. Fix anything they report.
 
 Always, since CI runs it on every PR:
 
 ```bash
+pnpm install --frozen-lockfile
 pnpm prettier:check
 ```
 
-If any Rust changed:
+If any Rust input changed (`*.rs`, `Cargo.toml`, `Cargo.lock`, `migrations/`, `.sqlx/`). `SQLX_OFFLINE=true` makes them read the committed `.sqlx/` as CI does, rather than a local `.env` database:
 
 ```bash
-cargo clippy --workspace --all-features --all-targets -- -D warnings
+SQLX_OFFLINE=true cargo clippy --workspace --all-features --all-targets -- -D warnings
 cargo fmt --all -- --files-with-diff --check
-cargo test --workspace --all-features
+SQLX_OFFLINE=true cargo test --workspace --all-features
 cargo machete --skip-target-dir
 ```
 
-If any TypeScript changed:
+If any TypeScript changed, including a regenerated `src/bindings.ts`:
 
 ```bash
 pnpm lint
@@ -131,11 +138,11 @@ pnpm exec tsc -b
 pnpm test:unit
 ```
 
-- If you changed a `query!`, check that `cargo sqlx prepare --workspace --check` passes, so the committed `.sqlx/` matches.
+- If you changed a `query!` or a migration, check that `cargo sqlx prepare --workspace --check` passes, so the committed `.sqlx/` matches.
 - If you changed a type in `sage-api` or a Tauri command, check that `pnpm generate:bindings` leaves `src/bindings.ts` unchanged after your commit.
 - If you changed the Sage Apps bridge, check that `pnpm generate:app-docs` leaves `docs/generated/` unchanged.
-- CI's platform builds also run `pnpm build` (generated SDK types, builtin apps and the frontend). Run it if you changed `crates/sage-apps`, `packages/`, `builtin-apps/` or the build scripts, and say in the report if you didn't.
-- Local clippy only compiles for the host platform. If you changed `cfg(mobile)` or other platform-gated code, say in the report that it wasn't checked locally.
+- CI's desktop builds also run `pnpm build` (SDKs, builtin apps and the frontend; mobile runs `build:frontend`). Run it if you changed `crates/sage-apps`, `packages/`, `builtin-apps/` or the build scripts, and say in the report if you didn't.
+- Local clippy only compiles for the host platform. If you changed `cfg(mobile)`, `cfg(not(mobile))` or other platform-gated code, say in the report that it wasn't checked locally.
 - If these checks led to changes beyond formatting, say so in the report, since no reviewer saw them.
 - Report any check that failed for reasons unrelated to the change rather than calling the run clean.
 
