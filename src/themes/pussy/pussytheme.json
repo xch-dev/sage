@@ -1,0 +1,143 @@
+{
+  "name": "pussytheme",
+  "displayName": "PussyTheme",
+  "mostLike": "dark",
+  "schemaVersion": 1,
+  "inherits": "dark",
+  "colors": {
+    "background": "transparent",
+    "foreground": "#ffffff",
+    "card": "rgb(20,0,55)",
+    "cardForeground": "#ffffff",
+    "popover": "rgba(0, 0, 0, 0.95)",
+    "popoverForeground": "#ffffff",
+    "primary": "#fff",
+    "primaryForeground": "#ffffff",
+    "secondary": "#5d0a68",
+    "secondaryForeground": "#d1d1e0",
+    "muted": "rgba(85, 85, 85, 0.06)",
+    "mutedForeground": "#888888",
+    "accent": "#3FB65C",
+    "accentForeground": "#000000",
+    "destructive": "#e53935",
+    "destructiveForeground": "#ffffff",
+    "border": "#3FB65C",
+    "input": "#140037",
+    "inputBackground": "#140037",
+    "ring": "#5d0a68",
+    "themeColor": "hsl(0, 0%, 0%)",
+    "cardBackdropFilter": "blur(16px) saturate(180%) brightness(1.1)",
+    "popoverBackdropFilter": "blur(20px) saturate(180%) brightness(1.1)",
+    "inputBackdropFilter": "blur(8px) saturate(150%) brightness(1.05)"
+  },
+  "backgroundImage": "https://pussyswap.pro/wp-content/uploads/2026/02/Black.png",
+  "fonts": {
+    "sans": "ui-sans-serif, system-ui, sans-serif",
+    "serif": "ui-serif, Georgia, serif",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    "heading": "'Aldrich', ui-sans-serif, system-ui, sans-serif",
+    "body": "'Aldrich', ui-sans-serif, system-ui, sans-serif"
+  },
+  "corners": {
+    "none": "0px",
+    "sm": "4px",
+    "md": "6px",
+    "lg": "10px",
+    "xl": "12px",
+    "full": "9999px"
+  },
+  "shadows": {
+    "card": "0px 0px 50px 0px #250066, inset 0px 0px 1px 1px #5d0a68"
+  },
+  "buttons": {
+    "default": {
+      "background": "#3FB65C",
+      "color": "#ffffff",
+      "border": "none",
+      "borderRadius": "10px",
+      "boxShadow": "none",
+      "hover": {
+        "background": "#277139",
+        "transform": "translateY(-2px)",
+        "boxShadow": "none"
+      },
+      "active": {
+        "background": "#1565c0",
+        "transform": "translateY(0px)",
+        "boxShadow": "none"
+      }
+    },
+    "secondary": {
+      "background": "#5d0a68",
+      "color": "#d1d1e0",
+      "border": "none",
+      "borderRadius": "10px",
+      "hover": {
+        "background": "rgba(255, 255, 255, 0.1)"
+      }
+    },
+    "destructive": {
+      "background": "#e53935",
+      "color": "#ffffff",
+      "borderRadius": "10px",
+      "hover": {
+        "background": "#c62828"
+      }
+    },
+    "ghost": {
+      "color": "#555"
+    },
+    "outline": {
+      "background": "transparent",
+      "color": "#3FB65C",
+      "boxShadow": "none"
+    },
+    "link": {
+      "background": "transparent",
+      "color": "#2196F3",
+      "hover": {
+        "color": "#64b5f6"
+      }
+    }
+  },
+  "sidebar": {
+    "background": "#140037",
+    "border": "none",
+    "backdropFilter": "blur(20px) saturate(180%) brightness(1.1)"
+  },
+  "tables": {
+    "background": "transparent",
+    "border": "1px solid #3FB65C",
+    "header": {
+      "background": "rgba(37, 0, 102, 0.65)",
+      "color": "#d1d1e0",
+      "backdropFilter": "blur(8px) saturate(150%) brightness(1.05)"
+    },
+    "row": {
+      "background": "rgba(0, 0, 0, 0.65)",
+      "color": "#ffffff",
+      "hover": {
+        "background": "rgba(37, 0, 102, 0.501)"
+      },
+      "selected": {
+        "background": "rgba(37, 0, 102, 1)"
+      },
+      "backdropFilter": "blur(4px) saturate(120%) brightness(1.02)"
+    },
+    "footer": {
+      "backdropFilter": "blur(8px) saturate(150%) brightness(1.05)"
+    }
+  },
+  "switches": {
+    "checked": {
+      "background": "#3FB65C"
+    },
+    "unchecked": {
+      "background": "#555"
+    },
+    "thumb": {
+      "background": "#ffffff"
+    }
+  },
+  "buttonStyle": "shimmer"
+}
