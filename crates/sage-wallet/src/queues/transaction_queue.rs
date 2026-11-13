@@ -98,7 +98,7 @@ impl TransactionQueue {
             self.last_attempts.insert(transaction_id, Instant::now());
 
             match submit_to_peers(&peers, spend_bundle).await? {
-                Status::Pending => {
+                Status::Pending(_) => {
                     info!("Transaction inclusion in mempool successful, updating timestamp");
 
                     self.db.update_mempool_item_time(transaction_id).await?;

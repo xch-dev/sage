@@ -267,7 +267,7 @@ impl Sage {
         let transaction_id = spend_bundle.name();
 
         match submit_to_peers(&peers, spend_bundle.clone()).await? {
-            Status::Pending => {
+            Status::Pending(status) => {
                 let peer = self
                     .peer_state
                     .lock()
@@ -294,7 +294,7 @@ impl Sage {
                 info!("Successfully submitted and inserted transaction {transaction_id}");
 
                 Ok(SendTransactionImmediatelyResponse {
-                    status: 1,
+                    status,
                     error: None,
                 })
             }
