@@ -554,7 +554,14 @@ impl Sage {
     /// Connects to the database shared by every wallet on the network of the given wallet.
     pub async fn connect_to_shared_database(&self, fingerprint: u32) -> Result<SharedDatabase> {
         let path = self.shared_db_path(fingerprint)?;
-        Ok(SharedDatabase::new(self.connect_to_pool(path).await?))
+
+        // This is told apart from the wallet's own database failing to migrate, since deleting that
+        // one wouldn't help.
+        match self.connect_to_pool(path).await {
+            Ok(pool) => Ok(SharedDatabase::new(pool)),
+            Err(Error::DatabaseVersionTooOld) => Err(Error::SharedDatabaseVersionTooOld),
+            Err(error) => Err(error),
+        }
     }
 
     /// The database shared by every wallet on the network of the given wallet, for the
@@ -819,6 +826,7 @@ pub(crate) async fn watch_p2_puzzles(
 
 #[cfg(test)]
 mod tests {
+    use sage_api::DeleteDatabase;
     use tempfile::TempDir;
 
     use super::*;
@@ -860,6 +868,56 @@ mod tests {
         );
         assert_eq!(sage.shared_db_path(2)?, shared.join("custom-id.sqlite"));
         assert_eq!(sage.shared_db_path(3)?, shared.join("mainnet.sqlite"));
+
+        Ok(())
+    }
+
+    /// A shared database which can't be migrated is reported as such, since deleting the wallet's
+    /// own database wouldn't help, and deleting it with the wallet's database fixes it.
+    #[tokio::test]
+    async fn resets_a_shared_database_that_cant_be_migrated() -> Result<()> {
+        let dir = TempDir::new()?;
+        let mut sage = load(dir.path())?;
+
+        sage.wallet_config.wallets.push(WalletEntry {
+            name: "Wallet".to_string(),
+            fingerprint: 1,
+            ..Default::default()
+        });
+
+        // A migration that was applied with different contents, as when a migration is edited.
+        let pool = sage.connect_to_pool(sage.shared_db_path(1)?).await?;
+        sqlx::query("UPDATE _sqlx_migrations SET checksum = x'00' WHERE version = 1")
+            .execute(&pool)
+            .await?;
+        pool.close().await;
+
+        assert!(matches!(
+            sage.connect_to_shared_database(1).await,
+            Err(Error::SharedDatabaseVersionTooOld)
+        ));
+
+        // Deleting only the wallet's database leaves the shared one as it is.
+        let network = sage.network_id();
+        sage.delete_database(DeleteDatabase {
+            fingerprint: 1,
+            network: network.clone(),
+            shared: false,
+        })?;
+        assert!(sage.shared_db_path(1)?.try_exists()?);
+
+        sage.delete_database(DeleteDatabase {
+            fingerprint: 1,
+            network,
+            shared: true,
+        })?;
+
+        let shared = sage.shared_db_path(1)?;
+        for suffix in ["", "-wal", "-shm"] {
+            assert!(!PathBuf::from(format!("{}{suffix}", shared.display())).try_exists()?);
+        }
+
+        sage.connect_to_shared_database(1).await?;
 
         Ok(())
     }

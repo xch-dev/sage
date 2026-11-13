@@ -1,6 +1,6 @@
 import { commands } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
-import { toCustomError } from '@/lib/errors';
+import { databaseMigration, toCustomError } from '@/lib/errors';
 import { logoutAndUpdateState } from '@/state';
 import { useCallback, useEffect, useState } from 'react';
 import { useErrors } from './useErrors';
@@ -14,7 +14,7 @@ const handleInitializationError = async (
   const customError = toCustomError(error);
 
   // Check if this is a database migration, which is recoverable
-  if (customError.kind === 'database_migration') {
+  if (databaseMigration(customError)) {
     try {
       await logoutAndUpdateState();
     } catch (logoutError) {

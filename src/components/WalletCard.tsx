@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import { DatabaseMigration, databaseMigration } from '@/lib/errors';
 import { watchedAddresses } from '@/lib/walletKind';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -83,6 +84,7 @@ export function WalletCard({
   const [newName, setNewName] = useState('');
   const [isResyncOpen, setIsResyncOpen] = useState(false);
   const [isMigrationDialogOpen, setIsMigrationDialogOpen] = useState(false);
+  const [migration, setMigration] = useState<DatabaseMigration>('wallet');
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const { currentTheme } = useTheme();
 
@@ -161,7 +163,9 @@ export function WalletCard({
     }
   };
 
-  const loginSelf = async () => {
+  // After a database is reset, logging in is retried once. If it still can't
+  // be migrated, resetting again wouldn't help, so the error is shown instead.
+  const loginSelf = async (afterReset = false) => {
     try {
       await loginAndUpdateState(info.fingerprint);
 
@@ -169,12 +173,10 @@ export function WalletCard({
       setWallet(data.wallet);
       navigate('/wallet');
     } catch (error: unknown) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'kind' in error &&
-        error.kind === 'database_migration'
-      ) {
+      const failedMigration = databaseMigration(error);
+
+      if (failedMigration && !afterReset) {
+        setMigration(failedMigration);
         setIsMigrationDialogOpen(true);
       } else {
         addError(error as CustomError);
@@ -221,7 +223,7 @@ export function WalletCard({
         {...values.listeners}
         {...values.attributes}
         style={style}
-        onClick={loginSelf}
+        onClick={() => loginSelf()}
         className='cursor-pointer'
       >
         <CardHeader className='flex flex-row items-center justify-between p-5 pt-4 pb-2'>
@@ -585,6 +587,7 @@ export function WalletCard({
 
       <MigrationDialog
         open={isMigrationDialogOpen}
+        shared={migration === 'shared'}
         onOpenChange={(open) => !open && setIsMigrationDialogOpen(false)}
         onCancel={async () => {
           setIsMigrationDialogOpen(false);
@@ -600,8 +603,9 @@ export function WalletCard({
           await commands.deleteDatabase({
             fingerprint: info.fingerprint,
             network: info.network_id,
+            shared: migration === 'shared',
           });
-          await loginSelf();
+          await loginSelf(true);
         }}
       />
     </>

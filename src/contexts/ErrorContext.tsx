@@ -97,6 +97,7 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       break;
 
     case 'database_migration':
+    case 'shared_database_migration':
       kind = 'Database Migration';
       break;
 
