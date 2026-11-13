@@ -2,7 +2,7 @@ use chia_wallet_sdk::{
     chia::puzzle_types::offer::{NotarizedPayment, Payment},
     driver::{
         FungibleSpends, TransferNftById, calculate_royalty_payments, calculate_trade_price_amounts,
-        calculate_trade_prices, coin_amount,
+        calculate_trade_prices, coin_amount, payable_trade_prices,
     },
     prelude::*,
     puzzles::SETTLEMENT_PAYMENT_HASH,
@@ -289,11 +289,7 @@ impl Wallet {
                     vec![],
                     Some(TransferNftById::new(
                         None,
-                        if nft.asset.info.royalty_basis_points > 0 {
-                            trade_prices.clone()
-                        } else {
-                            vec![]
-                        },
+                        payable_trade_prices(&trade_prices, nft.asset.info.royalty_basis_points),
                     )),
                 ),
             );
