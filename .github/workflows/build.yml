@@ -319,11 +319,12 @@ jobs:
             target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi
             target/aarch64-pc-windows-msvc/release/bundle/nsis/*.exe
 
-  # iOS and Android builds need signing secrets, which GitHub doesn't give to pull requests
-  # from forks, so they only run for pushes and for pull requests from branches in this repo.
+  # iOS and Android builds only run for pushes to main and tags, not pull requests. They're slow,
+  # the iOS builds can only be installed through TestFlight, and pull requests from forks don't
+  # get the signing secrets they need.
   build-mobile:
     name: ${{ matrix.platform_name }}
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name != 'pull_request'
     runs-on: ${{ matrix.platform }}
     permissions:
       contents: write
