@@ -396,7 +396,7 @@ async fn test_summary_fee_includes_undeclared_fee() -> Result<()> {
     assert_eq!(response.summary.declared_fee.to_u64(), Some(100));
 
     // A dApp could add a spend that leaves value behind without declaring it as a fee.
-    let mut coin_spends = response.coin_spends;
+    let mut coin_spends = response.coin_spends.clone();
     coin_spends.push(quoted_spend(250, Conditions::new())?);
 
     let summary = app
@@ -423,6 +423,18 @@ async fn test_summary_fee_includes_undeclared_fee() -> Result<()> {
 
     assert_eq!(summary.fee.to_u64(), Some(100));
     assert_eq!(summary.declared_fee.to_u64(), Some(100));
+
+    // The same goes for spends that leave less than they declare.
+    let mut coin_spends = response.coin_spends;
+    coin_spends.push(quoted_spend(0, Conditions::new().reserve_fee(1000))?);
+
+    let summary = app
+        .view_coin_spends(ViewCoinSpends { coin_spends })
+        .await?
+        .summary;
+
+    assert_eq!(summary.fee.to_u64(), Some(1100));
+    assert_eq!(summary.declared_fee.to_u64(), Some(1100));
 
     Ok(())
 }
