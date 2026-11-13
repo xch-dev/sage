@@ -140,3 +140,51 @@ async fn backfills_nft_metadata_updater_kinds() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn mempool_items_to_submit_puts_the_longest_waiting_first() -> anyhow::Result<()> {
+    let pool = SqlitePool::connect("sqlite::memory:").await?;
+    migrate!("../../migrations").run(&pool).await?;
+    let db = Database::new(pool.clone());
+
+    let hashes: Vec<Bytes32> = (1..=4).map(|i| Bytes32::new([i; 32])).collect();
+
+    let mut tx = db.tx().await?;
+    for &hash in &hashes {
+        tx.insert_mempool_item(hash, Signature::default(), 0)
+            .await?;
+    }
+    tx.commit().await?;
+
+    // Item 1 was submitted most recently, item 3 the longest ago, and items 2 and 4
+    // never, so those come first in insertion order.
+    for (hash, seconds_ago) in [(hashes[0], 200), (hashes[2], 500)] {
+        sqlx::query(
+            "UPDATE mempool_items SET submitted_timestamp = unixepoch() - ? WHERE hash = ?",
+        )
+        .bind(seconds_ago)
+        .bind(hash.to_vec())
+        .execute(&pool)
+        .await?;
+    }
+
+    let order: Vec<Bytes32> = db
+        .mempool_items_to_submit(120)
+        .await?
+        .into_iter()
+        .map(|item| item.hash)
+        .collect();
+    assert_eq!(order, vec![hashes[1], hashes[3], hashes[2], hashes[0]]);
+
+    db.update_mempool_item_time(hashes[1]).await?;
+
+    let order: Vec<Bytes32> = db
+        .mempool_items_to_submit(120)
+        .await?
+        .into_iter()
+        .map(|item| item.hash)
+        .collect();
+    assert_eq!(order, vec![hashes[3], hashes[2], hashes[0]]);
+
+    Ok(())
+}

@@ -165,6 +165,85 @@ mod tests {
     }
 
     #[test(tokio::test)]
+    async fn test_take_offer_skips_trade_price_with_zero_royalty() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1063).await?;
+        let mut bob = alice.next(2).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1030, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let (coin_spends, did) = bob.wallet.create_did(0).await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        let (coin_spends, mut nfts) = bob
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![WalletNftMint {
+                    metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
+                    royalty_puzzle_hash: Some(Bytes32::default()),
+                    royalty_basis_points: 300,
+                }],
+            )
+            .await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        let nft = nfts.remove(0);
+
+        let mut allocator = Allocator::new();
+        let metadata = nft.info.metadata.to_clvm(&mut allocator)?;
+        let metadata = Program::from_clvm(&allocator, metadata)?;
+
+        // A 3% royalty on 33 mojos rounds down to zero, so the NFT can't reveal that trade price.
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 33,
+                    cats: indexmap! { asset_id => 1000 },
+                    ..Default::default()
+                },
+                Requested {
+                    nfts: indexmap! {
+                        nft.info.launcher_id => NftOfferInfo {
+                            metadata,
+                            metadata_updater_puzzle_hash: nft.info.metadata_updater_puzzle_hash,
+                            royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
+                            royalty_basis_points: nft.info.royalty_basis_points,
+                        },
+                    },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        assert_ne!(alice.wallet.db.nft(nft.info.launcher_id).await?, None);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 0);
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 0);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 33);
+        assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 1000);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
     async fn test_offer_nft_for_xch() -> anyhow::Result<()> {
         let mut alice = TestWallet::new(2).await?;
         let mut bob = alice.next(1030).await?;
@@ -222,6 +301,81 @@ mod tests {
 
         // Check balances
         assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
+        assert_ne!(bob.wallet.db.nft(nft.info.launcher_id).await?, None);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_offer_nft_skips_trade_price_with_zero_royalty() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2).await?;
+        let mut bob = alice.next(1063).await?;
+
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let (coin_spends, mut nfts) = alice
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![WalletNftMint {
+                    metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
+                    royalty_puzzle_hash: Some(Bytes32::default()),
+                    royalty_basis_points: 300,
+                }],
+            )
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let nft = nfts.remove(0);
+
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1030, 0, None).await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        // A 3% royalty on 33 mojos rounds down to zero, so the NFT can't reveal that trade price.
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    nfts: vec![nft.info.launcher_id],
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 33,
+                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None } },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+
+        let mut allocator = Allocator::new();
+        let parsed = Offer::from_spend_bundle(&mut allocator, &offer)?;
+        let royalties = parsed.requested_royalty_amounts()?;
+        assert_eq!(royalties.xch, 0);
+        assert_eq!(royalties.cats.get(&asset_id).copied(), Some(30));
+
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        alice.wait_for_puzzles().await;
+        bob.wait_for_coins().await;
+
+        assert_eq!(alice.wallet.db.xch_balance().await?, 33);
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 0);
+        assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 0);
         assert_ne!(bob.wallet.db.nft(nft.info.launcher_id).await?, None);
 
         Ok(())

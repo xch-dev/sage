@@ -1,0 +1,42 @@
+[package]
+name = "sage-sandbox"
+version = "0.13.1"
+edition = "2024"
+license = "Apache-2.0"
+description = "A throwaway Sage backend on a simulated chain, for testing the UI in a browser."
+authors = ["Rigidity <me@rigidnetwork.com>"]
+homepage = "https://github.com/rigidity/sage"
+repository = "https://github.com/rigidity/sage"
+readme = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+publish = false
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "sage-sandbox"
+path = "src/main.rs"
+
+[dependencies]
+sage = { workspace = true }
+sage-api = { workspace = true }
+sage-api-macro = { workspace = true }
+sage-wallet = { workspace = true }
+chia-wallet-sdk = { workspace = true }
+bip39 = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["arbitrary_precision"] }
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+futures-util = { workspace = true }
+rustls = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tower = { workspace = true, features = ["util"] }
+tokio = { workspace = true, features = ["test-util"] }

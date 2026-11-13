@@ -89,10 +89,10 @@ tauri-specta = "2.0.0-rc.21"
 utoipa = "5.2.0"
 
 # Chia
-chia-wallet-sdk = { version = "0.37.1", features = ["rustls", "offer-compression", "peer-simulator", "action-layer"] }
-chia_streamable_macro = "0.52.1"
-chia-traits = "0.52.1"
-chia-sha2 = "0.52.1"
+chia-wallet-sdk = { version = "0.38.0", features = ["rustls", "offer-compression", "peer-simulator", "action-layer"] }
+chia_streamable_macro = "0.53.0"
+chia-traits = "0.53.0"
+chia-sha2 = "0.53.0"
 bip39 = "2.0.0"
 bech32 = "0.9.1"
 rand = "0.8.5"
@@ -149,6 +149,12 @@ clap = "4.5.21"
 # Testing
 tempfile = "3.25.0"
 tower = "0.5.3"
+
+[profile.dev]
+# Line tables are enough for backtraces and panic locations, and full debuginfo makes the
+# target directory roughly 40% larger. Set `CARGO_PROFILE_DEV_DEBUG=true` to get full
+# debuginfo back when you need to inspect variables in a debugger.
+debug = "line-tables-only"
 
 [patch.crates-io]
 tauri-runtime = { git = "https://github.com/Rigidity/tauri.git", rev = "8b205bb844bd56b4ee027905d1b068553d867ebe" }
