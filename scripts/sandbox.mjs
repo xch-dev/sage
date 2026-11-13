@@ -92,11 +92,7 @@ function stopLeftovers() {
   for (const leftover of run.processes ?? []) {
     if (!isRunning(leftover)) continue;
 
-    try {
-      process.kill(-leftover.pid, 'SIGKILL');
-    } catch (error) {
-      if (error?.code !== 'ESRCH') throw error;
-    }
+    signalProcessTree(leftover, 'SIGKILL');
   }
 
   rmSync(paths.run, { force: true });
@@ -133,6 +129,9 @@ async function pickPorts() {
     const port = previous[name];
     ports[name] =
       (Number.isInteger(port) && (await listenOn(port))) || (await listenOn(0));
+
+    if (!ports[name])
+      throw new Error(`Couldn't find a free port for the ${name}.`);
   }
 
   writeJson(paths.ports, ports);
@@ -221,8 +220,11 @@ async function stop(exitCode) {
 
   const allExited = Promise.all(children.map((child) => child.exited));
 
+  // On Windows only a kill reaches the whole tree. `pnpm` runs behind a `cmd.exe` wrapper there,
+  // so stopping just the wrapper would leave Vite running.
   for (const child of children) {
-    if (!child.done) signalProcessTree(child, 'SIGTERM');
+    if (!child.done)
+      signalProcessTree(child, isWindows ? 'SIGKILL' : 'SIGTERM');
   }
 
   await Promise.race([allExited, wait(2000)]);

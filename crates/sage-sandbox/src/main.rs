@@ -71,17 +71,10 @@ async fn main() -> Result<()> {
         .await
         .with_context(|| format!("failed to bind the bridge to port {}", cli.port))?;
     let port = listener.local_addr()?.port();
-    let xchandles_url = format!("http://127.0.0.1:{port}/xchandles");
 
     let sim = PeerSimulator::new().await?;
-    let wallets = start_wallets(&data_dir, &sim, &xchandles_url).await?;
-
-    let ready = Ready {
-        port,
-        wallets: wallets.iter().map(|wallet| wallet.info.clone()).collect(),
-    };
-
-    let router = bridge_router(wallets);
+    let (router, wallets) = start_bridge(&data_dir, &sim, &listener).await?;
+    let ready = Ready { port, wallets };
 
     fs::write(&ready_path, serde_json::to_string_pretty(&ready)?)?;
     info!("Sandbox bridge listening on http://127.0.0.1:{port}");

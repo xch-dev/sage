@@ -900,6 +900,23 @@ mod tests {
     }
 
     #[test]
+    fn is_valid_address_checks_the_network() -> Result<()> {
+        let dir = TempDir::new()?;
+        let sage = load(dir.path())?;
+        let prefix = sage.network().prefix();
+        let other = if prefix == "xch" { "txch" } else { "xch" };
+
+        let address = |prefix: &str| Address::new(Bytes32::default(), prefix.to_string()).encode();
+
+        assert!(sage.is_valid_address(&address(&prefix)?));
+        assert!(!sage.is_valid_address(&address(other)?));
+        assert!(!sage.is_valid_address("xch1bad"));
+        assert!(!sage.is_valid_address(""));
+
+        Ok(())
+    }
+
+    #[test]
     fn wallets_on_a_network_share_one_database() -> Result<()> {
         let dir = TempDir::new()?;
         let mut sage = load(dir.path())?;

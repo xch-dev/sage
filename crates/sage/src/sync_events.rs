@@ -5,7 +5,7 @@ use sage_wallet::SyncEvent;
 use tokio::time::{Instant, sleep_until};
 
 /// How long a burst of refresh events is collected before being sent.
-pub const REFRESH_DEBOUNCE: Duration = Duration::from_millis(500);
+const REFRESH_DEBOUNCE: Duration = Duration::from_millis(500);
 
 /// Converts a wallet's sync event into the `sync-event` payload the frontend listens for, or
 /// returns `None` for events the frontend doesn't need.
@@ -252,6 +252,15 @@ mod tests {
         .collect();
 
         assert_eq!(flushed, expected);
+        assert_eq!(start.elapsed(), REFRESH_DEBOUNCE);
+
+        // The deadline is set by the first refresh of a burst, so a steady stream of refreshes
+        // can't hold them back forever.
+        let start = Instant::now();
+        assert!(debouncer.push(ApiEvent::CoinState).is_none());
+        tokio::time::advance(Duration::from_millis(400)).await;
+        assert!(debouncer.push(ApiEvent::DidInfo).is_none());
+        assert_eq!(debouncer.flushed().await.len(), 2);
         assert_eq!(start.elapsed(), REFRESH_DEBOUNCE);
 
         // Once flushed, it starts over.

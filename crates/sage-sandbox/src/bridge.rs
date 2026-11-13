@@ -4,7 +4,7 @@
 //! Tauri's `invoke`, such as `{ "req": { ... } }`, and answers with the command's result. Errors
 //! come back as `400` with the same body the desktop app rejects with.
 
-use std::{collections::HashMap, convert::Infallible, sync::Arc};
+use std::{collections::HashMap, convert::Infallible, path::Path as FsPath, sync::Arc};
 
 use axum::{
     Json, Router,
@@ -16,14 +16,18 @@ use axum::{
     },
     routing::{any, get, post},
 };
+use chia_wallet_sdk::test::PeerSimulator;
 use futures_util::{Stream, stream};
 use sage::Sage;
 use sage_api::SyncEvent as ApiEvent;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use tokio::sync::broadcast::{self, error::RecvError};
+use tokio::{
+    net::TcpListener,
+    sync::broadcast::{self, error::RecvError},
+};
 
-use crate::{BridgeError, SandboxWallet, WalletInfo, call_endpoint};
+use crate::{BridgeError, SandboxWallet, WalletInfo, call_endpoint, start_wallets};
 
 #[derive(Debug, Clone)]
 struct BridgeState {
@@ -32,7 +36,21 @@ struct BridgeState {
     infos: Arc<Vec<WalletInfo>>,
 }
 
-pub fn bridge_router(wallets: Vec<SandboxWallet>) -> Router {
+/// Starts the wallets, pointed at the XCHandles stand-in that `listener` will serve, and returns
+/// the bridge to serve on it along with the wallets' details.
+pub async fn start_bridge(
+    data_dir: &FsPath,
+    sim: &PeerSimulator,
+    listener: &TcpListener,
+) -> anyhow::Result<(Router, Vec<WalletInfo>)> {
+    let xchandles_url = format!("http://{}/xchandles", listener.local_addr()?);
+    let wallets = start_wallets(data_dir, sim, &xchandles_url).await?;
+    let infos = wallets.iter().map(|wallet| wallet.info.clone()).collect();
+
+    Ok((bridge_router(wallets), infos))
+}
+
+fn bridge_router(wallets: Vec<SandboxWallet>) -> Router {
     let infos = wallets.iter().map(|wallet| wallet.info.clone()).collect();
     let wallets = wallets
         .into_iter()

@@ -1,4 +1,4 @@
-use std::{collections::HashSet, net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, time::Duration};
 
 use anyhow::Result;
 use axum::{
@@ -8,7 +8,6 @@ use axum::{
 };
 use chia_wallet_sdk::{prelude::*, test::PeerSimulator};
 use futures_util::StreamExt;
-use sage_api::SyncEvent as ApiEvent;
 use sage_wallet::SyncEvent;
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -19,7 +18,7 @@ use tokio::{
 };
 use tower::ServiceExt;
 
-use crate::{WalletInfo, bridge_router, forward_events, start_wallets};
+use crate::{WalletInfo, forward_events, start_bridge};
 
 const MOJOS_PER_XCH: u64 = 1_000_000_000_000;
 
@@ -40,18 +39,13 @@ impl TestBridge {
         // Serve the bridge for real, as `main` does, so that the wallets reach its XCHandles
         // stand-in. Tests still call the router directly.
         let listener = TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0))).await?;
-        let xchandles_url = format!("http://{}/xchandles", listener.local_addr()?);
-
-        let wallets = start_wallets(dir.path(), &sim, &xchandles_url).await?;
-
-        let infos = wallets.iter().map(|wallet| wallet.info.clone()).collect();
-        let router = bridge_router(wallets);
+        let (router, wallets) = start_bridge(dir.path(), &sim, &listener).await?;
 
         tokio::spawn(axum::serve(listener, router.clone()).into_future());
 
         Ok(Self {
             router,
-            wallets: infos,
+            wallets,
             _sim: sim,
             _dir: dir,
         })
@@ -399,71 +393,35 @@ async fn test_handle_lookups_reach_the_xchandles_stand_in() -> Result<()> {
     Ok(())
 }
 
-fn event_json(event: &ApiEvent) -> Value {
-    serde_json::to_value(event).expect("event isn't serializable")
-}
-
+/// The debounce itself is tested in the `sage` crate. This checks that the sandbox forwards what it
+/// returns, so pages get the same events as the desktop window.
 #[tokio::test(start_paused = true)]
-async fn test_refresh_events_are_debounced() -> Result<()> {
+async fn test_forward_events_sends_what_the_frontend_listens_for() -> Result<()> {
     let (sender, receiver) = mpsc::channel(16);
     let (events, mut listener) = broadcast::channel(16);
     forward_events(receiver, events);
 
-    // A burst of refreshes of the same kind collapses into one, sent after the debounce.
     sender.send(SyncEvent::CoinsUpdated).await?;
-    sender.send(SyncEvent::CoinsUpdated).await?;
-    sender
-        .send(SyncEvent::TransactionUpdated {
-            transaction_id: Bytes32::default(),
-        })
-        .await?;
-    sender.send(SyncEvent::CatInfo).await?;
-
-    // Events that carry a payload are sent at once, ahead of the pending refreshes.
-    sender
-        .send(SyncEvent::TransactionFailed {
-            transaction_id: Bytes32::default(),
-            error: Some("rejected".to_string()),
-        })
-        .await?;
-
-    // Events the frontend doesn't listen for are dropped.
     sender
         .send(SyncEvent::WalletChanged { fingerprint: None })
         .await?;
+    sender.send(SyncEvent::Stop).await?;
 
-    let first = listener.recv().await?;
-    assert_eq!(
-        event_json(&first),
-        json!({
-            "type": "transaction_failed",
-            "transaction_id": Bytes32::default().to_string(),
-            "error": "rejected",
-        })
-    );
+    // The one-off event goes out at once, the dropped one never does, and the refresh follows the
+    // debounce.
+    let first = serde_json::to_value(listener.recv().await?)?;
+    assert_eq!(first, json!({ "type": "stop" }));
 
-    // The pending refreshes are flushed in no particular order, as in the desktop app.
-    let flushed: HashSet<String> = [listener.recv().await?, listener.recv().await?]
-        .iter()
-        .map(|event| event_json(event).to_string())
-        .collect();
-    let expected: HashSet<String> = [
-        json!({ "type": "coin_state" }),
-        json!({ "type": "cat_info" }),
-    ]
-    .iter()
-    .map(Value::to_string)
-    .collect();
-    assert_eq!(flushed, expected);
+    let second = serde_json::to_value(listener.recv().await?)?;
+    assert_eq!(second, json!({ "type": "coin_state" }));
 
-    // Nothing else was sent.
+    // The task stops with the wallet's sync manager.
+    drop(sender);
     sleep(Duration::from_secs(1)).await;
-    assert!(listener.try_recv().is_err());
-
-    // Once flushed, the same kind of refresh is sent again.
-    sender.send(SyncEvent::CoinsUpdated).await?;
-    let fourth = listener.recv().await?;
-    assert_eq!(event_json(&fourth), json!({ "type": "coin_state" }));
+    assert!(matches!(
+        listener.recv().await,
+        Err(broadcast::error::RecvError::Closed)
+    ));
 
     Ok(())
 }
