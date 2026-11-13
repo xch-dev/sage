@@ -7060,6 +7060,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "sage-sandbox"
+version = "0.13.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "bip39 2.2.1",
+ "chia-wallet-sdk",
+ "clap",
+ "futures-util",
+ "rustls",
+ "sage",
+ "sage-api",
+ "sage-api-macro",
+ "sage-wallet",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tower",
+ "tracing",
+]
+
+[[package]]
 name = "sage-tauri"
 version = "0.13.1"
 dependencies = [
