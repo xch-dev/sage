@@ -6,7 +6,6 @@ use crate::{
 };
 use chia_wallet_sdk::utils::Address;
 use reqwest::StatusCode;
-use sage::Error;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
 #[cfg(not(mobile))]
@@ -191,20 +190,7 @@ pub async fn switch_wallet(app_handle: AppHandle, state: State<'_, AppState>) ->
 #[command]
 #[specta]
 pub async fn move_key(state: State<'_, AppState>, fingerprint: u32, index: u32) -> Result<()> {
-    let mut state = state.lock().await;
-
-    let old_index = state
-        .wallet_config
-        .wallets
-        .iter()
-        .position(|w| w.fingerprint == fingerprint)
-        .ok_or(Error::UnknownFingerprint)?;
-
-    let wallet = state.wallet_config.wallets.remove(old_index);
-    state.wallet_config.wallets.insert(index as usize, wallet);
-    state.save_config()?;
-
-    Ok(())
+    Ok(state.lock().await.move_key(fingerprint, index)?)
 }
 
 #[command]

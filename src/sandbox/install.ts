@@ -6,7 +6,6 @@
  * browser stand-ins. See `docs/sandbox.md`.
  */
 
-import { emit } from '@tauri-apps/api/event';
 import { mockIPC, mockWindows } from '@tauri-apps/api/mocks';
 
 declare const __SAGE_SANDBOX_VERSION__: string;
@@ -148,25 +147,67 @@ async function pluginCommand(
   return unsupported(cmd);
 }
 
+/**
+ * Callback IDs listening to each event. This stands in for Tauri's event plugin, since the one in
+ * `@tauri-apps/api/mocks` never removes a listener on `unlisten`.
+ */
+const listeners = new Map<string, number[]>();
+
+function runCallback(id: number, data: unknown) {
+  // `mockIPC` installs this on `window.__TAURI_INTERNALS__`, which has no global type.
+  const { __TAURI_INTERNALS__: internals } = window as unknown as {
+    __TAURI_INTERNALS__: { runCallback: (id: number, data: unknown) => void };
+  };
+  internals.runCallback(id, data);
+}
+
+function emitEvent(event: string, payload: unknown) {
+  for (const id of listeners.get(event) ?? []) {
+    runCallback(id, { event, id, payload });
+  }
+}
+
+function eventCommand(cmd: string, args: Record<string, unknown>): unknown {
+  const event = String(args.event);
+
+  switch (cmd) {
+    case 'plugin:event|listen': {
+      // Tauri answers with an event ID that `unlisten` passes back. The callback ID is unique too.
+      const handler = Number(args.handler);
+      listeners.set(event, [...(listeners.get(event) ?? []), handler]);
+      return handler;
+    }
+    case 'plugin:event|unlisten':
+      listeners.set(
+        event,
+        (listeners.get(event) ?? []).filter((id) => id !== args.eventId),
+      );
+      return null;
+    case 'plugin:event|emit':
+      emitEvent(event, args.payload);
+      return null;
+    default:
+      return unsupported(cmd);
+  }
+}
+
 mockWindows('main');
 
-mockIPC(
-  (cmd, args) => {
-    const payload = (args ?? {}) as Record<string, unknown>;
+mockIPC((cmd, args) => {
+  const payload = (args ?? {}) as Record<string, unknown>;
 
-    if (cmd.startsWith('plugin:')) return pluginCommand(cmd, payload);
-    if (cmd.startsWith('apps_')) return appsCommand(cmd);
+  if (cmd.startsWith('plugin:event|')) return eventCommand(cmd, payload);
+  if (cmd.startsWith('plugin:')) return pluginCommand(cmd, payload);
+  if (cmd.startsWith('apps_')) return appsCommand(cmd);
 
-    return callBridge(cmd, payload);
-  },
-  { shouldMockEvents: true },
-);
+  return callBridge(cmd, payload);
+});
 
 // Forward the wallet's sync events, which the app listens for as `sync-event`.
 const events = new EventSource(`${bridgeUrl}/events`);
 
 events.onmessage = (message) => {
-  void emit('sync-event', JSON.parse(message.data));
+  emitEvent('sync-event', JSON.parse(message.data));
 };
 
 document.title = `Sage sandbox (${sandbox.wallet})`;

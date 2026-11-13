@@ -1,9 +1,11 @@
 //! Turns a wallet's sync events into the `sync-event` payloads the frontend listens for.
 //!
-//! This mirrors `src-tauri/src/app_state.rs`, including the debounce of refresh events.
+//! This mirrors the loop in `src-tauri/src/app_state.rs`, including the debounce of refresh events,
+//! but sends to a broadcast channel instead of the Tauri window.
 
 use std::{collections::HashSet, future, time::Duration};
 
+use sage::{RefreshEvent, api_sync_event};
 use sage_api::SyncEvent as ApiEvent;
 use sage_wallet::SyncEvent;
 use tokio::{
@@ -11,55 +13,8 @@ use tokio::{
     time::{Instant, sleep_until},
 };
 
+/// How long a burst of refresh events is collected before being sent, as in the desktop app.
 const REFRESH_DEBOUNCE: Duration = Duration::from_millis(500);
-
-fn convert(event: SyncEvent) -> Option<ApiEvent> {
-    Some(match event {
-        SyncEvent::Start(ip) => ApiEvent::Start { ip: ip.to_string() },
-        SyncEvent::Stop => ApiEvent::Stop,
-        SyncEvent::Subscribed => ApiEvent::Subscribed,
-        SyncEvent::DerivationIndex { .. } => ApiEvent::Derivation,
-        SyncEvent::TransactionFailed {
-            transaction_id,
-            error,
-        } => ApiEvent::TransactionFailed {
-            transaction_id: transaction_id.to_string(),
-            error,
-        },
-        SyncEvent::CoinsUpdated
-        | SyncEvent::TransactionUpdated { .. }
-        | SyncEvent::OfferUpdated { .. } => ApiEvent::CoinState,
-        SyncEvent::PuzzleBatchSynced => ApiEvent::PuzzleBatchSynced,
-        SyncEvent::CatInfo => ApiEvent::CatInfo,
-        SyncEvent::DidInfo => ApiEvent::DidInfo,
-        SyncEvent::NftData => ApiEvent::NftData,
-        SyncEvent::WalletChanged { .. } | SyncEvent::NetworkChanged { .. } => return None,
-    })
-}
-
-/// Whether the event only tells the frontend to refetch, so that a burst can be collapsed.
-fn is_refresh(event: &ApiEvent) -> bool {
-    matches!(
-        event,
-        ApiEvent::Derivation
-            | ApiEvent::CoinState
-            | ApiEvent::PuzzleBatchSynced
-            | ApiEvent::CatInfo
-            | ApiEvent::DidInfo
-            | ApiEvent::NftData
-    )
-}
-
-fn refresh_key(event: &ApiEvent) -> u8 {
-    match event {
-        ApiEvent::Derivation => 0,
-        ApiEvent::CoinState => 1,
-        ApiEvent::PuzzleBatchSynced => 2,
-        ApiEvent::CatInfo => 3,
-        ApiEvent::DidInfo => 4,
-        _ => 5,
-    }
-}
 
 /// Forwards events until the wallet's sync manager stops.
 pub fn forward_events(
@@ -67,8 +22,7 @@ pub fn forward_events(
     sender: broadcast::Sender<ApiEvent>,
 ) {
     tokio::spawn(async move {
-        let mut pending: Vec<ApiEvent> = Vec::new();
-        let mut pending_keys = HashSet::new();
+        let mut pending = HashSet::new();
         let mut flush_at: Option<Instant> = None;
 
         loop {
@@ -85,26 +39,23 @@ pub fn forward_events(
                         break;
                     };
 
-                    let Some(event) = convert(event) else {
+                    let Some(event) = api_sync_event(event) else {
                         continue;
                     };
 
-                    if is_refresh(&event) {
-                        if pending_keys.insert(refresh_key(&event)) {
-                            pending.push(event);
-                        }
+                    if let Some(refresh) = RefreshEvent::from_api_event(&event) {
+                        pending.insert(refresh);
                         flush_at.get_or_insert_with(|| Instant::now() + REFRESH_DEBOUNCE);
                     } else {
-                        // Nobody listening isn't an error, since the page can be closed.
+                        // Nobody listening isn't an error, since every page can be closed.
                         let _ = sender.send(event);
                     }
                 }
                 () = flush => {
                     flush_at = None;
-                    pending_keys.clear();
 
-                    for event in pending.drain(..) {
-                        let _ = sender.send(event);
+                    for refresh in pending.drain() {
+                        let _ = sender.send(refresh.into_api_event());
                     }
                 }
             }

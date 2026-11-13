@@ -647,6 +647,21 @@ impl Sage {
             .find(|wallet| wallet.fingerprint == fingerprint)
     }
 
+    /// Moves a wallet to `index` in the wallet list, or to the end if `index` is past it.
+    pub fn move_key(&mut self, fingerprint: u32, index: u32) -> Result<()> {
+        let old_index = self
+            .wallet_config
+            .wallets
+            .iter()
+            .position(|wallet| wallet.fingerprint == fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        let wallet = self.wallet_config.wallets.remove(old_index);
+        let index = (index as usize).min(self.wallet_config.wallets.len());
+        self.wallet_config.wallets.insert(index, wallet);
+        self.save_config()
+    }
+
     /// Whether any wallet uses the key with this fingerprint. For now that's only the BLS
     /// wallet with the same fingerprint, but other wallets will be able to use keys too, such as
     /// vaults with signers.

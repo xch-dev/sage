@@ -24,17 +24,22 @@ impl BridgeError {
         }
     }
 
+    pub fn internal(reason: impl Into<String>) -> Self {
+        Self {
+            kind: ErrorKind::Internal,
+            reason: reason.into(),
+            handle_error_code: None,
+            recipients: None,
+        }
+    }
+
     pub fn invalid_request(error: &serde_json::Error) -> Self {
         Self::api(format!("Invalid request: {error}"))
     }
 
     pub fn to_value(value: impl Serialize) -> Result<Value, Self> {
-        serde_json::to_value(value).map_err(|error| Self {
-            kind: ErrorKind::Internal,
-            reason: format!("Failed to serialize response: {error}"),
-            handle_error_code: None,
-            recipients: None,
-        })
+        serde_json::to_value(value)
+            .map_err(|error| Self::internal(format!("Failed to serialize response: {error}")))
     }
 }
 

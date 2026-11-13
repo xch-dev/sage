@@ -1,7 +1,7 @@
 // Starts a throwaway Sage sandbox for this worktree: two wallets on a simulated chain, served to the
 // UI running in a normal browser. See docs/sandbox.md.
 
-import { spawn } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   createWriteStream,
   existsSync,
@@ -14,6 +14,8 @@ import { createServer } from 'node:net';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import crossSpawn from 'cross-spawn';
+import { runCommand } from './run-command.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sandboxDir = join(repoRoot, '.sandbox');
@@ -53,7 +55,9 @@ function wait(milliseconds) {
 function killTree(pid, signal) {
   try {
     if (isWindows) {
-      spawn('taskkill', ['/pid', String(pid), '/t', '/f'], { stdio: 'ignore' });
+      spawnSync('taskkill', ['/pid', String(pid), '/t', '/f'], {
+        stdio: 'ignore',
+      });
     } else {
       process.kill(-pid, signal);
     }
@@ -62,11 +66,40 @@ function killTree(pid, signal) {
   }
 }
 
-/** Stops whatever a previous run left behind if it was killed without cleaning up. */
+/** The command line of a running process, or `null` if there isn't one with this ID. */
+function commandLine(pid) {
+  try {
+    return execFileSync('ps', ['-o', 'command=', '-p', String(pid)], {
+      encoding: 'utf8',
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Stops whatever a previous run left behind if it was killed without cleaning up. Process IDs are
+ * reused, so each one is only stopped if it's still running the command this sandbox started.
+ */
 function stopLeftovers() {
   const run = readJson(paths.run);
-  for (const pid of run?.pids ?? []) killTree(pid, 'SIGKILL');
+
+  for (const { pid, match } of run?.processes ?? []) {
+    // There's no `ps` to check with on Windows, so a stale process ID could be anything.
+    if (isWindows) continue;
+    if (commandLine(pid)?.includes(match)) killTree(pid, 'SIGKILL');
+  }
+
   rmSync(paths.run, { force: true });
+}
+
+function recordProcesses() {
+  writeJson(paths.run, {
+    processes: children.map((child) => ({
+      pid: child.pid,
+      match: child.match,
+    })),
+  });
 }
 
 function isPortFree(port) {
@@ -105,36 +138,38 @@ async function pickPorts() {
   return ports;
 }
 
-function spawnLogged(command, args, logPath, env = {}) {
+/**
+ * Starts a long-running child with its output going to `logPath`. `match` is a part of its command
+ * line that identifies it, so a later run can tell whether a stale process ID is still this child.
+ */
+function spawnLogged(label, command, args, logPath, env = {}) {
   const output = createWriteStream(logPath);
-  const child = spawn(command, args, {
+  const child = crossSpawn(command, args, {
     cwd: repoRoot,
     detached: !isWindows,
     env: { ...process.env, ...env },
-    shell: isWindows,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
   child.stdout.pipe(output);
   child.stderr.pipe(output);
-  children.push(child);
-  return child;
-}
 
-function runInherited(command, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: repoRoot,
-      shell: isWindows,
-      stdio: 'inherit',
-    });
-    child.once('error', reject);
-    child.once('close', (code) =>
-      code === 0
-        ? resolve()
-        : reject(new Error(`${command} ${args.join(' ')} exited with ${code}`)),
-    );
+  Object.assign(child, {
+    label,
+    logPath,
+    match: args.join(' '),
+    done: false,
+    exited: new Promise((resolve) => {
+      child.once('close', () => {
+        child.done = true;
+        resolve(child);
+      });
+    }),
   });
+
+  children.push(child);
+  recordProcesses();
+  return child;
 }
 
 function tail(path, lines = 30) {
@@ -149,21 +184,26 @@ function tail(path, lines = 30) {
   }
 }
 
-/** Polls `check` until it returns a value, failing if `child` exits or time runs out. */
-async function waitFor(name, child, logPath, timeoutMs, check) {
+function exitedMessage(child) {
+  return `The ${child.label} stopped unexpectedly:\n${tail(child.logPath)}`;
+}
+
+/** Polls `check` until it returns a value, failing if any child exits or time runs out. */
+async function waitFor(child, timeoutMs, check) {
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
-    if (child.exitCode !== null || child.signalCode !== null) {
-      throw new Error(`${name} exited during startup:\n${tail(logPath)}`);
-    }
+    const exited = children.find((other) => other.done);
+    if (exited) throw new Error(exitedMessage(exited));
 
     const result = await check();
     if (result) return result;
     await wait(250);
   }
 
-  throw new Error(`${name} didn't start in time:\n${tail(logPath)}`);
+  throw new Error(
+    `The ${child.label} didn't start in time:\n${tail(child.logPath)}`,
+  );
 }
 
 async function isServing(url) {
@@ -179,13 +219,13 @@ async function stop(exitCode) {
   stopping = true;
 
   for (const child of children) {
-    if (child.exitCode === null) killTree(child.pid, 'SIGTERM');
+    if (!child.done) killTree(child.pid, 'SIGTERM');
   }
 
   await wait(1000);
 
   for (const child of children) {
-    if (child.exitCode === null) killTree(child.pid, 'SIGKILL');
+    if (!child.done) killTree(child.pid, 'SIGKILL');
   }
 
   rmSync(paths.run, { force: true });
@@ -204,7 +244,10 @@ async function main() {
   rmSync(paths.backendReady, { force: true });
 
   log('Building the sandbox backend...');
-  await runInherited('cargo', ['build', '--package', 'sage-sandbox']);
+  await runCommand('cargo', ['build', '--package', 'sage-sandbox'], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+  });
 
   const ports = await pickPorts();
   const binary = join(
@@ -216,38 +259,29 @@ async function main() {
 
   log('Starting the simulator and wallets...');
   const backend = spawnLogged(
+    'backend',
     binary,
     ['--dir', sandboxDir, '--port', String(ports.bridge)],
     paths.backendLog,
   );
-  writeJson(paths.run, { pids: [backend.pid] });
 
-  const ready = await waitFor(
-    'The sandbox backend',
-    backend,
-    paths.backendLog,
-    120_000,
-    () => readJson(paths.backendReady),
+  const ready = await waitFor(backend, 120_000, () =>
+    readJson(paths.backendReady),
   );
 
   const bridgeUrl = `http://127.0.0.1:${ready.port}`;
 
   log('Starting the UI...');
   const vite = spawnLogged(
+    'Vite dev server',
     'pnpm',
     ['exec', 'vite', '--port', String(ports.app)],
     paths.viteLog,
-    {
-      SAGE_SANDBOX_BRIDGE: bridgeUrl,
-      SAGE_SANDBOX_VITE_PORT: String(ports.app),
-    },
+    { SAGE_SANDBOX_BRIDGE: bridgeUrl },
   );
-  writeJson(paths.run, { pids: [backend.pid, vite.pid] });
 
   const appOrigin = `http://127.0.0.1:${ports.app}`;
-  await waitFor('Vite', vite, paths.viteLog, 60_000, () =>
-    isServing(appOrigin),
-  );
+  await waitFor(vite, 60_000, () => isServing(appOrigin));
 
   const wallets = Object.fromEntries(
     ready.wallets.map((wallet) => [
@@ -279,21 +313,10 @@ async function main() {
   console.log(`\n  Details: ${paths.instance}`);
   console.log('  Ctrl+C stops the sandbox and discards its data.\n');
 
-  const exited = await Promise.race(
-    [backend, vite].map(
-      (child) =>
-        new Promise((resolve) =>
-          child.once('close', (code) => resolve({ child, code })),
-        ),
-    ),
-  );
+  const exited = await Promise.race(children.map((child) => child.exited));
 
   if (!stopping) {
-    const name = exited.child === backend ? 'backend' : 'Vite';
-    const logPath = exited.child === backend ? paths.backendLog : paths.viteLog;
-    console.error(
-      `[sandbox] The ${name} stopped unexpectedly:\n${tail(logPath)}`,
-    );
+    console.error(`[sandbox] ${exitedMessage(exited)}`);
     await stop(1);
   }
 }

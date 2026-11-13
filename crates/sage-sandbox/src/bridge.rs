@@ -8,7 +8,7 @@ use std::{collections::HashMap, convert::Infallible, sync::Arc};
 
 use axum::{
     Json, Router,
-    extract::{Path, State},
+    extract::{Path, State, rejection::JsonRejection},
     http::StatusCode,
     response::{
         IntoResponse, Response,
@@ -19,6 +19,7 @@ use axum::{
 use chia_wallet_sdk::utils::Address;
 use futures_util::{Stream, stream};
 use sage::Sage;
+use sage_api::SyncEvent as ApiEvent;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use tokio::sync::broadcast::{self, error::RecvError};
@@ -28,9 +29,12 @@ use crate::{BridgeError, SandboxWallet, WalletInfo, call_endpoint};
 #[derive(Debug, Clone)]
 struct BridgeState {
     wallets: Arc<HashMap<String, SandboxWallet>>,
+    /// The wallets' details in startup order, for `GET /`.
+    infos: Arc<Vec<WalletInfo>>,
 }
 
 pub fn bridge_router(wallets: Vec<SandboxWallet>) -> Router {
+    let infos = wallets.iter().map(|wallet| wallet.info.clone()).collect();
     let wallets = wallets
         .into_iter()
         .map(|wallet| (wallet.info.name.clone(), wallet))
@@ -43,36 +47,45 @@ pub fn bridge_router(wallets: Vec<SandboxWallet>) -> Router {
         .route("/xchandles/*path", any(xchandles))
         .with_state(BridgeState {
             wallets: Arc::new(wallets),
+            infos: Arc::new(infos),
         })
 }
 
 async fn status(State(state): State<BridgeState>) -> Json<Vec<WalletInfo>> {
-    let mut wallets: Vec<WalletInfo> = state
-        .wallets
-        .values()
-        .map(|wallet| wallet.info.clone())
-        .collect();
-
-    wallets.sort_by(|a, b| a.name.cmp(&b.name));
-
-    Json(wallets)
+    Json(state.infos.as_ref().clone())
 }
 
 async fn invoke(
     State(state): State<BridgeState>,
     Path((wallet, command)): Path<(String, String)>,
-    body: Option<Json<Value>>,
+    body: Result<Json<Value>, JsonRejection>,
 ) -> Response {
     let Some(wallet) = state.wallets.get(&wallet) else {
         return unknown_wallet(&wallet);
     };
 
-    let args = body.map_or(Value::Null, |Json(args)| args);
-    let mut sage = wallet.sage.lock().await;
+    // Require a JSON body, as the UI always sends one. This also means a page on another origin
+    // can't call the bridge without a CORS preflight, which it doesn't answer.
+    let args = match body {
+        Ok(Json(args)) => args,
+        Err(rejection) => return bad_request(BridgeError::api(rejection.body_text())),
+    };
 
-    match invoke_command(&mut sage, &command, args).await {
-        Ok(value) => Json(value).into_response(),
-        Err(error) => (StatusCode::BAD_REQUEST, Json(error)).into_response(),
+    // Run the command on its own task, so that it finishes even if the page goes away mid-request,
+    // as a Tauri command would.
+    let sage = wallet.sage.clone();
+    let result = tokio::spawn(async move {
+        let mut sage = sage.lock().await;
+        invoke_command(&mut sage, &command, args).await
+    })
+    .await;
+
+    match result {
+        Ok(Ok(value)) => Json(value).into_response(),
+        Ok(Err(error)) => bad_request(error),
+        Err(error) => bad_request(BridgeError::internal(format!(
+            "The command panicked: {error}"
+        ))),
     }
 }
 
@@ -91,12 +104,7 @@ async fn invoke_command(sage: &mut Sage, command: &str, args: Value) -> Result<V
         "network_config" => BridgeError::to_value(&sage.config.network),
         "wallet_config" => {
             let FingerprintArgs { fingerprint } = parse_args(args)?;
-            BridgeError::to_value(
-                sage.wallet_config
-                    .wallets
-                    .iter()
-                    .find(|wallet| wallet.fingerprint == fingerprint),
-            )
+            BridgeError::to_value(sage.wallet_entry(fingerprint))
         }
         "default_wallet_config" => BridgeError::to_value(sage.wallet_config.defaults),
         "switch_wallet" => {
@@ -105,16 +113,7 @@ async fn invoke_command(sage: &mut Sage, command: &str, args: Value) -> Result<V
         }
         "move_key" => {
             let MoveKeyArgs { fingerprint, index } = parse_args(args)?;
-            let old_index = sage
-                .wallet_config
-                .wallets
-                .iter()
-                .position(|wallet| wallet.fingerprint == fingerprint)
-                .ok_or(sage::Error::UnknownFingerprint)?;
-            let wallet = sage.wallet_config.wallets.remove(old_index);
-            let index = (index as usize).min(sage.wallet_config.wallets.len());
-            sage.wallet_config.wallets.insert(index, wallet);
-            sage.save_config()?;
+            sage.move_key(fingerprint, index)?;
             Ok(Value::Null)
         }
         // The RPC server would listen on the real RPC port, which could clash with a running Sage.
@@ -168,7 +167,7 @@ async fn events(State(state): State<BridgeState>, Path(wallet): Path<String>) ->
 }
 
 fn event_stream(
-    receiver: broadcast::Receiver<sage_api::SyncEvent>,
+    receiver: broadcast::Receiver<ApiEvent>,
 ) -> impl Stream<Item = Result<Event, Infallible>> {
     stream::unfold(receiver, |mut receiver| async move {
         loop {
@@ -196,6 +195,10 @@ async fn xchandles() -> Response {
         })),
     )
         .into_response()
+}
+
+fn bad_request(error: BridgeError) -> Response {
+    (StatusCode::BAD_REQUEST, Json(error)).into_response()
 }
 
 fn unknown_wallet(wallet: &str) -> Response {

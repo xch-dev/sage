@@ -8,7 +8,6 @@ const host = process.env.TAURI_DEV_HOST;
 
 // Set by `pnpm sandbox` (scripts/sandbox.mjs), which runs the UI in a browser. See docs/sandbox.md.
 const sandboxBridge = process.env.SAGE_SANDBOX_BRIDGE;
-const sandboxPort = Number(process.env.SAGE_SANDBOX_VITE_PORT) || undefined;
 
 /** Loads the Tauri IPC stand-in before the app, so that it never ships outside the sandbox. */
 function sandboxPlugin(): Plugin {
@@ -49,7 +48,7 @@ export default defineConfig({
   clearScreen: false,
   server: sandboxBridge
     ? {
-        port: sandboxPort,
+        // The launcher picks the port and passes it with `--port`.
         strictPort: true,
         host: '127.0.0.1',
         proxy: {

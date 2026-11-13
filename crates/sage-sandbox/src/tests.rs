@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashSet, net::SocketAddr, time::Duration};
 
 use anyhow::Result;
 use axum::{
@@ -7,17 +7,19 @@ use axum::{
     http::{Request, StatusCode},
 };
 use chia_wallet_sdk::{prelude::*, test::PeerSimulator};
+use futures_util::StreamExt;
 use sage_api::SyncEvent as ApiEvent;
 use sage_wallet::SyncEvent;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 use tokio::{
+    net::TcpListener,
     sync::{broadcast, mpsc},
     time::{sleep, timeout},
 };
 use tower::ServiceExt;
 
-use crate::{SandboxWallet, WalletInfo, bridge_router, forward_events};
+use crate::{SandboxWallet, WALLETS, WalletInfo, bridge_router, forward_events};
 
 const MOJOS_PER_XCH: u64 = 1_000_000_000_000;
 
@@ -34,22 +36,28 @@ impl TestBridge {
 
         let dir = TempDir::new()?;
         let sim = PeerSimulator::new().await?;
-        // Nothing in these tests looks up a handle, so the URL is never reached.
-        let xchandles_url = "http://127.0.0.1:9/xchandles";
+
+        // Serve the bridge for real, as `main` does, so that the wallets reach its XCHandles
+        // stand-in. Tests still call the router directly.
+        let listener = TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0))).await?;
+        let xchandles_url = format!("http://{}/xchandles", listener.local_addr()?);
 
         let mut wallets = Vec::new();
 
-        for (name, seed) in [("alice", 1), ("bob", 2)] {
+        for (name, seed) in WALLETS {
             wallets.push(
-                SandboxWallet::start(name, seed, &dir.path().join(name), &sim, xchandles_url)
+                SandboxWallet::start(name, seed, &dir.path().join(name), &sim, &xchandles_url)
                     .await?,
             );
         }
 
         let infos = wallets.iter().map(|wallet| wallet.info.clone()).collect();
+        let router = bridge_router(wallets);
+
+        tokio::spawn(axum::serve(listener, router.clone()).into_future());
 
         Ok(Self {
-            router: bridge_router(wallets),
+            router,
             wallets: infos,
             _sim: sim,
             _dir: dir,
@@ -95,6 +103,33 @@ impl TestBridge {
             .await
     }
 
+    async fn send_xch(&self, from: &str, to: &str, xch: u64) -> (StatusCode, Value) {
+        self.invoke(
+            from,
+            "send_xch",
+            json!({
+                "req": {
+                    "address": to,
+                    "amount": (xch * MOJOS_PER_XCH).to_string(),
+                    "fee": "0",
+                    "auto_submit": true,
+                }
+            }),
+        )
+        .await
+    }
+
+    async fn wait_for_balance(&self, wallet: &str, xch: u64) -> Result<()> {
+        timeout(Duration::from_secs(10), async {
+            while self.balance(wallet).await != xch * MOJOS_PER_XCH {
+                sleep(Duration::from_millis(100)).await;
+            }
+        })
+        .await?;
+
+        Ok(())
+    }
+
     async fn balance(&self, wallet: &str) -> u64 {
         let (status, body) = self
             .invoke(wallet, "get_sync_status", json!({ "req": {} }))
@@ -130,30 +165,11 @@ async fn test_send_between_wallets() -> Result<()> {
     let bridge = TestBridge::start().await?;
     let alice = bridge.wallet("alice").address.clone();
 
-    let (status, body) = bridge
-        .invoke(
-            "bob",
-            "send_xch",
-            json!({
-                "req": {
-                    "address": alice,
-                    "amount": (5 * MOJOS_PER_XCH).to_string(),
-                    "fee": "0",
-                    "auto_submit": true,
-                }
-            }),
-        )
-        .await;
+    let (status, body) = bridge.send_xch("bob", &alice, 5).await;
     assert_eq!(status, StatusCode::OK, "{body}");
 
     // The simulator confirms the spend as soon as it's submitted, and alice syncs it shortly after.
-    timeout(Duration::from_secs(10), async {
-        while bridge.balance("alice").await != 105 * MOJOS_PER_XCH {
-            sleep(Duration::from_millis(100)).await;
-        }
-    })
-    .await?;
-
+    bridge.wait_for_balance("alice", 105).await?;
     assert_eq!(bridge.balance("bob").await, 95 * MOJOS_PER_XCH);
 
     Ok(())
@@ -196,8 +212,126 @@ async fn test_hand_written_commands() -> Result<()> {
     let (_, body) = bridge.invoke("alice", "network_config", json!({})).await;
     assert_eq!(body["default_network"], "testnet11");
 
+    let (_, body) = bridge
+        .invoke("alice", "wallet_config", json!({ "fingerprint": 1 }))
+        .await;
+    assert_eq!(body, Value::Null);
+
+    let (status, body) = bridge
+        .invoke("alice", "default_wallet_config", json!({}))
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert!(body.is_object(), "{body}");
+
+    let (_, body) = bridge.invoke("alice", "network_config", json!({})).await;
+    assert_eq!(body["default_network"], "testnet11");
+
+    for command in ["is_rpc_running", "get_rpc_run_on_startup"] {
+        let (_, body) = bridge.invoke("alice", command, json!({})).await;
+        assert_eq!(body, Value::Bool(false), "{command}");
+    }
+
     let (_, body) = bridge.invoke("alice", "get_logs", json!({})).await;
     assert_eq!(body, json!([]));
+
+    // An index past the end moves the wallet to the end instead of failing.
+    let (status, body) = bridge
+        .invoke(
+            "alice",
+            "move_key",
+            json!({ "fingerprint": alice.fingerprint, "index": 5 }),
+        )
+        .await;
+    assert_eq!((status, body), (StatusCode::OK, Value::Null));
+
+    let (status, _) = bridge
+        .invoke("alice", "move_key", json!({ "fingerprint": 1, "index": 0 }))
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_wallet_keeps_syncing_after_switch_wallet() -> Result<()> {
+    let bridge = TestBridge::start().await?;
+    let alice = bridge.wallet("alice").address.clone();
+
+    // The UI calls this on every page load, after `initialize`.
+    let (status, body) = bridge.invoke("alice", "switch_wallet", json!({})).await;
+    assert_eq!((status, body), (StatusCode::OK, Value::Null));
+
+    let (status, body) = bridge.send_xch("bob", &alice, 3).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    bridge.wait_for_balance("alice", 103).await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_events_stream_sync_events() -> Result<()> {
+    let bridge = TestBridge::start().await?;
+    let alice = bridge.wallet("alice").address.clone();
+
+    let request = Request::builder()
+        .uri("/alice/events")
+        .body(Body::empty())?;
+    let response = bridge.router.clone().oneshot(request).await?;
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut stream = response.into_body().into_data_stream();
+
+    let (status, body) = bridge.send_xch("bob", &alice, 1).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    // The page listens with `onmessage`, which only sees unnamed events, so frames must be plain
+    // `data:` lines holding the same payload Tauri would emit.
+    let frame = timeout(Duration::from_secs(10), async {
+        loop {
+            let chunk = stream
+                .next()
+                .await
+                .expect("stream ended")
+                .expect("stream failed");
+            let text = String::from_utf8(chunk.to_vec()).expect("frame isn't UTF-8");
+
+            if text.contains("coin_state") {
+                return text;
+            }
+        }
+    })
+    .await?;
+
+    assert_eq!(frame, "data: {\"type\":\"coin_state\"}\n\n");
+
+    let (status, _) = bridge.request("GET", "/carol/events", None).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_requests_without_a_json_body_are_rejected() -> Result<()> {
+    let bridge = TestBridge::start().await?;
+
+    for (content_type, body) in [
+        // `curl -d` without a header sends a form body.
+        ("application/x-www-form-urlencoded", r#"{"req":{}}"#),
+        // A page on another origin can only send this without a CORS preflight.
+        ("text/plain", r#"{"req":{}}"#),
+        ("application/json", r#"{"req":"#),
+    ] {
+        let request = Request::builder()
+            .method("POST")
+            .uri("/alice/invoke/get_sync_status")
+            .header("content-type", content_type)
+            .body(Body::from(body))?;
+        let response = bridge.router.clone().oneshot(request).await?;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{content_type}");
+
+        let body: Value =
+            serde_json::from_slice(&to_bytes(response.into_body(), usize::MAX).await?)?;
+        assert_eq!(body["kind"], "api", "{content_type}");
+    }
 
     Ok(())
 }
@@ -250,14 +384,27 @@ async fn test_errors_match_the_desktop_app() -> Result<()> {
 }
 
 #[tokio::test]
-async fn test_xchandles_stand_in_reports_a_stale_index() -> Result<()> {
+async fn test_handle_lookups_reach_the_xchandles_stand_in() -> Result<()> {
     let bridge = TestBridge::start().await?;
 
+    // The stand-in says its index is stale, so the handle can't be resolved. Reaching anything
+    // else, such as the real service, would give a different reason.
     let (status, body) = bridge
-        .request("GET", "/xchandles/v1/handles/alice", None)
+        .invoke(
+            "alice",
+            "send_xch",
+            json!({ "req": { "address": "@somehandle", "amount": "1", "fee": "0" } }),
+        )
         .await;
-    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
-    assert_eq!(body["code"], "index_stale");
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(body["kind"], "recipient", "{body}");
+
+    let recipients = body["recipients"].as_array().expect("missing recipients");
+    assert_eq!(recipients.len(), 1, "{body}");
+    assert!(
+        !body.to_string().contains("error sending request"),
+        "the stand-in wasn't reached: {body}"
+    );
 
     Ok(())
 }
@@ -305,10 +452,19 @@ async fn test_refresh_events_are_debounced() -> Result<()> {
         })
     );
 
-    let second = listener.recv().await?;
-    let third = listener.recv().await?;
-    assert_eq!(event_json(&second), json!({ "type": "coin_state" }));
-    assert_eq!(event_json(&third), json!({ "type": "cat_info" }));
+    // The pending refreshes are flushed in no particular order, as in the desktop app.
+    let flushed: HashSet<String> = [listener.recv().await?, listener.recv().await?]
+        .iter()
+        .map(|event| event_json(event).to_string())
+        .collect();
+    let expected: HashSet<String> = [
+        json!({ "type": "coin_state" }),
+        json!({ "type": "cat_info" }),
+    ]
+    .iter()
+    .map(Value::to_string)
+    .collect();
+    assert_eq!(flushed, expected);
 
     // Nothing else was sent.
     sleep(Duration::from_secs(1)).await;
