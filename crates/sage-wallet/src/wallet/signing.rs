@@ -74,8 +74,8 @@ impl Wallet {
                 return Err(WalletError::UnknownPublicKey);
             };
 
-            if could_be_signed_message(&required) {
-                return Err(WalletError::UnsafeSignedMessage);
+            if is_agg_sig_unsafe(&required) {
+                return Err(WalletError::AggSigUnsafe);
             }
 
             aggregated_signature += &sign(&sk, required.message());
@@ -88,17 +88,17 @@ impl Wallet {
     }
 }
 
-/// Whether signing this would also produce a valid signed message, in the format
-/// `sign_message_*` produces: a signature over `tree_hash(("Chia Signed Message" . message))`.
+/// Whether this is an `AGG_SIG_UNSAFE` signature, which Sage refuses to produce with its keys.
 ///
-/// `AGG_SIG_UNSAFE` signs its message as is, so a coin spend that asks for one over that
-/// tree hash gets a signed message without the user ever seeing the sign-message prompt.
-/// The hash can't be told apart from any other 32 bytes without its preimage, which the
-/// spend doesn't have to include, so every 32-byte `AGG_SIG_UNSAFE` message is refused.
-/// Messages of any other length can't be a signed message, and are signed as before.
-fn could_be_signed_message(required: &RequiredBlsSignature) -> bool {
+/// `AGG_SIG_UNSAFE` signs its message as is, without the coin or network data the other
+/// `AGG_SIG_*` kinds append, so the signature is valid for anything else over the same bytes.
+/// A dApp-supplied spend could use it to get a signed message (a signature over
+/// `tree_hash(("Chia Signed Message" . message))`) without the sign-message prompt, or an
+/// `AGG_SIG_ME` signature for one of the user's coins on another network. Sage's own spends
+/// never use it, so it's refused outright rather than by matching message formats.
+fn is_agg_sig_unsafe(required: &RequiredBlsSignature) -> bool {
     // Only `AGG_SIG_UNSAFE` has no domain string.
-    required.domain_string.is_none() && required.raw_message.len() == 32
+    required.domain_string.is_none()
 }
 
 /// Whether the signature already covers every BLS signature the coin spends require.
@@ -195,7 +195,7 @@ mod tests {
             for partial in [false, true] {
                 let result = sign_spend(&alice, coin_spend.clone(), partial).await;
                 assert!(
-                    matches!(result, Err(WalletError::UnsafeSignedMessage)),
+                    matches!(result, Err(WalletError::AggSigUnsafe)),
                     "{result:?}"
                 );
             }
@@ -205,37 +205,21 @@ mod tests {
     }
 
     #[test(tokio::test)]
-    async fn test_refuse_any_32_byte_unsafe_message() -> anyhow::Result<()> {
-        let alice = TestWallet::new(0).await?;
-        let coin_spend =
-            agg_sig_unsafe_spend(synthetic_key(&alice).public_key(), vec![7; 32].into())?;
-
-        assert!(matches!(
-            sign_spend(&alice, coin_spend, false).await,
-            Err(WalletError::UnsafeSignedMessage)
-        ));
-
-        Ok(())
-    }
-
-    #[test(tokio::test)]
-    async fn test_sign_ordinary_unsafe_message() -> anyhow::Result<()> {
+    async fn test_refuse_any_unsafe_message_for_owned_key() -> anyhow::Result<()> {
         let alice = TestWallet::new(0).await?;
         let synthetic_sk = synthetic_key(&alice);
 
-        for message in [Bytes::default(), vec![7; 31].into(), vec![7; 33].into()] {
-            let coin_spend = agg_sig_unsafe_spend(synthetic_sk.public_key(), message.clone())?;
-            let spend_bundle = sign_spend(&alice, coin_spend, false).await?;
+        // An `AGG_SIG_ME` message for one of the user's coins on another network.
+        let mut agg_sig_me = vec![7; 64];
+        agg_sig_me.extend(MAINNET_CONSTANTS.agg_sig_me_additional_data.to_vec());
 
-            assert_eq!(
-                spend_bundle.aggregated_signature,
-                sign(&synthetic_sk, message)
+        for message in [Bytes::default(), vec![7; 32].into(), agg_sig_me.into()] {
+            let coin_spend = agg_sig_unsafe_spend(synthetic_sk.public_key(), message)?;
+            let result = sign_spend(&alice, coin_spend, false).await;
+            assert!(
+                matches!(result, Err(WalletError::AggSigUnsafe)),
+                "{result:?}"
             );
-            assert!(is_fully_signed(
-                &spend_bundle.coin_spends,
-                &spend_bundle.aggregated_signature,
-                &alice.agg_sig
-            )?);
         }
 
         Ok(())
@@ -247,7 +231,7 @@ mod tests {
         let other = SecretKey::from_seed(&[42; 32]).public_key();
         let coin_spend = agg_sig_unsafe_spend(other, vec![7; 32].into())?;
 
-        // Only signatures Sage would actually produce are refused.
+        // Only keys Sage holds are refused; others are left for whoever holds them.
         let spend_bundle = sign_spend(&alice, coin_spend.clone(), true).await?;
         assert_eq!(spend_bundle.aggregated_signature, Signature::default());
 

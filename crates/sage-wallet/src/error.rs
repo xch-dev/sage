@@ -85,9 +85,9 @@ pub enum WalletError {
     UnknownPublicKey,
 
     #[error(
-        "Refusing to sign a 32-byte AGG_SIG_UNSAFE message, since the signature would also be a valid signed message"
+        "Refusing to sign an AGG_SIG_UNSAFE condition with one of this wallet's keys, since the signature could be reused elsewhere"
     )]
-    UnsafeSignedMessage,
+    AggSigUnsafe,
 
     #[error("Missing XCH coin with id {0}")]
     MissingXchCoin(Bytes32),
