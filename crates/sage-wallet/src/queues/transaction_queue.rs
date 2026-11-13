@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -22,7 +22,7 @@ pub struct TransactionQueue {
     db: Database,
     state: Arc<Mutex<PeerState>>,
     sync_sender: mpsc::Sender<SyncEvent>,
-    /// When each item was last submitted, whatever the outcome. Only `Status::Pending`
+    /// When each due item was last submitted, whatever the outcome. Only `Status::Pending`
     /// updates the database timestamp, so without this an item that keeps coming back
     /// as `Status::Unknown` would be picked first every batch and starve the rest.
     last_attempts: HashMap<Bytes32, Instant>,
@@ -63,7 +63,7 @@ impl TransactionQueue {
             .mempool_items_to_submit(RESUBMIT_INTERVAL.as_secs().cast_signed())
             .await?;
 
-        let rows = select_batch(due, &mut self.last_attempts, Instant::now());
+        let rows = select_batch(due, &mut self.last_attempts);
 
         if rows.is_empty() {
             return Ok(());
@@ -138,19 +138,21 @@ impl TransactionQueue {
     }
 }
 
-/// Picks up to [`BATCH_SIZE`] of the due items, in order, skipping any attempted within
-/// [`RESUBMIT_INTERVAL`] of `now`. Attempts older than that are forgotten.
+/// Picks up to [`BATCH_SIZE`] of the due items. Items never attempted come first, in the
+/// order given, then the ones attempted longest ago, so items that keep coming back as
+/// `Status::Unknown` take turns instead of holding up the rest. Attempts for items that
+/// are no longer due are forgotten.
 fn select_batch(
-    due: Vec<MempoolItem>,
+    mut due: Vec<MempoolItem>,
     last_attempts: &mut HashMap<Bytes32, Instant>,
-    now: Instant,
 ) -> Vec<MempoolItem> {
-    last_attempts.retain(|_, attempted_at| now.duration_since(*attempted_at) < RESUBMIT_INTERVAL);
+    let due_hashes: HashSet<Bytes32> = due.iter().map(|item| item.hash).collect();
+    last_attempts.retain(|hash, _| due_hashes.contains(hash));
 
-    due.into_iter()
-        .filter(|item| !last_attempts.contains_key(&item.hash))
-        .take(BATCH_SIZE)
-        .collect()
+    // `None` sorts before `Some`, and the sort is stable, so ties keep the given order.
+    due.sort_by_key(|item| last_attempts.get(&item.hash).copied());
+    due.truncate(BATCH_SIZE);
+    due
 }
 
 #[cfg(test)]
@@ -173,38 +175,49 @@ mod tests {
     #[test]
     fn select_batch_takes_at_most_a_batch_in_order() {
         let due: Vec<_> = (1..=5).map(item).collect();
-        let batch = select_batch(due.clone(), &mut HashMap::new(), Instant::now());
+        let batch = select_batch(due.clone(), &mut HashMap::new());
         assert_eq!(hashes(&batch), hashes(&due[..BATCH_SIZE]));
     }
 
     #[test]
-    fn select_batch_handles_no_due_items() {
-        let mut last_attempts = HashMap::from([(item(1).hash, Instant::now())]);
-        assert!(select_batch(Vec::new(), &mut last_attempts, Instant::now()).is_empty());
-    }
-
-    #[test]
-    fn select_batch_skips_recent_attempts_until_the_interval_passes() {
+    fn select_batch_rotates_through_unanswered_items() {
         let start = Instant::now();
         let due: Vec<_> = (1..=5).map(item).collect();
 
-        // Items 1 to 3 were just tried and came back unknown, so the next batch moves on
-        // to the rest instead of trying them again.
-        let mut last_attempts: HashMap<_, _> =
-            due[..3].iter().map(|item| (item.hash, start)).collect();
+        // Items 1 to 3 were just tried and came back unknown, so the next batch takes
+        // the never-attempted items 4 and 5 first, then the oldest attempt.
+        let mut last_attempts = HashMap::from([
+            (due[0].hash, start + Duration::from_secs(2)),
+            (due[1].hash, start),
+            (due[2].hash, start + Duration::from_secs(1)),
+        ]);
 
-        let batch = select_batch(due.clone(), &mut last_attempts, start);
-        assert_eq!(hashes(&batch), hashes(&due[3..]));
+        let batch = select_batch(due.clone(), &mut last_attempts);
+        assert_eq!(hashes(&batch), vec![due[3].hash, due[4].hash, due[1].hash]);
+    }
 
-        let just_before = start + RESUBMIT_INTERVAL.saturating_sub(Duration::from_secs(1));
-        let batch = select_batch(due.clone(), &mut last_attempts, just_before);
-        assert_eq!(hashes(&batch), hashes(&due[3..]));
-        assert_eq!(last_attempts.len(), 3);
+    #[test]
+    fn select_batch_retries_a_lone_unanswered_item() {
+        let due = vec![item(1)];
+        let mut last_attempts = HashMap::from([(due[0].hash, Instant::now())]);
 
-        // Once the interval has passed, the old attempts are forgotten and items 1 to 3
-        // are due again.
-        let batch = select_batch(due.clone(), &mut last_attempts, start + RESUBMIT_INTERVAL);
-        assert_eq!(hashes(&batch), hashes(&due[..3]));
+        let batch = select_batch(due.clone(), &mut last_attempts);
+        assert_eq!(hashes(&batch), hashes(&due));
+    }
+
+    #[test]
+    fn select_batch_forgets_items_that_are_no_longer_due() {
+        let now = Instant::now();
+        let mut last_attempts = HashMap::from([(item(1).hash, now), (item(2).hash, now)]);
+
+        let batch = select_batch(vec![item(2)], &mut last_attempts);
+        assert_eq!(hashes(&batch), vec![item(2).hash]);
+        assert_eq!(
+            last_attempts.keys().copied().collect::<Vec<_>>(),
+            vec![item(2).hash]
+        );
+
+        assert!(select_batch(Vec::new(), &mut last_attempts).is_empty());
         assert!(last_attempts.is_empty());
     }
 }
