@@ -1,7 +1,7 @@
 use chia_wallet_sdk::{
     driver::{
         TransferNftById, calculate_royalty_payments, calculate_trade_price_amounts,
-        calculate_trade_prices,
+        calculate_trade_prices, payable_trade_prices,
     },
     prelude::*,
 };
@@ -132,11 +132,7 @@ impl Wallet {
                     vec![],
                     Some(TransferNftById::new(
                         None,
-                        if nft.asset.info.royalty_basis_points > 0 {
-                            trade_prices.clone()
-                        } else {
-                            vec![]
-                        },
+                        payable_trade_prices(&trade_prices, nft.asset.info.royalty_basis_points),
                     )),
                 ),
             );
