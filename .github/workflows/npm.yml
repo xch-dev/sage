@@ -1,13 +1,9 @@
 name: NPM
+# Pull requests and pushes to main validate the package through the Build workflow's Required
+# checks, so this workflow only runs for tags, where it validates again before publishing.
 on:
   push:
-    branches:
-      - main
     tags:
-      - '**'
-
-  pull_request:
-    branches:
       - '**'
 
 permissions:
@@ -15,47 +11,12 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 jobs:
   validate:
-    name: Validate package
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Install Linux dependencies
-        timeout-minutes: 10
-        run: |
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
-          package-manager-cache: false
-
-      - name: Install supported npm
-        run: npm install --global npm@11.19.0
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Check formatting
-        run: pnpm prettier:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Dry-run package
-        working-directory: packages/sage-app-sdk
-        run: npm pack --dry-run
+    name: Validate
+    uses: ./.github/workflows/npm-validate.yml
 
   publish:
     name: Publish to npm
