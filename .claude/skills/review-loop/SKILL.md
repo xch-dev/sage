@@ -33,7 +33,7 @@ The state file is the memory of the loop. Reviewers start with fresh context, an
 - Serves: <issue/PR link>
 - Base: <origin/main, the parent branch in a gh stack, or the commit a PR follow-up starts from>
 - Branch: <rigidity/...>
-- Decisions: <each decision and why, noting who made it: the issue, the user, or the implementer. Mark choices that are the user's to confirm as "provisional, for the user: X, because Y; the alternative is Z". Include generated files that changed (bindings, `.sqlx`, SDK types) and why.>
+- Decisions: <each decision and why, noting who made it: the issue, the user, or the implementer. Mark choices that are the user's to confirm as "provisional, for the user: X, because Y; the alternative is Z". Include generated files that changed (`src/bindings.ts`, `.sqlx/`, `docs/generated/`) and why.>
 - Out of scope: <things deliberately left alone, and why>
 - Settled: <points the user or the issue decided; not open for review. Always include the accepted security risks: the keychain's empty password, biometric/password auth enforced only in the frontend, and unvalidated coin-state updates from peers.>
 - Previously rejected: <findings the implementer rejected in earlier rounds: the claim and the evidence>
@@ -55,13 +55,16 @@ The state file is the memory of the loop. Reviewers start with fresh context, an
 
 Work on a `rigidity/` branch (lowercase; never `Rigidity/`), unless you're continuing someone else's PR branch. For a bug fix, write the failing regression test first. The usual places:
 
-- **Endpoints**: request and response types in `crates/sage-api` (`requests/`, `records/`, `types/`), the handler in `crates/sage/src/endpoints/<area>.rs`, and the endpoint's entry in `crates/sage-api/endpoints.json` (shared by the RPC server, client, CLI and Tauri commands through `impl_endpoints!`) or `endpoints-tauri.json` (Tauri-only commands, written by hand in `src-tauri/src/commands.rs`). After changing a type the frontend sees, run `pnpm generate:bindings` to refresh `src/bindings.ts`. Never edit `src/bindings.ts` by hand, and never launch the Sage app to regenerate it.
-- **Database**: queries in `crates/sage-database/src/tables/`. After adding or changing a `query!`, run `cargo sqlx prepare --workspace` (needs `DATABASE_URL` and `sqlx db reset -y`, see the README) and commit the `.sqlx/` changes with it. Schema changes go in a new file under `migrations/`; never edit an existing migration, since wallets in the field have already run it.
+- **Endpoints**: request and response types in `crates/sage-api` (`requests/`, `records/`, `types/`) and the handler, a `Sage` method in `crates/sage/src/endpoints/<area>.rs`. Then list it in `crates/sage-api/endpoints.json` (generates the RPC route, client, CLI and Tauri command through `impl_endpoints!` / `impl_endpoints_tauri!`) or in `endpoints-tauri.json` (same, but Tauri only, left out of RPC, client and CLI). The few commands written by hand in `src-tauri/src/commands.rs` are in neither file. Every Tauri command, generated or hand-written, must also be registered in `sage_commands!` in `src-tauri/src/lib.rs` and allowed in `src-tauri/permissions/main-host.toml` (or `bridge.toml` for app webviews); a command missing from either fails at runtime without a compile error. The `permissions_allow_every_command` test in `lib.rs` checks the second, but only for commands already in `sage_commands!`. Endpoint tests go in `crates/sage-rpc/src/tests/` (the RPC run against the peer simulator) or in inline `#[cfg(test)]` modules in `crates/sage/src`.
+- **Bindings**: after changing a type the frontend sees or a Tauri command, run `pnpm generate:bindings` to refresh `src/bindings.ts`. Never edit `src/bindings.ts` by hand, and never launch the Sage app to regenerate it.
+- **Database**: queries in `crates/sage-database/src/tables/`. After adding or changing a `query!`, run `cargo sqlx prepare --workspace` and commit the `.sqlx/` changes with it. It needs a `.env` in the worktree root with `DATABASE_URL=sqlite://./test.sqlite` and a fresh `sqlx db reset -y` (see the README); a new worktree has no `.env`. Schema changes go in a new file under `migrations/`; never edit an existing migration, since wallets in the field have already run it. Migration and backfill tests go in `crates/sage-database/src/tests.rs`.
 - **Wallet and sync**: `crates/sage-wallet` (`wallet/` for spends, `sync_manager/` and `queues/` for syncing). Tests use the peer simulator in `crates/sage-wallet/src/test.rs`; follow the neighbouring tests rather than building a new harness.
-- **Frontend**: pages in `src/pages`, shared pieces in `src/components` and `src/hooks`. Wrap every new user-facing string with Lingui (`t`, `<Trans>`), but don't run `pnpm extract` or touch `src/locales/**/*.po`; the next release does that. Unit tests sit next to the file as `*.test.ts(x)` and run with Vitest.
-- **Sage Apps**: the SDKs in `packages/` and the built-in apps in `builtin-apps/`. `pnpm generate:types` refreshes the generated SDK types after a bridge change.
+- **Frontend**: pages in `src/pages`, shared pieces in `src/components`, `src/hooks` and `src/lib`, WalletConnect in `src/walletconnect`. Wrap every new user-facing string with Lingui (`t`, `<Trans>`), but don't run `pnpm extract` or touch `src/locales/**/*.po`; the next release does that. Unit tests sit next to the file as `*.test.ts(x)` and run with Vitest. Run `pnpm install` first if `node_modules` is missing, as it is in a new worktree.
+- **Sage Apps**: the bridge, manifests and permissions in `crates/sage-apps` (tests inline, next to the code), the SDKs in `packages/` and the built-in apps in `builtin-apps/`. After changing a bridge method or capability, run `pnpm generate:app-docs` and commit `docs/generated/`. `pnpm generate:types` refreshes the SDK types in `packages/*/src/generated-types.ts`, which are gitignored and only matter for local type checks and `pnpm build`.
 
-Use what's already there before writing helpers: look for an existing query, endpoint, hook or component that does most of the job, and follow the neighbouring code.
+Follow `.claude/rules/*.md` (imports, generated artifacts, translations, validation). Use what's already there before writing helpers: look for an existing query, endpoint, hook or component that does most of the job, and follow the neighbouring code. A feature that exists on several surfaces (the Tauri UI, RPC and `sage-cli`, WalletConnect, the Sage Apps bridge) usually needs the change on each.
+
+Before each review round, including the first, regenerate whatever the change affects (`pnpm generate:bindings`, `cargo sqlx prepare --workspace`, `pnpm generate:app-docs`), check `git status --short`, and commit the output with the change that caused it, so reviewers see the real diff. Read each regenerated file: a change you didn't expect usually means a mistake.
 
 Commit before the first review round, so each round's fixes are a separate diff.
 
@@ -83,14 +86,14 @@ The built-in `code-review` skill is an alternative for the correctness focus on 
 
 Reviewers are sometimes confidently wrong. Before acting on a finding, check it:
 
-- For a claimed bug, reproduce it: write a failing test (a `sage-wallet` simulator test, a `sage-database` test, or a Vitest test for the frontend) that shows it. A finding you can't reproduce is rejected unless you can see from the code that it's right. Don't launch the Sage GUI to check a claim.
+- For a claimed bug, reproduce it: write a failing test that shows it, in the places section 2 names for that area (`sage-rpc` tests for endpoints, the `sage-wallet` simulator, `sage-database`, `sage-apps`, or Vitest for the frontend). A finding you can't reproduce is rejected unless you can see from the code that it's right. Don't launch the Sage GUI to check a claim.
 - For a claimed missing test, check whether an existing case already covers it.
 - For a simplification, check that the suggested helper does what the reviewer thinks.
 - For a finding marked "for the user", it's confirmed if the choice really is open: neither the source nor Settled answers it. Handle it as in section 5.
 
 Mark each finding in the review log as **confirmed**, **rejected** (with the evidence), or **deferred** (real but out of scope, with where it's recorded), and add rejected ones to the Brief's Previously rejected list and deferred ones to Out of scope (with where they're recorded), so later rounds don't raise them again. Fix every confirmed blocker and major finding, and minor ones when they're cheap. Each confirmed correctness finding gets a regression test. Nits are optional.
 
-Then run the quick checks for what you touched (`cargo test -p <crate>`, `pnpm exec vitest run <path>`), regenerate any generated files the fix affects as in section 2, update the Brief, and commit (section 7).
+Then run the quick checks for what you touched (`cargo test -p <crate>`, `pnpm exec vitest run <path>`), regenerate generated files as in section 2, update the Brief, and commit (section 7).
 
 ## 5. When to stop
 
@@ -103,23 +106,36 @@ Whatever the stop, still run the final checks and open or update the PR, so the 
 
 ## 6. Final checks
 
-These are the checks in the Tests job of `.github/workflows/build.yml`, plus `-D warnings` on clippy (stricter than CI) and the frontend checks from `.claude/rules/validation.md`. Run the Rust ones if any Rust changed and the frontend ones if any TypeScript changed; fix anything they report:
+These are the checks in the Tests job of `.github/workflows/build.yml`, plus `-D warnings` on clippy (stricter than CI), `pnpm lint` (required by `.claude/rules/validation.md`), the type check and the frontend unit tests. Run `pnpm install` first if `node_modules` is missing. Fix anything they report.
+
+Always, since CI runs it on every PR:
+
+```bash
+pnpm prettier:check
+```
+
+If any Rust changed:
 
 ```bash
 cargo clippy --workspace --all-features --all-targets -- -D warnings
 cargo fmt --all -- --files-with-diff --check
 cargo test --workspace --all-features
 cargo machete --skip-target-dir
-pnpm prettier:check
+```
+
+If any TypeScript changed:
+
+```bash
 pnpm lint
 pnpm exec tsc -b
 pnpm test:unit
 ```
 
-- `pnpm prettier:check` runs in CI even for Rust-only changes, so run it if you touched any Markdown, JSON or YAML.
 - If you changed a `query!`, check that `cargo sqlx prepare --workspace --check` passes, so the committed `.sqlx/` matches.
 - If you changed a type in `sage-api` or a Tauri command, check that `pnpm generate:bindings` leaves `src/bindings.ts` unchanged after your commit.
-- CI's platform builds also run `pnpm build` (builtin apps and the frontend). Run it if you changed `packages/`, `builtin-apps/` or the build scripts, and say in the report if you didn't.
+- If you changed the Sage Apps bridge, check that `pnpm generate:app-docs` leaves `docs/generated/` unchanged.
+- CI's platform builds also run `pnpm build` (generated SDK types, builtin apps and the frontend). Run it if you changed `crates/sage-apps`, `packages/`, `builtin-apps/` or the build scripts, and say in the report if you didn't.
+- Local clippy only compiles for the host platform. If you changed `cfg(mobile)` or other platform-gated code, say in the report that it wasn't checked locally.
 - If these checks led to changes beyond formatting, say so in the report, since no reviewer saw them.
 - Report any check that failed for reasons unrelated to the change rather than calling the run clean.
 

@@ -54,6 +54,10 @@ General:
 - Does the change do what the goal says, all of it, and nothing outside it?
 - Edge cases: empty wallets, zero amounts, amounts near `u64::MAX` (mojos), CATs and NFTs alongside XCH, unsynced or partially synced wallets, hardened and unhardened derivations, coins that are pending or locked in an offer.
 - Errors: is every failure reported to the caller with a useful message, rather than panicking (`unwrap`, indexing) or being swallowed?
+- Untrusted input: data from offers (what the maker claims about assets), NFT and CAT metadata and names, external HTTP APIs, and dApps. Is it validated before it's trusted or shown, and can spam, invisible characters or a lookalike name mislead the user?
+- Concurrency: is the `Sage` lock held across network calls? Can two requests read then write the same state and race?
+- External network calls: do they have timeouts, tell transient errors (timeouts, 429, 5xx) from permanent ones, and avoid caching a temporary failure so it's never retried?
+- Surfaces: if the feature exists in the Tauri UI, RPC and `sage-cli`, WalletConnect and the Sage Apps bridge, does the change behave the same on each?
 
 Wallet and spends:
 
@@ -71,20 +75,21 @@ Database:
 
 API and frontend:
 
-- Do `sage-api` types, the handler, the entry in `endpoints.json` or `endpoints-tauri.json`, and `src/bindings.ts` agree? Was `src/bindings.ts` regenerated rather than edited by hand?
-- Does the UI handle loading, error and empty states, and show amounts with the right precision for the asset?
+- Do `sage-api` types, the handler, the entry in `endpoints.json` or `endpoints-tauri.json`, and `src/bindings.ts` agree? Is every new Tauri command registered in `sage_commands!` in `src-tauri/src/lib.rs` and allowed in `src-tauri/permissions/*.toml`? Was `src/bindings.ts` regenerated rather than edited by hand?
+- Does the UI handle loading, error and empty states, and show amounts with the right precision for the asset? Can a stale result from an earlier request overwrite a newer one, the same work be queued twice, or form state be lost when the user toggles something?
 - Are new user-facing strings wrapped with Lingui (`t`, `<Trans>`)? The `.po` catalogs should _not_ be changed in this PR.
-- Sage Apps and WalletConnect: does every method that moves funds or signs anything go through user approval, and does the approval show what will actually happen?
+- Sage Apps and WalletConnect: does every method that moves funds or signs anything go through user approval, and does the approval show what will actually happen? Can a dApp or app learn more than it should (for example by probing lookups) or call a method often enough to abuse it?
+- Sage Apps bridge changes: was `docs/generated/` regenerated with `pnpm generate:app-docs`?
 
-Accepted risks (the keychain's empty password, frontend-only biometric/password checks, unvalidated peer coin states) are settled; don't report them, but do report problems next to them.
+The accepted risks listed under Settled are not open; don't report them, but do report problems next to them. Only those exact risks are settled: other untrusted input is still in scope.
 
 ## Checklist: tests
 
-- Is there a test for each behaviour the change adds, including the cases where nothing should happen? Wallet changes go in `sage-wallet` (the peer simulator in `src/test.rs`), queries in `sage-database`, frontend logic in a `*.test.ts(x)` next to the file.
+- Is there a test for each behaviour the change adds, including the cases where nothing should happen? Endpoints go in `crates/sage-rpc/src/tests/` or inline tests in `crates/sage/src`, wallet changes in `sage-wallet` (the peer simulator in `src/test.rs`), queries and migrations in `sage-database` (`src/tests.rs`), bridge and app logic inline in `sage-apps`, frontend logic in a `*.test.ts(x)` next to the file.
 - Does each test actually exercise what it's named for, and assert on the result (balances, coin states, rows, rendered text) rather than only that nothing errored?
 - Would each test fail if the behaviour it covers regressed? A test that passes either way is worth a finding.
 - Bug fixes: is there a regression test that fails without the fix?
-- Generated files in the change (`src/bindings.ts`, `.sqlx/`, SDK `generated-types.ts`): is every change explained by the goal, and nothing hand-edited?
+- Generated files in the change (`src/bindings.ts`, `.sqlx/`, `docs/generated/`): is every change explained by the goal, and nothing hand-edited? Is one missing that the change should have regenerated?
 - Migrations: is there a test that runs them on a database with existing data, if the migration transforms data?
 
 ## Checklist: simplification and reuse
@@ -94,4 +99,5 @@ Accepted risks (the keychain's empty password, frontend-only biometric/password 
 - Is anything computed repeatedly that could be computed once, a query run in a loop that could be one query, or something cloned where a borrow would do?
 - Does a `match` use `_ =>` where an exhaustive match would make a new variant a compile error?
 - Does the code follow the patterns of the neighbouring code, so it reads like the rest of the module?
+- Does it follow `.claude/rules/*.md`, such as the Rust import and module ordering in `imports.md`?
 - Dead code, unused parameters and dependencies, and comments that restate the code.
