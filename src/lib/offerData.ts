@@ -26,38 +26,30 @@ interface DexieOfferResponse {
   offers: DexieOffer[];
 }
 
+// Marketplaces an offer page can be resolved from, keyed by its hostname. A Map
+// rather than an object so a hostname like `constructor` can't hit a prototype key.
+const OFFER_FETCHERS = new Map<
+  string,
+  (id: string, isTestnet: boolean) => Promise<string>
+>([
+  ['dexie.space', fetchDexieOffer],
+  ['offerco.de', fetchOfferCoOffer],
+  ['chia-offer.com', fetchChiaOfferComOffer],
+]);
+
+export const OFFER_URL_HOSTS = [...OFFER_FETCHERS.keys()];
+
 export async function resolveOfferData(
   text: string,
   isTestnet: boolean,
 ): Promise<string> {
   try {
-    if (isValidHostname(text, 'dexie.space')) {
-      const offerId = extractOfferId(text);
-      if (offerId) {
-        const resolvedOffer = await fetchDexieOffer(offerId, isTestnet);
-        if (resolvedOffer) {
-          return resolvedOffer;
-        }
-      }
-    }
-
-    if (isValidHostname(text, 'offerco.de')) {
-      const offerId = extractOfferId(text);
-      if (offerId) {
-        const resolvedOffer = await fetchOfferCoOffer(offerId, isTestnet);
-        if (resolvedOffer) {
-          return resolvedOffer;
-        }
-      }
-    }
-
-    if (isValidHostname(text, 'chia-offer.com')) {
-      const offerId = extractOfferId(text);
-      if (offerId) {
-        const resolvedOffer = await fetchChiaOfferComOffer(offerId, isTestnet);
-        if (resolvedOffer) {
-          return resolvedOffer;
-        }
+    const fetchOffer = OFFER_FETCHERS.get(hostnameOf(text) ?? '');
+    const offerId = fetchOffer && extractOfferId(text);
+    if (fetchOffer && offerId) {
+      const resolvedOffer = await fetchOffer(offerId, isTestnet);
+      if (resolvedOffer) {
+        return resolvedOffer;
       }
     }
   } catch {
@@ -74,12 +66,11 @@ export async function resolveOfferData(
   return text;
 }
 
-function isValidHostname(url: string, expectedHostname: string) {
+function hostnameOf(url: string) {
   try {
-    const parsedUrl = new URL(url);
-    return parsedUrl.hostname === expectedHostname;
+    return new URL(url).hostname;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -167,7 +158,9 @@ async function fetchDexieOffer(
   id: string,
   isTestnet: boolean,
 ): Promise<string> {
-  const response = await fetch(dexieApiUrl(`v1/offers/${id}`, isTestnet));
+  const response = await fetch(
+    dexieApiUrl(`v1/offers/${encodeURIComponent(id)}`, isTestnet),
+  );
   const data = await response.json();
 
   if (!data) {
@@ -199,7 +192,7 @@ async function fetchOfferCoOffer(
       'Content-Type': 'application/x-www-form-urlencoded',
       'X-API-Key': '602307f09cc95d490061bda377079f44',
     },
-    body: `short_code=${id}`,
+    body: new URLSearchParams({ short_code: id }).toString(),
   });
 
   const data = await response.json();

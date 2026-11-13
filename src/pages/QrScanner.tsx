@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
+import { isDeepLink } from '@/lib/deepLink';
 import { offersEnabled } from '@/lib/features';
 import { useNavigationStore } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -31,7 +32,12 @@ export default function QRScanner() {
 
   const handleScanSuccess = useCallback(
     (content: string) => {
-      if (offersEnabled && returnPath.startsWith('/offers')) {
+      // A `sage:` link goes back to the page, which opens it like any link
+      if (
+        offersEnabled &&
+        returnPath.startsWith('/offers') &&
+        !isDeepLink(content)
+      ) {
         navigate(`/offers/view/${encodeURIComponent(content.trim())}`, {
           replace: true,
         });

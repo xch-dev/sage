@@ -38,7 +38,11 @@ export function App() {
         }
 
         if (!cancelled) {
-          setState({ kind: 'selecting', definitions });
+          setState({
+            kind: 'selecting',
+            definitions,
+            initialUrl: appUrl ?? '',
+          });
         }
       } catch (err) {
         if (!cancelled) {
@@ -60,6 +64,7 @@ export function App() {
   if (state.kind === 'selecting') {
     return (
       <SelectSourceView
+        initialUrl={state.initialUrl}
         onReview={(source) =>
           setState({
             kind: 'review',

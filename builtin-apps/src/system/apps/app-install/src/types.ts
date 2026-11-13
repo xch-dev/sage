@@ -21,7 +21,11 @@ export type InstallSource =
 
 export type LoadState =
   | { kind: 'loading' }
-  | { kind: 'selecting'; definitions: SageAppCapabilityDefinitionView[] }
+  | {
+      kind: 'selecting';
+      definitions: SageAppCapabilityDefinitionView[];
+      initialUrl: string;
+    }
   | {
       kind: 'review';
       definitions: SageAppCapabilityDefinitionView[];

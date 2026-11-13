@@ -25,6 +25,8 @@ interface WalletContextType {
    *  still build unsigned transactions if `allowUnsigned` is set, but watch
    *  wallets never can. */
   isTransactionDisabled: boolean;
+  /** True once the initial wallet lookup on app start has settled (found or not). */
+  isInitialized: boolean;
 }
 
 export const WalletContext = createContext<WalletContextType | undefined>(
@@ -34,6 +36,7 @@ export const WalletContext = createContext<WalletContextType | undefined>(
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const { addError } = useErrors();
   const { allowUnsigned } = useColdWalletUnsigned();
 
@@ -93,6 +96,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         if (customError.kind !== 'unauthorized') {
           addError(customError);
         }
+      } finally {
+        setIsInitialized(true);
       }
     };
 
@@ -110,6 +115,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         isWatchOnly,
         allowUnsigned,
         isTransactionDisabled,
+        isInitialized,
       }}
     >
       {children}

@@ -10,7 +10,7 @@ import {
 import { isValidUrl } from '@/lib/utils';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { TokenRecord } from '../bindings';
 
 interface QRCodeDialogProps {
@@ -20,6 +20,8 @@ interface QRCodeDialogProps {
   qr_code_contents: string;
   title?: string;
   description?: string;
+  /** A `sage:` link for the same request, offered as a second copy button. */
+  deepLink?: string;
 }
 
 const getImageDataUrl = async (url: string) => {
@@ -40,8 +42,10 @@ const getImageDataUrl = async (url: string) => {
 
 const QRCodeCopyButton = ({
   qr_code_contents,
+  label,
 }: {
   qr_code_contents: string;
+  label?: ReactNode;
 }) => {
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -62,7 +66,7 @@ const QRCodeCopyButton = ({
       onClick={handleCopy}
       className='w-full'
     >
-      {copySuccess ? <Trans>Copied!</Trans> : <Trans>Copy</Trans>}
+      {copySuccess ? <Trans>Copied!</Trans> : (label ?? <Trans>Copy</Trans>)}
     </Button>
   );
 };
@@ -74,6 +78,7 @@ export function QRCodeDialog({
   qr_code_contents,
   title,
   description,
+  deepLink,
 }: QRCodeDialogProps) {
   const [imageDataUrl, setImageDataUrl] = useState<string | undefined>(
     undefined,
@@ -139,8 +144,14 @@ export function QRCodeDialog({
                 qr_code_contents
               )}
             </span>
-            <div className='pt-8 w-full'>
+            <div className='pt-8 w-full space-y-2'>
               <QRCodeCopyButton qr_code_contents={qr_code_contents} />
+              {deepLink && (
+                <QRCodeCopyButton
+                  qr_code_contents={deepLink}
+                  label={<Trans>Copy Sage link</Trans>}
+                />
+              )}
             </div>
           </div>
         </div>

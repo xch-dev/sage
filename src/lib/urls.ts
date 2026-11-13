@@ -94,7 +94,7 @@ export function chiaOfferApiUrl(id: string, isTestnet: boolean): string {
       'ChiaOffer.com does not have a testnet API, but isTestnet was set to true. Proceeding with mainnet URL.',
     );
   }
-  return `https://api.chia-offer.com/get-offer.php?id=${id}`;
+  return `https://api.chia-offer.com/get-offer.php?id=${encodeURIComponent(id)}`;
 }
 
 // ── OfferCo — API ─────────────────────────────────────────────────────────

@@ -10,8 +10,19 @@ import { useCallback, useEffect } from 'react';
 import { t } from '@lingui/core/macro';
 import { useErrors } from '@/hooks/useErrors';
 import { ScanImageError, scanQrFromImage } from '@/lib/scanImage';
+import { openInAppDeepLink } from '@/hooks/useDeepLink';
+import { isDeepLink } from '@/lib/deepLink';
 
-export function useScannerOrClipboard(onScanResult: (text: string) => void) {
+export function useScannerOrClipboard(onFieldResult: (text: string) => void) {
+  // A scanned or pasted `sage:` link opens like any other link instead of
+  // landing in the field
+  const onScanResult = useCallback(
+    (text: string) => {
+      if (!openInAppDeepLink(text)) onFieldResult(text);
+    },
+    [onFieldResult],
+  );
+
   const navigate = useNavigate();
   const location = useLocation();
   const { returnValues, setReturnValue } = useNavigationStore();
@@ -23,6 +34,12 @@ export function useScannerOrClipboard(onScanResult: (text: string) => void) {
     if (!returnValue) return;
 
     if (returnValue.status === 'success' && returnValue?.data) {
+      // Every scan field on the page sees the result in the same effect pass,
+      // so only the first one opens a link, rather than opening it per field
+      const latest =
+        useNavigationStore.getState().returnValues[location.pathname];
+      if (latest?.status !== 'success' && isDeepLink(returnValue.data)) return;
+
       onScanResult(returnValue.data);
       setReturnValue(location.pathname, { status: 'completed' });
     }
