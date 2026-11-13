@@ -21,7 +21,7 @@
     "generate:types": "node ./scripts/export-types.mjs",
     "build": "pnpm run clean && pnpm run generate:types && tsup && tsc -p tsconfig.build.json",
     "dev": "pnpm run generate:types && tsup --watch",
-    "clean": "rm -rf dist"
+    "clean": "node ../../scripts/clean-package-dist.mjs"
   },
   "dependencies": {
     "sage-app-sdk": "workspace:*"
