@@ -39,7 +39,10 @@ import { toast } from 'react-toastify';
 import { commands, TakeOfferResponse, TransactionResponse } from '../bindings';
 import { formatNumber } from '../i18n';
 import { AddressLabels } from './AddressLabels';
-import { calculateTransaction } from './AdvancedTransactionSummary';
+import {
+  calculateTransaction,
+  groupSentAssets,
+} from './AdvancedTransactionSummary';
 import { CopyButton } from './CopyButton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { ReadOnlyButton } from './ReadOnlyButton';
@@ -124,69 +127,7 @@ export default function ConfirmationDialog({
     toast.success(t`JSON copied to clipboard`);
   };
 
-  // Group assets by type for combined display
-  const groupedAssets = created
-    .filter((item) => item.address !== t`Change` && item.address !== t`You`)
-    .sort((a, b) => a.sort - b.sort)
-    .reduce(
-      (acc, item) => {
-        // Extract amount and ticker from the label (e.g., "1.234 XCH")
-        const labelParts = item.label.split(' ');
-        const amount = labelParts[0];
-        const ticker = labelParts.length > 1 ? labelParts[1] : '';
-
-        // Group by badge and ticker to combine identical assets
-        const key = `${item.badge}-${ticker}`;
-        if (!acc[key]) {
-          acc[key] = {
-            badge: item.badge,
-            label: item.label,
-            originalLabel: item.label, // Store original label
-            ticker: ticker,
-            recipients: [item.address],
-            amounts: [amount],
-            totalAmount: amount,
-          };
-        } else {
-          // Add recipient if not already in the list
-          if (!acc[key].recipients.includes(item.address)) {
-            acc[key].recipients.push(item.address);
-            acc[key].amounts.push(amount);
-
-            // Update total amount
-            try {
-              const currentTotal = parseFloat(
-                acc[key].totalAmount.replace(/,/g, ''),
-              );
-              const newAmount = parseFloat(amount.replace(/,/g, ''));
-              const newTotal = currentTotal + newAmount;
-              acc[key].totalAmount = formatNumber({
-                value: newTotal,
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 12,
-              });
-              // Keep the original label format but update the total
-              acc[key].label = acc[key].originalLabel;
-            } catch {
-              // If parsing fails, keep the original amount
-            }
-          }
-        }
-        return acc;
-      },
-      {} as Record<
-        string,
-        {
-          badge: string;
-          label: string;
-          originalLabel: string;
-          ticker: string;
-          recipients: string[];
-          amounts: string[];
-          totalAmount: string;
-        }
-      >,
-    );
+  const sentAssets = groupSentAssets(created);
 
   return (
     <Dialog open={!!response} onOpenChange={reset}>
@@ -335,12 +276,12 @@ export default function ConfirmationDialog({
                       <Trans>Sending</Trans>
                     </h3>
                     <div className='space-y-4'>
-                      {Object.entries(groupedAssets).map(([key, group]) => {
-                        const groupLabel = group.label;
+                      {sentAssets.map((group) => {
+                        const groupLabel = group.total;
                         const recipientCount = group.recipients.length;
                         return (
                           <div
-                            key={key}
+                            key={group.key}
                             className='flex flex-col gap-1.5 rounded-md border p-3'
                           >
                             <div className='flex items-center justify-between'>
@@ -354,7 +295,7 @@ export default function ConfirmationDialog({
                                 />
                                 <Trans>Total:</Trans>{' '}
                                 <span className='font-medium text-foreground ml-1'>
-                                  {group.totalAmount} {group.ticker}
+                                  {group.total}
                                 </span>
                               </div>
                             </div>
@@ -417,10 +358,7 @@ export default function ConfirmationDialog({
                         );
                       })}
 
-                      {created.filter(
-                        (item) =>
-                          item.address !== t`Change` && item.address !== t`You`,
-                      ).length === 0 && (
+                      {sentAssets.length === 0 && (
                         <div className='text-sm text-muted-foreground p-3 border rounded-md'>
                           <Trans>
                             No assets being sent to external recipients.
