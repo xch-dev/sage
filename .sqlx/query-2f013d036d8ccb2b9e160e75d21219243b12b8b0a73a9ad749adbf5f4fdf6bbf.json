@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT conditions\n        FROM p2_puzzles\n        INNER JOIN p2_conditions_or_singletons\n            ON p2_conditions_or_singletons.p2_puzzle_id = p2_puzzles.id\n        WHERE p2_puzzles.hash = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "conditions",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "2f013d036d8ccb2b9e160e75d21219243b12b8b0a73a9ad749adbf5f4fdf6bbf"
+}

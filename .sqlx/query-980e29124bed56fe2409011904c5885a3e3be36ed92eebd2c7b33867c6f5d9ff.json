@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT assets.hash\n        FROM coins\n        INNER JOIN assets ON assets.id = coins.asset_id\n        WHERE coins.hash = ? AND assets.kind = 4\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "980e29124bed56fe2409011904c5885a3e3be36ed92eebd2c7b33867c6f5d9ff"
+}

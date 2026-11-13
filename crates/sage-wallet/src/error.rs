@@ -81,6 +81,9 @@ pub enum WalletError {
     #[error("Watch-only wallets can't create or sign transactions")]
     WatchOnly,
 
+    #[error("Spending from a vault isn't supported yet")]
+    VaultSpendNotSupported,
+
     #[error("Missing secret key")]
     UnknownPublicKey,
 

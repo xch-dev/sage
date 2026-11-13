@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO vault_config_members (\n                    vault_config_id, is_recovery, kind, key, is_fast_forward\n                )\n                VALUES ((SELECT id FROM vault_configs WHERE custody_hash = ?), ?, ?, ?, ?)\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "2517f9d587270bf3f299a2b033ac815ffdef60a824a65790547e1769ebe708fd"
+}

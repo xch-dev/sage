@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT hash\n        FROM p2_puzzles\n        INNER JOIN p2_singletons ON p2_singletons.p2_puzzle_id = p2_puzzles.id\n        WHERE p2_singletons.launcher_id = ?\n        ORDER BY p2_singletons.nonce ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b224ab50e6627888515dda3ad46c5f66ffe122ad36270b866b898741c68cf263"
+}
