@@ -10,9 +10,11 @@ on:
     branches:
       - '**'
 
+# Only pull request runs are cancelled by a newer push. Runs on main always finish, so they save the
+# Rust caches that pull requests restore from.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   tests:
@@ -47,6 +49,8 @@ jobs:
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Clippy
         run: cargo clippy --workspace --all-features --all-targets
@@ -74,7 +78,9 @@ jobs:
           - platform: 'macos-15'
             platform_name: MacOS
             cache_key: macos
-            build: 'pnpm tauri build --target universal-apple-darwin'
+            # Pull requests only build for Apple silicon, which takes half as long as a universal build.
+            mac_target: ${{ github.event_name == 'pull_request' && 'aarch64-apple-darwin' || 'universal-apple-darwin' }}
+            build: ${{ github.event_name == 'pull_request' && 'pnpm tauri build --target aarch64-apple-darwin' || 'pnpm tauri build --target universal-apple-darwin' }}
           - platform: 'ubuntu-22.04'
             platform_name: Linux (x64)
             cache_key: linux-x64
@@ -96,7 +102,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Add x86_64-apple-darwin
-        if: matrix.platform_name == 'MacOS'
+        if: matrix.mac_target == 'universal-apple-darwin'
         run: rustup target add x86_64-apple-darwin
 
       - name: Add aarch64-pc-windows-msvc
@@ -111,6 +117,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.cache_key }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Ubuntu dependencies
         if: startsWith(matrix.platform_name, 'Linux')
@@ -182,22 +189,22 @@ jobs:
         if: matrix.platform_name == 'MacOS'
         with:
           name: Sage.app
-          path: target/universal-apple-darwin/release/bundle/macos/*.app
+          path: target/${{ matrix.mac_target }}/release/bundle/macos/*.app
 
       - name: Upload DMG (MacOS)
         uses: actions/upload-artifact@v4
         if: matrix.platform_name == 'MacOS'
         with:
           name: Sage.dmg
-          path: target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          path: target/${{ matrix.mac_target }}/release/bundle/dmg/*.dmg
 
       - name: Release (MacOS)
         uses: softprops/action-gh-release@v2
         if: matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')
         with:
           files: |
-            target/universal-apple-darwin/release/bundle/macos/*.app
-            target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            target/${{ matrix.mac_target }}/release/bundle/macos/*.app
+            target/${{ matrix.mac_target }}/release/bundle/dmg/*.dmg
 
       # Linux x64
       - name: Package Flatpak (Linux x64)
