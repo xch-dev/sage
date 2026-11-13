@@ -16,7 +16,6 @@ use axum::{
     },
     routing::{any, get, post},
 };
-use chia_wallet_sdk::utils::Address;
 use futures_util::{Stream, stream};
 use sage::Sage;
 use sage_api::SyncEvent as ApiEvent;
@@ -97,9 +96,7 @@ async fn invoke_command(sage: &mut Sage, command: &str, args: Value) -> Result<V
         "initialize" | "quit" => Ok(Value::Null),
         "validate_address" => {
             let AddressArgs { address } = parse_args(args)?;
-            let valid = Address::decode(&address)
-                .is_ok_and(|address| address.prefix == sage.network().prefix());
-            Ok(Value::Bool(valid))
+            Ok(Value::Bool(sage.is_valid_address(&address)))
         }
         "network_config" => BridgeError::to_value(&sage.config.network),
         "wallet_config" => {

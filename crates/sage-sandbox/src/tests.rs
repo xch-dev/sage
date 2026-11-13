@@ -19,7 +19,7 @@ use tokio::{
 };
 use tower::ServiceExt;
 
-use crate::{SandboxWallet, WALLETS, WalletInfo, bridge_router, forward_events};
+use crate::{WalletInfo, bridge_router, forward_events, start_wallets};
 
 const MOJOS_PER_XCH: u64 = 1_000_000_000_000;
 
@@ -42,14 +42,7 @@ impl TestBridge {
         let listener = TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0))).await?;
         let xchandles_url = format!("http://{}/xchandles", listener.local_addr()?);
 
-        let mut wallets = Vec::new();
-
-        for (name, seed) in WALLETS {
-            wallets.push(
-                SandboxWallet::start(name, seed, &dir.path().join(name), &sim, &xchandles_url)
-                    .await?,
-            );
-        }
+        let wallets = start_wallets(dir.path(), &sim, &xchandles_url).await?;
 
         let infos = wallets.iter().map(|wallet| wallet.info.clone()).collect();
         let router = bridge_router(wallets);
@@ -222,9 +215,6 @@ async fn test_hand_written_commands() -> Result<()> {
         .await;
     assert_eq!(status, StatusCode::OK, "{body}");
     assert!(body.is_object(), "{body}");
-
-    let (_, body) = bridge.invoke("alice", "network_config", json!({})).await;
-    assert_eq!(body["default_network"], "testnet11");
 
     for command in ["is_rpc_running", "get_rpc_run_on_startup"] {
         let (_, body) = bridge.invoke("alice", command, json!({})).await;

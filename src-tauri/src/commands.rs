@@ -4,7 +4,6 @@ use crate::{
     app_state::{self, AppState, Initialized, RpcTask},
     error::Result,
 };
-use chia_wallet_sdk::utils::Address;
 use reqwest::StatusCode;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
@@ -89,11 +88,7 @@ impl_endpoints_tauri! {
 #[command]
 #[specta]
 pub async fn validate_address(state: State<'_, AppState>, address: String) -> Result<bool> {
-    let state = state.lock().await;
-    let Some(address) = Address::decode(&address).ok() else {
-        return Ok(false);
-    };
-    Ok(address.prefix == state.network().prefix())
+    Ok(state.lock().await.is_valid_address(&address))
 }
 
 #[command]
@@ -105,14 +100,7 @@ pub async fn network_config(state: State<'_, AppState>) -> Result<NetworkConfig>
 #[command]
 #[specta]
 pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Result<Option<Wallet>> {
-    Ok(state
-        .lock()
-        .await
-        .wallet_config
-        .wallets
-        .iter()
-        .find(|wallet| wallet.fingerprint == fingerprint)
-        .cloned())
+    Ok(state.lock().await.wallet_entry(fingerprint).cloned())
 }
 
 #[command]

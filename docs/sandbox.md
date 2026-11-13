@@ -23,7 +23,9 @@ seconds. When everything is ready it prints:
 ```
 
 Ctrl+C stops everything and throws the data away. If a run was killed without a chance to clean up,
-the next `pnpm sandbox` stops the leftover processes first.
+the next `pnpm sandbox` stops the leftover processes first. That cleanup is skipped on Windows. Only
+one sandbox runs per worktree: while one is running, `pnpm sandbox` says so and exits, so use the
+running one's `instance.json` instead.
 
 The run writes `.sandbox/` in the worktree root. It is gitignored:
 

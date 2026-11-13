@@ -1,7 +1,7 @@
 // Starts a throwaway Sage sandbox for this worktree: two wallets on a simulated chain, served to the
 // UI running in a normal browser. See docs/sandbox.md.
 
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import {
   createWriteStream,
   existsSync,
@@ -15,7 +15,7 @@ import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import crossSpawn from 'cross-spawn';
-import { runCommand } from './run-command.mjs';
+import { runCommand, signalProcessTree } from './run-command.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sandboxDir = join(repoRoot, '.sandbox');
@@ -52,20 +52,6 @@ function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-function killTree(pid, signal) {
-  try {
-    if (isWindows) {
-      spawnSync('taskkill', ['/pid', String(pid), '/t', '/f'], {
-        stdio: 'ignore',
-      });
-    } else {
-      process.kill(-pid, signal);
-    }
-  } catch (error) {
-    if (error?.code !== 'ESRCH') throw error;
-  }
-}
-
 /** The command line of a running process, or `null` if there isn't one with this ID. */
 function commandLine(pid) {
   try {
@@ -77,17 +63,40 @@ function commandLine(pid) {
   }
 }
 
+/** The launcher's own entry in `run.json`, so another run can tell that this one is still going. */
+const launcherMatch = 'scripts/sandbox.mjs';
+
+function isRunning({ pid, match }) {
+  return commandLine(pid)?.includes(match) ?? false;
+}
+
 /**
- * Stops whatever a previous run left behind if it was killed without cleaning up. Process IDs are
- * reused, so each one is only stopped if it's still running the command this sandbox started.
+ * Stops whatever a previous run left behind if it was killed without cleaning up, and refuses to
+ * start while another run in this worktree is still going. Process IDs are reused, so a process is
+ * only treated as the sandbox's if it's still running the command the sandbox started. There's no
+ * `ps` to check with on Windows, so leftovers are left alone there.
  */
 function stopLeftovers() {
   const run = readJson(paths.run);
 
-  for (const { pid, match } of run?.processes ?? []) {
-    // There's no `ps` to check with on Windows, so a stale process ID could be anything.
-    if (isWindows) continue;
-    if (commandLine(pid)?.includes(match)) killTree(pid, 'SIGKILL');
+  if (isWindows || !run) return;
+
+  if (run.launcher && isRunning(run.launcher)) {
+    console.error(
+      `[sandbox] A sandbox is already running in this worktree. See ${paths.instance}.`,
+    );
+    // Exit without the usual cleanup, which would remove the running sandbox's files.
+    process.exit(1);
+  }
+
+  for (const leftover of run.processes ?? []) {
+    if (!isRunning(leftover)) continue;
+
+    try {
+      process.kill(-leftover.pid, 'SIGKILL');
+    } catch (error) {
+      if (error?.code !== 'ESRCH') throw error;
+    }
   }
 
   rmSync(paths.run, { force: true });
@@ -95,6 +104,7 @@ function stopLeftovers() {
 
 function recordProcesses() {
   writeJson(paths.run, {
+    launcher: { pid: process.pid, match: launcherMatch },
     processes: children.map((child) => ({
       pid: child.pid,
       match: child.match,
@@ -102,21 +112,14 @@ function recordProcesses() {
   });
 }
 
-function isPortFree(port) {
+/** Resolves to the port that was free to listen on, or `null` if `port` is taken. */
+function listenOn(port) {
   return new Promise((resolve) => {
     const server = createServer();
-    server.once('error', () => resolve(false));
-    server.listen(port, '127.0.0.1', () => server.close(() => resolve(true)));
-  });
-}
-
-function freePort() {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const { port } = server.address();
-      server.close(() => resolve(port));
+    server.once('error', () => resolve(null));
+    server.listen(port, '127.0.0.1', () => {
+      const { port: bound } = server.address();
+      server.close(() => resolve(bound));
     });
   });
 }
@@ -129,9 +132,7 @@ async function pickPorts() {
   for (const name of ['app', 'bridge']) {
     const port = previous[name];
     ports[name] =
-      Number.isInteger(port) && (await isPortFree(port))
-        ? port
-        : await freePort();
+      (Number.isInteger(port) && (await listenOn(port))) || (await listenOn(0));
   }
 
   writeJson(paths.ports, ports);
@@ -218,14 +219,16 @@ async function stop(exitCode) {
   if (stopping) return;
   stopping = true;
 
+  const allExited = Promise.all(children.map((child) => child.exited));
+
   for (const child of children) {
-    if (!child.done) killTree(child.pid, 'SIGTERM');
+    if (!child.done) signalProcessTree(child, 'SIGTERM');
   }
 
-  await wait(1000);
+  await Promise.race([allExited, wait(2000)]);
 
   for (const child of children) {
-    if (!child.done) killTree(child.pid, 'SIGKILL');
+    if (!child.done) signalProcessTree(child, 'SIGKILL');
   }
 
   rmSync(paths.run, { force: true });
@@ -240,6 +243,8 @@ async function main() {
 
   mkdirSync(logsDir, { recursive: true });
   stopLeftovers();
+  // Claim the worktree before the build, so a second run started meanwhile sees this one.
+  recordProcesses();
   rmSync(paths.instance, { force: true });
   rmSync(paths.backendReady, { force: true });
 

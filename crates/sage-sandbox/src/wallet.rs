@@ -22,11 +22,31 @@ use tracing::info;
 
 use crate::forward_events;
 
+/// The wallets to start, with the seed byte their mnemonic is derived from.
+const WALLETS: [(&str, u8); 2] = [("alice", 1), ("bob", 2)];
+
 /// How many coins each wallet starts with, so that several spends can be pending at once.
 const STARTING_COINS: usize = 10;
 
 /// The amount of each starting coin, in mojos. This is 10 XCH.
 const STARTING_COIN_AMOUNT: u64 = 10_000_000_000_000;
+
+/// Starts every sandbox wallet, each with its data in a folder of `data_dir` named after it.
+pub async fn start_wallets(
+    data_dir: &Path,
+    sim: &PeerSimulator,
+    xchandles_url: &str,
+) -> Result<Vec<SandboxWallet>> {
+    let mut wallets = Vec::new();
+
+    for (name, seed) in WALLETS {
+        wallets.push(
+            SandboxWallet::start(name, seed, &data_dir.join(name), sim, xchandles_url).await?,
+        );
+    }
+
+    Ok(wallets)
+}
 
 /// A seeded wallet with its own Sage backend, connected to the shared simulator.
 #[derive(Debug)]

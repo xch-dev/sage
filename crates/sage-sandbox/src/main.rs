@@ -29,9 +29,6 @@ use serde::Serialize;
 use tokio::net::TcpListener;
 use tracing::info;
 
-/// The wallets to start, with the seed byte their mnemonic is derived from.
-const WALLETS: [(&str, u8); 2] = [("alice", 1), ("bob", 2)];
-
 #[derive(Debug, Parser)]
 struct Cli {
     /// Directory for the wallets' data and the ready file. Its `data` folder is wiped on startup.
@@ -77,13 +74,7 @@ async fn main() -> Result<()> {
     let xchandles_url = format!("http://127.0.0.1:{port}/xchandles");
 
     let sim = PeerSimulator::new().await?;
-    let mut wallets = Vec::new();
-
-    for (name, seed) in WALLETS {
-        wallets.push(
-            SandboxWallet::start(name, seed, &data_dir.join(name), &sim, &xchandles_url).await?,
-        );
-    }
+    let wallets = start_wallets(&data_dir, &sim, &xchandles_url).await?;
 
     let ready = Ready {
         port,
