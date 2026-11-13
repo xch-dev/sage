@@ -84,6 +84,11 @@ pub enum WalletError {
     #[error("Missing secret key")]
     UnknownPublicKey,
 
+    #[error(
+        "Refusing to sign a 32-byte AGG_SIG_UNSAFE message, since the signature would also be a valid signed message"
+    )]
+    UnsafeSignedMessage,
+
     #[error("Missing XCH coin with id {0}")]
     MissingXchCoin(Bytes32),
 
