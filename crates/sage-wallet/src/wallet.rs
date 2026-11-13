@@ -27,6 +27,8 @@ mod multi_send;
 mod nfts;
 mod offer;
 mod options;
+#[cfg(test)]
+mod selected_singleton_tests;
 mod signing;
 mod wallet_kind;
 mod xch;
@@ -274,6 +276,10 @@ impl Wallet {
                         spends.add(coin);
                     }
                 }
+                Id::Existing(_)
+                    if spends.dids.contains_key(&id)
+                        || spends.nfts.contains_key(&id)
+                        || spends.options.contains_key(&id) => {}
                 Id::Existing(asset_id) => match self.db.asset_kind(asset_id).await? {
                     Some(AssetKind::Token) => {
                         if required_amount == 0

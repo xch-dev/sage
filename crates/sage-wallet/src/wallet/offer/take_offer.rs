@@ -1,13 +1,5 @@
-use chia_wallet_sdk::{
-    driver::{
-        TransferNftById, calculate_royalty_payments, calculate_trade_price_amounts,
-        calculate_trade_prices,
-    },
-    prelude::*,
-};
-use indexmap::IndexMap;
+use chia_wallet_sdk::{driver::TransferNftById, prelude::*};
 use itertools::Itertools;
-use sage_database::NftOfferInfo;
 
 use crate::{Wallet, WalletError};
 
@@ -26,62 +18,15 @@ impl Wallet {
         let mut ctx = SpendContext::new();
         let offer = Offer::from_spend_bundle(&mut ctx, &spend_bundle)?;
 
-        let arbitrage = offer.arbitrage();
-
-        let mut requested_nfts = IndexMap::new();
-
-        for launcher_id in arbitrage.requested.nfts {
-            let Some(nft) = offer.asset_info().nft(launcher_id) else {
-                return Err(WalletError::MissingNft(launcher_id));
-            };
-
-            let metadata = ctx.serialize(&nft.metadata)?;
-
-            requested_nfts.insert(
-                launcher_id,
-                NftOfferInfo {
-                    metadata,
-                    metadata_updater_puzzle_hash: nft.metadata_updater_puzzle_hash,
-                    royalty_puzzle_hash: nft.royalty_puzzle_hash,
-                    royalty_basis_points: nft.royalty_basis_points,
-                },
-            );
-        }
-
         let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
-
-        let offer_amounts = OfferAmounts {
-            xch: arbitrage.offered.xch,
-            cats: arbitrage.offered.cats.clone(),
-        };
-
-        let requested_amounts = OfferAmounts {
-            xch: arbitrage.requested.xch,
-            cats: arbitrage.requested.cats.clone(),
-        };
-
-        let offer_royalties = requested_nfts
-            .iter()
-            .map(|(&launcher_id, nft)| {
-                RoyaltyInfo::new(
-                    launcher_id,
-                    nft.royalty_puzzle_hash,
-                    nft.royalty_basis_points,
-                )
-            })
-            .filter(|info| info.basis_points > 0)
-            .collect_vec();
-
-        let offer_trade_price_amounts =
-            calculate_trade_price_amounts(&offer_amounts, offer_royalties.len());
 
         // Make payments
         let mut actions = vec![Action::fee(fee)];
 
-        // Pay royalties
-        let royalty_payments =
-            calculate_royalty_payments(&mut ctx, &offer_trade_price_amounts, &offer_royalties)?;
-        actions.extend(royalty_payments.actions());
+        // Pay the royalty each offered NFT asserts for the trade prices its own maker committed
+        // to, including NFTs that are also requested and only pass through settlement. Nothing is
+        // pooled across makers, and NFTs that committed to no trade price are owed nothing.
+        actions.extend(offer.requested_royalty_payments(&mut ctx)?.actions());
 
         // Pay requested payments
         let mut spends = Spends::new(change_puzzle_hash);
@@ -98,9 +43,9 @@ impl Wallet {
         self.select_spends_excluding(&mut ctx, &mut spends, &actions, &offer_input_coin_ids)
             .await?;
 
-        // Reset DIDs and reveal trade prices
-        let mut royalty_nft_count = 0;
-
+        // Reset DIDs, and have each requested NFT reveal the trade prices that match the royalties
+        // its buyer already paid. Like the offered side, this comes from what the maker committed
+        // to (their gross offered amounts), never from the net arbitrage.
         for nft in spends.nfts.values().rev() {
             let nft = nft.last()?;
 
@@ -108,35 +53,16 @@ impl Wallet {
                 continue;
             }
 
-            if nft.asset.info.royalty_basis_points > 0 {
-                royalty_nft_count += 1;
-            }
-        }
-
-        let trade_prices = calculate_trade_prices(
-            &calculate_trade_price_amounts(&requested_amounts, royalty_nft_count),
-            offer.asset_info(),
-        )?;
-
-        for nft in spends.nfts.values().rev() {
-            let nft = nft.last()?;
-
-            if !nft.kind.is_conditions() {
-                continue;
-            }
+            let launcher_id = nft.asset.info.launcher_id;
 
             actions.insert(
                 0,
                 Action::update_nft(
-                    Id::Existing(nft.asset.info.launcher_id),
+                    Id::Existing(launcher_id),
                     vec![],
                     Some(TransferNftById::new(
                         None,
-                        if nft.asset.info.royalty_basis_points > 0 {
-                            trade_prices.clone()
-                        } else {
-                            vec![]
-                        },
+                        offer.requested_nft_trade_prices(launcher_id),
                     )),
                 ),
             );
