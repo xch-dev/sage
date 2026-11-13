@@ -8,7 +8,9 @@ use crate::{Amount, Asset, HandleRecord};
 pub struct TransactionSummary {
     /// The fee the transaction actually pays: the value of the coins it spends minus the
     /// value of the coins it creates. If the transaction creates more than it spends, so
-    /// isn't complete on its own, this is the declared fee instead.
+    /// isn't complete on its own, this is the declared fee instead. It's only the fee paid
+    /// if the transaction is submitted as is: when only signatures are returned, spends that
+    /// don't need them could be left out.
     pub fee: Amount,
     /// The sum of the transaction's `RESERVE_FEE` conditions. When this differs from `fee`,
     /// some of the fee isn't declared.

@@ -1,11 +1,13 @@
 use chia_wallet_sdk::prelude::*;
 
+use crate::is_placeholder_spend;
+
 pub fn sort_offer(spend_bundle: SpendBundle) -> SpendBundle {
     let mut offered_coin_spends = Vec::new();
     let mut requested_coin_spends = Vec::new();
 
     for coin_spend in spend_bundle.coin_spends {
-        if coin_spend.coin.parent_coin_info == Bytes32::default() {
+        if is_placeholder_spend(&coin_spend) {
             requested_coin_spends.push(coin_spend);
         } else {
             offered_coin_spends.push(coin_spend);

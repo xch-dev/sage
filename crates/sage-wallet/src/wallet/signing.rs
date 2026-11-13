@@ -12,7 +12,7 @@ use chia_wallet_sdk::{
 };
 use itertools::Itertools;
 
-use crate::WalletError;
+use crate::{WalletError, is_placeholder_spend};
 
 use super::Wallet;
 
@@ -124,7 +124,7 @@ fn required_signatures(
 ) -> Result<Vec<RequiredSignature>, WalletError> {
     let input_coin_spends = coin_spends
         .iter()
-        .filter(|cs| cs.coin.parent_coin_info != Bytes32::default())
+        .filter(|cs| !is_placeholder_spend(cs))
         .cloned()
         .collect_vec();
 
@@ -137,24 +137,21 @@ fn required_signatures(
 
 #[cfg(test)]
 mod tests {
-    use chia_wallet_sdk::{chia::bls::master_to_wallet_unhardened, clvm_traits::clvm_quote};
+    use chia_wallet_sdk::chia::bls::master_to_wallet_unhardened;
     use test_log::test;
 
-    use crate::TestWallet;
+    use crate::{TestWallet, quoted_spend};
 
     use super::*;
 
     /// A spend of a throwaway coin, as a dApp could supply, whose puzzle outputs a single
     /// `AGG_SIG_UNSAFE` condition.
     fn agg_sig_unsafe_spend(public_key: PublicKey, message: Bytes) -> anyhow::Result<CoinSpend> {
-        let mut ctx = SpendContext::new();
-        let puzzle = ctx.alloc(&clvm_quote!(vec![AggSigUnsafe::new(public_key, message)]))?;
-        let coin = Coin::new(Bytes32::new([1; 32]), ctx.tree_hash(puzzle).into(), 1);
-        Ok(CoinSpend::new(
-            coin,
-            ctx.serialize(&puzzle)?,
-            ctx.serialize(&NodePtr::NIL)?,
-        ))
+        quoted_spend(
+            Bytes32::new([1; 32]),
+            1,
+            Conditions::new().with(AggSigUnsafe::new(public_key, message)),
+        )
     }
 
     fn synthetic_key(alice: &TestWallet) -> SecretKey {

@@ -52,7 +52,7 @@ export function SignCoinSpendsApprovalCard({ approval, appName }: Props) {
               label='Declared fee'
               value={String(summary.declaredFee)}
             />
-            <div className='rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300'>
+            <div className='rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300'>
               The fee this transaction actually pays differs from the fee it
               declares.
             </div>

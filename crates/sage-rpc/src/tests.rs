@@ -42,8 +42,8 @@ use sage_api::{
     GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode,
     HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet, IssueCat, Login,
     LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind, OfferAmount,
-    OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction,
-    ViewCoinSpends, ViewOffer, wallet_connect::FilterUnlockedCoins,
+    OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, TakeOffer,
+    UpdateNftAction, ViewCoinSpends, ViewOffer, wallet_connect::FilterUnlockedCoins,
 };
 use sage_api_macro::impl_endpoints;
 use sage_database::{OfferStatus, XchandleRow, XchandleStatus};
@@ -396,11 +396,45 @@ async fn test_summary_fee_includes_undeclared_fee() -> Result<()> {
     assert_eq!(response.summary.declared_fee.to_u64(), Some(100));
 
     // A dApp could add a spend that leaves value behind without declaring it as a fee.
-    let mut ctx = SpendContext::new();
-    let puzzle = ctx.alloc(&clvm_quote!(Conditions::new()))?;
-    let coin = Coin::new(Bytes32::new([1; 32]), ctx.tree_hash(puzzle).into(), 250);
     let mut coin_spends = response.coin_spends;
-    coin_spends.push(CoinSpendJson {
+    coin_spends.push(quoted_spend(250, Conditions::new())?);
+
+    let summary = app
+        .view_coin_spends(ViewCoinSpends {
+            coin_spends: coin_spends.clone(),
+        })
+        .await?
+        .summary;
+
+    assert_eq!(summary.fee.to_u64(), Some(350));
+    assert_eq!(summary.declared_fee.to_u64(), Some(100));
+
+    // If the spends create more than they spend, the rest has to come from spends that
+    // aren't there, so the actual fee isn't known, and the declared fee is shown.
+    coin_spends.push(quoted_spend(
+        0,
+        Conditions::new().create_coin(Bytes32::default(), 1000, Memos::None),
+    )?);
+
+    let summary = app
+        .view_coin_spends(ViewCoinSpends { coin_spends })
+        .await?
+        .summary;
+
+    assert_eq!(summary.fee.to_u64(), Some(100));
+    assert_eq!(summary.declared_fee.to_u64(), Some(100));
+
+    Ok(())
+}
+
+/// A spend of a coin whose puzzle outputs the given conditions, as a dApp could supply. The
+/// coin doesn't have to exist.
+fn quoted_spend(amount: u64, conditions: Conditions) -> Result<CoinSpendJson> {
+    let mut ctx = SpendContext::new();
+    let puzzle = ctx.alloc(&clvm_quote!(conditions))?;
+    let coin = Coin::new(Bytes32::new([1; 32]), ctx.tree_hash(puzzle).into(), amount);
+
+    Ok(CoinSpendJson {
         coin: CoinJson {
             parent_coin_info: hex::encode(coin.parent_coin_info),
             puzzle_hash: hex::encode(coin.puzzle_hash),
@@ -408,15 +442,55 @@ async fn test_summary_fee_includes_undeclared_fee() -> Result<()> {
         },
         puzzle_reveal: hex::encode(ctx.serialize(&puzzle)?),
         solution: hex::encode(ctx.serialize(&NodePtr::NIL)?),
-    });
+    })
+}
+
+#[tokio::test]
+async fn test_taken_offer_declares_its_fee() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(1000).await?;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let offer_amount = |amount: u64| OfferAmount {
+        asset_id: None,
+        hidden_puzzle_hash: None,
+        amount: Amount::u64(amount),
+    };
+
+    let offer = app
+        .make_offer(MakeOffer {
+            confirmed_handles: Vec::new(),
+            requested_assets: vec![offer_amount(100)],
+            offered_assets: vec![offer_amount(300)],
+            fee: Amount::u64(50),
+            receive_address: None,
+            expires_at_second: None,
+            auto_import: false,
+            coin_ids: None,
+            pre_split_fee: None,
+        })
+        .await?
+        .offer;
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
 
     let summary = app
-        .view_coin_spends(ViewCoinSpends { coin_spends })
+        .take_offer(TakeOffer {
+            offer,
+            fee: Amount::u64(20),
+            auto_submit: false,
+        })
         .await?
         .summary;
 
-    assert_eq!(summary.fee.to_u64(), Some(350));
-    assert_eq!(summary.declared_fee.to_u64(), Some(100));
+    // Both sides' fees are declared, so nothing is left over without being declared.
+    assert_eq!(summary.fee.to_u64(), Some(70));
+    assert_eq!(summary.declared_fee.to_u64(), Some(70));
 
     Ok(())
 }

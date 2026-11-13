@@ -39,9 +39,7 @@ impl Transaction {
         for coin_spend in coin_spends {
             let mut outputs = Vec::new();
 
-            // Coins with no parent are placeholders, such as an offer's requested payments,
-            // rather than coins that are actually spent.
-            let is_placeholder = coin_spend.coin.parent_coin_info == Bytes32::default();
+            let is_placeholder = is_placeholder_spend(&coin_spend);
 
             if !is_placeholder {
                 spent = checked_add(spent, coin_spend.coin.amount)?;
@@ -94,6 +92,13 @@ impl Transaction {
     }
 }
 
+/// Whether this is a placeholder rather than a spend of a real coin: a coin with no parent,
+/// such as one of an offer's requested payments. Placeholders aren't signed, and the value
+/// they create isn't part of the transaction's fee.
+pub fn is_placeholder_spend(coin_spend: &CoinSpend) -> bool {
+    coin_spend.coin.parent_coin_info == Bytes32::default()
+}
+
 fn checked_add(total: u64, amount: u64) -> Result<u64, WalletError> {
     total.checked_add(amount).ok_or(WalletError::AmountOverflow)
 }
@@ -111,20 +116,12 @@ fn run_conditions(puzzle_reveal: &Program, solution: &Program) -> Result<Conditi
 
 #[cfg(test)]
 mod tests {
-    use chia_wallet_sdk::clvm_traits::clvm_quote;
+    use crate::quoted_spend;
 
     use super::*;
 
-    /// A spend of a coin whose puzzle outputs the given conditions.
     fn spend(parent_coin_info: Bytes32, amount: u64, conditions: Conditions) -> CoinSpend {
-        let mut ctx = SpendContext::new();
-        let puzzle = ctx.alloc(&clvm_quote!(conditions)).unwrap();
-        let coin = Coin::new(parent_coin_info, ctx.tree_hash(puzzle).into(), amount);
-        CoinSpend::new(
-            coin,
-            ctx.serialize(&puzzle).unwrap(),
-            ctx.serialize(&NodePtr::NIL).unwrap(),
-        )
+        quoted_spend(parent_coin_info, amount, conditions).unwrap()
     }
 
     fn parent() -> Bytes32 {
