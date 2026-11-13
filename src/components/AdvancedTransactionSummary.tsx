@@ -8,6 +8,7 @@ import { TransactionSummary, Unit } from '../bindings';
 import { formatNumber } from '../i18n';
 import { AddressLabels } from './AddressLabels';
 import { Badge } from './ui/badge';
+import { UndeclaredFeeAlert } from './UndeclaredFeeAlert';
 
 interface SpentCoin {
   sort: number;
@@ -41,6 +42,11 @@ export function AdvancedTransactionSummary({
 
   return (
     <div className='flex flex-col gap-1.5'>
+      <UndeclaredFeeAlert
+        fee={summary.fee}
+        declaredFee={summary.declared_fee}
+        unit={walletState.sync.unit}
+      />
       <div className='flex flex-col gap-2 w-full font-medium text-left text-card-foreground bg-card border border-border shadow-card p-2 rounded-lg'>
         <div className='flex items-center gap-2 text-lg'>
           <BadgeMinus className='w-6 h-6' aria-hidden='true' />

@@ -47,6 +47,7 @@ import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { UndeclaredFeeAlert } from './UndeclaredFeeAlert';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -102,15 +103,6 @@ export default function ConfirmationDialog({
     ? calculateTransaction(walletState.sync.unit, response.summary)
     : { spent: [], created: [] };
   const fee = BigNumber(response?.summary.fee || 0);
-  // The fee includes value the transaction leaves over without declaring it as a fee.
-  const isFeeUndeclared =
-    response !== null &&
-    !fee.isEqualTo(BigNumber(response.summary.declared_fee || 0));
-  const formattedFee = formatNumber({
-    value: fromMojos(fee, walletState.sync.unit.precision),
-    minimumFractionDigits: 0,
-    maximumFractionDigits: walletState.sync.unit.precision,
-  });
   const handles = response?.summary.handles ?? [];
   const isHighFee = fee.isGreaterThan(1000_000_000); // Adjust threshold as needed
 
@@ -275,19 +267,13 @@ export default function ConfirmationDialog({
                   </Alert>
                 )}
 
-                {isFeeUndeclared && (
-                  <Alert variant='warning' className='mb-3'>
-                    <AlertCircleIcon className='h-4 w-4' aria-hidden='true' />
-                    <AlertTitle>
-                      <Trans>Undeclared Fee</Trans>
-                    </AlertTitle>
-                    <AlertDescription>
-                      <Trans>
-                        This transaction pays a fee of {formattedFee} {ticker},
-                        which differs from the fee it declares.
-                      </Trans>
-                    </AlertDescription>
-                  </Alert>
+                {response && (
+                  <UndeclaredFeeAlert
+                    fee={response.summary.fee}
+                    declaredFee={response.summary.declared_fee}
+                    unit={walletState.sync.unit}
+                    className='mb-3'
+                  />
                 )}
 
                 {additionalData && (
