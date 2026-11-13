@@ -150,6 +150,12 @@ clap = "4.5.21"
 tempfile = "3.25.0"
 tower = "0.5.3"
 
+[profile.dev]
+# Line tables are enough for backtraces and panic locations, and full debuginfo makes the
+# target directory roughly 40% larger. Set `CARGO_PROFILE_DEV_DEBUG=true` to get full
+# debuginfo back when you need to inspect variables in a debugger.
+debug = "line-tables-only"
+
 [patch.crates-io]
 tauri-runtime = { git = "https://github.com/Rigidity/tauri.git", rev = "8b205bb844bd56b4ee027905d1b068553d867ebe" }
 tauri-runtime-wry = { git = "https://github.com/Rigidity/tauri.git", rev = "8b205bb844bd56b4ee027905d1b068553d867ebe" }
