@@ -20,6 +20,7 @@
     "build:frontend": "tsc -b && vite build",
     "build": "pnpm run build:builtin-apps && pnpm run build:frontend",
     "tauri:dev": "node scripts/tauri-dev.mjs",
+    "sandbox": "node scripts/sandbox.mjs",
     "tauri:build": "pnpm build && tauri build",
     "package:flatpak": "node scripts/package-flatpak.mjs",
     "check:flatpak-package": "node scripts/check-flatpak-package.mjs",

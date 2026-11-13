@@ -647,6 +647,26 @@ impl Sage {
             .find(|wallet| wallet.fingerprint == fingerprint)
     }
 
+    /// Whether `address` is an address on the current network.
+    pub fn is_valid_address(&self, address: &str) -> bool {
+        Address::decode(address).is_ok_and(|address| address.prefix == self.network().prefix())
+    }
+
+    /// Moves a wallet to `index` in the wallet list, or to the end if `index` is past it.
+    pub fn move_key(&mut self, fingerprint: u32, index: u32) -> Result<()> {
+        let old_index = self
+            .wallet_config
+            .wallets
+            .iter()
+            .position(|wallet| wallet.fingerprint == fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        let wallet = self.wallet_config.wallets.remove(old_index);
+        let index = (index as usize).min(self.wallet_config.wallets.len());
+        self.wallet_config.wallets.insert(index, wallet);
+        self.save_config()
+    }
+
     /// Whether any wallet uses the key with this fingerprint. For now that's only the BLS
     /// wallet with the same fingerprint, but other wallets will be able to use keys too, such as
     /// vaults with signers.
@@ -838,6 +858,62 @@ mod tests {
         sage.setup_config()?;
         sage.migrate_wallet_config()?;
         Ok(sage)
+    }
+
+    fn wallet_order(sage: &Sage) -> Vec<u32> {
+        sage.wallet_config
+            .wallets
+            .iter()
+            .map(|wallet| wallet.fingerprint)
+            .collect()
+    }
+
+    #[test]
+    fn move_key_reorders_and_saves_the_wallet_list() -> Result<()> {
+        let dir = TempDir::new()?;
+        let mut sage = load(dir.path())?;
+
+        for fingerprint in [1, 2, 3] {
+            sage.wallet_config.wallets.push(WalletEntry {
+                name: format!("Wallet {fingerprint}"),
+                fingerprint,
+                ..Default::default()
+            });
+        }
+
+        sage.move_key(1, 1)?;
+        assert_eq!(wallet_order(&sage), [2, 1, 3]);
+
+        // An index past the end moves the wallet to the end.
+        sage.move_key(2, 10)?;
+        assert_eq!(wallet_order(&sage), [1, 3, 2]);
+
+        assert!(matches!(
+            sage.move_key(4, 0),
+            Err(Error::UnknownFingerprint)
+        ));
+        assert_eq!(wallet_order(&sage), [1, 3, 2]);
+
+        assert_eq!(wallet_order(&load(dir.path())?), [1, 3, 2]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn is_valid_address_checks_the_network() -> Result<()> {
+        let dir = TempDir::new()?;
+        let sage = load(dir.path())?;
+        let prefix = sage.network().prefix();
+        let other = if prefix == "xch" { "txch" } else { "xch" };
+
+        let address = |prefix: &str| Address::new(Bytes32::default(), prefix.to_string()).encode();
+
+        assert!(sage.is_valid_address(&address(&prefix)?));
+        assert!(!sage.is_valid_address(&address(other)?));
+        assert!(!sage.is_valid_address("xch1bad"));
+        assert!(!sage.is_valid_address(""));
+
+        Ok(())
     }
 
     #[test]
