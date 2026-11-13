@@ -5,7 +5,7 @@ use std::{
 };
 
 use chia_wallet_sdk::prelude::*;
-use sage_database::Database;
+use sage_database::{Database, MempoolItem};
 use tokio::{
     sync::{Mutex, mpsc},
     time::sleep,
@@ -58,19 +58,12 @@ impl TransactionQueue {
 
         let mut spend_bundles = Vec::new();
 
-        let now = Instant::now();
-
-        self.last_attempts
-            .retain(|_, attempted_at| now.duration_since(*attempted_at) < RESUBMIT_INTERVAL);
-
-        let rows: Vec<_> = self
+        let due = self
             .db
             .mempool_items_to_submit(RESUBMIT_INTERVAL.as_secs().cast_signed())
-            .await?
-            .into_iter()
-            .filter(|row| !self.last_attempts.contains_key(&row.hash))
-            .take(BATCH_SIZE)
-            .collect();
+            .await?;
+
+        let rows = select_batch(due, &mut self.last_attempts, Instant::now());
 
         if rows.is_empty() {
             return Ok(());
@@ -78,10 +71,13 @@ impl TransactionQueue {
 
         for row in rows {
             let coin_spends = self.db.mempool_coin_spends(row.hash).await?;
-            spend_bundles.push(SpendBundle::new(coin_spends, row.aggregated_signature));
+            spend_bundles.push((
+                row.hash,
+                SpendBundle::new(coin_spends, row.aggregated_signature),
+            ));
         }
 
-        for spend_bundle in spend_bundles {
+        for (transaction_id, spend_bundle) in spend_bundles {
             sleep(Duration::from_secs(1)).await;
 
             let peers = self.state.lock().await.peers();
@@ -89,8 +85,6 @@ impl TransactionQueue {
             if peers.is_empty() {
                 return Ok(());
             }
-
-            let transaction_id = spend_bundle.name();
 
             info!(
                 "Submitting transaction with id {transaction_id}: {:?}",
@@ -141,5 +135,76 @@ impl TransactionQueue {
         }
 
         Ok(())
+    }
+}
+
+/// Picks up to [`BATCH_SIZE`] of the due items, in order, skipping any attempted within
+/// [`RESUBMIT_INTERVAL`] of `now`. Attempts older than that are forgotten.
+fn select_batch(
+    due: Vec<MempoolItem>,
+    last_attempts: &mut HashMap<Bytes32, Instant>,
+    now: Instant,
+) -> Vec<MempoolItem> {
+    last_attempts.retain(|_, attempted_at| now.duration_since(*attempted_at) < RESUBMIT_INTERVAL);
+
+    due.into_iter()
+        .filter(|item| !last_attempts.contains_key(&item.hash))
+        .take(BATCH_SIZE)
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn item(byte: u8) -> MempoolItem {
+        MempoolItem {
+            hash: Bytes32::new([byte; 32]),
+            aggregated_signature: Signature::default(),
+            fee: 0,
+            submitted_timestamp: None,
+        }
+    }
+
+    fn hashes(items: &[MempoolItem]) -> Vec<Bytes32> {
+        items.iter().map(|item| item.hash).collect()
+    }
+
+    #[test]
+    fn select_batch_takes_at_most_a_batch_in_order() {
+        let due: Vec<_> = (1..=5).map(item).collect();
+        let batch = select_batch(due.clone(), &mut HashMap::new(), Instant::now());
+        assert_eq!(hashes(&batch), hashes(&due[..BATCH_SIZE]));
+    }
+
+    #[test]
+    fn select_batch_handles_no_due_items() {
+        let mut last_attempts = HashMap::from([(item(1).hash, Instant::now())]);
+        assert!(select_batch(Vec::new(), &mut last_attempts, Instant::now()).is_empty());
+    }
+
+    #[test]
+    fn select_batch_skips_recent_attempts_until_the_interval_passes() {
+        let start = Instant::now();
+        let due: Vec<_> = (1..=5).map(item).collect();
+
+        // Items 1 to 3 were just tried and came back unknown, so the next batch moves on
+        // to the rest instead of trying them again.
+        let mut last_attempts: HashMap<_, _> =
+            due[..3].iter().map(|item| (item.hash, start)).collect();
+
+        let batch = select_batch(due.clone(), &mut last_attempts, start);
+        assert_eq!(hashes(&batch), hashes(&due[3..]));
+
+        let just_before = start + RESUBMIT_INTERVAL.saturating_sub(Duration::from_secs(1));
+        let batch = select_batch(due.clone(), &mut last_attempts, just_before);
+        assert_eq!(hashes(&batch), hashes(&due[3..]));
+        assert_eq!(last_attempts.len(), 3);
+
+        // Once the interval has passed, the old attempts are forgotten and items 1 to 3
+        // are due again.
+        let batch = select_batch(due.clone(), &mut last_attempts, start + RESUBMIT_INTERVAL);
+        assert_eq!(hashes(&batch), hashes(&due[..3]));
+        assert!(last_attempts.is_empty());
     }
 }
