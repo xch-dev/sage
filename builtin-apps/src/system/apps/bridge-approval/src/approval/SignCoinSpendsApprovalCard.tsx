@@ -18,6 +18,7 @@ function assetLabel(
 
 export function SignCoinSpendsApprovalCard({ approval, appName }: Props) {
   const { summary } = approval;
+  const isFeeUndeclared = String(summary.fee) !== String(summary.declaredFee);
 
   return (
     <div className='space-y-3'>
@@ -45,6 +46,18 @@ export function SignCoinSpendsApprovalCard({ approval, appName }: Props) {
       <div className='space-y-2 rounded-xl border bg-background/70 p-3'>
         <ApprovalDetailRow label='Inputs' value={summary.inputs.length} />
         <ApprovalDetailRow label='Fee' value={String(summary.fee)} />
+        {isFeeUndeclared ? (
+          <>
+            <ApprovalDetailRow
+              label='Declared fee'
+              value={String(summary.declaredFee)}
+            />
+            <div className='rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300'>
+              The fee this transaction actually pays differs from the fee it
+              declares.
+            </div>
+          </>
+        ) : null}
       </div>
 
       <div className='space-y-3'>

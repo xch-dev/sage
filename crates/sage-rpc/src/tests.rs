@@ -24,6 +24,7 @@ use chia_wallet_sdk::{
         bls::master_to_wallet_unhardened,
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
+    clvm_traits::clvm_quote,
     driver::TransferNftById,
     prelude::*,
     test::PeerSimulator,
@@ -35,14 +36,14 @@ use rand_chacha::ChaCha8Rng;
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
-    Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CoinFilterMode,
-    CoinSortMode, CreateDid, CreateTransaction, GetAreCoinsSpendable, GetCats, GetCoins,
-    GetCoinsByIds, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater, GetOffer,
-    GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode, HandleStatus,
-    HandleVerification, Id as ApiId, ImportOffer, ImportWallet, IssueCat, Login,
+    Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CoinFilterMode, CoinJson,
+    CoinSortMode, CoinSpendJson, CreateDid, CreateTransaction, GetAreCoinsSpendable, GetCats,
+    GetCoins, GetCoinsByIds, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater,
+    GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode,
+    HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet, IssueCat, Login,
     LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind, OfferAmount,
     OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction,
-    ViewOffer, wallet_connect::FilterUnlockedCoins,
+    ViewCoinSpends, ViewOffer, wallet_connect::FilterUnlockedCoins,
 };
 use sage_api_macro::impl_endpoints;
 use sage_database::{OfferStatus, XchandleRow, XchandleStatus};
@@ -363,6 +364,59 @@ async fn test_send_xch() -> Result<()> {
         .selectable_balance
         .to_u64();
     assert_eq!(balance, Some(2000));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_summary_fee_includes_undeclared_fee() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let address = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
+
+    let response = app
+        .send_xch(SendXch {
+            confirmed_handles: Vec::new(),
+            address,
+            amount: Amount::u64(400),
+            fee: Amount::u64(100),
+            memos: vec![],
+            clawback: None,
+            auto_submit: false,
+            coin_ids: None,
+        })
+        .await?;
+
+    // A transaction Sage builds declares its whole fee.
+    assert_eq!(response.summary.fee.to_u64(), Some(100));
+    assert_eq!(response.summary.declared_fee.to_u64(), Some(100));
+
+    // A dApp could add a spend that leaves value behind without declaring it as a fee.
+    let mut ctx = SpendContext::new();
+    let puzzle = ctx.alloc(&clvm_quote!(Conditions::new()))?;
+    let coin = Coin::new(Bytes32::new([1; 32]), ctx.tree_hash(puzzle).into(), 250);
+    let mut coin_spends = response.coin_spends;
+    coin_spends.push(CoinSpendJson {
+        coin: CoinJson {
+            parent_coin_info: hex::encode(coin.parent_coin_info),
+            puzzle_hash: hex::encode(coin.puzzle_hash),
+            amount: Amount::u64(coin.amount),
+        },
+        puzzle_reveal: hex::encode(ctx.serialize(&puzzle)?),
+        solution: hex::encode(ctx.serialize(&NodePtr::NIL)?),
+    });
+
+    let summary = app
+        .view_coin_spends(ViewCoinSpends { coin_spends })
+        .await?
+        .summary;
+
+    assert_eq!(summary.fee.to_u64(), Some(350));
+    assert_eq!(summary.declared_fee.to_u64(), Some(100));
 
     Ok(())
 }

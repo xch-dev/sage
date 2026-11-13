@@ -72,6 +72,9 @@ pub enum WalletError {
     #[error("Insufficient funds")]
     InsufficientFunds,
 
+    #[error("The transaction's amounts add up to more than the maximum amount")]
+    AmountOverflow,
+
     #[error("Insufficient derivations")]
     InsufficientDerivations,
 

@@ -33,6 +33,8 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let transaction = Transaction::from_coin_spends(coin_spends)?;
+        let declared_fee = transaction.fee;
+        let fee = transaction.actual_fee.unwrap_or(declared_fee);
 
         let input_coins: HashMap<Bytes32, Coin> = transaction
             .inputs
@@ -145,7 +147,8 @@ impl Sage {
         }
 
         Ok(TransactionSummary {
-            fee: Amount::u64(transaction.fee),
+            fee: Amount::u64(fee),
+            declared_fee: Amount::u64(declared_fee),
             inputs,
             handles: cache.handles,
         })
