@@ -84,7 +84,7 @@ The accepted risks listed under Settled are not open; don't report them, but do 
 
 ## Checklist: tests
 
-- Is there a test for each behaviour the change adds, including the cases where nothing should happen? Endpoints go in `crates/sage-rpc/src/tests/` or inline tests in `crates/sage/src`, wallet changes in `sage-wallet` (the peer simulator in `src/test.rs`), queries and migrations in `sage-database` (`src/tests.rs`), bridge and app logic inline in `sage-apps`, frontend logic in a `*.test.ts(x)` next to the file.
+- Is there a test for each behaviour the change adds, including the cases where nothing should happen? Endpoints go in `crates/sage-rpc/src/tests/` or inline tests in `crates/sage/src`, wallet changes in `sage-wallet` (the peer simulator in `src/test.rs`), queries and migrations in `sage-database` (`src/tests.rs`), bridge and app logic inline in `sage-apps`, the SDK CLI in `packages/sage-app-sdk/test/`, frontend logic in a `*.test.ts(x)` next to the file.
 - Does each test actually exercise what it's named for, and assert on the result (balances, coin states, rows, rendered text) rather than only that nothing errored?
 - Would each test fail if the behaviour it covers regressed? A test that passes either way is worth a finding.
 - Bug fixes: is there a regression test that fails without the fix?

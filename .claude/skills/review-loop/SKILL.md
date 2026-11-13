@@ -20,7 +20,7 @@ Read the source first: `gh issue view <n> --comments` or `gh pr view <n> --comme
 **Follow-ups to an open PR.** Do what the user asked; if they didn't say, continue on their own `rigidity/` branches and stack on anyone else's. Base is set so that reviewers see only the new work.
 
 - _Continuing on the PR's branch_ (`gh pr checkout <n>`): keep its branch name, set Base to the commit the follow-up starts from, and push to that PR in section 7.
-- _Stacking on top_: if the PR is already in a stack, `gh stack checkout <n>`; otherwise `gh pr checkout <n>` first, so its branch exists locally at the PR's head, then adopt it with `gh stack init <pr-branch>`. Then `gh stack add rigidity/<slug>`. Base is the parent branch, which stays right after a restack. The new branch gets its own PR in section 7, linking the original. A PR from a fork can't be stacked this way; continue on a new branch from its head, open a PR against the original PR's base that links it, and say so in the report.
+- _Stacking on top_: if the PR is already in a stack, `gh stack checkout <pr-branch>` (a bare number is tried as a stack number first); otherwise `gh pr checkout <n>` first, so its branch exists locally at the PR's head, then adopt it with `gh stack init <pr-branch>`. Then `gh stack add rigidity/<slug>`. Base is the parent branch, which stays right after a restack. The new branch gets its own PR in section 7, linking the original. A PR from a fork can't be stacked this way; continue on a new branch from its head, open a PR against the original PR's base that links it, and say so in the report.
 
 The state file is the memory of the loop. Reviewers start with fresh context, and after a few rounds the implementer's own context is long, so without it later rounds re-raise settled points or undo earlier decisions. Write it to the session scratchpad (not the repo), at `<scratchpad>/review-loop/<branch-slug>.md`. Every review round reads it, and every fix round updates it.
 
@@ -60,13 +60,13 @@ Work on a `rigidity/` branch (lowercase; never `Rigidity/`), unless you're conti
 - **Database**: queries in `crates/sage-database/src/tables/`. Schema changes go in a new file under `migrations/`; never edit an existing migration, since wallets in the field have already run it. Migration and backfill tests go in `crates/sage-database/src/tests.rs`. `cargo sqlx prepare` needs a `.env` in the worktree root with `DATABASE_URL=sqlite://./test.sqlite` and a fresh `sqlx db reset -y` (see the README); a new worktree has no `.env`.
 - **Wallet and sync**: `crates/sage-wallet` (`wallet/` for spends, `sync_manager/` and `queues/` for syncing). Tests use the peer simulator in `crates/sage-wallet/src/test.rs`; follow the neighbouring tests rather than building a new harness.
 - **Frontend**: pages in `src/pages`, shared pieces in `src/components`, `src/hooks` and `src/lib`, WalletConnect in `src/walletconnect`. Unit tests sit next to the file as `*.test.ts(x)` and run with Vitest. Wrap new strings with Lingui as `.claude/rules/translations.md` says. Run `pnpm install --frozen-lockfile` before the first frontend command; a new worktree's `node_modules` may be empty or stale.
-- **Sage Apps**: the bridge, manifests and permissions in `crates/sage-apps` (tests inline), the SDKs in `packages/` and the built-in apps in `builtin-apps/`. `pnpm generate:types` refreshes the gitignored SDK types for local type checks; `pnpm build` regenerates them itself.
+- **Sage Apps**: the bridge, manifests and permissions in `crates/sage-apps` (tests inline), the SDKs in `packages/` (the SDK CLI's tests are in `packages/sage-app-sdk/test/`, run with `pnpm --filter sage-app-sdk test`) and the built-in apps in `builtin-apps/`. `pnpm generate:types` refreshes the gitignored SDK types for local type checks; `pnpm build` regenerates them itself.
 
 Follow `.claude/rules/*.md` (imports, generated artifacts, translations, validation). Use what's already there before writing helpers: look for an existing query, endpoint, hook or component that does most of the job, and follow the neighbouring code. A feature that exists on several surfaces (the Tauri UI, RPC and `sage-cli`, WalletConnect, the Sage Apps bridge) usually needs the change on each.
 
 Before each review round, including the first, regenerate what the change affects, check `git status --short`, and commit the output with the change that caused it, so reviewers see the real diff:
 
-- a `sage-api` type or Tauri command: `pnpm generate:bindings` (`src/bindings.ts`)
+- a `sage-api` type, an `endpoints*.json` entry or a Tauri command: `pnpm generate:bindings` (`src/bindings.ts`)
 - a `query!` or a migration: `cargo sqlx prepare --workspace` (`.sqlx/`)
 - a Sage Apps bridge method or capability: `pnpm generate:app-docs` (`docs/generated/`)
 
@@ -121,7 +121,7 @@ pnpm install --frozen-lockfile
 pnpm prettier:check
 ```
 
-If any Rust input changed (`*.rs`, `Cargo.toml`, `Cargo.lock`, `migrations/`, `.sqlx/`). `SQLX_OFFLINE=true` makes them read the committed `.sqlx/` as CI does, rather than a local `.env` database:
+If anything the Rust build reads changed: `Cargo.toml`, `Cargo.lock`, `migrations/`, `.sqlx/`, or any file under `crates/`, `src-tauri/` (other than `gen/`) or `tauri-plugin-sage/`, since JSON and TOML there are compiled in with `include_str!`. `SQLX_OFFLINE=true` stops a local `.env` database from standing in for `.sqlx/` in crates that recompile, but it doesn't rebuild crates already compiled online, so `cargo sqlx prepare --workspace --check` below is what proves `.sqlx/` is current:
 
 ```bash
 SQLX_OFFLINE=true cargo clippy --workspace --all-features --all-targets -- -D warnings
@@ -141,6 +141,7 @@ pnpm test:unit
 - If you changed a `query!` or a migration, check that `cargo sqlx prepare --workspace --check` passes, so the committed `.sqlx/` matches.
 - If you changed a type in `sage-api` or a Tauri command, check that `pnpm generate:bindings` leaves `src/bindings.ts` unchanged after your commit.
 - If you changed the Sage Apps bridge, check that `pnpm generate:app-docs` leaves `docs/generated/` unchanged.
+- If you changed `packages/sage-app-sdk`, run `pnpm --filter sage-app-sdk test`; CI doesn't.
 - CI's desktop builds also run `pnpm build` (SDKs, builtin apps and the frontend; mobile runs `build:frontend`). Run it if you changed `crates/sage-apps`, `packages/`, `builtin-apps/` or the build scripts, and say in the report if you didn't.
 - Local clippy only compiles for the host platform. If you changed `cfg(mobile)`, `cfg(not(mobile))` or other platform-gated code, say in the report that it wasn't checked locally.
 - If these checks led to changes beyond formatting, say so in the report, since no reviewer saw them.
