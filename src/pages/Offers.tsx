@@ -1,4 +1,6 @@
+import { OfferRecord } from '@/bindings';
 import Container from '@/components/Container';
+import { DuplicateOfferDialog } from '@/components/dialogs/DuplicateOfferDialog';
 import { NfcScanDialog } from '@/components/dialogs/NfcScanDialog';
 import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
@@ -41,6 +43,7 @@ export function Offers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isNfcAvailable, setIsNfcAvailable] = useState(false);
   const [showScanUi, setShowScanUi] = useState(false);
+  const [duplicating, setDuplicating] = useState<OfferRecord | null>(null);
 
   const [params, setParams] = useOfferParams();
   const { offers, total, isLoading, loaded, isPastEnd, isCurrent, refresh } =
@@ -342,6 +345,7 @@ export function Offers() {
                     record={record}
                     key={record.offer_id}
                     refresh={refresh}
+                    onDuplicate={setDuplicating}
                     selectionState={selectionStateFor(record.offer_id)}
                     size={params.cardSize}
                   />
@@ -353,6 +357,16 @@ export function Offers() {
       </Container>
 
       <NfcScanDialog open={showScanUi} onOpenChange={setShowScanUi} />
+
+      {duplicating && (
+        <DuplicateOfferDialog
+          record={duplicating}
+          onClose={() => {
+            setDuplicating(null);
+            refresh();
+          }}
+        />
+      )}
 
       {selected.length > 0 && (
         <OffersMultiSelectActions

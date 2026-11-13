@@ -15,11 +15,12 @@ import { useErrors } from '@/hooks/useErrors';
 import { useNowSeconds } from '@/hooks/useNowSeconds';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { expirationError, futureExpirationTimestamp } from '@/lib/expiration';
+import { canCopyOffer } from '@/lib/offers';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { HandCoins, Handshake } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export function MakeOffer() {
@@ -46,6 +47,8 @@ export function MakeOffer() {
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
     Record<string, boolean>
   >({});
+  const [copies, setCopies] = useState(1);
+  const confirmedRef = useRef(false);
 
   const makeAction = () => {
     if (state.expiration !== null) {
@@ -111,14 +114,22 @@ export function MakeOffer() {
   };
 
   const handleConfirm = () => {
+    confirmedRef.current = true;
     setIsProgressDialogOpen(true);
   };
 
   const handleProgressDialogClose = (isOpen: boolean) => {
     if (!isOpen) {
       setIsProgressDialogOpen(false);
+      // Creation failed or was cancelled; start a retry from one copy so it
+      // can't add to offers that were already made.
+      setCopies(1);
     }
   };
+
+  // Copies can't be pre-split, since the change from one copy's split can't
+  // fund the next until it's confirmed.
+  const offerCopies = canCopyOffer(state) && !isPreSplitting ? copies : 1;
 
   const invalid =
     state.expiration !== null &&
@@ -301,7 +312,11 @@ export function MakeOffer() {
 
         <MakeOfferConfirmationDialog
           open={isConfirmDialogOpen}
-          onOpenChange={setIsConfirmDialogOpen}
+          onOpenChange={(open) => {
+            setIsConfirmDialogOpen(open);
+            if (!open && !confirmedRef.current) setCopies(1);
+            confirmedRef.current = false;
+          }}
           onConfirm={handleConfirm}
           offerState={state}
           splitNftOffers={splitNftOffers}
@@ -309,6 +324,8 @@ export function MakeOffer() {
           preSplitFee={isPreSplitting ? preSplitFee : null}
           enabledMarketplaces={enabledMarketplaces}
           setEnabledMarketplaces={setEnabledMarketplaces}
+          copies={offerCopies}
+          onCopiesChange={setCopies}
         />
 
         <OfferCreationProgressDialog
@@ -318,6 +335,7 @@ export function MakeOffer() {
           splitNftOffers={splitNftOffers}
           preSplitFee={isPreSplitting ? preSplitFee : null}
           enabledMarketplaces={enabledMarketplaces}
+          copies={offerCopies}
           clearOfferState={() => {
             setState(null);
             navigate('/offers', { replace: true });

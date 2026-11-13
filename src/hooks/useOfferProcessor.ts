@@ -1,4 +1,5 @@
 import { commands, MakeOfferResponse, OfferAmount } from '@/bindings';
+import { CustomError } from '@/contexts/ErrorContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { futureExpirationTimestamp } from '@/lib/expiration';
 import { toMojos } from '@/lib/utils';
@@ -16,10 +17,14 @@ export interface CreatedOffer {
 interface UseOfferProcessorProps {
   offerState: OfferState;
   splitNftOffers: boolean;
+  copies?: number; // Identical offers to create when not splitting NFTs
   /** The fee for splitting the offered coins to the exact amounts, if they should be. */
   preSplitFee: string | null;
   onProcessingEnd?: () => void; // Callback for when offer processing (success or fail) is done
   onProgress?: (index: number) => void; // Callback for progress updates
+  // Called instead of throwing when a copy fails after others were created,
+  // since those are already saved in the wallet and can still be used.
+  onPartialFailure?: (error: CustomError) => void;
 }
 
 interface UseOfferProcessorReturn {
@@ -33,9 +38,11 @@ interface UseOfferProcessorReturn {
 export function useOfferProcessor({
   offerState,
   splitNftOffers,
+  copies = 1,
   preSplitFee,
   onProcessingEnd,
   onProgress,
+  onPartialFailure,
 }: UseOfferProcessorProps): UseOfferProcessorReturn {
   const walletState = useWalletState();
   const { promptIfEnabled } = useBiometric();
@@ -143,7 +150,7 @@ export function useOfferProcessor({
           setCreatedOffers(newOffers);
         }
       } else {
-        onProgress?.(0);
+        const newOffers: CreatedOffer[] = [];
 
         const offeredAssets: OfferAmount[] = [
           ...offeredTokens,
@@ -169,15 +176,39 @@ export function useOfferProcessor({
           })),
         ];
 
-        const data = await commands.makeOffer({
-          offered_assets: offeredAssets,
-          requested_assets: requestedAssets,
-          fee,
-          expires_at_second: expiresAtSecond,
-          pre_split_fee,
-        });
+        for (let copyIndex = 0; copyIndex < copies; copyIndex++) {
+          if (isCancelled.current) break;
+
+          onProgress?.(copyIndex);
+
+          let data;
+          try {
+            data = await commands.makeOffer({
+              offered_assets: offeredAssets,
+              requested_assets: requestedAssets,
+              fee,
+              expires_at_second: expiresAtSecond,
+              pre_split_fee,
+            });
+          } catch (err) {
+            if (newOffers.length === 0 || !onPartialFailure) throw err;
+
+            const created = newOffers.length;
+            const reason = (err as CustomError)?.reason ?? String(err);
+            onPartialFailure({
+              kind: (err as CustomError)?.kind ?? 'invalid',
+              reason: t`Created ${created} of ${copies} offers, then failed: ${reason}`,
+            });
+            break;
+          }
+
+          if (!isCancelled.current) {
+            newOffers.push(createdOffer(data));
+          }
+        }
+
         if (!isCancelled.current) {
-          setCreatedOffers([createdOffer(data)]);
+          setCreatedOffers(newOffers);
         }
       }
     } catch (err) {
@@ -193,11 +224,13 @@ export function useOfferProcessor({
   }, [
     offerState,
     splitNftOffers,
+    copies,
     preSplitFee,
     walletState.sync.unit.precision,
     promptIfEnabled,
     onProcessingEnd,
     onProgress,
+    onPartialFailure,
   ]);
 
   return {

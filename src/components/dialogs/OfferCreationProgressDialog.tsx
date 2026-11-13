@@ -30,6 +30,7 @@ interface OfferCreationProgressDialogProps {
   preSplitFee: string | null;
   enabledMarketplaces?: Record<string, boolean>;
   clearOfferState: (offers: string[]) => void;
+  copies?: number;
 }
 
 export function OfferCreationProgressDialog({
@@ -40,6 +41,7 @@ export function OfferCreationProgressDialog({
   preSplitFee,
   enabledMarketplaces,
   clearOfferState,
+  copies = 1,
 }: OfferCreationProgressDialogProps) {
   const { addError } = useErrors();
   const { wallet } = useWallet();
@@ -54,9 +56,10 @@ export function OfferCreationProgressDialog({
   );
   const [currentMarketplaceIndex, setCurrentMarketplaceIndex] = useState(0);
   const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
-  const totalOffers = splitNftOffers
-    ? offerState.offered.nfts.filter((n) => n).length
-    : 1;
+  const numOfferedNfts = offerState.offered.nfts.filter((n) => n).length;
+  // Matches how useOfferProcessor decides whether to split.
+  const totalOffers =
+    splitNftOffers && numOfferedNfts > 1 ? numOfferedNfts : copies;
 
   const {
     createdOffers,
@@ -67,6 +70,7 @@ export function OfferCreationProgressDialog({
   } = useOfferProcessor({
     offerState,
     splitNftOffers,
+    copies,
     preSplitFee,
     onProcessingEnd: () => {
       // Don't auto-close on success
@@ -74,6 +78,9 @@ export function OfferCreationProgressDialog({
     onProgress: (index: number) => {
       setCurrentOfferIndex(index);
     },
+    // The offers made before the failure still go on to be uploaded and
+    // shown as created.
+    onPartialFailure: addError,
   });
 
   // Handle uploads when offers are created
@@ -259,6 +266,10 @@ export function OfferCreationProgressDialog({
   };
 
   const createdOfferCount = createdOffers.length;
+  // Offers still waiting on their coin split are uploaded later instead.
+  const uploadingOfferCount = createdOffers.filter(
+    (createdOffer) => !createdOffer.isPending,
+  ).length;
 
   const uploadedToMarketplaces = Object.values(enabledMarketplaces ?? {}).some(
     Boolean,
@@ -267,9 +278,10 @@ export function OfferCreationProgressDialog({
   // Each combination is spelled out as a whole sentence so translators get
   // complete phrases rather than English fragments stitched together.
   const getWaitMessage = () => {
+    const multipleOffers = splitNftOffers || copies > 1;
     if (currentStep === 'creating') {
       if (uploadedToMarketplaces) {
-        return splitNftOffers ? (
+        return multipleOffers ? (
           <Trans>
             Please wait while your offers are being created and uploaded...
           </Trans>
@@ -279,13 +291,13 @@ export function OfferCreationProgressDialog({
           </Trans>
         );
       }
-      return splitNftOffers ? (
+      return multipleOffers ? (
         <Trans>Please wait while your offers are being created...</Trans>
       ) : (
         <Trans>Please wait while your offer is being created...</Trans>
       );
     }
-    return splitNftOffers ? (
+    return multipleOffers ? (
       <Trans>Please wait while your offers are being uploaded...</Trans>
     ) : (
       <Trans>Please wait while your offer is being uploaded...</Trans>
@@ -346,7 +358,8 @@ export function OfferCreationProgressDialog({
         const marketplaceName = currentMarketplace.name;
         return (
           <Trans>
-            Uploading offer {offerNumber} of {totalOffers} to {marketplaceName}
+            Uploading offer {offerNumber} of {uploadingOfferCount} to{' '}
+            {marketplaceName}
             ...
           </Trans>
         );
@@ -367,12 +380,12 @@ export function OfferCreationProgressDialog({
                   aria-hidden='true'
                 />
                 {currentStep === 'creating' ? (
-                  splitNftOffers ? (
+                  splitNftOffers || copies > 1 ? (
                     <Trans>Creating Offers</Trans>
                   ) : (
                     <Trans>Creating Offer</Trans>
                   )
-                ) : splitNftOffers ? (
+                ) : splitNftOffers || copies > 1 ? (
                   <Trans>Uploading Offers</Trans>
                 ) : (
                   <Trans>Uploading Offer</Trans>
