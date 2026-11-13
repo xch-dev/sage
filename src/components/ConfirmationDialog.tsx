@@ -127,11 +127,7 @@ export default function ConfirmationDialog({
     toast.success(t`JSON copied to clipboard`);
   };
 
-  const sentAssets = groupSentAssets(
-    created.filter(
-      (item) => item.address !== t`Change` && item.address !== t`You`,
-    ),
-  );
+  const sentAssets = groupSentAssets(created);
 
   return (
     <Dialog open={!!response} onOpenChange={reset}>

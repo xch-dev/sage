@@ -4,7 +4,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { BadgeMinus, BadgePlus, BoxIcon, ForwardIcon } from 'lucide-react';
-import { TransactionSummary, Unit } from '../bindings';
+import { TransactionOutput, TransactionSummary, Unit } from '../bindings';
 import { formatNumber } from '../i18n';
 import { AddressLabels } from './AddressLabels';
 import { Badge } from './ui/badge';
@@ -21,6 +21,8 @@ interface CreatedCoin {
   badge: string;
   label: string;
   address: string;
+  /** Whether the output comes back to this wallet (change, or a self-send). */
+  toSelf: boolean;
   /** Identifies the asset: XCH, a CAT's asset ID, or a singleton's ID. */
   assetKey: string;
   /** Raw amount and display unit, for fungible assets (XCH and CATs) only. */
@@ -187,11 +189,7 @@ export function calculateTransaction(
           label: formatFungibleAmount(fungible),
           assetKey: 'xch',
           fungible,
-          address: output.burning
-            ? t`Permanently Burned`
-            : output.receiving
-              ? t`You`
-              : output.address,
+          ...outputRecipient(output),
           sort: 1,
         });
       }
@@ -229,11 +227,7 @@ export function calculateTransaction(
           label: formatFungibleAmount(fungible),
           assetKey: `cat:${input.asset.asset_id}`,
           fungible,
-          address: output.burning
-            ? t`Permanently Burned`
-            : output.receiving
-              ? t`You`
-              : output.address,
+          ...outputRecipient(output),
           sort: 2,
         });
       }
@@ -259,11 +253,7 @@ export function calculateTransaction(
             badge: t`Profile`,
             label: input.asset.name ?? t`Unnamed`,
             assetKey: `did:${input.asset.asset_id ?? input.coin_id}`,
-            address: output.burning
-              ? t`Permanently Burned`
-              : output.receiving
-                ? t`You`
-                : output.address,
+            ...outputRecipient(output),
             sort: 3,
           });
         }
@@ -290,11 +280,7 @@ export function calculateTransaction(
             badge: 'NFT',
             label: input.asset.name ?? t`Unknown`,
             assetKey: `nft:${input.asset.asset_id ?? input.coin_id}`,
-            address: output.burning
-              ? t`Permanently Burned`
-              : output.receiving
-                ? t`You`
-                : output.address,
+            ...outputRecipient(output),
             sort: 4,
           });
         }
@@ -321,11 +307,7 @@ export function calculateTransaction(
             badge: 'Option',
             label: input.asset.name ?? t`Untitled`,
             assetKey: `option:${input.asset.asset_id ?? input.coin_id}`,
-            address: output.burning
-              ? t`Permanently Burned`
-              : output.receiving
-                ? t`You`
-                : output.address,
+            ...outputRecipient(output),
             sort: 5,
           });
         }
@@ -333,6 +315,19 @@ export function calculateTransaction(
     }
   }
   return { spent, created };
+}
+
+function outputRecipient(output: TransactionOutput) {
+  const toSelf = !output.burning && output.receiving;
+
+  return {
+    address: output.burning
+      ? t`Permanently Burned`
+      : toSelf
+        ? t`You`
+        : output.address,
+    toSelf,
+  };
 }
 
 function formatFungibleAmount({ mojos, precision, ticker }: FungibleAmount) {
@@ -353,37 +348,44 @@ export interface SentAssetGroup {
 }
 
 /**
- * Groups created coins by asset for the confirmation summary. Fungible totals
+ * Groups the coins sent to other recipients by asset for the confirmation
+ * summary, leaving out outputs that come back to this wallet. Fungible totals
  * are summed from the raw amounts of every output, including repeated outputs
  * to the same address, and only the final total is formatted.
  */
 export function groupSentAssets(created: CreatedCoin[]): SentAssetGroup[] {
   const groups = new Map<
     string,
-    { coin: CreatedCoin; mojos: BigNumber; recipients: Set<string> }
+    { coin: CreatedCoin; total?: FungibleAmount; recipients: Set<string> }
   >();
 
   for (const coin of [...created].sort((a, b) => a.sort - b.sort)) {
+    if (coin.toSelf) continue;
+
     const group = groups.get(coin.assetKey);
 
-    if (group) {
-      group.recipients.add(coin.address);
-      if (coin.fungible) group.mojos = group.mojos.plus(coin.fungible.mojos);
-    } else {
+    if (!group) {
       groups.set(coin.assetKey, {
         coin,
-        mojos: coin.fungible?.mojos ?? BigNumber(0),
+        total: coin.fungible,
         recipients: new Set([coin.address]),
       });
+      continue;
+    }
+
+    group.recipients.add(coin.address);
+    if (group.total && coin.fungible) {
+      group.total = {
+        ...group.total,
+        mojos: group.total.mojos.plus(coin.fungible.mojos),
+      };
     }
   }
 
-  return [...groups].map(([key, { coin, mojos, recipients }]) => ({
+  return [...groups].map(([key, { coin, total, recipients }]) => ({
     key,
     badge: coin.badge,
-    total: coin.fungible
-      ? formatFungibleAmount({ ...coin.fungible, mojos })
-      : coin.label,
+    total: total ? formatFungibleAmount(total) : coin.label,
     recipients: [...recipients],
   }));
 }

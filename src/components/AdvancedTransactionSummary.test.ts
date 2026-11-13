@@ -129,6 +129,52 @@ describe('groupSentAssets', () => {
     ]);
   });
 
+  it('leaves out outputs that come back to this wallet', () => {
+    useLocale('en-US');
+
+    const groups = sentGroups([
+      spend(asset, [
+        send('alice', '1000000000000'),
+        { ...send('me', '4000000000000'), receiving: true },
+      ]),
+      spend(cat('a1'), [{ ...send('me', 1000), receiving: true }]),
+    ]);
+
+    expect(groups).toEqual([
+      { badge: 'Chia', total: '1 XCH', recipients: ['alice'] },
+    ]);
+  });
+
+  it('keeps burned outputs even when they are marked as receiving', () => {
+    useLocale('en-US');
+
+    const groups = sentGroups([
+      spend(asset, [
+        { ...send('me', '1000000000000'), receiving: true, burning: true },
+      ]),
+    ]);
+
+    expect(groups).toEqual([
+      { badge: 'Chia', total: '1 XCH', recipients: ['Permanently Burned'] },
+    ]);
+  });
+
+  it('lists XCH before CATs and CATs before NFTs', () => {
+    useLocale('en-US');
+
+    const groups = sentGroups([
+      spend({ asset_id: 'n1', name: 'Art', kind: 'nft' }, [send('alice', 1)]),
+      spend(cat('a1'), [send('alice', 1000)]),
+      spend(asset, [send('alice', '1000000000000')]),
+    ]);
+
+    expect(groups.map((group) => group.badge)).toEqual([
+      'Chia',
+      'CAT Token',
+      'NFT',
+    ]);
+  });
+
   it('sums XCH amounts without floating point error', () => {
     useLocale('en-US');
 
