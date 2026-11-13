@@ -24,6 +24,7 @@ use chia_wallet_sdk::{
         bls::master_to_wallet_unhardened,
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
+    clvm_traits::clvm_quote,
     driver::TransferNftById,
     prelude::*,
     test::PeerSimulator,
@@ -35,14 +36,14 @@ use rand_chacha::ChaCha8Rng;
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
-    Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CoinFilterMode,
-    CoinSortMode, CreateDid, CreateTransaction, GetAreCoinsSpendable, GetCats, GetCoins,
-    GetCoinsByIds, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater, GetOffer,
-    GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode, HandleStatus,
-    HandleVerification, Id as ApiId, ImportOffer, ImportWallet, IssueCat, Login,
+    Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CoinFilterMode, CoinJson,
+    CoinSortMode, CoinSpendJson, CreateDid, CreateTransaction, GetAreCoinsSpendable, GetCats,
+    GetCoins, GetCoinsByIds, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater,
+    GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode,
+    HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet, IssueCat, Login,
     LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind, OfferAmount,
-    OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, UpdateNftAction,
-    ViewOffer, wallet_connect::FilterUnlockedCoins,
+    OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, TakeOffer,
+    UpdateNftAction, ViewCoinSpends, ViewOffer, wallet_connect::FilterUnlockedCoins,
 };
 use sage_api_macro::impl_endpoints;
 use sage_database::{OfferStatus, XchandleRow, XchandleStatus};
@@ -363,6 +364,145 @@ async fn test_send_xch() -> Result<()> {
         .selectable_balance
         .to_u64();
     assert_eq!(balance, Some(2000));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_summary_fee_includes_undeclared_fee() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let address = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
+
+    let response = app
+        .send_xch(SendXch {
+            confirmed_handles: Vec::new(),
+            address,
+            amount: Amount::u64(400),
+            fee: Amount::u64(100),
+            memos: vec![],
+            clawback: None,
+            auto_submit: false,
+            coin_ids: None,
+        })
+        .await?;
+
+    // A transaction Sage builds declares its whole fee.
+    assert_eq!(response.summary.fee.to_u64(), Some(100));
+    assert_eq!(response.summary.declared_fee.to_u64(), Some(100));
+
+    // A dApp could add a spend that leaves value behind without declaring it as a fee.
+    let mut coin_spends = response.coin_spends.clone();
+    coin_spends.push(quoted_spend(250, Conditions::new())?);
+
+    let summary = app
+        .view_coin_spends(ViewCoinSpends {
+            coin_spends: coin_spends.clone(),
+        })
+        .await?
+        .summary;
+
+    assert_eq!(summary.fee.to_u64(), Some(350));
+    assert_eq!(summary.declared_fee.to_u64(), Some(100));
+
+    // If the spends create more than they spend, the rest has to come from spends that
+    // aren't there, so the actual fee isn't known, and the declared fee is shown.
+    coin_spends.push(quoted_spend(
+        0,
+        Conditions::new().create_coin(Bytes32::default(), 1000, Memos::None),
+    )?);
+
+    let summary = app
+        .view_coin_spends(ViewCoinSpends { coin_spends })
+        .await?
+        .summary;
+
+    assert_eq!(summary.fee.to_u64(), Some(100));
+    assert_eq!(summary.declared_fee.to_u64(), Some(100));
+
+    // The same goes for spends that leave less than they declare.
+    let mut coin_spends = response.coin_spends;
+    coin_spends.push(quoted_spend(0, Conditions::new().reserve_fee(1000))?);
+
+    let summary = app
+        .view_coin_spends(ViewCoinSpends { coin_spends })
+        .await?
+        .summary;
+
+    assert_eq!(summary.fee.to_u64(), Some(1100));
+    assert_eq!(summary.declared_fee.to_u64(), Some(1100));
+
+    Ok(())
+}
+
+/// A spend of a coin whose puzzle outputs the given conditions, as a dApp could supply. The
+/// coin doesn't have to exist.
+fn quoted_spend(amount: u64, conditions: Conditions) -> Result<CoinSpendJson> {
+    let mut ctx = SpendContext::new();
+    let puzzle = ctx.alloc(&clvm_quote!(conditions))?;
+    let coin = Coin::new(Bytes32::new([1; 32]), ctx.tree_hash(puzzle).into(), amount);
+
+    Ok(CoinSpendJson {
+        coin: CoinJson {
+            parent_coin_info: hex::encode(coin.parent_coin_info),
+            puzzle_hash: hex::encode(coin.puzzle_hash),
+            amount: Amount::u64(coin.amount),
+        },
+        puzzle_reveal: hex::encode(ctx.serialize(&puzzle)?),
+        solution: hex::encode(ctx.serialize(&NodePtr::NIL)?),
+    })
+}
+
+#[tokio::test]
+async fn test_taken_offer_declares_its_fee() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(1000).await?;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let offer_amount = |amount: u64| OfferAmount {
+        asset_id: None,
+        hidden_puzzle_hash: None,
+        amount: Amount::u64(amount),
+    };
+
+    let offer = app
+        .make_offer(MakeOffer {
+            confirmed_handles: Vec::new(),
+            requested_assets: vec![offer_amount(100)],
+            offered_assets: vec![offer_amount(300)],
+            fee: Amount::u64(50),
+            receive_address: None,
+            expires_at_second: None,
+            auto_import: false,
+            coin_ids: None,
+            pre_split_fee: None,
+        })
+        .await?
+        .offer;
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
+
+    let summary = app
+        .take_offer(TakeOffer {
+            offer,
+            fee: Amount::u64(20),
+            auto_submit: false,
+        })
+        .await?
+        .summary;
+
+    // Both sides' fees are declared, so nothing is left over without being declared.
+    assert_eq!(summary.fee.to_u64(), Some(70));
+    assert_eq!(summary.declared_fee.to_u64(), Some(70));
 
     Ok(())
 }

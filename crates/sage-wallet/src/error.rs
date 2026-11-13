@@ -72,6 +72,9 @@ pub enum WalletError {
     #[error("Insufficient funds")]
     InsufficientFunds,
 
+    #[error("The transaction's amounts add up to more than the maximum amount")]
+    AmountOverflow,
+
     #[error("Insufficient derivations")]
     InsufficientDerivations,
 
@@ -83,6 +86,11 @@ pub enum WalletError {
 
     #[error("Missing secret key")]
     UnknownPublicKey,
+
+    #[error(
+        "Refusing to sign an AGG_SIG_UNSAFE condition with one of this wallet's keys, since the signature could be reused elsewhere"
+    )]
+    AggSigUnsafe,
 
     #[error("Missing XCH coin with id {0}")]
     MissingXchCoin(Bytes32),

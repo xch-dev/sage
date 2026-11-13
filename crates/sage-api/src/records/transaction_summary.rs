@@ -6,12 +6,25 @@ use crate::{Amount, Asset, HandleRecord};
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct TransactionSummary {
+    /// The fee the transaction actually pays: the value of the coins it spends minus the
+    /// value of the coins it creates. If that's less than the declared fee, so the
+    /// transaction isn't complete on its own, this is the declared fee instead. It's only the fee paid
+    /// if the transaction is submitted as is: when only signatures are returned, spends that
+    /// don't need them could be left out.
     pub fee: Amount,
+    /// The sum of the transaction's `RESERVE_FEE` conditions. When this differs from `fee`,
+    /// some of the fee isn't declared.
+    #[serde(default = "zero_amount")]
+    pub declared_fee: Amount,
     pub inputs: Vec<TransactionInput>,
     /// The handle recipients of the transaction, and the verified addresses they were
     /// resolved to
     #[serde(default)]
     pub handles: Vec<HandleRecord>,
+}
+
+fn zero_amount() -> Amount {
+    Amount::u64(0)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

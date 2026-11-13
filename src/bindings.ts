@@ -3921,7 +3921,20 @@ summary: TransactionSummary;
  * Coin spends in the transaction
  */
 coin_spends: CoinSpendJson[] }
-export type TransactionSummary = { fee: Amount; inputs: TransactionInput[]; 
+export type TransactionSummary = { 
+/**
+ * The fee the transaction actually pays: the value of the coins it spends minus the
+ * value of the coins it creates. If that's less than the declared fee, so the
+ * transaction isn't complete on its own, this is the declared fee instead. It's only the fee paid
+ * if the transaction is submitted as is: when only signatures are returned, spends that
+ * don't need them could be left out.
+ */
+fee: Amount; 
+/**
+ * The sum of the transaction's `RESERVE_FEE` conditions. When this differs from `fee`,
+ * some of the fee isn't declared.
+ */
+declared_fee?: Amount; inputs: TransactionInput[]; 
 /**
  * The handle recipients of the transaction, and the verified addresses they were
  * resolved to

@@ -50,6 +50,7 @@ import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { UndeclaredFeeAlert } from './UndeclaredFeeAlert';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -205,6 +206,15 @@ export default function ConfirmationDialog({
                       </Trans>
                     </AlertDescription>
                   </Alert>
+                )}
+
+                {response && (
+                  <UndeclaredFeeAlert
+                    fee={response.summary.fee}
+                    declaredFee={response.summary.declared_fee}
+                    unit={walletState.sync.unit}
+                    className='mb-3'
+                  />
                 )}
 
                 {additionalData && (

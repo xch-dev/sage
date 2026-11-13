@@ -13,6 +13,7 @@ use chia_wallet_sdk::{
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
     client::{Connector, PeerOptions},
+    clvm_traits::clvm_quote,
     prelude::*,
     test::PeerSimulator,
 };
@@ -34,6 +35,23 @@ use crate::{
     PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Transaction, Wallet,
     WalletKind, WalletPeer, insert_transaction,
 };
+
+/// A spend of a coin whose puzzle outputs the given conditions, for transactions that a
+/// dApp could put together. The coin doesn't have to exist.
+pub fn quoted_spend(
+    parent_coin_info: Bytes32,
+    amount: u64,
+    conditions: Conditions,
+) -> anyhow::Result<CoinSpend> {
+    let mut ctx = SpendContext::new();
+    let puzzle = ctx.alloc(&clvm_quote!(conditions))?;
+    let coin = Coin::new(parent_coin_info, ctx.tree_hash(puzzle).into(), amount);
+    Ok(CoinSpend::new(
+        coin,
+        ctx.serialize(&puzzle)?,
+        ctx.serialize(&NodePtr::NIL)?,
+    ))
+}
 
 static INDEX: Mutex<u32> = Mutex::const_new(0);
 
