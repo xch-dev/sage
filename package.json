@@ -24,7 +24,7 @@
     "package:flatpak": "node scripts/package-flatpak.mjs",
     "check:flatpak-package": "node scripts/check-flatpak-package.mjs",
     "lint": "oxlint",
-    "test:unit": "vitest run src",
+    "test:unit": "vitest run src packages/sage-app-ui/src",
     "preview": "vite preview",
     "prettier": "prettier --write .",
     "prettier:check": "prettier --check .",
