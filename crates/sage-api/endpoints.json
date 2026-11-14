@@ -113,6 +113,7 @@
   "set_delta_sync": false,
   "set_delta_sync_override": false,
   "set_change_address": true,
+  "set_transaction_expiration": false,
   "resync_cat": true,
   "update_cat": true,
   "update_did": true,

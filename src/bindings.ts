@@ -344,6 +344,9 @@ async setDeltaSyncOverride(req: SetDeltaSyncOverride) : Promise<EmptyResponse> {
 async setChangeAddress(req: SetChangeAddress) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_change_address", { req });
 },
+async setTransactionExpiration(req: SetTransactionExpiration) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_transaction_expiration", { req });
+},
 async updateCat(req: UpdateCat) : Promise<UpdateCatResponse> {
     return await TAURI_INVOKE("update_cat", { req });
 },
@@ -3689,6 +3692,14 @@ export type SetTargetPeers = {
  */
 target_peers: number }
 /**
+ * Set how long every wallet's transactions can be confirmed for after they're created
+ */
+export type SetTransactionExpiration = { 
+/**
+ * Seconds a transaction can be confirmed for, or 0 for no limit
+ */
+seconds: number }
+/**
  * Set wallet emoji
  */
 export type SetWalletEmoji = { 
@@ -4194,7 +4205,12 @@ export type Wallet =
  * The p2 puzzle hashes being watched. The first one is the wallet's receive address.
  */
 { type: "watch"; p2_puzzle_hashes: string[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
-export type WalletDefaults = { delta_sync: boolean }
+export type WalletDefaults = { delta_sync: boolean; 
+/**
+ * How many seconds after a transaction is created that it can no longer be confirmed, or 0
+ * for no limit. This doesn't apply to offers, which have their own expiration.
+ */
+transaction_expiration: number }
 export type WalletInfo = { name: string; fingerprint: number; kind: WalletKind; network_id: string; emoji: string | null }
 /**
  * The kind of wallet, which determines how its addresses are found and whether it can sign

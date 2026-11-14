@@ -311,7 +311,9 @@ impl Wallet {
         // Finish the spend
         let deltas = spends.apply(&mut ctx, &actions)?;
 
-        self.complete_spends(&mut ctx, &deltas, spends).await?;
+        // The offer can be taken until its own expiration, if it has one.
+        self.complete_spends_without_expiration(&mut ctx, &deltas, spends)
+            .await?;
 
         let coin_spends = ctx.take();
 

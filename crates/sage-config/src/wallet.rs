@@ -22,13 +22,23 @@ pub struct WalletConfig {
 #[serde(default)]
 pub struct WalletDefaults {
     pub delta_sync: bool,
+    /// How many seconds after a transaction is created that it can no longer be confirmed, or 0
+    /// for no limit. This doesn't apply to offers, which have their own expiration.
+    pub transaction_expiration: u64,
 }
 
 impl Default for WalletDefaults {
     fn default() -> Self {
-        Self { delta_sync: true }
+        Self {
+            delta_sync: true,
+            transaction_expiration: DEFAULT_TRANSACTION_EXPIRATION,
+        }
     }
 }
+
+/// Transactions expire after an hour by default, so that one stuck in the mempool doesn't
+/// confirm long after it was made.
+pub const DEFAULT_TRANSACTION_EXPIRATION: u64 = 60 * 60;
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(default)]
 pub struct Wallet {
@@ -168,6 +178,7 @@ mod tests {
 
                 [defaults]
                 delta_sync = true
+                transaction_expiration = 3600
 
                 [[wallets]]
                 name = "Main"
@@ -178,7 +189,8 @@ mod tests {
                 {
                   "version": 1,
                   "defaults": {
-                    "delta_sync": true
+                    "delta_sync": true,
+                    "transaction_expiration": 3600
                   },
                   "wallets": [
                     {
@@ -202,6 +214,7 @@ mod tests {
 
                 [defaults]
                 delta_sync = true
+                transaction_expiration = 3600
 
                 [[wallets]]
                 name = "Main"
@@ -212,7 +225,8 @@ mod tests {
                 {
                   "version": 1,
                   "defaults": {
-                    "delta_sync": true
+                    "delta_sync": true,
+                    "transaction_expiration": 3600
                   },
                   "wallets": [
                     {
@@ -242,6 +256,7 @@ mod tests {
 
                 [defaults]
                 delta_sync = true
+                transaction_expiration = 3600
 
                 [[wallets]]
                 name = "Main"
@@ -256,7 +271,8 @@ mod tests {
                 {
                   "version": 1,
                   "defaults": {
-                    "delta_sync": true
+                    "delta_sync": true,
+                    "transaction_expiration": 3600
                   },
                   "wallets": [
                     {
@@ -283,6 +299,25 @@ mod tests {
         assert_eq!(config.version, 0);
         assert_eq!(config.wallets[0].fingerprint, 1_000_000);
         assert_eq!(config.wallets[0].kind, WalletKind::Bls);
+        assert_eq!(
+            config.defaults.transaction_expiration,
+            DEFAULT_TRANSACTION_EXPIRATION
+        );
+    }
+
+    #[test]
+    fn test_transaction_expiration_can_be_disabled() {
+        let config = WalletConfig {
+            defaults: WalletDefaults {
+                transaction_expiration: 0,
+                ..WalletDefaults::default()
+            },
+            ..WalletConfig::default()
+        };
+        let toml = toml::to_string_pretty(&config).expect("Failed to serialize toml");
+        let config: WalletConfig = toml::from_str(&toml).expect("Failed to parse toml");
+
+        assert_eq!(config.defaults.transaction_expiration, 0);
     }
 
     #[test]

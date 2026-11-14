@@ -2,7 +2,8 @@ use anyhow::Result;
 use bip39::Mnemonic;
 use chia_wallet_sdk::prelude::*;
 use sage_api::{
-    DeleteWallet, GetKey, GetKeys, GetWallet, GetWallets, ImportWallet, Login, WalletKind,
+    DeleteWallet, GetKey, GetKeys, GetWallet, GetWallets, ImportWallet, Login,
+    SetTransactionExpiration, WalletKind,
 };
 use serde_json::{Value, json};
 
@@ -245,6 +246,36 @@ async fn logging_into_a_key_that_is_not_a_wallet_fails() -> Result<()> {
         .expect_err("a wallet without its key can't be logged into");
     assert!(error.to_string().contains("Unknown fingerprint"), "{error}");
     assert_eq!(app.sage.lock().await.config.global.fingerprint, None);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn sets_the_transaction_expiration() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    app.setup_bls(0).await?;
+
+    // Transactions expire after an hour unless told otherwise.
+    {
+        let sage = app.sage.lock().await;
+        assert_eq!(sage.wallet_config.defaults.transaction_expiration, 3600);
+        assert_eq!(sage.wallet()?.transaction_expiration(), 3600);
+    }
+
+    app.set_transaction_expiration(SetTransactionExpiration { seconds: 0 })
+        .await?;
+
+    // The setting is saved, and the wallet that's logged in uses it straight away.
+    {
+        let sage = app.sage.lock().await;
+        assert_eq!(sage.wallet_config.defaults.transaction_expiration, 0);
+        assert_eq!(sage.wallet()?.transaction_expiration(), 0);
+    }
+
+    // A wallet that logs in later uses it too.
+    app.setup_bls(0).await?;
+    assert_eq!(app.sage.lock().await.wallet()?.transaction_expiration(), 0);
 
     Ok(())
 }

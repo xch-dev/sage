@@ -273,6 +273,32 @@ function SettingItem({
   );
 }
 
+interface TimeParts {
+  days: string;
+  hours: string;
+  minutes: string;
+}
+
+function secondsToTimeParts(seconds: number): TimeParts {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  return {
+    days: days ? days.toString() : '',
+    hours: hours ? hours.toString() : '',
+    minutes: minutes ? minutes.toString() : '',
+  };
+}
+
+function timePartsToSeconds({ days, hours, minutes }: TimeParts): number {
+  const value = (part: string) => parseInt(part) || 0;
+
+  return value(days) * 86400 + value(hours) * 3600 + value(minutes) * 60;
+}
+
+const DEFAULT_TRANSACTION_EXPIRATION = 3600;
+
 function GlobalSettings() {
   const { addError } = useErrors();
   const { locale, changeLanguage } = useLanguage();
@@ -284,9 +310,44 @@ function GlobalSettings() {
   const [defaultWalletConfig, setDefaultWalletConfig] =
     useState<WalletDefaults | null>(null);
 
+  const [localExpiration, setLocalExpiration] = useState<TimeParts>(
+    secondsToTimeParts(DEFAULT_TRANSACTION_EXPIRATION),
+  );
+
   useEffect(() => {
-    commands.defaultWalletConfig().then(setDefaultWalletConfig).catch(addError);
+    commands
+      .defaultWalletConfig()
+      .then((defaults) => {
+        setDefaultWalletConfig(defaults);
+        if (defaults.transaction_expiration) {
+          setLocalExpiration(
+            secondsToTimeParts(defaults.transaction_expiration),
+          );
+        }
+      })
+      .catch(addError);
   }, [addError]);
+
+  const transactionExpiration = defaultWalletConfig?.transaction_expiration;
+
+  const setTransactionExpiration = (seconds: number) => {
+    commands
+      .setTransactionExpiration({ seconds })
+      .then(() =>
+        setDefaultWalletConfig((current) =>
+          current ? { ...current, transaction_expiration: seconds } : current,
+        ),
+      )
+      .catch(addError);
+  };
+
+  const changeLocalExpiration = (parts: TimeParts) => {
+    setLocalExpiration(parts);
+
+    // Zero would turn the expiration off, which is done with the switch instead.
+    const seconds = timePartsToSeconds(parts);
+    if (seconds > 0) setTransactionExpiration(seconds);
+  };
 
   const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -438,6 +499,53 @@ function GlobalSettings() {
             )}
           </SettingItem>
         )}
+        <SettingItem
+          label={t`Transaction Expiration`}
+          description={t`Transactions that aren't confirmed in time are dropped. This doesn't apply to offers.`}
+          control={
+            <Switch
+              checked={(transactionExpiration ?? 0) > 0}
+              disabled={!defaultWalletConfig}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  const seconds =
+                    timePartsToSeconds(localExpiration) ||
+                    DEFAULT_TRANSACTION_EXPIRATION;
+                  setLocalExpiration(secondsToTimeParts(seconds));
+                  setTransactionExpiration(seconds);
+                } else {
+                  setTransactionExpiration(0);
+                }
+              }}
+            />
+          }
+        >
+          {(transactionExpiration ?? 0) > 0 && (
+            <div className='grid grid-cols-3 gap-4 mt-2'>
+              <TimeInput
+                label={t`Days`}
+                value={localExpiration.days}
+                onChange={(value) =>
+                  changeLocalExpiration({ ...localExpiration, days: value })
+                }
+              />
+              <TimeInput
+                label={t`Hours`}
+                value={localExpiration.hours}
+                onChange={(value) =>
+                  changeLocalExpiration({ ...localExpiration, hours: value })
+                }
+              />
+              <TimeInput
+                label={t`Minutes`}
+                value={localExpiration.minutes}
+                onChange={(value) =>
+                  changeLocalExpiration({ ...localExpiration, minutes: value })
+                }
+              />
+            </div>
+          )}
+        </SettingItem>
       </SettingsSection>
 
       <SettingsSection title={t`Syncing Defaults`}>

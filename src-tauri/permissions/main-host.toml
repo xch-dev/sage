@@ -114,6 +114,7 @@ commands.allow = [
     "set_delta_sync",
     "set_delta_sync_override",
     "set_change_address",
+    "set_transaction_expiration",
     "update_cat",
     "resync_cat",
     "update_did",

@@ -251,7 +251,7 @@ impl Wallet {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     use chia_wallet_sdk::{
         chia::{
@@ -265,7 +265,7 @@ mod tests {
     use test_log::test;
     use tokio::time::sleep;
 
-    use crate::{TestWallet, WalletError};
+    use crate::{TestWallet, WalletError, assert_before_seconds};
 
     // Test-only: Sage never creates V1. Emits REMARK metadata + receiver discovery hint.
     // Returns (coin_id, info, inclusion_block_timestamp).
@@ -398,6 +398,39 @@ mod tests {
 
         assert_eq!(test.wallet.db.xch_balance().await?, 1000);
         assert_eq!(test.wallet.db.selectable_xch_coins().await?.len(), 1);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_send_xch_transaction_expiration() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(1000).await?;
+
+        // Without an expiration, nothing is asserted.
+        let coin_spends = test
+            .wallet
+            .send_xch(vec![(test.puzzle_hash, 1000)], 0, vec![], None)
+            .await?;
+        assert!(assert_before_seconds(&coin_spends)?.is_empty());
+
+        test.wallet.set_transaction_expiration(3600);
+
+        let before = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        let coin_spends = test
+            .wallet
+            .send_xch(vec![(test.puzzle_hash, 1000)], 0, vec![], None)
+            .await?;
+        let after = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+
+        let timestamps = assert_before_seconds(&coin_spends)?;
+        assert_eq!(timestamps.len(), 1);
+        assert!((before + 3600..=after + 3600).contains(&timestamps[0]));
+
+        // It can still be confirmed before it expires.
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
 
         Ok(())
     }

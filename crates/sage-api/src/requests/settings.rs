@@ -248,6 +248,24 @@ pub struct SetChangeAddress {
     pub change_address: Option<String>,
 }
 
+/// Set how long every wallet's transactions can be confirmed for after they're created
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Transactions",
+        description = "Set how many seconds after it's created a transaction can still be confirmed. Offers have their own expiration, and aren't affected.",
+        response_type = "EmptyResponse"
+    )
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct SetTransactionExpiration {
+    /// Seconds a transaction can be confirmed for, or 0 for no limit
+    #[cfg_attr(feature = "openapi", schema(example = 3600))]
+    pub seconds: u64,
+}
+
 /// Get the UI theme the user last selected
 #[cfg_attr(
     feature = "openapi",
@@ -304,4 +322,5 @@ pub type SetNetworkOverrideResponse = EmptyResponse;
 pub type SetDeltaSyncResponse = EmptyResponse;
 pub type SetDeltaSyncOverrideResponse = EmptyResponse;
 pub type SetChangeAddressResponse = EmptyResponse;
+pub type SetTransactionExpirationResponse = EmptyResponse;
 pub type SetSelectedThemeResponse = EmptyResponse;

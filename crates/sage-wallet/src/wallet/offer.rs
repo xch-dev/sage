@@ -17,10 +17,44 @@ mod tests {
 
     use crate::{
         Offered, PreSplitOffer, Requested, RequestedCat, TakenOffer, TestWallet, WalletError,
-        WalletNftMint,
+        WalletNftMint, assert_before_seconds,
     };
 
     use super::aggregate_offers;
+
+    #[test(tokio::test)]
+    async fn test_offer_ignores_transaction_expiration() -> anyhow::Result<()> {
+        let alice = TestWallet::new(1000).await?;
+        alice.wallet.set_transaction_expiration(3600);
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 1000,
+                    ..Default::default()
+                },
+                Requested::default(),
+                None,
+            )
+            .await?;
+        assert!(assert_before_seconds(&offer.coin_spends)?.is_empty());
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 1000,
+                    ..Default::default()
+                },
+                Requested::default(),
+                Some(100),
+            )
+            .await?;
+        assert_eq!(assert_before_seconds(&offer.coin_spends)?, [100]);
+
+        Ok(())
+    }
 
     async fn sign_taken_offer(
         wallet: &TestWallet,

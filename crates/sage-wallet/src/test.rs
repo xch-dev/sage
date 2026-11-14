@@ -53,6 +53,26 @@ pub fn quoted_spend(
     ))
 }
 
+/// The timestamps that the coin spends must be confirmed before.
+pub fn assert_before_seconds(coin_spends: &[CoinSpend]) -> anyhow::Result<Vec<u64>> {
+    let mut allocator = Allocator::new();
+    let mut timestamps = Vec::new();
+
+    for coin_spend in coin_spends {
+        let puzzle = coin_spend.puzzle_reveal.to_clvm(&mut allocator)?;
+        let solution = coin_spend.solution.to_clvm(&mut allocator)?;
+        let output = run_puzzle(&mut allocator, puzzle, solution)?;
+
+        for condition in Conditions::<NodePtr>::from_clvm(&allocator, output)? {
+            if let Condition::AssertBeforeSecondsAbsolute(condition) = condition {
+                timestamps.push(condition.seconds);
+            }
+        }
+    }
+
+    Ok(timestamps)
+}
+
 static INDEX: Mutex<u32> = Mutex::const_new(0);
 
 #[derive(Debug)]
