@@ -53,7 +53,7 @@ impl ChiaProtocolMessage for RespondPeersIntroducer {
 /// `connect_peer`, this opts into the mempool updates from CHIP-26.
 ///
 /// TODO: Go back to `chia_wallet_sdk::client::connect_peer` once a released SDK version can
-/// enable the mempool updates capability, and remove this and `handshake`.
+/// enable the mempool updates capability, and remove this.
 async fn connect_peer(
     network_id: String,
     connector: Connector,
@@ -61,13 +61,15 @@ async fn connect_peer(
     options: PeerOptions,
 ) -> Result<(Peer, mpsc::Receiver<Message>), ClientError> {
     let (peer, receiver) = Peer::connect(socket_addr, connector, options).await?;
-    handshake(peer, receiver, network_id).await
+    handshake(peer, receiver, network_id, NodeType::FullNode).await
 }
 
+/// Performs the wallet protocol handshake with a peer of the given node type.
 async fn handshake(
     peer: Peer,
     mut receiver: mpsc::Receiver<Message>,
     network_id: String,
+    node_type: NodeType,
 ) -> Result<(Peer, mpsc::Receiver<Message>), ClientError> {
     peer.send(Handshake {
         network_id: network_id.clone(),
@@ -97,11 +99,8 @@ async fn handshake(
 
     let handshake = Handshake::from_bytes(&message.data)?;
 
-    if handshake.node_type != NodeType::FullNode {
-        return Err(ClientError::WrongNodeType(
-            NodeType::FullNode,
-            handshake.node_type,
-        ));
+    if handshake.node_type != node_type {
+        return Err(ClientError::WrongNodeType(node_type, handshake.node_type));
     }
 
     if handshake.network_id != network_id {
@@ -170,54 +169,15 @@ impl SyncManager {
                 let host_clone = host.clone();
 
                 let result = timeout(introducer_timeout, async move {
-                    let (peer, mut receiver) = Peer::connect_full_uri(
+                    let (peer, receiver) = Peer::connect_full_uri(
                         &format!("wss://{host_clone}:{port}/ws"),
                         connector,
                         PeerOptions::default(),
                     )
                     .await?;
 
-                    peer.send(Handshake {
-                        network_id: network_id.clone(),
-                        protocol_version: "0.0.37".to_string(),
-                        software_version: "0.0.0".to_string(),
-                        server_port: 0,
-                        node_type: NodeType::Wallet,
-                        capabilities: vec![
-                            (1, "1".to_string()),
-                            (2, "1".to_string()),
-                            (3, "1".to_string()),
-                        ],
-                    })
-                    .await?;
-
-                    let Some(message) = receiver.recv().await else {
-                        return Err(ClientError::MissingHandshake)?;
-                    };
-
-                    if message.msg_type != ProtocolMessageTypes::Handshake {
-                        Err(ClientError::InvalidResponse(
-                            vec![ProtocolMessageTypes::Handshake],
-                            message.msg_type,
-                        ))?;
-                    }
-
-                    let handshake =
-                        Handshake::from_bytes(&message.data).map_err(ClientError::from)?;
-
-                    if handshake.node_type != NodeType::Introducer {
-                        Err(ClientError::WrongNodeType(
-                            NodeType::Introducer,
-                            handshake.node_type,
-                        ))?;
-                    }
-
-                    if handshake.network_id != network_id {
-                        Err(ClientError::WrongNetwork(
-                            network_id.clone(),
-                            handshake.network_id,
-                        ))?;
-                    }
+                    let (peer, _receiver) =
+                        handshake(peer, receiver, network_id, NodeType::Introducer).await?;
 
                     let peer_list = peer
                         .request_infallible::<RespondPeersIntroducer, _>(RequestPeersIntroducer {})
@@ -582,7 +542,7 @@ mod tests {
 
         let (ws, _) = connect_async(format!("ws://{addr}")).await?;
         let (peer, receiver) = Peer::from_websocket(ws, PeerOptions::default())?;
-        let _peer = handshake(peer, receiver, "testnet11".to_string()).await?;
+        let _peer = handshake(peer, receiver, "testnet11".to_string(), NodeType::FullNode).await?;
 
         let capabilities = capabilities_receiver.await?;
         assert!(capabilities.contains(&(MEMPOOL_UPDATES_CAPABILITY, "1".to_string())));

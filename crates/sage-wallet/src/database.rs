@@ -12,23 +12,26 @@ use crate::{
     ChildKind, OptionContext, PuzzleContext, Transaction, WalletError, WalletPeer, compute_nft_info,
 };
 
+/// Whether any of the custody p2 puzzle hashes of a coin of this kind belong to the wallet.
+async fn has_custody_p2_puzzle_hash(
+    tx: &mut DatabaseTx<'_>,
+    kind: &ChildKind,
+) -> Result<bool, WalletError> {
+    for custody_p2_puzzle_hash in kind.custody_p2_puzzle_hashes() {
+        if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
 pub async fn validate_wallet_coin(
     tx: &mut DatabaseTx<'_>,
     coin_id: Bytes32,
     info: &ChildKind,
 ) -> Result<bool, WalletError> {
-    let custody_p2_puzzle_hashes = info.custody_p2_puzzle_hashes();
-
-    let mut is_relevant = false;
-
-    for custody_p2_puzzle_hash in custody_p2_puzzle_hashes {
-        if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
-            is_relevant = true;
-            break;
-        }
-    }
-
-    if !is_relevant {
+    if !has_custody_p2_puzzle_hash(tx, info).await? {
         warn!(
             "Deleting coin {} because it isn't relevant to this wallet",
             coin_id
@@ -561,6 +564,91 @@ pub async fn insert_option(
     Ok(true)
 }
 
+/// The ids of the coins the transaction creates.
+fn output_coin_ids(transaction: &Transaction) -> HashSet<Bytes32> {
+    transaction
+        .inputs
+        .iter()
+        .flat_map(|input| &input.outputs)
+        .map(|output| output.coin.coin_id())
+        .collect()
+}
+
+/// Whether [`insert_transaction`] would attach any of the wallet's coins to the transaction,
+/// either a coin it spends or one it creates.
+pub async fn is_wallet_transaction(
+    db: &Database,
+    transaction: &Transaction,
+) -> Result<bool, WalletError> {
+    let mut tx = db.tx().await?;
+    let output_coin_ids = output_coin_ids(transaction);
+
+    for input in &transaction.inputs {
+        let coin_id = input.coin_spend.coin.coin_id();
+
+        if !output_coin_ids.contains(&coin_id) && tx.is_known_coin(coin_id).await? {
+            return Ok(true);
+        }
+
+        for output in &input.outputs {
+            if tx
+                .is_custody_p2_puzzle_hash(output.coin.puzzle_hash)
+                .await?
+                || has_custody_p2_puzzle_hash(&mut tx, &output.kind).await?
+            {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+/// Whether the wallet already knows the transaction left the mempool by being confirmed,
+/// because a coin it spends is spent or a coin it creates exists.
+async fn is_confirmed(
+    tx: &mut DatabaseTx<'_>,
+    transaction: &Transaction,
+) -> Result<bool, WalletError> {
+    for input in &transaction.inputs {
+        let spent = tx
+            .coin_heights(input.coin_spend.coin.coin_id())
+            .await?
+            .is_some_and(|heights| heights.spent_height.is_some());
+
+        if spent {
+            return Ok(true);
+        }
+
+        for output in &input.outputs {
+            let created = tx
+                .coin_heights(output.coin.coin_id())
+                .await?
+                .is_some_and(|heights| heights.created_height.is_some());
+
+            if created {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+/// Removes a pending transaction that can no longer be included, so the coins it spends can be
+/// spent again and the coins it would have created are forgotten.
+pub async fn remove_failed_transaction(
+    db: &Database,
+    transaction_id: Bytes32,
+) -> Result<(), WalletError> {
+    let mut tx = db.tx().await?;
+    tx.set_transaction_children_unsynced(transaction_id).await?;
+    tx.remove_mempool_item(transaction_id).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// Inserts a transaction the wallet submits, and returns the coin ids to subscribe to.
 pub async fn insert_transaction(
     db: &Database,
     peer: &WalletPeer,
@@ -569,6 +657,55 @@ pub async fn insert_transaction(
     transaction: Transaction,
     aggregated_signature: Signature,
 ) -> Result<Vec<Bytes32>, WalletError> {
+    Ok(insert_transaction_inner(
+        db,
+        peer,
+        genesis_challenge,
+        transaction_id,
+        transaction,
+        aggregated_signature,
+        false,
+    )
+    .await?
+    .unwrap_or_default())
+}
+
+/// Inserts a transaction found in a peer's mempool as already submitted, and returns the coin
+/// ids to subscribe to, or [`None`] if it was already confirmed.
+///
+/// Unlike a transaction the wallet submits, it may be confirmed while it's being fetched, and
+/// inserting it then would reset the heights of its confirmed coins. That's checked in the same
+/// database transaction as the insert, so a coin state update that confirms it either comes
+/// first and is seen here, or comes after and confirms the inserted item.
+pub async fn insert_discovered_transaction(
+    db: &Database,
+    peer: &WalletPeer,
+    genesis_challenge: Bytes32,
+    transaction_id: Bytes32,
+    transaction: Transaction,
+    aggregated_signature: Signature,
+) -> Result<Option<Vec<Bytes32>>, WalletError> {
+    insert_transaction_inner(
+        db,
+        peer,
+        genesis_challenge,
+        transaction_id,
+        transaction,
+        aggregated_signature,
+        true,
+    )
+    .await
+}
+
+async fn insert_transaction_inner(
+    db: &Database,
+    peer: &WalletPeer,
+    genesis_challenge: Bytes32,
+    transaction_id: Bytes32,
+    transaction: Transaction,
+    aggregated_signature: Signature,
+    discovered: bool,
+) -> Result<Option<Vec<Bytes32>>, WalletError> {
     // Make lookups faster for inputs and outputs, and prepare pending coin spends.
     let mut coin_spends = HashMap::new();
     let mut output_coin_ids = HashSet::new();
@@ -600,8 +737,17 @@ pub async fn insert_transaction(
     // Insert the transaction into the database.
     let mut tx = db.tx().await?;
 
+    if discovered && is_confirmed(&mut tx, &transaction).await? {
+        return Ok(None);
+    }
+
     tx.insert_mempool_item(transaction_id, aggregated_signature, transaction.fee)
         .await?;
+
+    // It's already in the peer's mempool, so it isn't submitted again right away.
+    if discovered {
+        tx.update_mempool_item_time(transaction_id).await?;
+    }
 
     let mut subscriptions = Vec::new();
 
@@ -647,18 +793,7 @@ pub async fn insert_transaction(
             }
 
             // We don't want to insert output coins that we won't own in the future.
-            let custody_p2_puzzle_hashes = output.kind.custody_p2_puzzle_hashes();
-
-            let mut is_relevant = false;
-
-            for custody_p2_puzzle_hash in custody_p2_puzzle_hashes {
-                if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
-                    is_relevant = true;
-                    break;
-                }
-            }
-
-            if !is_relevant {
+            if !has_custody_p2_puzzle_hash(&mut tx, &output.kind).await? {
                 continue;
             }
 
@@ -709,5 +844,5 @@ pub async fn insert_transaction(
 
     tx.commit().await?;
 
-    Ok(subscriptions)
+    Ok(Some(subscriptions))
 }

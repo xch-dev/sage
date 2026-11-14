@@ -19,7 +19,8 @@ use futures_lite::future::poll_once;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use mempool_updates::{
-    AnnouncedMempoolItem, MAX_PENDING_MEMPOOL_ITEMS, discover_mempool_items, remove_mempool_items,
+    AnnouncedMempoolItem, FinalRemovals, MAX_PENDING_MEMPOOL_ITEMS, discover_mempool_items,
+    remove_mempool_items,
 };
 use sage_config::Network;
 use tokio::{
@@ -71,6 +72,7 @@ pub struct SyncManager {
     /// Transactions announced by peers, which are fetched once the initial sync has finished,
     /// so that the coins they spend and the derivations they pay to are already known.
     pending_mempool_items: IndexSet<AnnouncedMempoolItem>,
+    final_mempool_removals: FinalRemovals,
 }
 
 impl fmt::Debug for SyncManager {
@@ -150,6 +152,7 @@ impl SyncManager {
             pending_coin_subscriptions: Vec::new(),
             pending_puzzle_subscriptions: Vec::new(),
             pending_mempool_items: IndexSet::new(),
+            final_mempool_removals: FinalRemovals::default(),
         };
 
         (manager, command_sender, event_receiver)
@@ -328,10 +331,18 @@ impl SyncManager {
             .into_iter()
             .collect();
 
+        // Removals that arrived before now were applied to the queue, so only ones that
+        // arrive during this batch matter to it.
+        self.final_mempool_removals
+            .lock()
+            .expect("final removals lock")
+            .clear();
+
         self.mempool_discovery_task = Some(tokio::spawn(discover_mempool_items(
             wallet,
             self.state.clone(),
             items,
+            self.final_mempool_removals.clone(),
             self.event_sender.clone(),
             self.command_sender.clone(),
         )));
@@ -465,7 +476,13 @@ impl SyncManager {
                     .retain(|item| !removed.contains(&item.transaction_id));
 
                 if let Some(wallet) = self.wallet.as_ref() {
-                    remove_mempool_items(wallet, message.removed_items, &self.event_sender).await?;
+                    remove_mempool_items(
+                        wallet,
+                        message.removed_items,
+                        &self.final_mempool_removals,
+                        &self.event_sender,
+                    )
+                    .await?;
                 }
             }
             _ => {
@@ -799,10 +816,14 @@ impl SyncManager {
 
 #[cfg(test)]
 mod tests {
-    use chia_wallet_sdk::{client::Connector, test::PeerSimulator};
+    use chia_wallet_sdk::{
+        chia::protocol::{MempoolRemoveReason, RemovedMempoolItem},
+        client::Connector,
+        test::PeerSimulator,
+    };
     use sage_config::TESTNET11;
 
-    use crate::default_test_options;
+    use crate::{TestWallet, default_test_options};
 
     use super::*;
 
@@ -853,6 +874,125 @@ mod tests {
 
         assert!(manager.pending_coin_subscriptions.is_empty());
         assert!(manager.pending_puzzle_subscriptions.is_empty());
+
+        Ok(())
+    }
+
+    fn bare_manager(wallet: Option<Arc<Wallet>>) -> (SyncManager, mpsc::Sender<SyncCommand>) {
+        let (manager, sender, _events) = SyncManager::new(
+            default_test_options(),
+            Arc::new(Mutex::new(PeerState::default())),
+            wallet,
+            TESTNET11.clone(),
+            Connector::Plain,
+        );
+        (manager, sender)
+    }
+
+    fn announced(ip: IpAddr, byte: u8) -> AnnouncedMempoolItem {
+        AnnouncedMempoolItem {
+            ip,
+            transaction_id: Bytes32::new([byte; 32]),
+        }
+    }
+
+    #[tokio::test]
+    async fn announced_mempool_items_are_queued_once_and_capped() -> anyhow::Result<()> {
+        let (mut manager, _sender) = bare_manager(None);
+        let ip = IpAddr::from([10, 0, 0, 1]);
+
+        let message = Message {
+            msg_type: ProtocolMessageTypes::MempoolItemsAdded,
+            id: None,
+            data: MempoolItemsAdded::new(vec![Bytes32::new([1; 32]), Bytes32::new([1; 32])])
+                .to_bytes()?
+                .into(),
+        };
+        manager.handle_message(ip, message).await?;
+        assert_eq!(
+            manager.pending_mempool_items.iter().copied().collect_vec(),
+            [announced(ip, 1)]
+        );
+
+        let many = (0..u16::try_from(MAX_PENDING_MEMPOOL_ITEMS)? + 10)
+            .map(|i| {
+                let mut bytes = [0; 32];
+                bytes[..2].copy_from_slice(&i.to_be_bytes());
+                bytes[31] = 2;
+                Bytes32::new(bytes)
+            })
+            .collect();
+        manager.queue_mempool_items(ip, many);
+        assert_eq!(
+            manager.pending_mempool_items.len(),
+            MAX_PENDING_MEMPOOL_ITEMS
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn removed_mempool_items_are_dropped_from_the_queue() -> anyhow::Result<()> {
+        let (mut manager, _sender) = bare_manager(None);
+        let ip = IpAddr::from([10, 0, 0, 1]);
+
+        manager.queue_mempool_items(ip, vec![Bytes32::new([1; 32]), Bytes32::new([2; 32])]);
+
+        let message = Message {
+            msg_type: ProtocolMessageTypes::MempoolItemsRemoved,
+            id: None,
+            data: MempoolItemsRemoved::new(vec![RemovedMempoolItem::new(
+                Bytes32::new([1; 32]),
+                MempoolRemoveReason::Expired,
+            )])
+            .to_bytes()?
+            .into(),
+        };
+        manager.handle_message(ip, message).await?;
+
+        assert_eq!(
+            manager.pending_mempool_items.iter().copied().collect_vec(),
+            [announced(ip, 2)]
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn mempool_items_are_fetched_only_after_the_initial_sync() -> anyhow::Result<()> {
+        let test = TestWallet::new(0).await?;
+        let (mut manager, _sender) = bare_manager(Some(test.wallet.clone()));
+        let ip = IpAddr::from([10, 0, 0, 1]);
+
+        manager.queue_mempool_items(ip, vec![Bytes32::new([1; 32])]);
+
+        manager.start_mempool_discovery();
+        assert!(manager.mempool_discovery_task.is_none());
+        assert_eq!(manager.pending_mempool_items.len(), 1);
+
+        manager.initial_wallet_sync = InitialWalletSync::Subscribed(ip);
+        manager.start_mempool_discovery();
+        assert!(manager.mempool_discovery_task.is_some());
+        assert!(manager.pending_mempool_items.is_empty());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn switching_wallets_drops_queued_mempool_items() -> anyhow::Result<()> {
+        let (mut manager, sender) = bare_manager(None);
+
+        manager.queue_mempool_items(IpAddr::from([10, 0, 0, 1]), vec![Bytes32::new([1; 32])]);
+
+        sender
+            .send(SyncCommand::SwitchWallet {
+                wallet: None,
+                delta_sync: true,
+            })
+            .await?;
+        manager.process_commands().await;
+
+        assert!(manager.pending_mempool_items.is_empty());
 
         Ok(())
     }

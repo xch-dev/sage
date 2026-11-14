@@ -12,7 +12,9 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use crate::{PeerState, Status, SyncEvent, WalletError, submit_to_peers};
+use crate::{
+    PeerState, Status, SyncEvent, WalletError, remove_failed_transaction, submit_to_peers,
+};
 
 const RESUBMIT_INTERVAL: Duration = Duration::from_mins(2);
 const BATCH_SIZE: usize = 3;
@@ -113,12 +115,7 @@ impl TransactionQueue {
                         "Transaction inclusion in mempool failed for all peers with status {status} and error {error:?}, removing transaction"
                     );
 
-                    let mut tx = self.db.tx().await?;
-
-                    tx.set_transaction_children_unsynced(transaction_id).await?;
-                    tx.remove_mempool_item(transaction_id).await?;
-
-                    tx.commit().await?;
+                    remove_failed_transaction(&self.db, transaction_id).await?;
 
                     self.sync_sender
                         .send(SyncEvent::TransactionFailed {
