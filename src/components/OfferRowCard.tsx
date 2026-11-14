@@ -16,12 +16,13 @@ import {
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { CardSize } from '@/hooks/useNftParams';
-import { deleteOffers } from '@/lib/offers';
+import { canDuplicateOffer, deleteOffers } from '@/lib/offers';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import {
   CircleOff,
   CopyIcon,
+  CopyPlus,
   MoreVertical,
   Tags,
   TrashIcon,
@@ -32,6 +33,7 @@ import { useNavigate } from 'react-router-dom';
 interface OfferRowCardProps {
   record: OfferRecord;
   refresh: () => void;
+  onDuplicate: (record: OfferRecord) => void;
   selectionState?: SelectionState;
   size?: CardSize;
 }
@@ -39,6 +41,7 @@ interface OfferRowCardProps {
 export function OfferRowCard({
   record,
   refresh,
+  onDuplicate,
   selectionState = null,
   size = CardSize.Large,
 }: OfferRowCardProps) {
@@ -112,6 +115,22 @@ export function OfferRowCard({
             <Tags className='mr-2 h-4 w-4' />
             <span>
               <Trans>Copy ID</Trans>
+            </span>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem
+            className='cursor-pointer'
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate(record);
+            }}
+            disabled={!canDuplicateOffer(record) || isTransactionDisabled}
+          >
+            <CopyPlus className='mr-2 h-4 w-4' aria-hidden='true' />
+            <span>
+              <Trans>Duplicate</Trans>
             </span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
