@@ -13,8 +13,8 @@ Each agent gets its own token. A token only grants the capabilities and wallets 
 ## Add an agent
 
 1. Click **Add agent** and give it a name.
-2. Choose its wallet scope: the current wallet (the default) or all wallets.
-3. Choose its capabilities. All are checked by default.
+2. On the **Permissions** tab, choose its capabilities. All are checked by default.
+3. On the **Wallets** tab, choose which wallets it can use: all wallets, or specific wallets (the current wallet is selected by default).
 4. Click **Create**. The token is shown once. Copy it now, because Sage stores only a hash and cannot show it again.
 
 Sage also shows two ready-to-use snippets, filled in with the real port and token.

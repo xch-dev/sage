@@ -44,6 +44,9 @@ export interface PermissionEditorProps {
   editable?: boolean;
   emptyText?: string;
   requiredSectionTitle?: string;
+  optionalSectionTitle?: string;
+  showMoreLabel?: (count: number) => string;
+  collapseUngrantedOptional?: boolean;
 }
 
 export type RequestedPermissionsView = {
@@ -164,6 +167,9 @@ export function PermissionEditor({
   editable = true,
   emptyText = 'This app does not request any permissions.',
   requiredSectionTitle = 'Required permissions',
+  optionalSectionTitle = 'Optional permissions',
+  showMoreLabel = defaultShowMoreLabel,
+  collapseUngrantedOptional = true,
 }: PermissionEditorProps) {
   const definitionsByKey = useMemo(
     () => capabilityDefinitionMap(capabilityDefinitions),
@@ -455,6 +461,9 @@ export function PermissionEditor({
       editable={editable}
       emptyText={emptyText}
       requiredSectionTitle={requiredSectionTitle}
+      optionalSectionTitle={optionalSectionTitle}
+      showMoreLabel={showMoreLabel}
+      collapseUngrantedOptional={collapseUngrantedOptional}
       onToggleEntry={handleToggleEntry}
     />
   );
@@ -466,6 +475,9 @@ function PermissionSections({
   editable,
   emptyText,
   requiredSectionTitle,
+  optionalSectionTitle,
+  showMoreLabel,
+  collapseUngrantedOptional,
   onToggleEntry,
 }: {
   requiredEntries: PermissionEntry[];
@@ -473,13 +485,17 @@ function PermissionSections({
   editable: boolean;
   emptyText: string;
   requiredSectionTitle: string;
+  optionalSectionTitle: string;
+  showMoreLabel: (count: number) => string;
+  collapseUngrantedOptional: boolean;
   onToggleEntry: (
     entry: PermissionEntry,
     nextGranted: boolean,
     scheme?: NetworkPermissionScheme,
   ) => void;
 }) {
-  const [showAllOptional, setShowAllOptional] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const showAllOptional = expanded || !collapseUngrantedOptional;
 
   const grantedOptionalEntries = useMemo(
     () => optionalEntries.filter((entry) => entry.granted),
@@ -527,7 +543,7 @@ function PermissionSections({
 
       {optionalEntries.length > 0 ? (
         <PermissionSection
-          title='Optional permissions'
+          title={optionalSectionTitle}
           groups={optionalGroups}
           editable={editable}
           separated={requiredGroups.length > 0}
@@ -537,10 +553,9 @@ function PermissionSections({
               <button
                 type='button'
                 className='inline-flex items-center rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-                onClick={() => setShowAllOptional(true)}
+                onClick={() => setExpanded(true)}
               >
-                Show {ungrantedOptionalEntries.length} more optional permission
-                {ungrantedOptionalEntries.length === 1 ? '' : 's'}
+                {showMoreLabel(ungrantedOptionalEntries.length)}
               </button>
             ) : null
           }
@@ -548,6 +563,10 @@ function PermissionSections({
       ) : null}
     </div>
   );
+}
+
+function defaultShowMoreLabel(count: number): string {
+  return `Show ${count} more optional permission${count === 1 ? '' : 's'}`;
 }
 
 function emptyGrantedPermissions(): SageGrantedPermissionsView {

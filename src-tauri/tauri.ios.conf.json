@@ -1,6 +1,6 @@
 {
   "build": {
-    "beforeBuildCommand": "pnpm run build:frontend"
+    "beforeBuildCommand": "pnpm run build:packages && pnpm run build:frontend"
   },
   "bundle": {
     "resources": []

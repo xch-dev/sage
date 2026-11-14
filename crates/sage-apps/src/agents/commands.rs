@@ -9,10 +9,10 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::{
-    AgentServerHandle, AgentServerSettings, AgentToken, AppsHostState, Result, SageAgent,
-    SageAppWalletScope, SageAppsError, TauriAgentExecutor, UserBridgeCapability,
-    agent_grantable_capabilities, get_user_capability_definition, start_agent_server,
-    unix_timestamp_ms,
+    AgentServerHandle, AgentServerSettings, AgentToken, AppsHostState, CapabilityDefinition,
+    CapabilityFlags, Result, SageAgent, SageAppCapabilityDefinitionView, SageAppWalletScope,
+    SageAppsError, TauriAgentExecutor, UserBridgeCapability, agent_grantable_capabilities,
+    get_user_capability_definition, start_agent_server, unix_timestamp_ms,
 };
 
 const MAX_AGENT_NAME_LEN: usize = 64;
@@ -24,14 +24,6 @@ pub struct AgentServerStatus {
     pub running: bool,
     pub enabled: bool,
     pub port: u16,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct AgentCapabilityInfo {
-    pub capability: UserBridgeCapability,
-    pub label: String,
-    pub description: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Type)]
@@ -98,6 +90,28 @@ fn server_status(
         enabled: settings.enabled,
         port: running_port.unwrap_or(settings.port),
     }
+}
+
+/// Agents have no manifest, so every capability they can hold is granted by the user.
+fn agent_capability_definition(
+    capability: UserBridgeCapability,
+) -> SageAppCapabilityDefinitionView {
+    let definition = get_user_capability_definition(capability);
+    let flags = definition.flags();
+    let flags = CapabilityFlags::new(
+        flags.externally_observable(),
+        flags.accesses_sensitive_secret(),
+        flags.requestable_by_app(),
+        true,
+        flags.shared_with_app(),
+    );
+    CapabilityDefinition::new(
+        capability,
+        definition.label(),
+        definition.description(),
+        flags,
+    )
+    .into()
 }
 
 /// Moves the server to `enabled`/`port`, leaving the old one running if the new bind fails.
@@ -205,17 +219,10 @@ pub async fn apps_list_agents(apps_state: State<'_, AppsHostState>) -> Result<Ve
 
 #[command]
 #[specta::specta]
-pub async fn apps_list_agent_capabilities() -> Result<Vec<AgentCapabilityInfo>> {
+pub async fn apps_list_agent_capabilities() -> Result<Vec<SageAppCapabilityDefinitionView>> {
     Ok(agent_grantable_capabilities()
         .into_iter()
-        .map(|capability| {
-            let definition = get_user_capability_definition(capability);
-            AgentCapabilityInfo {
-                capability,
-                label: definition.label().to_string(),
-                description: definition.description().to_string(),
-            }
-        })
+        .map(agent_capability_definition)
         .collect())
 }
 
@@ -429,5 +436,25 @@ mod tests {
         let caps = agent_grantable_capabilities();
         assert!(!caps.is_empty());
         assert!(validate_agent_request("Claude", &caps).is_ok());
+    }
+
+    #[tokio::test]
+    async fn listed_agent_capabilities_are_grantable_definitions() {
+        let listed = serde_json::to_value(apps_list_agent_capabilities().await.unwrap()).unwrap();
+        let listed = listed.as_array().unwrap();
+
+        let keys: Vec<&str> = listed
+            .iter()
+            .map(|item| item["key"].as_str().unwrap())
+            .collect();
+        let expected: Vec<&str> = agent_grantable_capabilities()
+            .into_iter()
+            .map(UserBridgeCapability::key)
+            .collect();
+        assert_eq!(keys, expected);
+
+        for item in listed {
+            assert_eq!(item["flags"]["userGrantable"], true, "{}", item["key"]);
+        }
     }
 }

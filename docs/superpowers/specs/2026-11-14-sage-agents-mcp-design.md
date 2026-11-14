@@ -155,9 +155,11 @@ builder's call. Pick whatever touches the least of the existing pipeline.
 - **Tools** are a curated list. Each MCP tool maps to one bridge method, and is listed to an agent
   only if that agent has the method's capability. Calls run through the same pipeline as app
   bridge calls. Tool descriptions come from the capability definitions plus per-tool text.
-- **Input schemas.** Bridge param types derive `specta::Type`, not JSON Schema. Add
-  `schemars::JsonSchema` to the param types exposed as tools (or hand-write schemas). Builder's
-  call.
+- **Input schemas.** Derived from the param type each bridge method deserializes, through the
+  `utoipa::ToSchema` derives the RPC's OpenAPI spec already uses, with `$ref`s inlined. Tools whose
+  bridge method takes a `sage_api` request type therefore share the RPC's schema exactly. Bridge-only
+  param types derive `ToSchema` alongside `specta::Type`. Tools that take no params advertise an
+  empty object.
 - **Errors** map bridge error codes (`permission_denied`, `watch_only`, `wallet_changed`,
   `approval_timeout`, …) to MCP tool errors with the code in the message, so agents can react.
 - **Concurrency:** don't hold the `Sage` lock across `await`s on approval.
@@ -251,7 +253,6 @@ a wallet that isn't open would need changes to core Sage and is out of scope. _(
 ## Left to the builder
 
 - Separate agents table vs. `SageApp` variant, and how to generalize the bridge origin.
-- `schemars` derives vs. hand-written tool schemas.
 - How to run `rmcp`'s HTTP service next to axum 0.7 (own listener, or nested service).
 - Exact tool names and descriptions, error-message format, UI layout details within Settings.
 - Test layout, following `sage-apps` and `sage-rpc` test conventions.

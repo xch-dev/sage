@@ -1,6 +1,12 @@
+use sage_api::{
+    CheckAddress, GetCoins, GetCoinsByIds, GetSpendableCoinCount, GetTransaction, GetTransactions,
+};
 use serde_json::{Value, json};
 
-use crate::{SageAgent, UserBridgeCapability};
+use crate::{
+    SageAgent, UserBridgeCapability, WalletGetAssetBalanceParams, WalletGetAssetCoinsParams,
+    schema_of,
+};
 
 pub(crate) struct AgentTool {
     pub name: &'static str,
@@ -18,107 +24,6 @@ pub(crate) struct AgentCallError {
 
 fn no_params() -> Value {
     json!({ "type": "object", "properties": {}, "additionalProperties": false })
-}
-
-fn asset_coin_type() -> Value {
-    json!({ "type": "string", "enum": ["cat", "did", "nft"] })
-}
-
-fn asset_balance_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "type": asset_coin_type(),
-            "assetId": { "type": "string", "description": "Required when type is cat." }
-        },
-        "additionalProperties": false
-    })
-}
-
-fn asset_coins_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "type": asset_coin_type(),
-            "assetId": { "type": "string", "description": "Asset id (hex)." },
-            "includedLocked": { "type": "boolean" },
-            "offset": { "type": "integer", "minimum": 0 },
-            "limit": { "type": "integer", "minimum": 0 }
-        },
-        "additionalProperties": false
-    })
-}
-
-fn coins_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "asset_id": { "type": ["string", "null"], "description": "Omit or null for XCH." },
-            "offset": { "type": "integer", "minimum": 0 },
-            "limit": { "type": "integer", "minimum": 0 },
-            "sort_mode": {
-                "type": "string",
-                "enum": [
-                    "coin_id", "amount", "created_height", "spent_height",
-                    "clawback_timestamp", "clawback_version"
-                ]
-            },
-            "filter_mode": {
-                "type": "string",
-                "enum": ["all", "selectable", "owned", "spent", "clawback"]
-            },
-            "ascending": { "type": "boolean" }
-        },
-        "required": ["offset", "limit"]
-    })
-}
-
-fn coins_by_ids_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "coin_ids": { "type": "array", "items": { "type": "string" } }
-        },
-        "required": ["coin_ids"]
-    })
-}
-
-fn spendable_coin_count_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "asset_id": { "type": ["string", "null"], "description": "Omit or null for XCH." }
-        }
-    })
-}
-
-fn transactions_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "offset": { "type": "integer", "minimum": 0 },
-            "limit": { "type": "integer", "minimum": 0 },
-            "ascending": { "type": "boolean" },
-            "find_value": { "type": ["string", "null"] }
-        },
-        "required": ["offset", "limit", "ascending"]
-    })
-}
-
-fn transaction_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": { "height": { "type": "integer", "minimum": 0 } },
-        "required": ["height"]
-    })
-}
-
-fn check_address_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": { "address": { "type": "string" } },
-        "required": ["address"]
-    })
 }
 
 static TOOLS: &[AgentTool] = &[
@@ -148,49 +53,49 @@ static TOOLS: &[AgentTool] = &[
         bridge_method: "wallet.getAssetBalance",
         capability: UserBridgeCapability::WalletGetAssetBalance,
         description: "Get the confirmed and spendable balance of an asset (XCH by default).",
-        input_schema: asset_balance_schema,
+        input_schema: schema_of::<WalletGetAssetBalanceParams>,
     },
     AgentTool {
         name: "get_asset_coins",
         bridge_method: "wallet.getAssetCoins",
         capability: UserBridgeCapability::WalletGetAssetCoins,
         description: "List spendable coins of an asset (XCH by default).",
-        input_schema: asset_coins_schema,
+        input_schema: schema_of::<WalletGetAssetCoinsParams>,
     },
     AgentTool {
         name: "get_coins",
         bridge_method: "wallet.getCoins",
         capability: UserBridgeCapability::WalletGetCoins,
         description: "List wallet coins with filtering, sorting and pagination.",
-        input_schema: coins_schema,
+        input_schema: schema_of::<GetCoins>,
     },
     AgentTool {
         name: "get_coins_by_ids",
         bridge_method: "wallet.getCoinsByIds",
         capability: UserBridgeCapability::WalletGetCoinsByIds,
         description: "Get wallet coins by their coin ids.",
-        input_schema: coins_by_ids_schema,
+        input_schema: schema_of::<GetCoinsByIds>,
     },
     AgentTool {
         name: "get_spendable_coin_count",
         bridge_method: "wallet.getSpendableCoinCount",
         capability: UserBridgeCapability::WalletGetSpendableCoinCount,
         description: "Count spendable coins of an asset (XCH by default).",
-        input_schema: spendable_coin_count_schema,
+        input_schema: schema_of::<GetSpendableCoinCount>,
     },
     AgentTool {
         name: "get_transactions",
         bridge_method: "wallet.getTransactions",
         capability: UserBridgeCapability::WalletGetTransactions,
         description: "List wallet transactions with pagination.",
-        input_schema: transactions_schema,
+        input_schema: schema_of::<GetTransactions>,
     },
     AgentTool {
         name: "get_transaction",
         bridge_method: "wallet.getTransaction",
         capability: UserBridgeCapability::WalletGetTransaction,
         description: "Get a transaction by block height.",
-        input_schema: transaction_schema,
+        input_schema: schema_of::<GetTransaction>,
     },
     AgentTool {
         name: "get_pending_transactions",
@@ -211,7 +116,7 @@ static TOOLS: &[AgentTool] = &[
         bridge_method: "wallet.checkAddress",
         capability: UserBridgeCapability::WalletCheckAddress,
         description: "Check whether an address is valid for this wallet's network.",
-        input_schema: check_address_schema,
+        input_schema: schema_of::<CheckAddress>,
     },
 ];
 
@@ -367,6 +272,65 @@ mod tests {
         for tool in agent_tools() {
             assert_eq!((tool.input_schema)()["type"], "object", "{}", tool.name);
         }
+    }
+
+    fn contains_ref(value: &Value) -> bool {
+        match value {
+            Value::Object(map) => map.contains_key("$ref") || map.values().any(contains_ref),
+            Value::Array(items) => items.iter().any(contains_ref),
+            _ => false,
+        }
+    }
+
+    fn property_names(schema: &Value) -> BTreeSet<&str> {
+        schema["properties"]
+            .as_object()
+            .expect("schema has properties")
+            .keys()
+            .map(String::as_str)
+            .collect()
+    }
+
+    #[test]
+    fn schemas_are_self_contained() {
+        for tool in agent_tools() {
+            assert!(!contains_ref(&(tool.input_schema)()), "{}", tool.name);
+        }
+    }
+
+    #[test]
+    fn rpc_typed_schema_inlines_enums() {
+        let schema = (tool("get_coins").input_schema)();
+
+        assert_eq!(
+            property_names(&schema),
+            BTreeSet::from([
+                "asset_id",
+                "offset",
+                "limit",
+                "sort_mode",
+                "filter_mode",
+                "ascending"
+            ])
+        );
+        assert_eq!(schema["required"], json!(["offset", "limit"]));
+        assert_eq!(schema["properties"]["sort_mode"]["type"], "string");
+        assert_eq!(schema["properties"]["sort_mode"]["enum"][0], "coin_id");
+    }
+
+    #[test]
+    fn bridge_typed_schema_follows_serde_names() {
+        let schema = (tool("get_asset_coins").input_schema)();
+
+        assert_eq!(
+            property_names(&schema),
+            BTreeSet::from(["type", "assetId", "includedLocked", "offset", "limit"])
+        );
+        assert_eq!(schema["additionalProperties"], false);
+        assert_eq!(
+            schema["properties"]["type"]["oneOf"][1]["enum"],
+            json!(["cat", "did", "nft"])
+        );
     }
 
     #[test]

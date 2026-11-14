@@ -527,7 +527,7 @@ async appsSetAgentServerSettings(enabled: boolean, port: number) : Promise<Agent
 async appsListAgents() : Promise<SageAgent[]> {
     return await TAURI_INVOKE("apps_list_agents");
 },
-async appsListAgentCapabilities() : Promise<AgentCapabilityInfo[]> {
+async appsListAgentCapabilities() : Promise<SageAppCapabilityDefinitionView[]> {
     return await TAURI_INVOKE("apps_list_agent_capabilities");
 },
 async appsCreateAgent(name: string, capabilities: UserBridgeCapability[], walletScope: SageAppWalletScope) : Promise<CreatedAgent> {
@@ -669,7 +669,6 @@ address: string;
  */
 handles: HandleRecord[] }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
-export type AgentCapabilityInfo = { capability: UserBridgeCapability; label: string; description: string }
 export type AgentServerStatus = { running: boolean; enabled: boolean; port: number }
 export type Amount = string | number
 export type AppLaunchGateResult = { allowed: boolean; kind: string; capability: SandboxCapability | null; message: string | null }
@@ -3466,6 +3465,8 @@ export type RustBridgeRequest = { bridgeVersion: string | null; id: string; meth
 export type RustBridgeSuccessResponse = { bridgeVersion: string; id: string; ok: boolean; resultJson: string }
 export type SageAgent = { id: string; name: string; capabilities: UserBridgeCapability[]; walletScope: SageAppWalletScope; createdAtMs: number; updatedAtMs: number; lastUsedAtMs: number | null }
 export type SageAppAuthor = { name: string; avatar: string | null }
+export type SageAppCapabilityDefinitionView = { key: string; label: string; description: string; flags: SageAppCapabilityFlagsView }
+export type SageAppCapabilityFlagsView = { externallyObservable: boolean; accessesSensitiveSecret: boolean; requestableByApp: boolean; userGrantable: boolean }
 export type SageAppCommonView = { identity: SageAppIdentityView; grantedPermissions: SageGrantedPermissionsView; walletScope: SageAppWalletScope; activeSnapshot: SageAppSnapshotView; icon: SageAppIconView | null }
 export type SageAppCompatibility = { currentVersion: string; status: SageAppCompatibilityStatus }
 export type SageAppCompatibilityStatus = { kind: "compatible" } | { kind: "requiresNewerSage"; minimumVersion: string } | { kind: "untestedNewerSage"; testedMaxVersion: string } | { kind: "invalid"; reason: string }

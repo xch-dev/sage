@@ -256,6 +256,13 @@ async function main() {
     stdio: 'inherit',
   });
 
+  // The UI imports the workspace packages, whose build output is not checked in.
+  log('Building the workspace packages...');
+  await runCommand('pnpm', ['run', 'dev:prepare'], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+  });
+
   const ports = await pickPorts();
   const binary = join(
     repoRoot,

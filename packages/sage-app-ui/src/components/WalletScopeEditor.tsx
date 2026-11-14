@@ -6,10 +6,31 @@ export type WalletScopeEditorWallet = {
   emoji?: string | null;
 };
 
+export type WalletScopeEditorLabels = {
+  heading: string;
+  description: string;
+  allWallets: string;
+  selectedWallets: string;
+  noWallets: string;
+  fingerprint: (fingerprint: number) => string;
+  unnamedWallet: (fingerprint: number) => string;
+};
+
+const defaultLabels: WalletScopeEditorLabels = {
+  heading: 'Wallet availability',
+  description: 'Choose which wallets can use this app.',
+  allWallets: 'All wallets',
+  selectedWallets: 'Selected wallets only',
+  noWallets: 'No wallets found.',
+  fingerprint: (fingerprint) => `Fingerprint ${fingerprint}`,
+  unnamedWallet: (fingerprint) => `Wallet ${fingerprint}`,
+};
+
 interface WalletScopeEditorProps {
   wallets: WalletScopeEditorWallet[];
   walletScope: SageAppWalletScope;
   disabled?: boolean;
+  labels?: Partial<WalletScopeEditorLabels>;
   onWalletScopeChange: (scope: SageAppWalletScope) => void;
 }
 
@@ -17,16 +38,21 @@ function selectedFingerprints(scope: SageAppWalletScope): number[] {
   return scope.kind === 'selectedWallets' ? scope.fingerprints : [];
 }
 
-function walletLabel(wallet: WalletScopeEditorWallet): string {
-  return wallet.name || `Wallet ${wallet.fingerprint}`;
+function walletLabel(
+  wallet: WalletScopeEditorWallet,
+  labels: WalletScopeEditorLabels,
+): string {
+  return wallet.name || labels.unnamedWallet(wallet.fingerprint);
 }
 
 export function WalletScopeEditor({
   wallets,
   walletScope,
   disabled = false,
+  labels: labelOverrides,
   onWalletScopeChange,
 }: WalletScopeEditorProps) {
+  const labels = { ...defaultLabels, ...labelOverrides };
   const selected = selectedFingerprints(walletScope);
 
   function toggleFingerprint(fingerprint: number) {
@@ -47,9 +73,9 @@ export function WalletScopeEditor({
   return (
     <div className='space-y-4'>
       <div>
-        <div className='text-sm font-medium'>Wallet availability</div>
+        <div className='text-sm font-medium'>{labels.heading}</div>
         <p className='mt-1 text-sm text-muted-foreground'>
-          Choose which wallets can use this app.
+          {labels.description}
         </p>
       </div>
 
@@ -65,7 +91,7 @@ export function WalletScopeEditor({
               : 'border-border hover:bg-muted',
           ].join(' ')}
         >
-          All wallets
+          {labels.allWallets}
         </button>
 
         <button
@@ -84,7 +110,7 @@ export function WalletScopeEditor({
               : 'border-border hover:bg-muted',
           ].join(' ')}
         >
-          Selected wallets only
+          {labels.selectedWallets}
         </button>
       </div>
 
@@ -92,7 +118,7 @@ export function WalletScopeEditor({
         <div className='overflow-hidden rounded-xl border border-border'>
           {wallets.length === 0 ? (
             <div className='p-3 text-sm text-muted-foreground'>
-              No wallets found.
+              {labels.noWallets}
             </div>
           ) : (
             wallets.map((wallet, index) => {
@@ -121,10 +147,10 @@ export function WalletScopeEditor({
 
                   <div className='min-w-0'>
                     <div className='truncate text-sm font-medium'>
-                      {walletLabel(wallet)}
+                      {walletLabel(wallet, labels)}
                     </div>
                     <div className='text-xs text-muted-foreground'>
-                      Fingerprint {wallet.fingerprint}
+                      {labels.fingerprint(wallet.fingerprint)}
                     </div>
                   </div>
                 </label>

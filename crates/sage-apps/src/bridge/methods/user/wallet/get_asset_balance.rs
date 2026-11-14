@@ -3,6 +3,7 @@ use sage_api::Amount;
 use sage_api::wallet_connect::GetAssetCoins;
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use utoipa::ToSchema;
 
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
@@ -15,12 +16,13 @@ const BALANCE_PAGE_SIZE: u32 = 100;
 #[derive(Debug, Clone, Copy)]
 pub struct WalletGetAssetBalance;
 
-#[derive(Debug, Clone, Deserialize, Type)]
+#[derive(Debug, Clone, Deserialize, Type, ToSchema)]
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub struct WalletGetAssetBalanceParams {
     #[serde(default, rename = "type")]
     pub kind: Option<WalletAssetCoinType>,
+    /// Asset id (hex), required when type is cat.
     #[serde(default)]
     pub asset_id: Option<String>,
 }

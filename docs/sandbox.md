@@ -14,8 +14,8 @@ offers, mint, and so on. For automated coverage of backend behavior, use the tes
 pnpm sandbox
 ```
 
-The first run builds the `sage-sandbox` binary, which takes a while. After that a start takes a few
-seconds. When everything is ready it prints:
+The first run builds the `sage-sandbox` binary and the workspace packages the UI imports (through
+`pnpm dev:prepare`, which caches them), which takes a while. After that a start takes a few seconds. When everything is ready it prints:
 
 ```
   alice  http://alice.localhost:<port>  (bridge http://127.0.0.1:<port>/alice)

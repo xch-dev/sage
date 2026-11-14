@@ -5,6 +5,7 @@ use sage_api::wallet_connect::{
 };
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use utoipa::ToSchema;
 
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
@@ -15,7 +16,7 @@ use crate::{
 #[derive(Debug, Clone, Copy)]
 pub struct WalletGetAssetCoins;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Type, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum WalletAssetCoinType {
     Cat,
@@ -33,12 +34,13 @@ impl From<WalletAssetCoinType> for AssetCoinType {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Type)]
+#[derive(Debug, Clone, Deserialize, Type, ToSchema)]
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub struct WalletGetAssetCoinsParams {
     #[serde(default, rename = "type")]
     pub kind: Option<WalletAssetCoinType>,
+    /// Asset id (hex), required when type is cat.
     #[serde(default)]
     pub asset_id: Option<String>,
     #[serde(default)]

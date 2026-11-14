@@ -1,14 +1,14 @@
 import {
-  AgentCapabilityInfo,
   AgentServerStatus,
   commands,
   SageAgent,
+  SageAppCapabilityDefinitionView,
   SageAppWalletScope,
   UserBridgeCapability,
 } from '@/bindings';
+import { AgentPermissionsPanel } from '@/components/AgentPermissionsPanel';
 import { CopyBox } from '@/components/CopyBox';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -24,10 +24,16 @@ import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import {
+  defaultAgentWalletScope,
+  hasSelectableWallet,
+  initialAgentCapabilities,
+} from '@/lib/agentPermissions';
 import { formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { WalletScopeEditorWallet } from 'sage-app-ui';
 
 const DEFAULT_PORT = 9258;
 const MIN_PORT = 1024;
@@ -74,7 +80,9 @@ export function AgentSettings() {
   const [portInput, setPortInput] = useState(String(DEFAULT_PORT));
   const [rpcRunning, setRpcRunning] = useState(false);
   const [agents, setAgents] = useState<SageAgent[]>([]);
-  const [capabilities, setCapabilities] = useState<AgentCapabilityInfo[]>([]);
+  const [definitions, setDefinitions] = useState<
+    SageAppCapabilityDefinitionView[]
+  >([]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<SageAgent | null>(null);
@@ -110,7 +118,7 @@ export function AgentSettings() {
         setPortInput(String(s.port));
       })
       .catch(addError);
-    commands.appsListAgentCapabilities().then(setCapabilities).catch(addError);
+    commands.appsListAgentCapabilities().then(setDefinitions).catch(addError);
     refreshAgents();
     pollRpcRunning();
 
@@ -305,7 +313,7 @@ export function AgentSettings() {
         open={dialogOpen}
         setOpen={setDialogOpen}
         agent={editing}
-        capabilities={capabilities}
+        definitions={definitions}
         port={port}
         currentFingerprint={wallet?.fingerprint}
         onChanged={refreshAgents}
@@ -344,7 +352,7 @@ interface AgentDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
   agent: SageAgent | null;
-  capabilities: AgentCapabilityInfo[];
+  definitions: SageAppCapabilityDefinitionView[];
   port: number;
   currentFingerprint?: number;
   onChanged: () => void;
@@ -354,7 +362,7 @@ function AgentDialog({
   open,
   setOpen,
   agent,
-  capabilities,
+  definitions,
   port,
   currentFingerprint,
   onChanged,
@@ -363,10 +371,15 @@ function AgentDialog({
   const { promptIfEnabled } = useBiometric();
 
   const [name, setName] = useState('');
-  const [allWallets, setAllWallets] = useState(false);
-  const [selected, setSelected] = useState<Set<UserBridgeCapability>>(
-    new Set(),
+  // Null until edited, so a new agent follows the definitions even if they load late.
+  const [editedCapabilities, setEditedCapabilities] = useState<
+    UserBridgeCapability[] | null
+  >(null);
+  const [walletScope, setWalletScope] = useState<SageAppWalletScope>(
+    defaultAgentWalletScope(),
   );
+  const [wallets, setWallets] = useState<WalletScopeEditorWallet[]>([]);
+  const [walletsLoaded, setWalletsLoaded] = useState(false);
   const [pending, setPending] = useState(false);
   const [token, setToken] = useState<string | null>(null);
 
@@ -376,46 +389,32 @@ function AgentDialog({
     setToken(null);
     setPending(false);
     setName(agent?.name ?? '');
-    setAllWallets(agent ? agent.walletScope.kind === 'allWallets' : false);
-    setSelected(
-      new Set(
-        agent ? agent.capabilities : capabilities.map((c) => c.capability),
-      ),
+    setEditedCapabilities(null);
+    setWalletScope(
+      agent ? agent.walletScope : defaultAgentWalletScope(currentFingerprint),
     );
+    setWalletsLoaded(false);
+    commands
+      .getWallets({})
+      .then(({ wallets }) => {
+        setWallets(
+          wallets.map(({ fingerprint, name, emoji }) => ({
+            fingerprint,
+            name,
+            emoji,
+          })),
+        );
+        setWalletsLoaded(true);
+      })
+      .catch(addError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, agent]);
 
-  const keepsExistingScope =
-    agent !== null && agent.walletScope.kind === 'selectedWallets';
-  const missingCurrentWallet =
-    !allWallets && !keepsExistingScope && currentFingerprint === undefined;
-
-  const buildScope = (): SageAppWalletScope => {
-    if (allWallets) return { kind: 'allWallets' };
-    if (agent && agent.walletScope.kind === 'selectedWallets') {
-      return agent.walletScope;
-    }
-    return {
-      kind: 'selectedWallets',
-      fingerprints:
-        currentFingerprint === undefined ? [] : [currentFingerprint],
-    };
-  };
-
-  const toggle = (capability: UserBridgeCapability, checked: boolean) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(capability);
-      else next.delete(capability);
-      return next;
-    });
-  };
+  const capabilities =
+    editedCapabilities ?? initialAgentCapabilities(agent, definitions);
+  const walletSelected = hasSelectableWallet(walletScope, wallets);
 
   const submit = async () => {
-    const caps = capabilities
-      .map((c) => c.capability)
-      .filter((c) => selected.has(c));
-
     if (!(await promptIfEnabled())) return;
 
     try {
@@ -424,16 +423,16 @@ function AgentDialog({
         await commands.appsUpdateAgent(
           agent.id,
           name.trim(),
-          caps,
-          buildScope(),
+          capabilities,
+          walletScope,
         );
         onChanged();
         setOpen(false);
       } else {
         const created = await commands.appsCreateAgent(
           name.trim(),
-          caps,
-          buildScope(),
+          capabilities,
+          walletScope,
         );
         setToken(created.token);
         onChanged();
@@ -460,7 +459,7 @@ function AgentDialog({
     }
   };
 
-  const valid = name.trim().length > 0 && !missingCurrentWallet;
+  const valid = name.trim().length > 0 && walletSelected;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -496,63 +495,23 @@ function AgentDialog({
               />
             </div>
 
-            <div className='flex items-center justify-between'>
-              <Label htmlFor='agent-all-wallets'>
-                <Trans>All wallets</Trans>
-              </Label>
-              <Switch
-                id='agent-all-wallets'
-                checked={allWallets}
-                onCheckedChange={setAllWallets}
-              />
-            </div>
-            {missingCurrentWallet ? (
+            <AgentPermissionsPanel
+              definitions={definitions}
+              capabilities={capabilities}
+              onCapabilitiesChange={setEditedCapabilities}
+              walletScope={walletScope}
+              onWalletScopeChange={setWalletScope}
+              wallets={wallets}
+              disabled={pending}
+            />
+
+            {walletsLoaded && !walletSelected && (
               <div className='text-sm text-destructive'>
                 <Trans>
-                  No wallet is logged in. Log in to a wallet to limit this agent
-                  to it, or turn on All wallets.
+                  Select at least one wallet, or choose All wallets.
                 </Trans>
               </div>
-            ) : (
-              !allWallets && (
-                <div className='text-sm text-muted-foreground'>
-                  {keepsExistingScope ? (
-                    <Trans>
-                      Limited to the wallets this agent already has.
-                    </Trans>
-                  ) : (
-                    <Trans>Limited to the current wallet.</Trans>
-                  )}
-                </div>
-              )
             )}
-
-            <div className='space-y-2'>
-              <Label>
-                <Trans>Capabilities</Trans>
-              </Label>
-              {capabilities.map((c) => (
-                <div key={c.capability} className='flex items-start gap-2'>
-                  <Checkbox
-                    id={`agent-cap-${c.capability}`}
-                    className='mt-1'
-                    checked={selected.has(c.capability)}
-                    onCheckedChange={(checked) =>
-                      toggle(c.capability, checked === true)
-                    }
-                  />
-                  <Label
-                    htmlFor={`agent-cap-${c.capability}`}
-                    className='space-y-0.5 font-normal'
-                  >
-                    <div className='font-medium'>{c.label}</div>
-                    <div className='text-sm text-muted-foreground'>
-                      {c.description}
-                    </div>
-                  </Label>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 

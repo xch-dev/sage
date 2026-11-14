@@ -3,7 +3,11 @@ import * as defaultTheme from 'tailwindcss/defaultTheme';
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ['class'],
-  content: ['src/**/*.{ts,tsx}', 'index.html'],
+  content: [
+    'src/**/*.{ts,tsx}',
+    'index.html',
+    'packages/sage-app-ui/src/**/*.{ts,tsx}',
+  ],
   theme: {
     extend: {
       fontFamily: {
