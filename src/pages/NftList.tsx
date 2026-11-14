@@ -7,6 +7,7 @@ import { NftPageTitle } from '@/components/NftPageTitle';
 import { Pagination } from '@/components/Pagination';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { ReadOnlyButton } from '@/components/ReadOnlyButton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useErrors } from '@/hooks/useErrors';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { useMultiSelect } from '@/hooks/useMultiSelect';
@@ -45,7 +46,7 @@ export function NftList() {
     owner,
     collection,
     isLoading,
-    hasLoaded,
+    loaded,
     updateNfts,
     total,
   } = useNftData({
@@ -62,8 +63,7 @@ export function NftList() {
 
   // Groups list their own cards, so only a flat list of NFTs can be empty.
   const showEmpty =
-    hasLoaded &&
-    !isLoading &&
+    loaded &&
     nfts.length === 0 &&
     (!!collectionId ||
       !!ownerDid ||
@@ -175,16 +175,26 @@ export function NftList() {
         </div>
 
         {showEmpty && (
-          <div className='flex flex-col items-center gap-2 py-16 text-center text-sm text-muted-foreground'>
-            <ImageIcon className='h-10 w-10' aria-hidden='true' />
-            <p>
-              {query ? (
+          <Alert className='mt-4'>
+            <ImageIcon className='h-4 w-4' />
+            {query ? (
+              <AlertTitle>
                 <Trans>No NFTs match your search.</Trans>
-              ) : (
-                <Trans>You don&apos;t have any NFTs yet.</Trans>
-              )}
-            </p>
-          </div>
+              </AlertTitle>
+            ) : (
+              <>
+                <AlertTitle>
+                  <Trans>Mint an NFT?</Trans>
+                </AlertTitle>
+                <AlertDescription>
+                  <Trans>
+                    You do not currently have any NFTs. Would you like to mint
+                    one?
+                  </Trans>
+                </AlertDescription>
+              </>
+            )}
+          </Alert>
         )}
 
         <main aria-label={t`NFT Collection`}>

@@ -179,17 +179,14 @@ export function MakeOffer() {
               <Label htmlFor='fee'>
                 <Trans>Network Fee</Trans>
               </Label>
-              <div className='relative'>
-                <FeeAmountInput
-                  id='fee'
-                  className='pr-12'
-                  onValueChange={(values: { value: string }) => {
-                    setState({
-                      fee: values.value,
-                    });
-                  }}
-                />
-              </div>
+              <FeeAmountInput
+                id='fee'
+                onValueChange={(values: { value: string }) => {
+                  setState({
+                    fee: values.value,
+                  });
+                }}
+              />
             </div>
 
             <div className='flex flex-col gap-2'>
@@ -237,11 +234,10 @@ export function MakeOffer() {
                 />
 
                 {isPreSplitting && (
-                  <div className='relative ml-auto w-40'>
+                  <div className='ml-auto w-40'>
                     <FeeAmountInput
                       id='pre-split-fee'
                       aria-label={t`Split fee`}
-                      className='pr-12'
                       value={preSplitFee}
                       onValueChange={(values: { value: string }) => {
                         setPreSplitFee(values.value);

@@ -254,13 +254,10 @@ export function MintOption() {
           <Label htmlFor='fee'>
             <Trans>Network Fee</Trans>
           </Label>
-          <div className='relative'>
-            <FeeAmountInput
-              id='fee'
-              className='pr-12'
-              onValueChange={(values) => setFee(values.value)}
-            />
-          </div>
+          <FeeAmountInput
+            id='fee'
+            onValueChange={(values) => setFee(values.value)}
+          />
         </div>
 
         <div className='mt-5 flex gap-2'>

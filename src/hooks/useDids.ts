@@ -25,7 +25,6 @@ export function useDids() {
       const data = await commands.getDids({});
       if (isMountedRef.current) {
         setDids(data.dids);
-        setLoaded(true);
       }
     } catch (error) {
       if (isMountedRef.current) {
@@ -34,6 +33,7 @@ export function useDids() {
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
+        setLoaded(true);
       }
     }
   }, [addError, wallet]);

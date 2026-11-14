@@ -264,6 +264,10 @@ interface SettingItemProps {
   children?: React.ReactNode;
 }
 
+// Form controls that take their accessible name from the setting's label. Buttons keep their own
+// text, wrappers aren't controls, and a Select is labelled on its trigger.
+const LABELLED_CONTROLS = new Set<unknown>([Switch, Input, FeeAmountInput]);
+
 function SettingItem({
   label,
   description,
@@ -284,7 +288,8 @@ function SettingItem({
           )}
         </div>
         <div className='flex sm:justify-end'>
-          {isValidElement<{ 'aria-labelledby'?: string }>(control)
+          {isValidElement<{ 'aria-labelledby'?: string }>(control) &&
+          LABELLED_CONTROLS.has(control.type)
             ? cloneElement(control, { 'aria-labelledby': labelId })
             : control}
         </div>
@@ -412,7 +417,7 @@ function GlobalSettings() {
           description={t`Choose your preferred language`}
           control={
             <Select value={locale} onValueChange={changeLanguage}>
-              <SelectTrigger className='w-[140px]'>
+              <SelectTrigger className='w-[140px]' aria-label={t`Language`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -749,7 +754,7 @@ function NetworkSettings() {
           >
             <SelectTrigger
               id='network'
-              aria-label='Select network'
+              aria-label={t`Default Network`}
               className='w-[140px]'
             >
               <SelectValue placeholder={<Trans>Select network</Trans>} />

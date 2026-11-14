@@ -54,7 +54,7 @@ export function useNftData(params: NftDataParams) {
     null,
   );
   const [isLoading, setIsLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [nftTotal, setNftTotal] = useState(0);
   const [collectionTotal, setCollectionTotal] = useState(0);
   const [ownerDidsTotal, setOwnerDidsTotal] = useState(0);
@@ -156,7 +156,7 @@ export function useNftData(params: NftDataParams) {
         addError(error as CustomError);
       } finally {
         setIsLoading(false);
-        setHasLoaded(true);
+        setLoaded(true);
       }
     },
     [
@@ -275,7 +275,7 @@ export function useNftData(params: NftDataParams) {
     owner,
     collection,
     isLoading,
-    hasLoaded,
+    loaded,
     total: getTotal(),
     updateNfts,
   };
