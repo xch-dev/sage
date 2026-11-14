@@ -14,6 +14,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
+import { useNftPrices } from '@/hooks/useNftPrices';
 import { usePrices } from '@/hooks/usePrices';
 import { TokenSortMode, useTokenParams } from '@/hooks/useTokenParams';
 import { exportTokens } from '@/lib/exportTokens';
@@ -32,6 +33,7 @@ export function TokenList() {
   const navigate = useNavigate();
   const walletState = useWalletState();
   const { getBalanceInUsd, getPriceInUsd } = usePrices();
+  const { nftTotalUsd } = useNftPrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
@@ -254,19 +256,40 @@ export function TokenList() {
                           liquidity
                         </Trans>
                       </p>
+                      {nftTotalUsd > 0 && (
+                        <p>
+                          <Trans>
+                            NFT values are floor price estimates from MintGarden
+                          </Trans>
+                        </p>
+                      )}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
               <span className='foreground'>
                 <NumberFormat
-                  value={totalUsdBalance}
+                  value={totalUsdBalance + nftTotalUsd}
                   style='currency'
                   currency='USD'
                   maximumFractionDigits={2}
                 />
               </span>
             </div>
+            {nftTotalUsd > 0 && (
+              <div className='flex justify-end text-sm text-muted-foreground mt-1'>
+                <Trans>
+                  Includes ~
+                  <NumberFormat
+                    value={nftTotalUsd}
+                    style='currency'
+                    currency='USD'
+                    maximumFractionDigits={2}
+                  />{' '}
+                  in NFTs
+                </Trans>
+              </div>
+            )}
           </div>
         )}
       </Container>
