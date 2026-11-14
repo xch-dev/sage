@@ -22,8 +22,14 @@ use tracing::info;
 
 use crate::forward_events;
 
+/// The seed byte alice's mnemonic is derived from.
+pub const ALICE_SEED: u8 = 1;
+
+/// The seed byte bob's mnemonic is derived from.
+pub const BOB_SEED: u8 = 2;
+
 /// The wallets to start, with the seed byte their mnemonic is derived from.
-const WALLETS: [(&str, u8); 2] = [("alice", 1), ("bob", 2)];
+const WALLETS: [(&str, u8); 2] = [("alice", ALICE_SEED), ("bob", BOB_SEED)];
 
 /// How many coins each wallet starts with, so that several spends can be pending at once.
 const STARTING_COINS: usize = 10;

@@ -62,6 +62,26 @@ storage apart.
 Bob plays everyone else. To test receiving, an offer being taken, and so on, act as bob, either in
 a second tab or by calling bob's bridge directly.
 
+## Vaults
+
+Sage can't create vaults, so the sandbox mints a few at startup to import. `instance.json` lists
+them under `vaults`, each with its `launcher_id` (a `vault1` id), its first `address`, whether its
+config is in its `memo`, the `recovery_keys` and `recovery_threshold` to import it with if not, and
+a `config_file` in `data/vaults/` to import it from. Alice's key is the custody of every vault, so
+she can attach it as a signer, and bob's key is the recovery key.
+
+| Vault               | What it's for                                                        |
+| ------------------- | -------------------------------------------------------------------- |
+| `memo`              | Config in its memos, so its id or address is enough                  |
+| `no-memo`           | A legacy vault without memos, imported with bob's recovery key       |
+| `two-recovery-keys` | Without memos, with a 2 of 2 recovery of bob's key and another key   |
+| `no-recovery`       | Without memos or recovery, so it's rebuilt from its spends alone     |
+| `recovering`        | Bob has started recovery, which stays pending while the sandbox runs |
+
+Each vault has spent from its first address, which reveals it, and holds 1 TXCH there. The browser
+can't read the config files from disk, so paste one's contents, or set the file input with the
+preview tools.
+
 ## Calling the bridge
 
 Every command the UI can call is also an HTTP endpoint on the bridge:

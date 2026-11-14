@@ -24,8 +24,10 @@ sage = { workspace = true }
 sage-api = { workspace = true }
 sage-api-macro = { workspace = true }
 sage-wallet = { workspace = true }
+sage-database = { workspace = true }
 chia-wallet-sdk = { workspace = true }
 bip39 = { workspace = true }
+hex = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true, features = ["derive"] }

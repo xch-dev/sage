@@ -347,7 +347,7 @@ fn finish_build(
 }
 
 /// The restrictions on the recovery path before recovery has started, in order.
-pub(crate) fn recovery_restrictions(
+pub fn recovery_restrictions(
     custody_member_hash: TreeHash,
     recovery_timelock: u64,
     version: VaultVersion,
