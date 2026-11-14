@@ -1,5 +1,5 @@
 use chia_wallet_sdk::prelude::*;
-use sqlx::{Row, SqliteExecutor};
+use sqlx::{QueryBuilder, Row, Sqlite, SqliteExecutor};
 
 use crate::{Asset, AssetKind, Convert, Database, Result};
 
@@ -154,67 +154,85 @@ async fn transactions(
     limit: u32,
     offset: u32,
 ) -> Result<(Vec<Transaction>, u32)> {
-    let mut query = sqlx::QueryBuilder::new(format!(
-        "SELECT
-            height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
+    let order = if sort_ascending { "ASC" } else { "DESC" };
+
+    // A transaction is every coin created or spent at one height, so pagination and the total
+    // count apply to distinct heights rather than to coin rows. Otherwise a page could end in the
+    // middle of a transaction and the total would count coins.
+    let mut query = QueryBuilder::new(
+        "WITH page AS (
+            SELECT height, COUNT(*) OVER() AS total_count
+            FROM (SELECT DISTINCT height FROM transaction_coins WHERE 1=1",
+    );
+
+    push_transaction_filter(&mut query, find_value.as_deref());
+
+    query.push(format!(") ORDER BY height {order} LIMIT "));
+    query.push_bind(limit);
+    query.push(" OFFSET ");
+    query.push_bind(offset);
+
+    query.push(format!(
+        ")
+        SELECT
+            transaction_coins.height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
             is_created_in_block, is_spent_in_block, asset_hash, asset_description,
             asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
             asset_kind, asset_ticker, asset_precision, asset_hidden_puzzle_hash,
             {CUSTODY_COLUMNS},
-            COUNT(*) OVER() as total_count
+            page.total_count
         FROM transaction_coins
+        INNER JOIN page ON page.height = transaction_coins.height
         LEFT JOIN p2_puzzles ON p2_puzzles.hash = transaction_coins.p2_puzzle_hash
         {CUSTODY_JOINS}
         WHERE 1=1"
     ));
 
-    if let Some(find_value) = find_value {
-        query.push(" AND (asset_name LIKE ");
-        query.push_bind(format!("%{find_value}%"));
-        query.push(" OR asset_ticker LIKE ");
-        query.push_bind(format!("%{find_value}%"));
+    push_transaction_filter(&mut query, find_value.as_deref());
 
-        if is_valid_asset_id(&find_value) {
-            query.push(" OR asset_hash = X'");
-            query.push(find_value.clone());
-            query.push("'");
-        }
+    query.push(format!(" ORDER BY transaction_coins.height {order}"));
 
-        // match on nft or did launcher id
-        if let Some(puzzle_hash) = puzzle_hash_from_address(&find_value) {
-            query.push(" OR asset_hash = X'");
-            query.push(puzzle_hash);
-            query.push("'");
-        }
-
-        // match on height if the find value is parsable as a u32
-        if let Ok(height) = find_value.parse::<u32>() {
-            query.push(" OR height = ");
-            query.push_bind(height);
-        }
-        query.push(")");
-    }
-
-    if sort_ascending {
-        query.push(" ORDER BY height ASC");
-    } else {
-        query.push(" ORDER BY height DESC");
-    }
-
-    query.push(" LIMIT ");
-    query.push_bind(limit);
-    query.push(" OFFSET ");
-    query.push_bind(offset);
-    let query = query.build();
-
-    let rows = query.fetch_all(conn).await?;
+    let rows = query.build().fetch_all(conn).await?;
     let total_count = rows
         .first()
         .map_or(Ok(0), |row| row.get::<i64, _>("total_count").try_into())?;
 
     let transactions = group_rows_into_transactions(rows, sort_ascending)?;
 
-    Ok((transactions, total_count as u32))
+    Ok((transactions, total_count))
+}
+
+/// Restricts `transaction_coins` rows to the coins that match a search, if there is one.
+fn push_transaction_filter(query: &mut QueryBuilder<'_, Sqlite>, find_value: Option<&str>) {
+    let Some(find_value) = find_value else {
+        return;
+    };
+
+    query.push(" AND (transaction_coins.asset_name LIKE ");
+    query.push_bind(format!("%{find_value}%"));
+    query.push(" OR transaction_coins.asset_ticker LIKE ");
+    query.push_bind(format!("%{find_value}%"));
+
+    if is_valid_asset_id(find_value) {
+        query.push(" OR transaction_coins.asset_hash = X'");
+        query.push(find_value);
+        query.push("'");
+    }
+
+    // match on nft or did launcher id
+    if let Some(puzzle_hash) = puzzle_hash_from_address(find_value) {
+        query.push(" OR transaction_coins.asset_hash = X'");
+        query.push(puzzle_hash);
+        query.push("'");
+    }
+
+    // match on height if the find value is parsable as a u32
+    if let Ok(height) = find_value.parse::<u32>() {
+        query.push(" OR transaction_coins.height = ");
+        query.push_bind(height);
+    }
+
+    query.push(")");
 }
 
 pub fn is_valid_asset_id(asset_id: &str) -> bool {
@@ -467,7 +485,7 @@ mod tests {
         tx.commit().await?;
 
         let (transactions, total) = db.transactions(None, false, 100, 0).await?;
-        assert_eq!(total as usize, expected.len());
+        assert_eq!(total, 1);
         assert_eq!(transactions.len(), 1);
         assert_eq!(
             custody_by_coin(&transactions[0].created.iter().collect::<Vec<_>>()),
@@ -486,6 +504,61 @@ mod tests {
             custody_by_coin(&mempool_items[0].created.iter().collect::<Vec<_>>()),
             expected
         );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_history_paginates_by_transaction() -> anyhow::Result<()> {
+        let pool = SqlitePool::connect("sqlite::memory:").await?;
+        migrate!("../../migrations").run(&pool).await?;
+        let db = Database::new(pool);
+
+        let xch = Bytes32::default();
+        let mut tx = db.tx().await?;
+
+        // Three transactions with three coins each
+        for height in 1..=3u32 {
+            tx.insert_height(height).await?;
+
+            for index in 0..3u8 {
+                let coin = Coin::new(
+                    Bytes32::new([height as u8 * 10 + index; 32]),
+                    Bytes32::new([1; 32]),
+                    1,
+                );
+                tx.insert_coin(CoinState::new(coin, None, Some(height)))
+                    .await?;
+                tx.update_coin(coin.coin_id(), xch, Bytes32::new([1; 32]))
+                    .await?;
+            }
+        }
+
+        tx.commit().await?;
+
+        let (page, total) = db.transactions(None, false, 2, 0).await?;
+        assert_eq!(total, 3);
+        assert_eq!(
+            page.iter().map(|tx| tx.height).collect::<Vec<_>>(),
+            vec![3, 2]
+        );
+        assert!(page.iter().all(|tx| tx.created.len() == 3));
+
+        let (page, total) = db.transactions(None, false, 2, 2).await?;
+        assert_eq!(total, 3);
+        assert_eq!(page.iter().map(|tx| tx.height).collect::<Vec<_>>(), vec![1]);
+        assert_eq!(page[0].created.len(), 3);
+
+        let (page, total) = db.transactions(None, true, 2, 0).await?;
+        assert_eq!(total, 3);
+        assert_eq!(
+            page.iter().map(|tx| tx.height).collect::<Vec<_>>(),
+            vec![1, 2]
+        );
+
+        let (page, total) = db.transactions(Some("2".to_string()), false, 10, 0).await?;
+        assert_eq!(total, 1);
+        assert_eq!(page.iter().map(|tx| tx.height).collect::<Vec<_>>(), vec![2]);
 
         Ok(())
     }
