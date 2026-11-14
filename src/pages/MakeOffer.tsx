@@ -15,7 +15,6 @@ import { useErrors } from '@/hooks/useErrors';
 import { useNowSeconds } from '@/hooks/useNowSeconds';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { expirationError, futureExpirationTimestamp } from '@/lib/expiration';
-import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { HandCoins, Handshake } from 'lucide-react';
@@ -26,7 +25,6 @@ export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();
   const location = useLocation();
   const { expiry } = useDefaultOfferExpiry();
-  const walletState = useWalletState();
   const navigate = useNavigate();
   const { addError } = useErrors();
   const now = useNowSeconds();
@@ -181,25 +179,14 @@ export function MakeOffer() {
               <Label htmlFor='fee'>
                 <Trans>Network Fee</Trans>
               </Label>
-              <div className='relative'>
-                <FeeAmountInput
-                  id='fee'
-                  className='pr-12'
-                  onValueChange={(values: { value: string }) => {
-                    setState({
-                      fee: values.value,
-                    });
-                  }}
-                />
-                <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span
-                    className='text-muted-foreground text-sm'
-                    id='price-currency'
-                  >
-                    {walletState.sync.unit.ticker}
-                  </span>
-                </div>
-              </div>
+              <FeeAmountInput
+                id='fee'
+                onValueChange={(values: { value: string }) => {
+                  setState({
+                    fee: values.value,
+                  });
+                }}
+              />
             </div>
 
             <div className='flex flex-col gap-2'>
@@ -247,21 +234,15 @@ export function MakeOffer() {
                 />
 
                 {isPreSplitting && (
-                  <div className='relative ml-auto w-40'>
+                  <div className='ml-auto w-40'>
                     <FeeAmountInput
                       id='pre-split-fee'
                       aria-label={t`Split fee`}
-                      className='pr-12'
                       value={preSplitFee}
                       onValueChange={(values: { value: string }) => {
                         setPreSplitFee(values.value);
                       }}
                     />
-                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-muted-foreground text-sm'>
-                        {walletState.sync.unit.ticker}
-                      </span>
-                    </div>
                   </div>
                 )}
               </div>
@@ -288,7 +269,7 @@ export function MakeOffer() {
               navigate('/offers', { replace: true });
             }}
           >
-            <Trans>Cancel Offer</Trans>
+            <Trans>Cancel</Trans>
           </Button>
           <ReadOnlyButton
             requiresSigning

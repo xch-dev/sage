@@ -43,6 +43,8 @@ export function OptionList() {
   const [options, setOptions] = useState<OptionRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  // Hides the empty states until the first fetch, without hiding them again on every refetch.
+  const [loaded, setLoaded] = useState(false);
 
   const updateOptions = useCallback(async () => {
     setLoading(true);
@@ -64,6 +66,7 @@ export function OptionList() {
       addError(error as CustomError);
     } finally {
       setLoading(false);
+      setLoaded(true);
     }
   }, [
     addError,
@@ -166,13 +169,13 @@ export function OptionList() {
           onExport={() => exportOptions(options)}
         />
 
-        {options.length === 0 && filter !== 'owned' && !loading && (
+        {loaded && options.length === 0 && filter !== 'owned' && (
           <div className='text-center text-muted-foreground py-8'>
             <Trans>No options found.</Trans>
           </div>
         )}
 
-        {options.length === 0 && filter === 'owned' && (
+        {loaded && options.length === 0 && filter === 'owned' && (
           <Alert className='mt-4'>
             <FilePenLine className='h-4 w-4' />
             <AlertTitle>

@@ -19,7 +19,7 @@ import { formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { CalendarIcon } from 'lucide-react';
-import { ReactNode, useId } from 'react';
+import { useId } from 'react';
 import { useTheme } from 'theme-o-rama';
 
 export interface ExpirationInputProps {
@@ -105,10 +105,11 @@ export function ExpirationInput({
 
   const durationField = (
     field: 'days' | 'hours' | 'minutes',
-    label: ReactNode,
+    label: string,
   ) => (
     <div className='relative'>
       <IntegerInput
+        aria-label={label}
         className='pr-12'
         value={value[field]}
         placeholder='0'
@@ -140,9 +141,9 @@ export function ExpirationInput({
       {mode === 'duration' ? (
         <>
           <div className='flex gap-2'>
-            {durationField('days', <Trans>Days</Trans>)}
-            {durationField('hours', <Trans>Hours</Trans>)}
-            {durationField('minutes', <Trans>Minutes</Trans>)}
+            {durationField('days', t`Days`)}
+            {durationField('hours', t`Hours`)}
+            {durationField('minutes', t`Minutes`)}
           </div>
           {!tooFar && (
             <span className='text-muted-foreground text-sm'>

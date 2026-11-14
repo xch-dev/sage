@@ -7,7 +7,7 @@ import { usePeers } from '@/hooks/usePeers';
 import { offersEnabled, optionsEnabled } from '@/lib/features';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
+import { Plural, Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   ArrowDownUp,
@@ -161,7 +161,11 @@ export function BottomNav({ isCollapsed }: NavProps) {
           isSynced ? (
             <>
               {peerMaxHeight ? (
-                <Trans>{peerCount} peers synced</Trans>
+                <Plural
+                  value={peerCount}
+                  one='# peer synced'
+                  other='# peers synced'
+                />
               ) : (
                 <Trans>Connecting...</Trans>
               )}

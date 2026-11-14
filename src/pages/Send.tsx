@@ -476,6 +476,7 @@ export default function Send() {
                     <Trans>Hex</Trans>
 
                     <Switch
+                      aria-label={t`Hex memo`}
                       checked={memoMode === MemoMode.Hex}
                       onCheckedChange={(checked) => {
                         form.setValue(
