@@ -280,6 +280,26 @@ async fn sets_the_transaction_expiration() -> Result<()> {
         );
     }
 
+    // Expirations too short to confirm in are refused, and leave the setting as it was.
+    let error = app
+        .set_transaction_expiration(SetTransactionExpiration { seconds: 299 })
+        .await
+        .expect_err("the expiration is too short");
+    assert!(
+        error.to_string().contains("at least 300 seconds"),
+        "{error}"
+    );
+
+    app.set_transaction_expiration(SetTransactionExpiration { seconds: 300 })
+        .await?;
+    assert_eq!(
+        app.sage.lock().await.wallet()?.transaction_expiration(),
+        300
+    );
+
+    app.set_transaction_expiration(SetTransactionExpiration { seconds: 0 })
+        .await?;
+
     // A wallet that logs in later uses it too.
     app.setup_bls(0).await?;
     assert_eq!(app.sage.lock().await.wallet()?.transaction_expiration(), 0);

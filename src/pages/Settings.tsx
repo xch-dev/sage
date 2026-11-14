@@ -282,6 +282,9 @@ function SettingItem({
 // setting is switched back on without a duration.
 const DEFAULT_TRANSACTION_EXPIRATION = 3600;
 
+// Matches `MIN_TRANSACTION_EXPIRATION` in `sage-config`.
+const MIN_TRANSACTION_EXPIRATION = 5 * 60;
+
 function GlobalSettings() {
   const { addError } = useErrors();
   const { locale, changeLanguage } = useLanguage();
@@ -325,14 +328,19 @@ function GlobalSettings() {
   const changeLocalExpiration = (duration: Duration) => {
     setLocalExpiration(duration);
 
-    // Zero would turn the expiration off, which is done with the switch instead.
+    // Shorter durations aren't allowed, and zero would turn the expiration off, which is
+    // done with the switch instead.
     const seconds = expirationDurationSeconds(duration);
-    if (seconds > 0) setTransactionExpiration(seconds);
+    if (seconds >= MIN_TRANSACTION_EXPIRATION)
+      setTransactionExpiration(seconds);
   };
 
-  // Fields left at zero weren't saved, so they go back to the saved duration.
+  const expirationTooShort =
+    expirationDurationSeconds(localExpiration) < MIN_TRANSACTION_EXPIRATION;
+
+  // A duration that's too short wasn't saved, so it goes back to the saved one.
   const restoreSavedExpiration = () => {
-    if (expirationDurationSeconds(localExpiration) > 0) return;
+    if (!expirationTooShort) return;
     if (transactionExpiration) {
       setLocalExpiration(durationParts(transactionExpiration));
     }
@@ -497,9 +505,9 @@ function GlobalSettings() {
               disabled={!defaultWalletConfig}
               onCheckedChange={(checked) => {
                 if (checked) {
-                  const seconds =
-                    expirationDurationSeconds(localExpiration) ||
-                    DEFAULT_TRANSACTION_EXPIRATION;
+                  const seconds = expirationTooShort
+                    ? DEFAULT_TRANSACTION_EXPIRATION
+                    : expirationDurationSeconds(localExpiration);
                   setLocalExpiration(durationParts(seconds));
                   setTransactionExpiration(seconds);
                 } else {
@@ -540,6 +548,11 @@ function GlobalSettings() {
                   changeLocalExpiration({ ...localExpiration, minutes: value })
                 }
               />
+              {expirationTooShort && (
+                <p className='col-span-3 text-sm text-destructive'>
+                  <Trans>The expiration must be at least 5 minutes</Trans>
+                </p>
+              )}
             </div>
           )}
         </SettingItem>

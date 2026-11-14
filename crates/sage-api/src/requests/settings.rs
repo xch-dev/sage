@@ -253,7 +253,7 @@ pub struct SetChangeAddress {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Transactions",
-        description = "Set how many seconds after it's created a transaction can still be confirmed. Offers have their own expiration, and aren't affected.",
+        description = "Set how many seconds after it's created a transaction can still be confirmed, which must be at least 300 (5 minutes), or 0 for no limit. Offers have their own expiration, and aren't affected.",
         response_type = "EmptyResponse"
     )
 )]
@@ -261,7 +261,7 @@ pub struct SetChangeAddress {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SetTransactionExpiration {
-    /// Seconds a transaction can be confirmed for, or 0 for no limit
+    /// Seconds a transaction can be confirmed for, at least 300, or 0 for no limit
     #[cfg_attr(feature = "openapi", schema(example = 3600))]
     pub seconds: u64,
 }

@@ -3696,7 +3696,7 @@ target_peers: number }
  */
 export type SetTransactionExpiration = { 
 /**
- * Seconds a transaction can be confirmed for, or 0 for no limit
+ * Seconds a transaction can be confirmed for, at least 300, or 0 for no limit
  */
 seconds: number }
 /**

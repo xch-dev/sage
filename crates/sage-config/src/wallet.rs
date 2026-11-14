@@ -39,6 +39,22 @@ impl Default for WalletDefaults {
 /// Transactions expire after an hour by default, so that one stuck in the mempool doesn't
 /// confirm long after it was made.
 pub const DEFAULT_TRANSACTION_EXPIRATION: u64 = 60 * 60;
+
+/// The shortest expiration a transaction can have. Blocks are about a minute apart, so a
+/// shorter one would often pass before the transaction could be confirmed.
+pub const MIN_TRANSACTION_EXPIRATION: u64 = 5 * 60;
+
+impl WalletDefaults {
+    /// The transaction expiration to use, or 0 for none. A value below the minimum, which
+    /// could only have been written to the config by hand, is raised to it.
+    pub fn transaction_expiration(&self) -> u64 {
+        if self.transaction_expiration == 0 {
+            0
+        } else {
+            self.transaction_expiration.max(MIN_TRANSACTION_EXPIRATION)
+        }
+    }
+}
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(default)]
 pub struct Wallet {
@@ -317,6 +333,21 @@ mod tests {
             config.defaults.transaction_expiration,
             DEFAULT_TRANSACTION_EXPIRATION
         );
+    }
+
+    #[test]
+    fn test_transaction_expiration_minimum() {
+        let defaults = |transaction_expiration| WalletDefaults {
+            transaction_expiration,
+            ..WalletDefaults::default()
+        };
+
+        assert_eq!(defaults(0).transaction_expiration(), 0);
+        assert_eq!(
+            defaults(1).transaction_expiration(),
+            MIN_TRANSACTION_EXPIRATION
+        );
+        assert_eq!(defaults(600).transaction_expiration(), 600);
     }
 
     #[test]

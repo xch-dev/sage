@@ -410,7 +410,7 @@ impl Sage {
                 .map(|address| address.puzzle_hash),
         ));
 
-        wallet.set_transaction_expiration(self.wallet_config.defaults.transaction_expiration);
+        wallet.set_transaction_expiration(self.wallet_config.defaults.transaction_expiration());
 
         self.wallet = Some(wallet.clone());
         self.unit = Unit {

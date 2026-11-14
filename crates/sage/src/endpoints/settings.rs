@@ -11,7 +11,7 @@ use sage_api::{
     SetTargetPeers, SetTargetPeersResponse, SetTransactionExpiration,
     SetTransactionExpirationResponse,
 };
-use sage_config::{MAINNET, TESTNET11};
+use sage_config::{MAINNET, MIN_TRANSACTION_EXPIRATION, TESTNET11};
 use sage_wallet::SyncCommand;
 
 use crate::{Error, Result, Sage};
@@ -203,6 +203,12 @@ impl Sage {
         &mut self,
         req: SetTransactionExpiration,
     ) -> Result<SetTransactionExpirationResponse> {
+        if req.seconds > 0 && req.seconds < MIN_TRANSACTION_EXPIRATION {
+            return Err(Error::TransactionExpirationTooShort(
+                MIN_TRANSACTION_EXPIRATION,
+            ));
+        }
+
         self.wallet_config.defaults.transaction_expiration = req.seconds;
         self.save_config()?;
 
