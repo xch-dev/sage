@@ -173,13 +173,17 @@ impl SyncManager {
                     }
                 }
                 SyncCommand::SwitchNetwork(network) => {
-                    if self.network.network_id() != network.network_id()
+                    let is_different_network = self.network.network_id() != network.network_id()
                         || self.network.genesis_challenge != network.genesis_challenge
-                        || self.network.default_port != network.default_port
-                    {
+                        || self.network.default_port != network.default_port;
+
+                    // Settings that don't change which network this is, such as whether silent
+                    // peers are dropped, still have to take effect.
+                    self.network = *network;
+
+                    if is_different_network {
                         self.state.lock().await.reset();
                         self.abort_wallet_tasks();
-                        self.network = *network;
                         let _ = self
                             .event_sender
                             .send(SyncEvent::NetworkChanged {
@@ -800,6 +804,39 @@ mod tests {
         })
         .await?;
 
+        manager.drop_silent_peers().await;
+
+        assert_eq!(manager.state.lock().await.peer_count(), 1);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn network_settings_apply_without_switching_network() -> anyhow::Result<()> {
+        let mut options = default_test_options();
+        options.timeouts.peer_silence = Duration::ZERO;
+
+        let (mut manager, sender, _events) = SyncManager::new(
+            options,
+            Arc::new(Mutex::new(PeerState::default())),
+            None,
+            TESTNET11.clone(),
+            Connector::Plain,
+        );
+
+        let sim = PeerSimulator::new().await?;
+        let (peer, receiver) = sim.connect_raw().await?;
+        assert!(manager.try_add_peer(peer, receiver, true, false).await);
+
+        sender
+            .send(SyncCommand::SwitchNetwork(Box::new(Network {
+                drop_silent_peers: false,
+                ..TESTNET11.clone()
+            })))
+            .await?;
+        manager.process_commands().await;
+
+        // The network is the same, so the peer is kept, and the new setting stops it being dropped.
         manager.drop_silent_peers().await;
 
         assert_eq!(manager.state.lock().await.peer_count(), 1);
