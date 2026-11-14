@@ -138,7 +138,10 @@ impl OfferQueue {
         let mut unchecked_offer_ids = HashSet::new();
 
         for (&offer_id, settlement) in &settlements {
-            match settlement.is_settled(&peer, &chain_coin_states).await {
+            match settlement
+                .is_settled(&peer, &chain_coin_states, self.genesis_challenge)
+                .await
+            {
                 Ok(true) => {
                     new_offer_statuses.insert(offer_id, OfferStatus::Completed);
                 }
@@ -182,10 +185,6 @@ impl OfferQueue {
             }
         }
 
-        for offer_id in &unchecked_offer_ids {
-            new_offer_statuses.remove(offer_id);
-        }
-
         for (offer_id, coins) in pending_offer_coins {
             if new_offer_statuses.contains_key(&offer_id) || unchecked_offer_ids.contains(&offer_id)
             {
@@ -199,6 +198,8 @@ impl OfferQueue {
                 new_offer_statuses.insert(offer_id, status);
             }
         }
+
+        new_offer_statuses.retain(|offer_id, _| !unchecked_offer_ids.contains(offer_id));
 
         for (offer_id, status) in new_offer_statuses {
             self.db.update_offer_status(offer_id, status).await?;

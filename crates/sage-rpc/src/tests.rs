@@ -553,7 +553,91 @@ async fn test_offer_not_completed_by_another_offer_of_the_same_coin() -> Result<
     let first = make_offer(&app, 100).await?.offer;
     let second = make_offer(&app, 200).await?.offer;
 
-    app.login(Login { fingerprint: bob }).await?;
+    assert_only_second_offer_completed(&mut app, alice, bob, first, second).await
+}
+
+#[tokio::test]
+async fn test_cat_offer_not_completed_by_another_offer_of_the_same_coins() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(10_000).await?;
+    let bob = app.setup_bls(1000).await?;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    app.issue_cat(IssueCat {
+        name: "Reused".to_string(),
+        ticker: "RSD".to_string(),
+        amount: Amount::u64(1000),
+        revocable: false,
+        fee: Amount::u64(0),
+        auto_submit: true,
+    })
+    .await?;
+    app.wait_for_coins().await;
+
+    let cat_id = app.get_cats(GetCats {}).await?.cats[0]
+        .asset_id
+        .clone()
+        .expect("the CAT has an asset id");
+    let asset_id = Bytes32::try_from(hex::decode(&cat_id)?)?;
+
+    let coin_ids = {
+        let sage = app.sage.lock().await;
+        let db = &sage.wallet()?.db;
+
+        vec![
+            db.selectable_cat_coins(asset_id).await?[0]
+                .coin
+                .coin_id()
+                .to_string(),
+            db.selectable_xch_coins().await?[0].coin_id().to_string(),
+        ]
+    };
+
+    // The fee is paid by the XCH coin, whose spend also carries the offer's terms, so the CAT
+    // coin's spend is the same in both offers.
+    let make_offer = async |app: &TestApp, requested: u64| {
+        app.make_offer(MakeOffer {
+            confirmed_handles: Vec::new(),
+            requested_assets: vec![OfferAmount {
+                asset_id: None,
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(requested),
+            }],
+            offered_assets: vec![OfferAmount {
+                asset_id: Some(cat_id.clone()),
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(300),
+            }],
+            fee: Amount::u64(1),
+            receive_address: None,
+            expires_at_second: None,
+            auto_import: false,
+            coin_ids: Some(coin_ids.clone()),
+            pre_split_fee: None,
+        })
+        .await
+    };
+
+    let first = make_offer(&app, 100).await?.offer;
+    let second = make_offer(&app, 200).await?.offer;
+
+    assert_only_second_offer_completed(&mut app, alice, bob, first, second).await
+}
+
+/// Takes the second of two offers which spend the same coins for the same amounts, and checks that
+/// only the second is completed, both when the offers are viewed and once the offer queue has
+/// checked them. Taking the second offer spends the first one's coins, which cancels it.
+async fn assert_only_second_offer_completed(
+    app: &mut TestApp,
+    maker: u32,
+    taker: u32,
+    first: String,
+    second: String,
+) -> Result<()> {
+    app.login(Login { fingerprint: taker }).await?;
     app.wait_for_coins().await;
 
     app.take_offer(TakeOffer {
@@ -572,7 +656,7 @@ async fn test_offer_not_completed_by_another_offer_of_the_same_coin() -> Result<
             .status)
     };
 
-    let mut second_status = status(&app, &second).await?;
+    let mut second_status = status(app, &second).await?;
 
     for _ in 0..100 {
         if matches!(second_status, OfferRecordStatus::Completed) {
@@ -580,7 +664,7 @@ async fn test_offer_not_completed_by_another_offer_of_the_same_coin() -> Result<
         }
 
         tokio::time::sleep(Duration::from_millis(100)).await;
-        second_status = status(&app, &second).await?;
+        second_status = status(app, &second).await?;
     }
 
     assert!(
@@ -588,40 +672,40 @@ async fn test_offer_not_completed_by_another_offer_of_the_same_coin() -> Result<
         "{second_status:?}"
     );
 
-    // The first offer's coin was spent by taking the second one, which cancels it.
-    let first_status = status(&app, &first).await?;
+    let first_status = status(app, &first).await?;
     assert!(
         matches!(first_status, OfferRecordStatus::Cancelled),
         "{first_status:?}"
     );
 
-    // The offer queue comes to the same conclusion for an imported offer.
-    app.login(Login { fingerprint: alice }).await?;
+    app.login(Login { fingerprint: maker }).await?;
     app.wait_for_coins().await;
 
     let first_id = app
         .import_offer(ImportOffer { offer: first })
         .await?
         .offer_id;
+    let second_id = app
+        .import_offer(ImportOffer { offer: second })
+        .await?
+        .offer_id;
 
-    let updated = StdMutex::new(None);
+    let statuses = StdMutex::new(HashMap::new());
 
     app.consume_until(|event| {
-        if let SyncEvent::OfferUpdated { offer_id, status } = event
-            && offer_id.to_string() == first_id
-        {
-            *updated.lock().expect("lock poisoned") = Some(status);
-            return true;
+        let mut statuses = statuses.lock().expect("lock poisoned");
+
+        if let SyncEvent::OfferUpdated { offer_id, status } = event {
+            statuses.insert(offer_id.to_string(), status);
         }
 
-        false
+        statuses.contains_key(&first_id) && statuses.contains_key(&second_id)
     })
     .await;
 
-    assert_eq!(
-        updated.into_inner().expect("lock poisoned"),
-        Some(OfferStatus::Cancelled)
-    );
+    let statuses = statuses.into_inner().expect("lock poisoned");
+    assert_eq!(statuses[&first_id], OfferStatus::Cancelled);
+    assert_eq!(statuses[&second_id], OfferStatus::Completed);
 
     Ok(())
 }

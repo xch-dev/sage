@@ -12,7 +12,6 @@ use sage_wallet::{
 };
 
 use crate::ConfirmationInfo;
-use crate::StatusCoinType;
 use crate::encode_nft_updater_kind;
 use crate::utils::offer_status::offer_expiration;
 use crate::{Error, Result, Sage};
@@ -268,24 +267,30 @@ impl Sage {
             offer_status = OfferStatus::Expired;
         }
 
-        if !status.coins.is_empty() && !peers.is_empty() {
+        let settlement = OfferSettlement::new(&offer);
+
+        let coin_ids = status
+            .cancellable_coins
+            .keys()
+            .copied()
+            .chain(settlement.coin_ids())
+            .collect_vec();
+
+        if !coin_ids.is_empty() && !peers.is_empty() {
             let coin_states = fetch_coins_from_peers(
                 &peers,
-                status.coins.keys().copied().collect(),
+                coin_ids,
                 wallet.genesis_challenge,
                 FETCH_COINS_TIMEOUT,
             )
-            .await?;
-
-            let coin_states = coin_states
-                .into_iter()
-                .map(|coin_state| (coin_state.coin.coin_id(), coin_state))
-                .collect::<HashMap<_, _>>();
+            .await?
+            .into_iter()
+            .map(|coin_state| (coin_state.coin.coin_id(), coin_state))
+            .collect::<HashMap<_, _>>();
 
             for (coin_id, coin_state) in &coin_states {
-                if let Some(StatusCoinType::Cancel { fast_forwardable }) = status.coins.get(coin_id)
+                if status.cancellable_coins.get(coin_id) == Some(&false)
                     && coin_state.spent_height.is_some()
-                    && !*fast_forwardable
                 {
                     offer_status = OfferStatus::Cancelled;
                 }
@@ -293,8 +298,8 @@ impl Sage {
 
             // Settlement coins can also be created by another offer which spends the same coins,
             // so this checks that they were created by taking this one.
-            if OfferSettlement::new(&offer)
-                .is_settled_on_peers(&peers, &coin_states)
+            if settlement
+                .is_settled_on_peers(&peers, &coin_states, wallet.genesis_challenge)
                 .await?
             {
                 offer_status = OfferStatus::Completed;
