@@ -129,6 +129,9 @@ impl Wallet {
         let coin_ids = dedup_coin_ids(coin_ids);
         let mut ctx = SpendContext::new();
 
+        // Anyone can push a clawback through to its receiver, and the spend can't carry any
+        // conditions, so it can't expire unless a fee spend is added below. Confirming late
+        // only sends the coin where it was always going.
         for &coin_id in &coin_ids {
             let (kind, row, clawback) = unspent_clawback(&self.db, coin_id, 2).await?;
 
@@ -179,6 +182,13 @@ impl Wallet {
         let mut ctx = SpendContext::new();
         let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
 
+        // Without a fee, the claim is the whole transaction, so it carries the expiration.
+        let mut conditions = Conditions::new();
+
+        if let Some(expires_at) = self.transaction_expires_at()? {
+            conditions = conditions.assert_before_seconds_absolute(expires_at);
+        }
+
         for &coin_id in &coin_ids {
             let (kind, row, clawback) = unspent_clawback(&self.db, coin_id, 1).await?;
 
@@ -208,7 +218,7 @@ impl Wallet {
                 &mut ctx,
                 row.coin,
                 &StandardLayer::new(receiver_key),
-                Conditions::new(),
+                conditions.clone(),
             )?;
         }
 
@@ -265,7 +275,7 @@ mod tests {
     use test_log::test;
     use tokio::time::sleep;
 
-    use crate::{TestWallet, WalletError, assert_before_seconds};
+    use crate::{SyncEvent, TestWallet, WalletError, assert_before_seconds};
 
     // Test-only: Sage never creates V1. Emits REMARK metadata + receiver discovery hint.
     // Returns (coin_id, info, inclusion_block_timestamp).
@@ -431,6 +441,34 @@ mod tests {
         test.wait_for_coins().await;
 
         assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_expired_transaction_is_dropped() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(1000).await?;
+        test.wallet.set_transaction_expiration(3600);
+
+        let coin_spends = test
+            .wallet
+            .send_xch(vec![(Bytes32::new([1; 32]), 1000)], 0, vec![], None)
+            .await?;
+        let expires_at = assert_before_seconds(&coin_spends)?[0];
+
+        // The chain reaches the expiration before the transaction is submitted.
+        {
+            let mut sim = test.sim.lock().await;
+            sim.set_next_timestamp(expires_at)?;
+            sim.create_block();
+        }
+
+        test.transact(coin_spends).await?;
+        test.consume_until(|event| matches!(event, SyncEvent::TransactionFailed { .. }))
+            .await;
+
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+        assert!(test.wallet.db.mempool_items().await?.is_empty());
 
         Ok(())
     }
@@ -675,8 +713,10 @@ mod tests {
         sleep(Duration::from_secs(timelock + 1)).await;
         bob.new_block_with_current_time().await?;
 
+        // Without a fee, the claim is the whole transaction, so it carries the expiration.
+        bob.wallet.set_transaction_expiration(3600);
         let coin_spends = bob.wallet.claim_clawback(vec![clawback_id], 0).await?;
-        assert!(!coin_spends.is_empty());
+        assert_eq!(assert_before_seconds(&coin_spends)?.len(), 1);
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
 

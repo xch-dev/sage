@@ -306,6 +306,20 @@ mod tests {
     }
 
     #[test]
+    fn test_transaction_expiration_defaults_when_missing() {
+        // Configs saved before the setting existed have defaults without it.
+        let config: WalletConfig =
+            toml::from_str("version = 1\n\n[defaults]\ndelta_sync = false\n")
+                .expect("Failed to parse toml");
+
+        assert!(!config.defaults.delta_sync);
+        assert_eq!(
+            config.defaults.transaction_expiration,
+            DEFAULT_TRANSACTION_EXPIRATION
+        );
+    }
+
+    #[test]
     fn test_transaction_expiration_can_be_disabled() {
         let config = WalletConfig {
             defaults: WalletDefaults {

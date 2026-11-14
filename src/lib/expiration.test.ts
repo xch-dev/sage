@@ -1,6 +1,7 @@
 import { i18n } from '@lingui/core';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  durationParts,
   durationUntil,
   expirationDurationSeconds,
   expirationTimestamp,
@@ -69,6 +70,24 @@ describe('durationUntil', () => {
       hours: '0',
       minutes: '0',
     });
+  });
+});
+
+describe('durationParts', () => {
+  it('round-trips a whole number of minutes', () => {
+    const duration = durationParts(90_060 + 60);
+    expect(duration).toEqual({ days: '1', hours: '1', minutes: '2' });
+    expect(expirationDurationSeconds(duration)).toBe(90_060 + 60);
+  });
+
+  it('rounds partial minutes up', () => {
+    expect(durationParts(90)).toEqual({ days: '0', hours: '0', minutes: '2' });
+  });
+
+  it('treats zero and negative durations as zero', () => {
+    const zero = { days: '0', hours: '0', minutes: '0' };
+    expect(durationParts(0)).toEqual(zero);
+    expect(durationParts(-60)).toEqual(zero);
   });
 });
 

@@ -108,8 +108,13 @@ mod tests {
             .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
-        // Take offer
+        // Taking an offer is an ordinary transaction, so it expires, unlike the offer.
+        bob.wallet.set_transaction_expiration(3600);
         let offer = bob.wallet.take_offer(offer, 0).await?;
+        assert_eq!(
+            assert_before_seconds(&offer.spend_bundle.coin_spends)?.len(),
+            1
+        );
         let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 

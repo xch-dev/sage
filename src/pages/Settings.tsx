@@ -55,6 +55,11 @@ import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { getConsoleLogs } from '@/lib/consoleCapture';
+import {
+  Duration,
+  durationParts,
+  expirationDurationSeconds,
+} from '@/lib/expiration';
 import { exportText, ExportType } from '@/lib/exportText';
 import { offersEnabled } from '@/lib/features';
 import {
@@ -273,30 +278,8 @@ function SettingItem({
   );
 }
 
-interface TimeParts {
-  days: string;
-  hours: string;
-  minutes: string;
-}
-
-function secondsToTimeParts(seconds: number): TimeParts {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-
-  return {
-    days: days ? days.toString() : '',
-    hours: hours ? hours.toString() : '',
-    minutes: minutes ? minutes.toString() : '',
-  };
-}
-
-function timePartsToSeconds({ days, hours, minutes }: TimeParts): number {
-  const value = (part: string) => parseInt(part) || 0;
-
-  return value(days) * 86400 + value(hours) * 3600 + value(minutes) * 60;
-}
-
+// Matches `DEFAULT_TRANSACTION_EXPIRATION` in `sage-config`, and is used when the
+// setting is switched back on without a duration.
 const DEFAULT_TRANSACTION_EXPIRATION = 3600;
 
 function GlobalSettings() {
@@ -310,8 +293,8 @@ function GlobalSettings() {
   const [defaultWalletConfig, setDefaultWalletConfig] =
     useState<WalletDefaults | null>(null);
 
-  const [localExpiration, setLocalExpiration] = useState<TimeParts>(
-    secondsToTimeParts(DEFAULT_TRANSACTION_EXPIRATION),
+  const [localExpiration, setLocalExpiration] = useState<Duration>(
+    durationParts(DEFAULT_TRANSACTION_EXPIRATION),
   );
 
   useEffect(() => {
@@ -320,9 +303,7 @@ function GlobalSettings() {
       .then((defaults) => {
         setDefaultWalletConfig(defaults);
         if (defaults.transaction_expiration) {
-          setLocalExpiration(
-            secondsToTimeParts(defaults.transaction_expiration),
-          );
+          setLocalExpiration(durationParts(defaults.transaction_expiration));
         }
       })
       .catch(addError);
@@ -341,12 +322,20 @@ function GlobalSettings() {
       .catch(addError);
   };
 
-  const changeLocalExpiration = (parts: TimeParts) => {
-    setLocalExpiration(parts);
+  const changeLocalExpiration = (duration: Duration) => {
+    setLocalExpiration(duration);
 
     // Zero would turn the expiration off, which is done with the switch instead.
-    const seconds = timePartsToSeconds(parts);
+    const seconds = expirationDurationSeconds(duration);
     if (seconds > 0) setTransactionExpiration(seconds);
+  };
+
+  // Fields left at zero weren't saved, so they go back to the saved duration.
+  const restoreSavedExpiration = () => {
+    if (expirationDurationSeconds(localExpiration) > 0) return;
+    if (transactionExpiration) {
+      setLocalExpiration(durationParts(transactionExpiration));
+    }
   };
 
   const isMobile = platform() === 'ios' || platform() === 'android';
@@ -509,9 +498,9 @@ function GlobalSettings() {
               onCheckedChange={(checked) => {
                 if (checked) {
                   const seconds =
-                    timePartsToSeconds(localExpiration) ||
+                    expirationDurationSeconds(localExpiration) ||
                     DEFAULT_TRANSACTION_EXPIRATION;
-                  setLocalExpiration(secondsToTimeParts(seconds));
+                  setLocalExpiration(durationParts(seconds));
                   setTransactionExpiration(seconds);
                 } else {
                   setTransactionExpiration(0);
@@ -521,7 +510,15 @@ function GlobalSettings() {
           }
         >
           {(transactionExpiration ?? 0) > 0 && (
-            <div className='grid grid-cols-3 gap-4 mt-2'>
+            <div
+              className='grid grid-cols-3 gap-4 mt-2'
+              onBlur={(event) => {
+                // Moving between the fields isn't leaving them.
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  restoreSavedExpiration();
+                }
+              }}
+            >
               <TimeInput
                 label={t`Days`}
                 value={localExpiration.days}

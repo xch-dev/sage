@@ -271,6 +271,13 @@ async fn sets_the_transaction_expiration() -> Result<()> {
         let sage = app.sage.lock().await;
         assert_eq!(sage.wallet_config.defaults.transaction_expiration, 0);
         assert_eq!(sage.wallet()?.transaction_expiration(), 0);
+
+        let text = std::fs::read_to_string(sage.path.join("wallets.toml"))?;
+        assert!(
+            text.lines()
+                .any(|line| line == "transaction_expiration = 0"),
+            "{text}"
+        );
     }
 
     // A wallet that logs in later uses it too.

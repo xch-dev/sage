@@ -91,6 +91,20 @@ impl Wallet {
         self.transaction_expiration.load(Ordering::Relaxed)
     }
 
+    /// The timestamp a transaction created now must be confirmed before, if the wallet's
+    /// transactions expire.
+    fn transaction_expires_at(&self) -> Result<Option<u64>, WalletError> {
+        let expiration = self.transaction_expiration();
+
+        if expiration == 0 {
+            return Ok(None);
+        }
+
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+
+        Ok(Some(now.saturating_add(expiration)))
+    }
+
     /// Watch wallets don't know the puzzle reveals of their coins, so they can't spend them.
     fn ensure_spendable(&self) -> Result<(), WalletError> {
         match self.kind {
@@ -375,15 +389,11 @@ impl Wallet {
         deltas: &Deltas,
         mut spends: Spends,
     ) -> Result<Outputs, WalletError> {
-        let expiration = self.transaction_expiration();
-
-        if expiration > 0 {
-            let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-
+        if let Some(expires_at) = self.transaction_expires_at()? {
             spends.conditions.required = spends
                 .conditions
                 .required
-                .assert_before_seconds_absolute(now.saturating_add(expiration));
+                .assert_before_seconds_absolute(expires_at);
         }
 
         self.complete_spends_without_expiration(ctx, deltas, spends)
