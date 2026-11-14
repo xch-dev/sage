@@ -1,3 +1,4 @@
+mod agent;
 mod app;
 mod compatibility;
 mod invariants;
@@ -8,6 +9,7 @@ mod permissions;
 mod storage;
 mod url;
 
+pub(crate) use agent::*;
 pub(crate) use app::*;
 pub(crate) use compatibility::*;
 pub(crate) use invariants::*;

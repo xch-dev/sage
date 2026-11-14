@@ -166,7 +166,7 @@ impl BridgeMethod for WalletSendXch {
         // change hands and only Sage can show what it resolves to now.
         if !is_handle_recipient(&params)
             && ctx
-                .app
+                .app()?
                 .is_capability_granted(UserBridgeCapability::WalletSendXchAutoSubmit.into())
         {
             return Ok(None);

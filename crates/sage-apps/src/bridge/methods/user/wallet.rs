@@ -64,7 +64,7 @@ pub(crate) fn require_scoped_fingerprint(
         BridgeMethodHandleError::invalid_request("wallet fingerprint is required for apps")
     })?;
 
-    if !ctx.app.is_wallet_in_scope(fingerprint) {
+    if !ctx.is_wallet_in_scope(fingerprint) {
         return Err(BridgeMethodHandleError::invalid_request(format!(
             "wallet fingerprint not in app wallet scope: {fingerprint}"
         )));

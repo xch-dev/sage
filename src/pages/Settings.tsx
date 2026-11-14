@@ -1,3 +1,4 @@
+import { AgentSettings } from '@/components/AgentSettings';
 import Container from '@/components/Container';
 import { AddKeyDialog } from '@/components/dialogs/AddKeyDialog';
 import { KeyDetailsDialog } from '@/components/dialogs/KeyDetailsDialog';
@@ -222,6 +223,7 @@ export default function Settings() {
                   <ColdWalletSettings />
                   <KeySettings />
                   {!isMobile && <RpcSettings />}
+                  {!isMobile && <AgentSettings />}
                   <LogViewer />
                 </div>
               </TabsContent>

@@ -3,8 +3,8 @@ use serde::de::DeserializeOwned;
 
 use crate::{
     AppState, AppsHostState, BridgeCapability, RustBridgeApprovalRequest,
-    RustBridgeApprovalResponse, RustBridgeRequest, SharedSageApp, SystemBridgeCapability,
-    UserBridgeCapability,
+    RustBridgeApprovalResponse, RustBridgeRequest, SageAgent, SharedSageApp,
+    SystemBridgeCapability, UserBridgeCapability,
 };
 
 #[async_trait]
@@ -77,9 +77,34 @@ pub(crate) enum BridgeMethodCapability {
     Required(BridgeCapability),
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum BridgeCaller<'a> {
+    App(&'a SharedSageApp),
+    Agent(&'a SageAgent),
+}
+
 #[derive(Debug)]
 pub(crate) struct BridgeContext<'a> {
-    pub app: &'a SharedSageApp,
+    pub caller: BridgeCaller<'a>,
+}
+
+impl BridgeContext<'_> {
+    pub fn app(&self) -> Result<&SharedSageApp, BridgeMethodHandleError> {
+        match self.caller {
+            BridgeCaller::App(app) => Ok(app),
+            BridgeCaller::Agent(_) => Err(BridgeMethodHandleError::new(
+                "app_only",
+                "This method is only available to Sage apps",
+            )),
+        }
+    }
+
+    pub fn is_wallet_in_scope(&self, fingerprint: u32) -> bool {
+        match self.caller {
+            BridgeCaller::App(app) => app.is_wallet_in_scope(fingerprint),
+            BridgeCaller::Agent(agent) => agent.is_wallet_in_scope(fingerprint),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -123,7 +148,7 @@ impl BridgeMethodCapability {
         Self::Ungated
     }
 
-    pub(super) fn user(cap: UserBridgeCapability) -> Self {
+    pub(crate) fn user(cap: UserBridgeCapability) -> Self {
         Self::Required(BridgeCapability::User(cap))
     }
 
@@ -171,4 +196,49 @@ where
             format!("Failed to decode {} params: {err}", method.name()),
         )
     })
+}
+
+#[cfg(test)]
+mod bridge_caller_tests {
+    use std::collections::BTreeSet;
+
+    use crate::{SageAgent, SageAppWalletScope};
+
+    use super::{BridgeCaller, BridgeContext};
+
+    fn agent(wallet_scope: SageAppWalletScope) -> SageAgent {
+        SageAgent {
+            id: "agent".to_string(),
+            name: "Agent".to_string(),
+            capabilities: BTreeSet::new(),
+            wallet_scope,
+            created_at_ms: 0,
+            updated_at_ms: 0,
+            last_used_at_ms: None,
+        }
+    }
+
+    #[test]
+    fn agent_context_has_no_app() {
+        let agent = agent(SageAppWalletScope::AllWallets);
+        let ctx = BridgeContext {
+            caller: BridgeCaller::Agent(&agent),
+        };
+
+        let err = ctx.app().unwrap_err();
+        assert_eq!(err.code, "app_only");
+    }
+
+    #[test]
+    fn agent_context_scope_uses_agent_scope() {
+        let agent = agent(SageAppWalletScope::SelectedWallets {
+            fingerprints: vec![7],
+        });
+        let ctx = BridgeContext {
+            caller: BridgeCaller::Agent(&agent),
+        };
+
+        assert!(ctx.is_wallet_in_scope(7));
+        assert!(!ctx.is_wallet_in_scope(8));
+    }
 }

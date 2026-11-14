@@ -170,4 +170,12 @@ commands.allow = [
     "apps_dev_reload_runtime",
     "apps_get_auto_update_enabled",
     "apps_set_auto_update_enabled",
+    "apps_get_agent_server_status",
+    "apps_set_agent_server_settings",
+    "apps_list_agents",
+    "apps_list_agent_capabilities",
+    "apps_create_agent",
+    "apps_update_agent",
+    "apps_rotate_agent_token",
+    "apps_revoke_agent",
 ]

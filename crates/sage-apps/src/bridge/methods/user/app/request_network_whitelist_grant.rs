@@ -59,7 +59,7 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
     ) -> BridgeApprovalRequestResult {
         let params: RequestNetworkWhitelistGrantParams = parse_required_params(self, request)?;
 
-        let already_granted = ctx.app.with(|app| {
+        let already_granted = ctx.app()?.with(|app| {
             let network = app.granted_permissions().network();
 
             match params.network_id.as_deref() {
@@ -94,7 +94,7 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
         let grant_result = grant_network_whitelist_entry(
             tools.app_handle,
             tools.host_state,
-            &ctx.app.id(),
+            &ctx.app()?.id(),
             params.network_id.as_deref(),
             &params.entry,
         )

@@ -66,7 +66,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
 
         ensure_capability_requestable_by_app(params.capability)?;
 
-        if ctx.app.is_capability_granted(params.capability.into()) {
+        if ctx.app()?.is_capability_granted(params.capability.into()) {
             return Ok(None);
         }
 
@@ -93,7 +93,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
         let result = match grant_capability(
             tools.app_handle,
             tools.host_state,
-            &ctx.app.id(),
+            &ctx.app()?.id(),
             params.capability,
         )
         .await

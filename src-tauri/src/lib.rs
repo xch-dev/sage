@@ -211,6 +211,14 @@ fn specta_builder() -> Builder<tauri::Wry> {
             apps::apps_dev_reload_runtime,
             apps::apps_get_auto_update_enabled,
             apps::apps_set_auto_update_enabled,
+            apps::apps_get_agent_server_status,
+            apps::apps_set_agent_server_settings,
+            apps::apps_list_agents,
+            apps::apps_list_agent_capabilities,
+            apps::apps_create_agent,
+            apps::apps_update_agent,
+            apps::apps_rotate_agent_token,
+            apps::apps_revoke_agent,
         ])
         .events(collect_events![SyncEvent])
 }

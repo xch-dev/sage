@@ -51,7 +51,7 @@ impl BridgeMethod for AppInstallInstallUrl {
     ) -> BridgeHandleResult {
         let params: AppInstallInstallUrlParams = parse_required_params(self, request)?;
         let progress_app_handle = tools.app_handle.clone();
-        let progress_app = ctx.app.clone();
+        let progress_app = ctx.app()?.clone();
         let progress_reporter: SnapshotProgressReporter = Arc::new(move |progress| {
             let _ = emit_system_runtime_event_to_app(
                 &progress_app_handle,

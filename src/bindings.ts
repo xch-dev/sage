@@ -517,6 +517,30 @@ async appsGetAutoUpdateEnabled() : Promise<boolean> {
 },
 async appsSetAutoUpdateEnabled(enabled: boolean) : Promise<boolean> {
     return await TAURI_INVOKE("apps_set_auto_update_enabled", { enabled });
+},
+async appsGetAgentServerStatus() : Promise<AgentServerStatus> {
+    return await TAURI_INVOKE("apps_get_agent_server_status");
+},
+async appsSetAgentServerSettings(enabled: boolean, port: number) : Promise<AgentServerStatus> {
+    return await TAURI_INVOKE("apps_set_agent_server_settings", { enabled, port });
+},
+async appsListAgents() : Promise<SageAgent[]> {
+    return await TAURI_INVOKE("apps_list_agents");
+},
+async appsListAgentCapabilities() : Promise<AgentCapabilityInfo[]> {
+    return await TAURI_INVOKE("apps_list_agent_capabilities");
+},
+async appsCreateAgent(name: string, capabilities: UserBridgeCapability[], walletScope: SageAppWalletScope) : Promise<CreatedAgent> {
+    return await TAURI_INVOKE("apps_create_agent", { name, capabilities, walletScope });
+},
+async appsUpdateAgent(id: string, name: string, capabilities: UserBridgeCapability[], walletScope: SageAppWalletScope) : Promise<SageAgent> {
+    return await TAURI_INVOKE("apps_update_agent", { id, name, capabilities, walletScope });
+},
+async appsRotateAgentToken(id: string) : Promise<string> {
+    return await TAURI_INVOKE("apps_rotate_agent_token", { id });
+},
+async appsRevokeAgent(id: string) : Promise<null> {
+    return await TAURI_INVOKE("apps_revoke_agent", { id });
 }
 }
 
@@ -645,6 +669,8 @@ address: string;
  */
 handles: HandleRecord[] }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
+export type AgentCapabilityInfo = { capability: UserBridgeCapability; label: string; description: string }
+export type AgentServerStatus = { running: boolean; enabled: boolean; port: number }
 export type Amount = string | number
 export type AppLaunchGateResult = { allowed: boolean; kind: string; capability: SandboxCapability | null; message: string | null }
 export type AppModalPresentation = { visibleOverAppIds: string[]; visibleOverLaunchpad: boolean; priority: number }
@@ -1141,6 +1167,7 @@ auto_submit?: boolean;
  * confirmed here before it can be used.
  */
 confirmed_handles?: HandleConfirmation[] }
+export type CreatedAgent = { agent: SageAgent; token: string }
 /**
  * Delete a contact from the address book
  */
@@ -3437,6 +3464,7 @@ export type RustBridgeErrorResponse = { bridgeVersion: string; id: string; ok: b
 export type RustBridgeInvokeResult = ({ kind: "success" } & RustBridgeSuccessResponse) | ({ kind: "error" } & RustBridgeErrorResponse) | { kind: "pending" }
 export type RustBridgeRequest = { bridgeVersion: string | null; id: string; method: string; paramsJson: string | null }
 export type RustBridgeSuccessResponse = { bridgeVersion: string; id: string; ok: boolean; resultJson: string }
+export type SageAgent = { id: string; name: string; capabilities: UserBridgeCapability[]; walletScope: SageAppWalletScope; createdAtMs: number; updatedAtMs: number; lastUsedAtMs: number | null }
 export type SageAppAuthor = { name: string; avatar: string | null }
 export type SageAppCommonView = { identity: SageAppIdentityView; grantedPermissions: SageGrantedPermissionsView; walletScope: SageAppWalletScope; activeSnapshot: SageAppSnapshotView; icon: SageAppIconView | null }
 export type SageAppCompatibility = { currentVersion: string; status: SageAppCompatibilityStatus }

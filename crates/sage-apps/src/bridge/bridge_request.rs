@@ -1,16 +1,17 @@
 use tauri::{AppHandle, Manager, State, Webview};
 
 use crate::{
-    AppState, AppsHostState, BridgeApprovalsChangedEvent, BridgeCapability, BridgeContext,
-    BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry, BridgeRegistryKind,
-    BridgeTools, PendingBridgeApproval, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest,
-    RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse, SharedSageApp,
-    SystemBridgeCapability, UserBridgeCapability, assert_bridge_origin,
-    emit_bridge_response_to_app, emit_system_runtime_event_to_listeners,
-    ensure_app_is_enabled_for_scope, ensure_approval_expiry_loop, get_system_capability_definition,
-    get_user_capability_definition, list_pending_approvals, resolve_app,
-    start_bridge_approval_runtime, sync_bridge_approval_runtime, take_pending_approval,
-    unix_timestamp_ms, write_pending_approval,
+    AppState, AppsHostState, BridgeApprovalsChangedEvent, BridgeCaller, BridgeCapability,
+    BridgeContext, BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry,
+    BridgeRegistryKind, BridgeTools, PendingBridgeApproval, ResolveBridgeApprovalArgs,
+    RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse,
+    SageAgent, SharedSageApp, SystemBridgeCapability, UserBridgeCapability, assert_bridge_origin,
+    authorize_agent_call, current_wallet_fingerprint, emit_bridge_response_to_app,
+    emit_system_runtime_event_to_listeners, ensure_app_is_enabled_for_scope,
+    ensure_approval_expiry_loop, find_agent_tool_by_bridge_method,
+    get_system_capability_definition, get_user_capability_definition, list_pending_approvals,
+    resolve_app, start_bridge_approval_runtime, sync_bridge_approval_runtime,
+    take_pending_approval, unix_timestamp_ms, write_pending_approval,
 };
 
 pub(crate) async fn process(
@@ -131,6 +132,64 @@ pub(crate) async fn process_after_approval(
     Ok(())
 }
 
+pub(crate) async fn process_agent(
+    app_handle: &AppHandle,
+    app_state: &State<'_, AppState>,
+    agent: &SageAgent,
+    request: &RustBridgeRequest,
+) -> RustBridgeResponse {
+    let registry = BridgeRegistry::new(BridgeRegistryKind::User);
+
+    let method = match assert_method(&registry, request) {
+        Ok(method) => method,
+        Err(response) => return response,
+    };
+
+    let Some(tool) = find_agent_tool_by_bridge_method(&request.method) else {
+        return RustBridgeResponse::error(
+            &request.id,
+            "permission_denied",
+            format!("{} is not available to agents", request.method),
+        );
+    };
+
+    let fingerprint = current_wallet_fingerprint(app_state).await;
+    if let Err(err) = authorize_agent_call(agent, tool, fingerprint) {
+        return RustBridgeResponse::error(&request.id, err.code, err.message);
+    }
+
+    if method.requires_signing() && app_state.lock().await.is_watch_only() {
+        return RustBridgeResponse::error(
+            &request.id,
+            "watch_only",
+            "Watch-only wallets can't create or sign transactions",
+        );
+    }
+
+    let ctx = || BridgeContext {
+        caller: BridgeCaller::Agent(agent),
+    };
+    let host_state = app_handle.state::<AppsHostState>();
+    let tools = || BridgeTools {
+        app_handle,
+        app_state,
+        host_state: &host_state,
+    };
+
+    match method.prepare_approval(ctx(), tools(), request).await {
+        Ok(Some(_)) => RustBridgeResponse::error(
+            &request.id,
+            "approval_unsupported",
+            "Agent approvals arrive in a later release",
+        ),
+        Ok(None) => {
+            let result = method.handle(ctx(), tools(), request).await;
+            bridge_handle_result_to_response(&request.id, method.name(), result)
+        }
+        Err(err) => RustBridgeResponse::error(&request.id, err.code, err.message),
+    }
+}
+
 async fn process_shared(
     app_handle: &AppHandle,
     app_state: &State<'_, AppState>,
@@ -174,7 +233,9 @@ async fn process_shared(
 
     match method
         .prepare_approval(
-            BridgeContext { app },
+            BridgeContext {
+                caller: BridgeCaller::App(app),
+            },
             BridgeTools {
                 app_handle,
                 app_state,
@@ -224,7 +285,9 @@ async fn execute_bridge_request(
 
     let result = method
         .handle(
-            BridgeContext { app: &origin.app },
+            BridgeContext {
+                caller: BridgeCaller::App(&origin.app),
+            },
             BridgeTools {
                 app_handle,
                 app_state,
@@ -271,7 +334,9 @@ async fn execute_approved_bridge_request(
     let result = method
         .handle_approved(
             &pending.approval,
-            BridgeContext { app: &origin.app },
+            BridgeContext {
+                caller: BridgeCaller::App(&origin.app),
+            },
             BridgeTools {
                 app_handle,
                 app_state,

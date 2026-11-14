@@ -1,3 +1,4 @@
+mod agents;
 mod bridge;
 mod build;
 mod capabilities;
@@ -19,6 +20,11 @@ pub use db::AppsDb;
 pub use host::AppsHostState;
 
 // Commands
+pub use agents::{
+    AgentCapabilityInfo, AgentServerStatus, CreatedAgent, apps_create_agent,
+    apps_get_agent_server_status, apps_list_agent_capabilities, apps_list_agents,
+    apps_revoke_agent, apps_rotate_agent_token, apps_set_agent_server_settings, apps_update_agent,
+};
 pub use bridge::{apps_invoke_bridge, apps_invoke_system_bridge};
 pub use environment::apps_set_environment_theme;
 pub use lifecycle::{
@@ -40,6 +46,7 @@ pub use security::{handle_system_app_protocol_request, handle_user_app_protocol_
 pub use bridge::{export_system_bridge_typescript, export_user_bridge_typescript};
 
 // Operations
+pub use agents::start_agent_server_if_enabled;
 pub use bridge::emit_selected_wallet_changed;
 pub use lifecycle::{process_pending_storage_cleanup, start_background_app_update_checker};
 pub use runtime::process_sage_network_change;
@@ -50,6 +57,7 @@ pub use utils::set_builtin_apps_root;
 pub use build::generate_docs;
 
 // Internal
+pub(crate) use agents::*;
 pub(crate) use bridge::*;
 pub(crate) use capabilities::*;
 pub(crate) use db::*;

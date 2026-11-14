@@ -30,7 +30,7 @@ fn wallet_scope_allows_fingerprint(scope: &SageAppWalletScope, fingerprint: u32)
     }
 }
 
-async fn current_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u32> {
+pub(crate) async fn current_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u32> {
     let state = app_state.lock().await;
     state.config.global.fingerprint
 }

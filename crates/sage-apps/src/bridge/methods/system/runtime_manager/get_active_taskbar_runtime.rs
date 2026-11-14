@@ -36,7 +36,7 @@ impl BridgeMethod for RuntimeManagerGetActiveTaskbarRuntime {
         tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let app = resolve_running_app(tools.host_state, &ctx.app.id())
+        let app = resolve_running_app(tools.host_state, &ctx.app()?.id())
             .await
             .map_err(|err| {
                 BridgeMethodHandleError::internal_error(format!(
