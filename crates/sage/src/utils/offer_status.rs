@@ -9,19 +9,15 @@ use crate::Result;
 pub struct OfferExpiration {
     pub expiration_height: Option<u32>,
     pub expiration_timestamp: Option<u64>,
-    pub coins: IndexMap<Bytes32, StatusCoinType>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum StatusCoinType {
-    Settle,
-    Cancel { fast_forwardable: bool },
+    /// The coins which cancel the offer if they're spent separately, and whether each is a
+    /// singleton which the offer's spend can be fast forwarded to instead.
+    pub cancellable_coins: IndexMap<Bytes32, bool>,
 }
 
 pub fn offer_expiration(allocator: &mut Allocator, offer: &Offer) -> Result<OfferExpiration> {
     let mut expiration_height = None::<u32>;
     let mut expiration_timestamp = None::<u64>;
-    let mut coins = IndexMap::new();
+    let mut cancellable_coins = IndexMap::new();
 
     let mut non_fast_forwardable = HashSet::new();
 
@@ -118,31 +114,19 @@ pub fn offer_expiration(allocator: &mut Allocator, offer: &Offer) -> Result<Offe
             fast_forwardable = false;
         }
 
-        coins.insert(
-            coin_spend.coin.coin_id(),
-            StatusCoinType::Cancel { fast_forwardable },
-        );
+        cancellable_coins.insert(coin_spend.coin.coin_id(), fast_forwardable);
     }
 
-    for coin in offer.offered_coins().flatten() {
-        coins.insert(coin.coin_id(), StatusCoinType::Settle);
-    }
-
-    for (coin_id, coin_type) in &mut coins {
-        match coin_type {
-            StatusCoinType::Cancel { fast_forwardable } => {
-                if non_fast_forwardable.contains(coin_id) {
-                    *fast_forwardable = false;
-                }
-            }
-            StatusCoinType::Settle => {}
+    for (coin_id, fast_forwardable) in &mut cancellable_coins {
+        if non_fast_forwardable.contains(coin_id) {
+            *fast_forwardable = false;
         }
     }
 
     Ok(OfferExpiration {
         expiration_height,
         expiration_timestamp,
-        coins,
+        cancellable_coins,
     })
 }
 

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
@@ -6,10 +7,11 @@ use itertools::Itertools;
 use sage_api::OptionAssets;
 use sage_api::{Amount, NftRoyalty, OfferAsset, OfferSummary};
 use sage_database::{NftUpdaterKindExt, OfferStatus};
-use sage_wallet::{FETCH_COINS_TIMEOUT, MAX_PEER_ATTEMPTS, WalletError, fetch_coins_from_peers};
+use sage_wallet::{
+    FETCH_COINS_TIMEOUT, MAX_PEER_ATTEMPTS, OfferSettlement, WalletError, fetch_coins_from_peers,
+};
 
 use crate::ConfirmationInfo;
-use crate::StatusCoinType;
 use crate::encode_nft_updater_kind;
 use crate::utils::offer_status::offer_expiration;
 use crate::{Error, Result, Sage};
@@ -265,31 +267,39 @@ impl Sage {
             offer_status = OfferStatus::Expired;
         }
 
-        if !status.coins.is_empty() && !peers.is_empty() {
+        let settlement = OfferSettlement::new(&offer);
+
+        let coin_ids = status
+            .cancellable_coins
+            .keys()
+            .copied()
+            .chain(settlement.coin_ids())
+            .collect_vec();
+
+        if !coin_ids.is_empty() && !peers.is_empty() {
             let coin_states = fetch_coins_from_peers(
                 &peers,
-                status.coins.keys().copied().collect(),
+                coin_ids,
                 wallet.genesis_challenge,
                 FETCH_COINS_TIMEOUT,
             )
-            .await?;
+            .await?
+            .into_iter()
+            .map(|coin_state| (coin_state.coin.coin_id(), coin_state))
+            .collect::<HashMap<_, _>>();
 
-            for coin_state in coin_states {
-                let Some(coin_type) = status.coins.get(&coin_state.coin.coin_id()) else {
-                    continue;
-                };
-
-                match coin_type {
-                    StatusCoinType::Cancel { fast_forwardable } => {
-                        if coin_state.spent_height.is_some() && !*fast_forwardable {
-                            offer_status = OfferStatus::Cancelled;
-                        }
-                    }
-                    StatusCoinType::Settle => {
-                        offer_status = OfferStatus::Completed;
-                        break;
-                    }
+            for (coin_id, coin_state) in &coin_states {
+                if status.cancellable_coins.get(coin_id) == Some(&false)
+                    && coin_state.spent_height.is_some()
+                {
+                    offer_status = OfferStatus::Cancelled;
                 }
+            }
+
+            // Settlement coins can also be created by another offer which spends the same coins,
+            // so this checks that they were created by taking this one.
+            if settlement.is_settled_on_peers(&peers, &coin_states).await? {
+                offer_status = OfferStatus::Completed;
             }
         }
 
