@@ -563,7 +563,49 @@ async fn test_cat_offer_not_completed_by_another_offer_of_the_same_coins() -> Re
     let alice = app.setup_bls(10_000).await?;
     let bob = app.setup_bls(1000).await?;
 
-    app.login(Login { fingerprint: alice }).await?;
+    // The fee is paid by the XCH coin, whose spend also carries the offer's terms, so the CAT
+    // coin's spend is the same in both offers.
+    let (first, second) = reused_cat_offers(&mut app, alice, true).await?;
+
+    assert_only_second_offer_completed(&mut app, alice, bob, first, second).await
+}
+
+#[tokio::test]
+async fn test_cat_offer_not_completed_by_another_offer_with_a_different_fee_coin() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(10_000).await?;
+    let bob = app.setup_bls(1000).await?;
+
+    // Taking the second offer spends the first one's CAT coin, but not its fee coin.
+    let (first, second) = reused_cat_offers(&mut app, alice, false).await?;
+
+    assert_only_second_offer_completed(&mut app, alice, bob, first, second).await
+}
+
+/// Makes two offers of the same CAT coin for the same amount with a fee, asking for different
+/// amounts of XCH. The fee is paid from the same XCH coin, or from a different one for each.
+async fn reused_cat_offers(
+    app: &mut TestApp,
+    maker: u32,
+    same_fee_coin: bool,
+) -> Result<(String, String)> {
+    app.login(Login { fingerprint: maker }).await?;
+    app.wait_for_coins().await;
+
+    // Split the XCH, so that there are two coins left after issuing the CAT.
+    let own = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
+    app.send_xch(SendXch {
+        confirmed_handles: Vec::new(),
+        address: own,
+        amount: Amount::u64(5000),
+        fee: Amount::u64(0),
+        memos: vec![],
+        clawback: None,
+        auto_submit: true,
+        coin_ids: None,
+    })
+    .await?;
     app.wait_for_coins().await;
 
     app.issue_cat(IssueCat {
@@ -583,22 +625,22 @@ async fn test_cat_offer_not_completed_by_another_offer_of_the_same_coins() -> Re
         .expect("the CAT has an asset id");
     let asset_id = Bytes32::try_from(hex::decode(&cat_id)?)?;
 
-    let coin_ids = {
+    let (cat_coin_id, xch_coin_ids) = {
         let sage = app.sage.lock().await;
         let db = &sage.wallet()?.db;
 
-        vec![
-            db.selectable_cat_coins(asset_id).await?[0]
-                .coin
-                .coin_id()
-                .to_string(),
-            db.selectable_xch_coins().await?[0].coin_id().to_string(),
-        ]
+        (
+            db.selectable_cat_coins(asset_id).await?[0].coin.coin_id(),
+            db.selectable_xch_coins()
+                .await?
+                .iter()
+                .map(Coin::coin_id)
+                .collect::<Vec<_>>(),
+        )
     };
+    assert_eq!(xch_coin_ids.len(), 2);
 
-    // The fee is paid by the XCH coin, whose spend also carries the offer's terms, so the CAT
-    // coin's spend is the same in both offers.
-    let make_offer = async |app: &TestApp, requested: u64| {
+    let make_offer = async |app: &TestApp, requested: u64, xch_coin_id: Bytes32| {
         app.make_offer(MakeOffer {
             confirmed_handles: Vec::new(),
             requested_assets: vec![OfferAmount {
@@ -615,19 +657,24 @@ async fn test_cat_offer_not_completed_by_another_offer_of_the_same_coins() -> Re
             receive_address: None,
             expires_at_second: None,
             auto_import: false,
-            coin_ids: Some(coin_ids.clone()),
+            coin_ids: Some(vec![cat_coin_id.to_string(), xch_coin_id.to_string()]),
             pre_split_fee: None,
         })
         .await
     };
 
-    let first = make_offer(&app, 100).await?.offer;
-    let second = make_offer(&app, 200).await?.offer;
+    let first = make_offer(app, 100, xch_coin_ids[0]).await?.offer;
+    let second_fee_coin_id = if same_fee_coin {
+        xch_coin_ids[0]
+    } else {
+        xch_coin_ids[1]
+    };
+    let second = make_offer(app, 200, second_fee_coin_id).await?.offer;
 
-    assert_only_second_offer_completed(&mut app, alice, bob, first, second).await
+    Ok((first, second))
 }
 
-/// Takes the second of two offers which spend the same coins for the same amounts, and checks that
+/// Takes the second of two offers which share coins spent for the same amounts, and checks that
 /// only the second is completed, both when the offers are viewed and once the offer queue has
 /// checked them. Taking the second offer spends the first one's coins, which cancels it.
 async fn assert_only_second_offer_completed(

@@ -298,10 +298,7 @@ impl Sage {
 
             // Settlement coins can also be created by another offer which spends the same coins,
             // so this checks that they were created by taking this one.
-            if settlement
-                .is_settled_on_peers(&peers, &coin_states, wallet.genesis_challenge)
-                .await?
-            {
+            if settlement.is_settled_on_peers(&peers, &coin_states).await? {
                 offer_status = OfferStatus::Completed;
             }
         }

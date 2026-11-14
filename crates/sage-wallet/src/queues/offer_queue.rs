@@ -138,10 +138,7 @@ impl OfferQueue {
         let mut unchecked_offer_ids = HashSet::new();
 
         for (&offer_id, settlement) in &settlements {
-            match settlement
-                .is_settled(&peer, &chain_coin_states, self.genesis_challenge)
-                .await
-            {
+            match settlement.is_settled(&peer, &chain_coin_states).await {
                 Ok(true) => {
                     new_offer_statuses.insert(offer_id, OfferStatus::Completed);
                 }
