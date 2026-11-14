@@ -55,6 +55,11 @@ import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { getConsoleLogs } from '@/lib/consoleCapture';
+import {
+  Duration,
+  durationParts,
+  expirationDurationSeconds,
+} from '@/lib/expiration';
 import { exportText, ExportType } from '@/lib/exportText';
 import { offersEnabled } from '@/lib/features';
 import {
@@ -273,6 +278,13 @@ function SettingItem({
   );
 }
 
+// Matches `DEFAULT_TRANSACTION_EXPIRATION` in `sage-config`, and is used when the
+// setting is switched back on without a duration.
+const DEFAULT_TRANSACTION_EXPIRATION = 3600;
+
+// Matches `MIN_TRANSACTION_EXPIRATION` in `sage-config`.
+const MIN_TRANSACTION_EXPIRATION = 5 * 60;
+
 function GlobalSettings() {
   const { addError } = useErrors();
   const { locale, changeLanguage } = useLanguage();
@@ -284,9 +296,55 @@ function GlobalSettings() {
   const [defaultWalletConfig, setDefaultWalletConfig] =
     useState<WalletDefaults | null>(null);
 
+  const [localExpiration, setLocalExpiration] = useState<Duration>(
+    durationParts(DEFAULT_TRANSACTION_EXPIRATION),
+  );
+
   useEffect(() => {
-    commands.defaultWalletConfig().then(setDefaultWalletConfig).catch(addError);
+    commands
+      .defaultWalletConfig()
+      .then((defaults) => {
+        setDefaultWalletConfig(defaults);
+        if (defaults.transaction_expiration) {
+          setLocalExpiration(durationParts(defaults.transaction_expiration));
+        }
+      })
+      .catch(addError);
   }, [addError]);
+
+  const transactionExpiration = defaultWalletConfig?.transaction_expiration;
+
+  const setTransactionExpiration = (seconds: number) => {
+    commands
+      .setTransactionExpiration({ seconds })
+      .then(() =>
+        setDefaultWalletConfig((current) =>
+          current ? { ...current, transaction_expiration: seconds } : current,
+        ),
+      )
+      .catch(addError);
+  };
+
+  const changeLocalExpiration = (duration: Duration) => {
+    setLocalExpiration(duration);
+
+    // Shorter durations aren't allowed, and zero would turn the expiration off, which is
+    // done with the switch instead.
+    const seconds = expirationDurationSeconds(duration);
+    if (seconds >= MIN_TRANSACTION_EXPIRATION)
+      setTransactionExpiration(seconds);
+  };
+
+  const expirationTooShort =
+    expirationDurationSeconds(localExpiration) < MIN_TRANSACTION_EXPIRATION;
+
+  // A duration that's too short wasn't saved, so it goes back to the saved one.
+  const restoreSavedExpiration = () => {
+    if (!expirationTooShort) return;
+    if (transactionExpiration) {
+      setLocalExpiration(durationParts(transactionExpiration));
+    }
+  };
 
   const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -438,6 +496,66 @@ function GlobalSettings() {
             )}
           </SettingItem>
         )}
+        <SettingItem
+          label={t`Transaction Expiration`}
+          description={t`Transactions that aren't confirmed in time are dropped. This doesn't apply to offers.`}
+          control={
+            <Switch
+              checked={(transactionExpiration ?? 0) > 0}
+              disabled={!defaultWalletConfig}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  const seconds = expirationTooShort
+                    ? DEFAULT_TRANSACTION_EXPIRATION
+                    : expirationDurationSeconds(localExpiration);
+                  setLocalExpiration(durationParts(seconds));
+                  setTransactionExpiration(seconds);
+                } else {
+                  setTransactionExpiration(0);
+                }
+              }}
+            />
+          }
+        >
+          {(transactionExpiration ?? 0) > 0 && (
+            <div
+              className='grid grid-cols-3 gap-4 mt-2'
+              onBlur={(event) => {
+                // Moving between the fields isn't leaving them.
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  restoreSavedExpiration();
+                }
+              }}
+            >
+              <TimeInput
+                label={t`Days`}
+                value={localExpiration.days}
+                onChange={(value) =>
+                  changeLocalExpiration({ ...localExpiration, days: value })
+                }
+              />
+              <TimeInput
+                label={t`Hours`}
+                value={localExpiration.hours}
+                onChange={(value) =>
+                  changeLocalExpiration({ ...localExpiration, hours: value })
+                }
+              />
+              <TimeInput
+                label={t`Minutes`}
+                value={localExpiration.minutes}
+                onChange={(value) =>
+                  changeLocalExpiration({ ...localExpiration, minutes: value })
+                }
+              />
+              {expirationTooShort && (
+                <p className='col-span-3 text-sm text-destructive'>
+                  <Trans>The expiration must be at least 5 minutes</Trans>
+                </p>
+              )}
+            </div>
+          )}
+        </SettingItem>
       </SettingsSection>
 
       <SettingsSection title={t`Syncing Defaults`}>

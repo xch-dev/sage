@@ -33,7 +33,7 @@ use tracing::debug;
 
 use crate::{
     PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Transaction, Wallet,
-    WalletKind, WalletPeer, insert_transaction,
+    WalletKind, WalletPeer, insert_transaction, run_conditions,
 };
 
 /// A spend of a coin whose puzzle outputs the given conditions, for transactions that a
@@ -51,6 +51,21 @@ pub fn quoted_spend(
         ctx.serialize(&puzzle)?,
         ctx.serialize(&NodePtr::NIL)?,
     ))
+}
+
+/// The timestamps that the coin spends must be confirmed before.
+pub fn assert_before_seconds(coin_spends: &[CoinSpend]) -> anyhow::Result<Vec<u64>> {
+    let mut timestamps = Vec::new();
+
+    for coin_spend in coin_spends {
+        for condition in run_conditions(&coin_spend.puzzle_reveal, &coin_spend.solution)? {
+            if let Condition::AssertBeforeSecondsAbsolute(condition) = condition {
+                timestamps.push(condition.seconds);
+            }
+        }
+    }
+
+    Ok(timestamps)
 }
 
 static INDEX: Mutex<u32> = Mutex::const_new(0);

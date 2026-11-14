@@ -17,10 +17,44 @@ mod tests {
 
     use crate::{
         Offered, PreSplitOffer, Requested, RequestedCat, TakenOffer, TestWallet, WalletError,
-        WalletNftMint,
+        WalletNftMint, assert_before_seconds,
     };
 
     use super::aggregate_offers;
+
+    #[test(tokio::test)]
+    async fn test_offer_ignores_transaction_expiration() -> anyhow::Result<()> {
+        let alice = TestWallet::new(1000).await?;
+        alice.wallet.set_transaction_expiration(3600);
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 1000,
+                    ..Default::default()
+                },
+                Requested::default(),
+                None,
+            )
+            .await?;
+        assert!(assert_before_seconds(&offer.coin_spends)?.is_empty());
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 1000,
+                    ..Default::default()
+                },
+                Requested::default(),
+                Some(100),
+            )
+            .await?;
+        assert_eq!(assert_before_seconds(&offer.coin_spends)?, [100]);
+
+        Ok(())
+    }
 
     async fn sign_taken_offer(
         wallet: &TestWallet,
@@ -74,8 +108,13 @@ mod tests {
             .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
-        // Take offer
+        // Taking an offer is an ordinary transaction, so it expires, unlike the offer.
+        bob.wallet.set_transaction_expiration(3600);
         let offer = bob.wallet.take_offer(offer, 0).await?;
+        assert_eq!(
+            assert_before_seconds(&offer.spend_bundle.coin_spends)?.len(),
+            1
+        );
         let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 

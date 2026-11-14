@@ -143,6 +143,7 @@ macro_rules! sage_commands {
             commands::set_delta_sync,
             commands::set_delta_sync_override,
             commands::set_change_address,
+            commands::set_transaction_expiration,
             commands::update_cat,
             commands::resync_cat,
             commands::update_did,

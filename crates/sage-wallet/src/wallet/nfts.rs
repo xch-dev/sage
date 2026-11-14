@@ -213,7 +213,7 @@ mod tests {
     use test_log::test;
     use tokio::time::sleep;
 
-    use crate::{PuzzleContext, TestWallet, insert_nft};
+    use crate::{PuzzleContext, TestWallet, assert_before_seconds, insert_nft};
 
     use super::*;
 
@@ -521,10 +521,13 @@ mod tests {
 
         let nft = nfts.remove(0);
 
+        // Without a fee, no XCH is spent, so the NFT spend carries the expiration.
+        test.wallet.set_transaction_expiration(3600);
         let coin_spends = test
             .wallet
             .transfer_nfts(vec![nft.info.launcher_id], puzzle_hash, 0, None)
             .await?;
+        assert_eq!(assert_before_seconds(&coin_spends)?.len(), 1);
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
