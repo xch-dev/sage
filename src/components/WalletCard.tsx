@@ -24,7 +24,7 @@ import { Switch } from '@/components/ui/switch';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { DatabaseMigration, databaseMigration } from '@/lib/errors';
-import { vaultInfo, watchedAddresses } from '@/lib/walletKind';
+import { keyWalletName, vaultInfo, watchedAddresses } from '@/lib/walletKind';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { t } from '@lingui/core/macro';
@@ -566,7 +566,14 @@ export function WalletCard({
                   </h3>
                   <p className='break-all text-sm text-muted-foreground'>
                     {vault.signers.length > 0 ? (
-                      vault.signers.join(', ')
+                      vault.signers
+                        .map((fingerprint) => {
+                          const name = keyWalletName(wallets, fingerprint);
+                          return name
+                            ? `${name} (${fingerprint})`
+                            : fingerprint;
+                        })
+                        .join(', ')
                     ) : (
                       <Trans>None</Trans>
                     )}

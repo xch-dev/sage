@@ -5,6 +5,7 @@ import {
   VaultRecord,
   VaultSignersRecord,
   VaultState,
+  WalletInfo,
 } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
@@ -33,6 +34,7 @@ import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { ExportType, exportText } from '@/lib/exportText';
+import { keyWalletName } from '@/lib/walletKind';
 import {
   EMPTY_RECOVERY,
   RecoveryInput,
@@ -101,17 +103,16 @@ function SignersList({ signers }: { signers: VaultSignersRecord }) {
         {signers.members.map((member) => (
           <li
             key={`${member.kind}-${member.key}`}
-            className='flex flex-wrap items-center gap-2 text-sm'
+            className='flex items-center gap-2 text-sm'
           >
-            <Badge variant='outline'>{memberKindLabel(member.kind)}</Badge>
-            <span
-              className='font-mono truncate max-w-[16rem]'
-              title={member.key}
-            >
+            <Badge variant='outline' className='shrink-0'>
+              {memberKindLabel(member.kind)}
+            </Badge>
+            <span className='font-mono truncate min-w-0' title={member.key}>
               {member.key}
             </span>
             {member.signer_fingerprint !== null && (
-              <Badge>
+              <Badge className='shrink-0'>
                 <Trans>Signer attached</Trans>
               </Badge>
             )}
@@ -128,6 +129,8 @@ export default function Vault() {
   const { addError } = useErrors();
 
   const [vault, setVault] = useState<VaultRecord | null>(null);
+  // The wallets, to name signers after the key wallets they belong to.
+  const [wallets, setWallets] = useState<WalletInfo[]>([]);
   const [attachOpen, setAttachOpen] = useState(false);
   const [key, setKey] = useState('');
   const [attaching, setAttaching] = useState(false);
@@ -143,6 +146,13 @@ export default function Vault() {
     commands
       .getVault({})
       .then((data) => setVault(data.vault))
+      .catch(addError);
+  }, [addError]);
+
+  useEffect(() => {
+    commands
+      .getWallets({})
+      .then((data) => setWallets(data.wallets))
       .catch(addError);
   }, [addError]);
 
@@ -275,7 +285,17 @@ export default function Vault() {
             <CardTitle className='text-lg font-medium flex items-center gap-2'>
               <Trans>Vault</Trans>
               {vault && (
-                <Badge variant='outline'>{stateLabel(vault.state)}</Badge>
+                <Badge
+                  variant={
+                    // A pending recovery takes the vault away from its current
+                    // custody unless it's cancelled, so it stands out.
+                    vault.state === 'recovery_pending'
+                      ? 'destructive'
+                      : 'outline'
+                  }
+                >
+                  {stateLabel(vault.state)}
+                </Badge>
               )}
             </CardTitle>
             <CardDescription>
@@ -425,7 +445,14 @@ export default function Vault() {
                     className='flex flex-wrap items-center gap-2 text-sm'
                   >
                     <KeyRound className='h-4 w-4' aria-hidden='true' />
-                    <span className='font-mono'>{signer.fingerprint}</span>
+                    {keyWalletName(wallets, signer.fingerprint) && (
+                      <span className='font-medium'>
+                        {keyWalletName(wallets, signer.fingerprint)}
+                      </span>
+                    )}
+                    <span className='font-mono text-muted-foreground'>
+                      {signer.fingerprint}
+                    </span>
                     {signer.custody && (
                       <Badge variant='outline'>
                         <Trans>Custody</Trans>

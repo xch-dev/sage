@@ -37,13 +37,20 @@ export type VaultSource = 'launcher_id' | 'address' | 'config';
 interface ImportVaultFormProps {
   /** A launcher id to start with, such as one found from a watched address. */
   launcherId?: string;
+  /** A wallet name and emoji to start with. */
+  name?: string;
+  emoji?: string | null;
 }
 
 /** Imports an existing vault as a read-only wallet, from its launcher id, an
  *  address it has spent from, or a config file. A vault without memos needs its
  *  config file, or its recovery keys with its launcher id or address, unless
  *  it has no recovery. */
-export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
+export function ImportVaultForm({
+  launcherId,
+  name,
+  emoji,
+}: ImportVaultFormProps) {
   const navigate = useNavigate();
   const { addError } = useErrors();
   const { setWallet } = useWallet();
@@ -64,7 +71,11 @@ export function ImportVaultForm({ launcherId }: ImportVaultFormProps) {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', value: launcherId ?? '' },
+    defaultValues: {
+      name: name ?? '',
+      value: launcherId ?? '',
+      emoji: emoji ?? null,
+    },
     mode: 'onChange',
   });
 

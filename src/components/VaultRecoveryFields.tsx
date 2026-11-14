@@ -36,6 +36,8 @@ export function VaultRecoveryFields({
         <Textarea
           id={`${id}-keys`}
           className='resize-none h-20 font-mono'
+          // Keys are long, so each stays on its own line rather than wrapping.
+          wrap='off'
           value={value.keys}
           onChange={(event) => onChange({ ...value, keys: event.target.value })}
         />

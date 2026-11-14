@@ -26,9 +26,17 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
 
+/** A vault to import in place of a watched address, with the name and emoji
+ *  entered for the watch wallet. */
+export interface VaultToImport {
+  launcherId: string;
+  name: string;
+  emoji: string | null;
+}
+
 interface ImportWatchWalletFormProps {
   /** Called to import the vault that owns a watched address instead. */
-  onImportVault?: (launcherId: string) => void;
+  onImportVault?: (vault: VaultToImport) => void;
 }
 
 /** Imports a read-only wallet that watches addresses, without any keys. */
@@ -149,7 +157,15 @@ export function ImportWatchWalletForm({
                 <Trans>Addresses</Trans>
               </FormLabel>
               <FormControl>
-                <Textarea className='resize-none h-28' {...field} />
+                <Textarea
+                  className='resize-none h-28'
+                  {...field}
+                  onChange={(event) => {
+                    // A different address may not belong to the same vault.
+                    setVault(null);
+                    field.onChange(event);
+                  }}
+                />
               </FormControl>
               <FormDescription>
                 <Trans>
@@ -172,7 +188,16 @@ export function ImportWatchWalletForm({
               </Trans>
             </p>
             <div className='flex flex-wrap gap-2'>
-              <Button type='button' onClick={() => onImportVault?.(vault)}>
+              <Button
+                type='button'
+                onClick={() =>
+                  onImportVault?.({
+                    launcherId: vault,
+                    name: form.getValues('name'),
+                    emoji: form.getValues('emoji') || null,
+                  })
+                }
+              >
                 <Trans>Import Vault</Trans>
               </Button>
               <LoadingButton

@@ -22,6 +22,19 @@ export function vaultInfo(
   };
 }
 
+/** The name of the key wallet with this fingerprint, which is what a vault
+ *  signer is called, or `null` if the key has no wallet of its own. */
+export function keyWalletName(
+  wallets: WalletInfo[],
+  fingerprint: number,
+): string | null {
+  return (
+    wallets.find(
+      (wallet) => wallet.kind === 'bls' && wallet.fingerprint === fingerprint,
+    )?.name ?? null
+  );
+}
+
 /** Whether a wallet uses the keychain key with this fingerprint, as its own key
  *  or as a vault signer. */
 export function usesKey(wallet: WalletInfo, fingerprint: number): boolean {

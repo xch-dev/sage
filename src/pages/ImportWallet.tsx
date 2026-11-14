@@ -1,7 +1,10 @@
 import { EmojiPicker } from '@/components/EmojiPicker';
 import Header from '@/components/Header';
 import { ImportVaultForm } from '@/components/ImportVaultForm';
-import { ImportWatchWalletForm } from '@/components/ImportWatchWalletForm';
+import {
+  ImportWatchWalletForm,
+  VaultToImport,
+} from '@/components/ImportWatchWalletForm';
 import SafeAreaView from '@/components/SafeAreaView';
 import {
   Card,
@@ -46,7 +49,7 @@ export default function ImportWallet() {
 
   const [mode, setMode] = useState('key');
   // A vault found from a watched address, which the vault form starts with.
-  const [vaultLauncherId, setVaultLauncherId] = useState<string>();
+  const [vaultToImport, setVaultToImport] = useState<VaultToImport>();
   const [advanced, setAdvanced] = useState(false);
   const [pending, setPending] = useState(false);
   const [hardened, setHardened] = useState(true);
@@ -155,8 +158,8 @@ export default function ImportWallet() {
               </TabsList>
               <TabsContent value='watch'>
                 <ImportWatchWalletForm
-                  onImportVault={(launcherId) => {
-                    setVaultLauncherId(launcherId);
+                  onImportVault={(vault) => {
+                    setVaultToImport(vault);
                     setMode('vault');
                   }}
                 />
@@ -164,8 +167,10 @@ export default function ImportWallet() {
               {vaultsEnabled && (
                 <TabsContent value='vault'>
                   <ImportVaultForm
-                    key={vaultLauncherId}
-                    launcherId={vaultLauncherId}
+                    key={vaultToImport?.launcherId}
+                    launcherId={vaultToImport?.launcherId}
+                    name={vaultToImport?.name}
+                    emoji={vaultToImport?.emoji}
                   />
                 </TabsContent>
               )}
