@@ -164,6 +164,23 @@ impl PeerState {
         self.peers.insert(state.peer.socket_addr().ip(), state);
     }
 
+    /// Adds a peer under an IP other than its connection's, since every local test peer
+    /// connects on 127.0.0.1.
+    #[cfg(test)]
+    pub(crate) fn add_peer_at(&mut self, ip: IpAddr, peer: WalletPeer) {
+        self.peers.insert(
+            ip,
+            PeerInfo {
+                peer,
+                claimed_peak: 0,
+                header_hash: Bytes32::default(),
+                last_peak_at: Instant::now(),
+                receive_message_task: tokio::spawn(async {}),
+                user_managed: false,
+            },
+        );
+    }
+
     pub fn banned_peers(&mut self) -> &HashMap<IpAddr, u64> {
         self.banned_peers.retain(|_, ban_until| {
             let start = SystemTime::now();

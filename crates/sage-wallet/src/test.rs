@@ -1,15 +1,18 @@
 use std::{
+    collections::HashMap,
     net::Ipv4Addr,
     sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+use chia_traits::Streamable;
 use chia_wallet_sdk::{
     chia::{
         bls::{
             DerivableKey, master_to_wallet_hardened, master_to_wallet_hardened_intermediate,
             master_to_wallet_unhardened_intermediate,
         },
+        protocol::{Message, ProtocolMessageTypes, RequestTransaction, RespondTransaction},
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
     client::{Connector, PeerOptions},
@@ -17,6 +20,7 @@ use chia_wallet_sdk::{
     prelude::*,
     test::PeerSimulator,
 };
+use futures_util::{SinkExt, StreamExt};
 use sage_config::TESTNET11;
 use sage_database::{Database, Derivation, SharedDatabase};
 use sqlx::{SqlitePool, migrate};
@@ -28,7 +32,7 @@ use tokio::{
     },
     time::timeout,
 };
-use tokio_tungstenite::{accept_async, connect_async};
+use tokio_tungstenite::{accept_async, connect_async, tungstenite::Message as WsMessage};
 use tracing::debug;
 
 use crate::{
@@ -99,7 +103,7 @@ impl TestWallet {
 
     pub async fn new_with_options(balance: u64, options: SyncOptions) -> anyhow::Result<Self> {
         let sim = PeerSimulator::new().await?;
-        Self::with_sim(Arc::new(sim), balance, 0, options).await
+        Self::with_sim(Arc::new(sim), balance, 0, 0, options).await
     }
 
     pub async fn next_with_options(
@@ -107,12 +111,15 @@ impl TestWallet {
         balance: u64,
         options: SyncOptions,
     ) -> anyhow::Result<Self> {
-        Self::with_sim(self.sim.clone(), balance, self.index + 1, options).await
+        Self::with_sim(self.sim.clone(), balance, 0, self.index + 1, options).await
     }
 
+    /// Creates a coin worth `balance`, and expects the wallet to sync it along with the
+    /// `existing_balance` it already has on the simulator.
     async fn with_sim(
         sim: Arc<PeerSimulator>,
         balance: u64,
+        existing_balance: u128,
         key_index: u32,
         options: SyncOptions,
     ) -> anyhow::Result<Self> {
@@ -224,13 +231,17 @@ impl TestWallet {
 
         test.consume_until(|event| matches!(event, SyncEvent::Subscribed))
             .await;
-        assert_eq!(test.wallet.db.xch_balance().await?, balance as u128);
+        assert_eq!(
+            test.wallet.db.xch_balance().await?,
+            balance as u128 + existing_balance
+        );
 
         Ok(test)
     }
 
     pub async fn resync(&mut self) -> anyhow::Result<()> {
-        *self = Self::with_sim(self.sim.clone(), 0, self.index, self.options).await?;
+        let balance = self.wallet.db.xch_balance().await?;
+        *self = Self::with_sim(self.sim.clone(), 0, balance, self.index, self.options).await?;
         Ok(())
     }
 
@@ -352,6 +363,81 @@ pub async fn unresponsive_peer() -> anyhow::Result<WalletPeer> {
         while let Ok((stream, _)) = listener.accept().await {
             if let Ok(ws) = accept_async(stream).await {
                 connections.push(ws);
+            }
+        }
+    });
+
+    let (ws, _) = connect_async(format!("ws://{addr}")).await?;
+    let (peer, _receiver) = Peer::from_websocket(ws, PeerOptions::default())?;
+
+    Ok(WalletPeer::new(peer))
+}
+
+/// Connects to a local websocket server that acts like a full node's mempool, answering
+/// `RequestTransaction` for the given spend bundles and nothing else.
+pub async fn mempool_peer(spend_bundles: Vec<SpendBundle>) -> anyhow::Result<WalletPeer> {
+    mempool_peer_serving(
+        spend_bundles
+            .into_iter()
+            .map(|spend_bundle| (spend_bundle.name(), spend_bundle))
+            .collect(),
+    )
+    .await
+}
+
+/// Like [`mempool_peer`], but answers each transaction id with the given spend bundle, which
+/// doesn't have to be the one with that id.
+pub async fn mempool_peer_serving(
+    spend_bundles: Vec<(Bytes32, SpendBundle)>,
+) -> anyhow::Result<WalletPeer> {
+    let spend_bundles: HashMap<Bytes32, SpendBundle> = spend_bundles.into_iter().collect();
+
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+    let addr = listener.local_addr()?;
+
+    tokio::spawn(async move {
+        let Ok((stream, _)) = listener.accept().await else {
+            return;
+        };
+        let Ok(mut ws) = accept_async(stream).await else {
+            return;
+        };
+
+        while let Some(Ok(message)) = ws.next().await {
+            let Ok(request) = Message::from_bytes(&message.into_data()) else {
+                continue;
+            };
+
+            if request.msg_type != ProtocolMessageTypes::RequestTransaction {
+                continue;
+            }
+
+            let Ok(body) = RequestTransaction::from_bytes(&request.data) else {
+                continue;
+            };
+
+            // Like a full node, it doesn't answer for a transaction it doesn't have.
+            let Some(spend_bundle) = spend_bundles.get(&body.transaction_id) else {
+                continue;
+            };
+
+            let response = Message {
+                msg_type: ProtocolMessageTypes::RespondTransaction,
+                id: request.id,
+                data: RespondTransaction::new(spend_bundle.clone())
+                    .to_bytes()
+                    .expect("serializes")
+                    .into(),
+            };
+
+            if ws
+                .send(WsMessage::Binary(
+                    response.to_bytes().expect("serializes").into(),
+                ))
+                .await
+                .is_err()
+            {
+                break;
             }
         }
     });

@@ -13,7 +13,7 @@ use chia_wallet_sdk::{
         ChiaProtocolMessage, Handshake, Message, NewPeakWallet, NodeType, ProtocolMessageTypes,
         TimestampedPeerInfo,
     },
-    client::{ClientError, connect_peer},
+    client::{ClientError, Connector},
     prelude::*,
 };
 use futures_lite::StreamExt;
@@ -27,7 +27,7 @@ use tracing::{debug, info, warn};
 
 use crate::{SyncCommand, WalletError, WalletPeer};
 
-use super::{PeerInfo, SyncManager, dns::lookup_all};
+use super::{PeerInfo, SyncManager, dns::lookup_all, mempool_updates::MEMPOOL_UPDATES_CAPABILITY};
 
 #[derive(Streamable)]
 struct RequestPeersIntroducer {}
@@ -47,6 +47,67 @@ impl ChiaProtocolMessage for RespondPeersIntroducer {
     fn msg_type() -> ProtocolMessageTypes {
         ProtocolMessageTypes::RespondPeersIntroducer
     }
+}
+
+/// Connects to a full node and performs the wallet protocol handshake. Unlike the SDK's
+/// `connect_peer`, this opts into the mempool updates from CHIP-26.
+///
+/// TODO: Go back to `chia_wallet_sdk::client::connect_peer` once a released SDK version can
+/// enable the mempool updates capability, and remove this.
+async fn connect_peer(
+    network_id: String,
+    connector: Connector,
+    socket_addr: SocketAddr,
+    options: PeerOptions,
+) -> Result<(Peer, mpsc::Receiver<Message>), ClientError> {
+    let (peer, receiver) = Peer::connect(socket_addr, connector, options).await?;
+    handshake(peer, receiver, network_id, NodeType::FullNode).await
+}
+
+/// Performs the wallet protocol handshake with a peer of the given node type.
+async fn handshake(
+    peer: Peer,
+    mut receiver: mpsc::Receiver<Message>,
+    network_id: String,
+    node_type: NodeType,
+) -> Result<(Peer, mpsc::Receiver<Message>), ClientError> {
+    peer.send(Handshake {
+        network_id: network_id.clone(),
+        protocol_version: "0.0.37".to_string(),
+        software_version: "0.0.0".to_string(),
+        server_port: 0,
+        node_type: NodeType::Wallet,
+        capabilities: vec![
+            (1, "1".to_string()),
+            (2, "1".to_string()),
+            (3, "1".to_string()),
+            (MEMPOOL_UPDATES_CAPABILITY, "1".to_string()),
+        ],
+    })
+    .await?;
+
+    let Some(message) = receiver.recv().await else {
+        return Err(ClientError::MissingHandshake);
+    };
+
+    if message.msg_type != ProtocolMessageTypes::Handshake {
+        return Err(ClientError::InvalidResponse(
+            vec![ProtocolMessageTypes::Handshake],
+            message.msg_type,
+        ));
+    }
+
+    let handshake = Handshake::from_bytes(&message.data)?;
+
+    if handshake.node_type != node_type {
+        return Err(ClientError::WrongNodeType(node_type, handshake.node_type));
+    }
+
+    if handshake.network_id != network_id {
+        return Err(ClientError::WrongNetwork(network_id, handshake.network_id));
+    }
+
+    Ok((peer, receiver))
 }
 
 impl SyncManager {
@@ -108,54 +169,15 @@ impl SyncManager {
                 let host_clone = host.clone();
 
                 let result = timeout(introducer_timeout, async move {
-                    let (peer, mut receiver) = Peer::connect_full_uri(
+                    let (peer, receiver) = Peer::connect_full_uri(
                         &format!("wss://{host_clone}:{port}/ws"),
                         connector,
                         PeerOptions::default(),
                     )
                     .await?;
 
-                    peer.send(Handshake {
-                        network_id: network_id.clone(),
-                        protocol_version: "0.0.37".to_string(),
-                        software_version: "0.0.0".to_string(),
-                        server_port: 0,
-                        node_type: NodeType::Wallet,
-                        capabilities: vec![
-                            (1, "1".to_string()),
-                            (2, "1".to_string()),
-                            (3, "1".to_string()),
-                        ],
-                    })
-                    .await?;
-
-                    let Some(message) = receiver.recv().await else {
-                        return Err(ClientError::MissingHandshake)?;
-                    };
-
-                    if message.msg_type != ProtocolMessageTypes::Handshake {
-                        Err(ClientError::InvalidResponse(
-                            vec![ProtocolMessageTypes::Handshake],
-                            message.msg_type,
-                        ))?;
-                    }
-
-                    let handshake =
-                        Handshake::from_bytes(&message.data).map_err(ClientError::from)?;
-
-                    if handshake.node_type != NodeType::Introducer {
-                        Err(ClientError::WrongNodeType(
-                            NodeType::Introducer,
-                            handshake.node_type,
-                        ))?;
-                    }
-
-                    if handshake.network_id != network_id {
-                        Err(ClientError::WrongNetwork(
-                            network_id.clone(),
-                            handshake.network_id,
-                        ))?;
-                    }
+                    let (peer, _receiver) =
+                        handshake(peer, receiver, network_id, NodeType::Introducer).await?;
 
                     let peer_list = peer
                         .request_infallible::<RespondPeersIntroducer, _>(RequestPeersIntroducer {})
@@ -467,5 +489,64 @@ impl SyncManager {
         });
 
         true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::net::Ipv4Addr;
+
+    use futures_util::SinkExt;
+    use test_log::test;
+    use tokio::{net::TcpListener, sync::oneshot};
+    use tokio_tungstenite::{accept_async, connect_async, tungstenite::Message as WsMessage};
+
+    use super::*;
+
+    #[test(tokio::test)]
+    async fn handshake_opts_into_mempool_updates() -> anyhow::Result<()> {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+        let addr = listener.local_addr()?;
+        let (capabilities_sender, capabilities_receiver) = oneshot::channel();
+
+        tokio::spawn(async move {
+            let (stream, _) = listener.accept().await?;
+            let mut ws = accept_async(stream).await?;
+
+            let Some(Ok(message)) = ws.next().await else {
+                anyhow::bail!("missing handshake");
+            };
+            let handshake =
+                Handshake::from_bytes(&Message::from_bytes(&message.into_data())?.data)?;
+            capabilities_sender
+                .send(handshake.capabilities.clone())
+                .ok();
+
+            let response = Message {
+                msg_type: ProtocolMessageTypes::Handshake,
+                id: None,
+                data: Handshake {
+                    node_type: NodeType::FullNode,
+                    ..handshake
+                }
+                .to_bytes()?
+                .into(),
+            };
+            ws.send(WsMessage::Binary(response.to_bytes()?.into()))
+                .await?;
+
+            // Keeps the connection open until the client is done with it.
+            while ws.next().await.is_some() {}
+            anyhow::Ok(())
+        });
+
+        let (ws, _) = connect_async(format!("ws://{addr}")).await?;
+        let (peer, receiver) = Peer::from_websocket(ws, PeerOptions::default())?;
+        let _peer = handshake(peer, receiver, "testnet11".to_string(), NodeType::FullNode).await?;
+
+        let capabilities = capabilities_receiver.await?;
+        assert!(capabilities.contains(&(MEMPOOL_UPDATES_CAPABILITY, "1".to_string())));
+
+        Ok(())
     }
 }

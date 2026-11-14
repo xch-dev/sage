@@ -273,6 +273,20 @@ impl WalletPeer {
         .await??)
     }
 
+    /// Fetches the spend bundle of a transaction in the peer's mempool. A full node doesn't
+    /// answer for a transaction it doesn't have, so that also ends in a timeout.
+    pub async fn fetch_mempool_transaction(
+        &self,
+        transaction_id: Bytes32,
+    ) -> Result<SpendBundle, WalletError> {
+        Ok(timeout(
+            Duration::from_secs(10),
+            self.peer.request_transaction(transaction_id),
+        )
+        .await??
+        .transaction)
+    }
+
     pub async fn unsubscribe(&self) -> Result<(), WalletError> {
         timeout(
             Duration::from_secs(10),
