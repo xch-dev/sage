@@ -30,13 +30,18 @@ export function expirationTimestamp(
   return expiration.timestamp ?? now + expirationDurationSeconds(expiration);
 }
 
+export type Duration = Pick<Expiration, 'days' | 'hours' | 'minutes'>;
+
 // Splits the time remaining until a timestamp into days/hours/minutes,
 // rounding up to the next minute so a future time never shows as zero.
-export function durationUntil(
-  timestamp: number,
-  now = nowSeconds(),
-): Pick<Expiration, 'days' | 'hours' | 'minutes'> {
-  const totalMinutes = Math.max(0, Math.ceil((timestamp - now) / 60));
+export function durationUntil(timestamp: number, now = nowSeconds()): Duration {
+  return durationParts(timestamp - now);
+}
+
+// Splits a number of seconds into days/hours/minutes, rounding up to the next
+// minute so a positive duration never shows as zero.
+export function durationParts(seconds: number): Duration {
+  const totalMinutes = Math.max(0, Math.ceil(seconds / 60));
   return {
     days: Math.floor(totalMinutes / (24 * 60)).toString(),
     hours: Math.floor((totalMinutes % (24 * 60)) / 60).toString(),

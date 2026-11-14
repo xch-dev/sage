@@ -8,9 +8,10 @@ use sage_api::{
     SetDeltaSync, SetDeltaSyncOverride, SetDeltaSyncOverrideResponse, SetDeltaSyncResponse,
     SetDiscoverPeers, SetDiscoverPeersResponse, SetNetwork, SetNetworkOverride,
     SetNetworkOverrideResponse, SetNetworkResponse, SetSelectedTheme, SetSelectedThemeResponse,
-    SetTargetPeers, SetTargetPeersResponse,
+    SetTargetPeers, SetTargetPeersResponse, SetTransactionExpiration,
+    SetTransactionExpirationResponse,
 };
-use sage_config::{MAINNET, TESTNET11};
+use sage_config::{MAINNET, MIN_TRANSACTION_EXPIRATION, TESTNET11};
 use sage_wallet::SyncCommand;
 
 use crate::{Error, Result, Sage};
@@ -196,5 +197,27 @@ impl Sage {
         self.save_config()?;
         self.switch_wallet().await?;
         Ok(SetChangeAddressResponse {})
+    }
+
+    pub fn set_transaction_expiration(
+        &mut self,
+        req: SetTransactionExpiration,
+    ) -> Result<SetTransactionExpirationResponse> {
+        if req.seconds > 0 && req.seconds < MIN_TRANSACTION_EXPIRATION {
+            return Err(Error::TransactionExpirationTooShort(
+                MIN_TRANSACTION_EXPIRATION,
+            ));
+        }
+
+        self.wallet_config.defaults.transaction_expiration = req.seconds;
+        self.save_config()?;
+
+        // The wallet reads the setting whenever it creates a transaction, so it doesn't need to
+        // be reloaded.
+        if let Some(wallet) = &self.wallet {
+            wallet.set_transaction_expiration(req.seconds);
+        }
+
+        Ok(SetTransactionExpirationResponse {})
     }
 }

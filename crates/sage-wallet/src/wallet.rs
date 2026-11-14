@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -52,6 +53,9 @@ pub struct Wallet {
     pub genesis_challenge: Bytes32,
     pub agg_sig_constants: AggSigConstants,
     pub change_p2_puzzle_hash: Option<Bytes32>,
+    /// How many seconds a transaction can be confirmed for after it's created, or 0 for no
+    /// limit. It's atomic so that changing the setting doesn't need the wallet to be reloaded.
+    transaction_expiration: AtomicU64,
 }
 
 impl Wallet {
@@ -72,7 +76,33 @@ impl Wallet {
             genesis_challenge,
             agg_sig_constants,
             change_p2_puzzle_hash,
+            transaction_expiration: AtomicU64::new(0),
         }
+    }
+
+    /// Sets how many seconds the transactions this wallet creates can be confirmed for, or 0
+    /// for no limit. Offers aren't affected, since they have their own expiration.
+    pub fn set_transaction_expiration(&self, seconds: u64) {
+        self.transaction_expiration
+            .store(seconds, Ordering::Relaxed);
+    }
+
+    pub fn transaction_expiration(&self) -> u64 {
+        self.transaction_expiration.load(Ordering::Relaxed)
+    }
+
+    /// The timestamp a transaction created now must be confirmed before, if the wallet's
+    /// transactions expire.
+    fn transaction_expires_at(&self) -> Result<Option<u64>, WalletError> {
+        let expiration = self.transaction_expiration();
+
+        if expiration == 0 {
+            return Ok(None);
+        }
+
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+
+        Ok(Some(now.saturating_add(expiration)))
     }
 
     /// Watch wallets don't know the puzzle reveals of their coins, so they can't spend them.
@@ -351,7 +381,28 @@ impl Wallet {
         Ok(())
     }
 
+    /// Finishes a transaction, which can only be confirmed until the wallet's transaction
+    /// expiration has passed.
     pub async fn complete_spends(
+        &self,
+        ctx: &mut SpendContext,
+        deltas: &Deltas,
+        mut spends: Spends,
+    ) -> Result<Outputs, WalletError> {
+        if let Some(expires_at) = self.transaction_expires_at()? {
+            spends.conditions.required = spends
+                .conditions
+                .required
+                .assert_before_seconds_absolute(expires_at);
+        }
+
+        self.complete_spends_without_expiration(ctx, deltas, spends)
+            .await
+    }
+
+    /// Finishes the spends without the wallet's transaction expiration, for offers, which can
+    /// be taken until their own expiration instead.
+    pub async fn complete_spends_without_expiration(
         &self,
         ctx: &mut SpendContext,
         deltas: &Deltas,

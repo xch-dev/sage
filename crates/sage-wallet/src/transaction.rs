@@ -103,7 +103,10 @@ fn checked_add(total: u64, amount: u64) -> Result<u64, WalletError> {
     total.checked_add(amount).ok_or(WalletError::AmountOverflow)
 }
 
-fn run_conditions(puzzle_reveal: &Program, solution: &Program) -> Result<Conditions, WalletError> {
+pub(crate) fn run_conditions(
+    puzzle_reveal: &Program,
+    solution: &Program,
+) -> Result<Conditions, WalletError> {
     let mut allocator = Allocator::new();
 
     let puzzle = puzzle_reveal.to_clvm(&mut allocator)?;
