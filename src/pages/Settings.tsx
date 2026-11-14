@@ -84,7 +84,15 @@ import {
   WalletIcon,
 } from 'lucide-react';
 import prettyBytes from 'pretty-bytes';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  cloneElement,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -256,22 +264,35 @@ interface SettingItemProps {
   children?: React.ReactNode;
 }
 
+// Form controls that take their accessible name from the setting's label. Buttons keep their own
+// text, wrappers aren't controls, and a Select is labelled on its trigger.
+const LABELLED_CONTROLS = new Set<unknown>([Switch, Input, FeeAmountInput]);
+
 function SettingItem({
   label,
   description,
   control,
   children,
 }: SettingItemProps) {
+  const labelId = useId();
+
   return (
     <div className='p-3'>
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-x-4 gap-y-2'>
         <div className='space-y-1'>
-          <Label className='text-sm font-medium'>{label}</Label>
+          <Label id={labelId} className='text-sm font-medium'>
+            {label}
+          </Label>
           {description && (
             <div className='text-sm text-muted-foreground'>{description}</div>
           )}
         </div>
-        <div className='flex sm:justify-end'>{control}</div>
+        <div className='flex sm:justify-end'>
+          {isValidElement<{ 'aria-labelledby'?: string }>(control) &&
+          LABELLED_CONTROLS.has(control.type)
+            ? cloneElement(control, { 'aria-labelledby': labelId })
+            : control}
+        </div>
       </div>
       {children}
     </div>
@@ -396,7 +417,7 @@ function GlobalSettings() {
           description={t`Choose your preferred language`}
           control={
             <Select value={locale} onValueChange={changeLanguage}>
-              <SelectTrigger className='w-[140px]'>
+              <SelectTrigger className='w-[140px]' aria-label={t`Language`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -592,6 +613,7 @@ function TimeInput({ label, value, onChange }: TimeInputProps) {
     <div className='space-y-2'>
       <Label className='text-sm text-muted-foreground'>{label}</Label>
       <IntegerInput
+        aria-label={label}
         value={value}
         placeholder='0'
         min={0}
@@ -732,7 +754,7 @@ function NetworkSettings() {
           >
             <SelectTrigger
               id='network'
-              aria-label='Select network'
+              aria-label={t`Default Network`}
               className='w-[140px]'
             >
               <SelectValue placeholder={<Trans>Select network</Trans>} />

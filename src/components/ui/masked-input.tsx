@@ -176,6 +176,7 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
                 className={`!border-l-0 !rounded-l-none flex-shrink-0 ${heightClass} w-10 px-0 ${maxButtonClassName || ''}`}
                 onClick={handleMaxClick}
                 disabled={!maxValue}
+                aria-label={t`Use maximum spendable balance`}
               >
                 <ArrowUpToLine className='h-4 w-4' />
               </Button>
@@ -260,13 +261,13 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     return (
       <div className='relative'>
         <TokenAmountInput
+          aria-label={t`Network fee amount`}
           {...props}
           ref={ref}
           value={value ?? defaultFee}
           onChange={onChange}
           onValueChange={onValueChange}
           placeholder={t`Enter network fee`}
-          aria-label={t`Network fee amount`}
           className={`pr-12 ${className || ''}`}
           ticker='xch'
           precision={12}

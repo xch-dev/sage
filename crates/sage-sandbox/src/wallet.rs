@@ -105,6 +105,10 @@ impl SandboxWallet {
             .with_context(|| format!("failed to initialize the {name} wallet"))?;
 
         for network in &mut sage.network_list.networks {
+            // The simulator only makes a block when a transaction is submitted, so an idle
+            // sandbox would otherwise drop its only peer after a few minutes and never reconnect.
+            network.drop_silent_peers = false;
+
             if let Some(mut config) = network.xchandles() {
                 config.api_url = xchandles_url.to_string();
                 network.xchandles = Some(config);
