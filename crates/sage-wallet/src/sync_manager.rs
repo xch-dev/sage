@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fmt,
     net::{IpAddr, SocketAddr},
     sync::Arc,
@@ -7,12 +8,19 @@ use std::{
 
 use chia_traits::Streamable;
 use chia_wallet_sdk::{
-    chia::protocol::{CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
+    chia::protocol::{
+        CoinStateUpdate, MempoolItemsAdded, MempoolItemsRemoved, Message, NewPeakWallet,
+        ProtocolMessageTypes,
+    },
     client::{ClientError, Connector},
     prelude::*,
 };
 use futures_lite::future::poll_once;
+use indexmap::IndexSet;
 use itertools::Itertools;
+use mempool_updates::{
+    AnnouncedMempoolItem, MAX_PENDING_MEMPOOL_ITEMS, discover_mempool_items, remove_mempool_items,
+};
 use sage_config::Network;
 use tokio::{
     sync::{Mutex, mpsc},
@@ -28,6 +36,7 @@ use crate::{
 };
 
 mod dns;
+mod mempool_updates;
 mod options;
 mod peer_discovery;
 mod peer_state;
@@ -56,8 +65,12 @@ pub struct SyncManager {
     transaction_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     offer_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     blocktime_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
+    mempool_discovery_task: Option<JoinHandle<Result<(), WalletError>>>,
     pending_coin_subscriptions: Vec<Bytes32>,
     pending_puzzle_subscriptions: Vec<Bytes32>,
+    /// Transactions announced by peers, which are fetched once the initial sync has finished,
+    /// so that the coins they spend and the derivations they pay to are already known.
+    pending_mempool_items: IndexSet<AnnouncedMempoolItem>,
 }
 
 impl fmt::Debug for SyncManager {
@@ -100,6 +113,9 @@ impl Drop for SyncManager {
         if let Some(task) = &mut self.blocktime_queue_task {
             task.abort();
         }
+        if let Some(task) = &mut self.mempool_discovery_task {
+            task.abort();
+        }
     }
 }
 
@@ -130,8 +146,10 @@ impl SyncManager {
             transaction_queue_task: None,
             offer_queue_task: None,
             blocktime_queue_task: None,
+            mempool_discovery_task: None,
             pending_coin_subscriptions: Vec::new(),
             pending_puzzle_subscriptions: Vec::new(),
+            pending_mempool_items: IndexSet::new(),
         };
 
         (manager, command_sender, event_receiver)
@@ -142,6 +160,7 @@ impl SyncManager {
             self.process_commands().await;
             self.update().await;
             self.subscribe().await;
+            self.start_mempool_discovery();
             sleep(self.options.timeouts.sync_delay).await;
         }
     }
@@ -161,6 +180,7 @@ impl SyncManager {
                     // new one would put its coin states in the wrong database.
                     self.pending_coin_subscriptions.clear();
                     self.pending_puzzle_subscriptions.clear();
+                    self.pending_mempool_items.clear();
 
                     self.wallet = wallet;
                     self.options.delta_sync = delta_sync;
@@ -179,6 +199,7 @@ impl SyncManager {
                     {
                         self.state.lock().await.reset();
                         self.abort_wallet_tasks();
+                        self.pending_mempool_items.clear();
                         self.network = *network;
                         let _ = self
                             .event_sender
@@ -276,6 +297,46 @@ impl SyncManager {
         }
     }
 
+    fn queue_mempool_items(&mut self, ip: IpAddr, transaction_ids: Vec<Bytes32>) {
+        for transaction_id in transaction_ids {
+            if self.pending_mempool_items.len() >= MAX_PENDING_MEMPOOL_ITEMS {
+                debug!("Too many pending mempool items, ignoring the rest from peer {ip}");
+                break;
+            }
+
+            self.pending_mempool_items
+                .insert(AnnouncedMempoolItem { ip, transaction_id });
+        }
+    }
+
+    fn start_mempool_discovery(&mut self) {
+        if self.pending_mempool_items.is_empty() || self.mempool_discovery_task.is_some() {
+            return;
+        }
+
+        // Until the initial sync finishes, the wallet may not know the coins a transaction
+        // spends, or have derived the addresses it pays to.
+        if !matches!(self.initial_wallet_sync, InitialWalletSync::Subscribed(_)) {
+            return;
+        }
+
+        let Some(wallet) = self.wallet.clone() else {
+            return;
+        };
+
+        let items = std::mem::take(&mut self.pending_mempool_items)
+            .into_iter()
+            .collect();
+
+        self.mempool_discovery_task = Some(tokio::spawn(discover_mempool_items(
+            wallet,
+            self.state.clone(),
+            items,
+            self.event_sender.clone(),
+            self.command_sender.clone(),
+        )));
+    }
+
     fn abort_wallet_tasks(&mut self) {
         if let InitialWalletSync::Syncing { task, .. } =
             std::mem::take(&mut self.initial_wallet_sync)
@@ -300,9 +361,12 @@ impl SyncManager {
         if let Some(task) = &mut self.blocktime_queue_task.take() {
             task.abort();
         }
+        if let Some(task) = self.mempool_discovery_task.take() {
+            task.abort();
+        }
     }
 
-    async fn handle_message(&self, ip: IpAddr, message: Message) -> Result<(), WalletError> {
+    async fn handle_message(&mut self, ip: IpAddr, message: Message) -> Result<(), WalletError> {
         match message.msg_type {
             ProtocolMessageTypes::NewPeakWallet => {
                 let message =
@@ -380,6 +444,28 @@ impl SyncManager {
                     );
                 } else {
                     debug!("Received coin state update but no database to update");
+                }
+            }
+            ProtocolMessageTypes::MempoolItemsAdded => {
+                let message =
+                    MempoolItemsAdded::from_bytes(&message.data).map_err(ClientError::from)?;
+                self.queue_mempool_items(ip, message.transaction_ids);
+            }
+            ProtocolMessageTypes::MempoolItemsRemoved => {
+                let message =
+                    MempoolItemsRemoved::from_bytes(&message.data).map_err(ClientError::from)?;
+
+                // An item that's still waiting to be fetched would only be removed again.
+                let removed: HashSet<Bytes32> = message
+                    .removed_items
+                    .iter()
+                    .map(|item| item.transaction_id)
+                    .collect();
+                self.pending_mempool_items
+                    .retain(|item| !removed.contains(&item.transaction_id));
+
+                if let Some(wallet) = self.wallet.as_ref() {
+                    remove_mempool_items(wallet, message.removed_items, &self.event_sender).await?;
                 }
             }
             _ => {
@@ -546,6 +632,7 @@ impl SyncManager {
             self.transaction_queue_task = None;
             self.offer_queue_task = None;
             self.blocktime_queue_task = None;
+            self.mempool_discovery_task = None;
         }
     }
 
@@ -685,6 +772,17 @@ impl SyncManager {
                 }
                 None => {}
             }
+        }
+
+        if let Some(task) = &mut self.mempool_discovery_task
+            && let Some(result) = poll_once(task).await
+        {
+            match result {
+                Err(error) => warn!("Mempool discovery failed with panic: {error}"),
+                Ok(Err(error)) => warn!("Mempool discovery failed with error: {error}"),
+                Ok(Ok(())) => {}
+            }
+            self.mempool_discovery_task = None;
         }
 
         // The startup analyze writes nothing for a wallet whose tables were still
