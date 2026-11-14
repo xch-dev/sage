@@ -1,18 +1,16 @@
 use std::{
     collections::HashMap,
     net::Ipv4Addr,
-    sync::Arc,
+    sync::{Arc, Mutex as StdMutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use chia_traits::Streamable;
 use chia_wallet_sdk::{
     chia::{
         bls::{
             DerivableKey, master_to_wallet_hardened, master_to_wallet_hardened_intermediate,
             master_to_wallet_unhardened_intermediate,
         },
-        protocol::{Message, ProtocolMessageTypes, RequestTransaction, RespondTransaction},
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
     client::{Connector, PeerOptions},
@@ -20,7 +18,7 @@ use chia_wallet_sdk::{
     prelude::*,
     test::PeerSimulator,
 };
-use futures_util::{SinkExt, StreamExt};
+use futures_util::future::BoxFuture;
 use sage_config::TESTNET11;
 use sage_database::{Database, Derivation, SharedDatabase};
 use sqlx::{SqlitePool, migrate};
@@ -32,12 +30,12 @@ use tokio::{
     },
     time::timeout,
 };
-use tokio_tungstenite::{accept_async, connect_async, tungstenite::Message as WsMessage};
+use tokio_tungstenite::{accept_async, connect_async};
 use tracing::debug;
 
 use crate::{
-    PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Transaction, Wallet,
-    WalletKind, WalletPeer, insert_transaction, run_conditions,
+    MempoolSource, PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts,
+    Transaction, Wallet, WalletError, WalletKind, WalletPeer, insert_transaction, run_conditions,
 };
 
 /// A spend of a coin whose puzzle outputs the given conditions, for transactions that a
@@ -89,6 +87,8 @@ pub struct TestWallet {
     pub index: u32,
     pub state: Arc<Mutex<PeerState>>,
     pub options: SyncOptions,
+    /// What the wallet's sync manager looks up announced mempool transactions in.
+    pub mempool: Arc<FakeMempool>,
 }
 
 impl TestWallet {
@@ -203,6 +203,9 @@ impl TestWallet {
             Connector::Plain,
         );
 
+        let mempool = Arc::new(FakeMempool::default());
+        sync_manager.set_mempool_source(Some(mempool.clone()));
+
         let (peer, receiver) = sim.connect_raw().await?;
 
         assert!(
@@ -227,6 +230,7 @@ impl TestWallet {
             index: key_index,
             state,
             options,
+            mempool,
         };
 
         test.consume_until(|event| matches!(event, SyncEvent::Subscribed))
@@ -334,6 +338,7 @@ pub fn default_test_options() -> SyncOptions {
     SyncOptions {
         target_peers: 0,
         discover_peers: false,
+        mempool_discovery: true,
         dns_batch_size: 0,
         connection_batch_size: 0,
         max_peer_age_seconds: 0,
@@ -373,77 +378,47 @@ pub async fn unresponsive_peer() -> anyhow::Result<WalletPeer> {
     Ok(WalletPeer::new(peer))
 }
 
-/// Connects to a local websocket server that acts like a full node's mempool, answering
-/// `RequestTransaction` for the given spend bundles and nothing else.
-pub async fn mempool_peer(spend_bundles: Vec<SpendBundle>) -> anyhow::Result<WalletPeer> {
-    mempool_peer_serving(
-        spend_bundles
-            .into_iter()
-            .map(|spend_bundle| (spend_bundle.name(), spend_bundle))
-            .collect(),
-    )
-    .await
+/// A [`MempoolSource`] that serves the spend bundles added to it, like Coinset's mempool.
+#[derive(Debug, Default)]
+pub struct FakeMempool {
+    spend_bundles: StdMutex<HashMap<Bytes32, SpendBundle>>,
+    lookups: StdMutex<Vec<Bytes32>>,
 }
 
-/// Like [`mempool_peer`], but answers each transaction id with the given spend bundle, which
-/// doesn't have to be the one with that id.
-pub async fn mempool_peer_serving(
-    spend_bundles: Vec<(Bytes32, SpendBundle)>,
-) -> anyhow::Result<WalletPeer> {
-    let spend_bundles: HashMap<Bytes32, SpendBundle> = spend_bundles.into_iter().collect();
+impl FakeMempool {
+    pub fn add(&self, spend_bundle: SpendBundle) {
+        self.add_as(spend_bundle.name(), spend_bundle);
+    }
 
-    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
-    let addr = listener.local_addr()?;
+    /// Serves the spend bundle for `transaction_id`, which doesn't have to be its id.
+    pub fn add_as(&self, transaction_id: Bytes32, spend_bundle: SpendBundle) {
+        self.spend_bundles
+            .lock()
+            .expect("fake mempool lock")
+            .insert(transaction_id, spend_bundle);
+    }
 
-    tokio::spawn(async move {
-        let Ok((stream, _)) = listener.accept().await else {
-            return;
-        };
-        let Ok(mut ws) = accept_async(stream).await else {
-            return;
-        };
+    /// The transaction ids that have been looked up, in order.
+    pub fn lookups(&self) -> Vec<Bytes32> {
+        self.lookups.lock().expect("fake mempool lock").clone()
+    }
+}
 
-        while let Some(Ok(message)) = ws.next().await {
-            let Ok(request) = Message::from_bytes(&message.into_data()) else {
-                continue;
-            };
-
-            if request.msg_type != ProtocolMessageTypes::RequestTransaction {
-                continue;
-            }
-
-            let Ok(body) = RequestTransaction::from_bytes(&request.data) else {
-                continue;
-            };
-
-            // Like a full node, it doesn't answer for a transaction it doesn't have.
-            let Some(spend_bundle) = spend_bundles.get(&body.transaction_id) else {
-                continue;
-            };
-
-            let response = Message {
-                msg_type: ProtocolMessageTypes::RespondTransaction,
-                id: request.id,
-                data: RespondTransaction::new(spend_bundle.clone())
-                    .to_bytes()
-                    .expect("serializes")
-                    .into(),
-            };
-
-            if ws
-                .send(WsMessage::Binary(
-                    response.to_bytes().expect("serializes").into(),
-                ))
-                .await
-                .is_err()
-            {
-                break;
-            }
-        }
-    });
-
-    let (ws, _) = connect_async(format!("ws://{addr}")).await?;
-    let (peer, _receiver) = Peer::from_websocket(ws, PeerOptions::default())?;
-
-    Ok(WalletPeer::new(peer))
+impl MempoolSource for FakeMempool {
+    fn spend_bundle(
+        &self,
+        transaction_id: Bytes32,
+    ) -> BoxFuture<'_, Result<Option<SpendBundle>, WalletError>> {
+        self.lookups
+            .lock()
+            .expect("fake mempool lock")
+            .push(transaction_id);
+        let spend_bundle = self
+            .spend_bundles
+            .lock()
+            .expect("fake mempool lock")
+            .get(&transaction_id)
+            .cloned();
+        Box::pin(async move { Ok(spend_bundle) })
+    }
 }

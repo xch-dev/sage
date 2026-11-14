@@ -312,6 +312,7 @@ impl Sage {
             SyncOptions {
                 target_peers: self.config.network.target_peers.try_into()?,
                 discover_peers: self.config.network.discover_peers,
+                mempool_discovery: self.config.network.mempool_discovery,
                 max_peer_age_seconds: 3600 * 8,
                 dns_batch_size: 10,
                 connection_batch_size: 30,

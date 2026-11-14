@@ -59,18 +59,19 @@ async fn connect_peer(
     connector: Connector,
     socket_addr: SocketAddr,
     options: PeerOptions,
-) -> Result<(Peer, mpsc::Receiver<Message>), ClientError> {
+) -> Result<(Peer, mpsc::Receiver<Message>, bool), ClientError> {
     let (peer, receiver) = Peer::connect(socket_addr, connector, options).await?;
     handshake(peer, receiver, network_id, NodeType::FullNode).await
 }
 
-/// Performs the wallet protocol handshake with a peer of the given node type.
+/// Performs the wallet protocol handshake with a peer of the given node type, and returns
+/// whether the peer sends mempool updates.
 async fn handshake(
     peer: Peer,
     mut receiver: mpsc::Receiver<Message>,
     network_id: String,
     node_type: NodeType,
-) -> Result<(Peer, mpsc::Receiver<Message>), ClientError> {
+) -> Result<(Peer, mpsc::Receiver<Message>, bool), ClientError> {
     peer.send(Handshake {
         network_id: network_id.clone(),
         protocol_version: "0.0.37".to_string(),
@@ -107,7 +108,22 @@ async fn handshake(
         return Err(ClientError::WrongNetwork(network_id, handshake.network_id));
     }
 
-    Ok((peer, receiver))
+    // Older nodes don't send mempool updates, even though they accept the capability.
+    let mempool_updates = handshake
+        .capabilities
+        .contains(&(MEMPOOL_UPDATES_CAPABILITY, "1".to_string()));
+    debug!(
+        "Peer {} runs version {} and {} mempool updates",
+        peer.socket_addr(),
+        handshake.software_version,
+        if mempool_updates {
+            "sends"
+        } else {
+            "doesn't send"
+        }
+    );
+
+    Ok((peer, receiver, mempool_updates))
 }
 
 impl SyncManager {
@@ -176,7 +192,7 @@ impl SyncManager {
                     )
                     .await?;
 
-                    let (peer, _receiver) =
+                    let (peer, _receiver, _) =
                         handshake(peer, receiver, network_id, NodeType::Introducer).await?;
 
                     let peer_list = peer
@@ -334,8 +350,14 @@ impl SyncManager {
 
         while let Some((socket_addr, result)) = futures.next().await {
             match result {
-                Ok(Ok((peer, receiver))) => {
+                Ok(Ok((peer, receiver, mempool_updates))) => {
+                    let ip = peer.socket_addr().ip();
+
                     if self.try_add_peer(peer, receiver, force, user_managed).await {
+                        if mempool_updates {
+                            self.state.lock().await.set_sends_mempool_updates(ip);
+                        }
+
                         if self.check_peer_count().await {
                             return true;
                         }
@@ -471,6 +493,7 @@ impl SyncManager {
             header_hash: message.header_hash,
             last_peak_at: Instant::now(),
             user_managed,
+            sends_mempool_updates: false,
             receive_message_task: tokio::spawn(async move {
                 while let Some(message) = receiver.recv().await {
                     debug!("Received message from peer {}: {:?}", ip, message.msg_type);

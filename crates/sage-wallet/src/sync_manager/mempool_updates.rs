@@ -2,11 +2,16 @@
 //! the ids of mempool transactions that touch the wallet's subscriptions, both when they enter
 //! the mempool and, for transactions already in it, when a subscription is added. The latter
 //! means pending transactions are found again after a resync or on a fresh install.
+//!
+//! The node only sends ids, so the spend bundles are looked up with a [`MempoolSource`], which
+//! is the Coinset API when mempool discovery is turned on. Removals need only the ids, so
+//! they're applied either way.
 
 use std::{
     collections::HashSet,
     net::IpAddr,
     sync::{Arc, Mutex as StdMutex},
+    time::Duration,
 };
 
 use chia_wallet_sdk::{
@@ -21,18 +26,30 @@ use crate::{
     is_wallet_transaction, remove_failed_transaction,
 };
 
-use super::{PeerState, SyncEvent};
+use super::{MempoolSource, PeerState, SyncEvent};
 
 /// The `MEMPOOL_UPDATES` capability, sent in the handshake to opt into mempool updates.
 pub(super) const MEMPOOL_UPDATES_CAPABILITY: u16 = 5;
 
-/// The most announced transactions waiting to be fetched. A peer can announce any number of
-/// them, so the rest are dropped rather than kept in memory. The node announces them again
-/// when the wallet subscribes next.
+/// The most announced transactions waiting to be fetched, including ones waiting to be looked
+/// up again. A peer can announce any number of them, so the rest are dropped rather than kept
+/// in memory. The node announces them again when the wallet subscribes next.
 pub(super) const MAX_PENDING_MEMPOOL_ITEMS: usize = 1000;
 
-/// A transaction id announced by the peer at `ip`, which is where its spend bundle is fetched
-/// from.
+/// How long to wait before looking up a transaction again, after each lookup that didn't find
+/// it. The source can take a while to see a transaction that a node just announced, so this
+/// keeps trying for about two minutes before giving up.
+pub(super) const MEMPOOL_RETRY_DELAYS: [Duration; 6] = [
+    Duration::from_secs(2),
+    Duration::from_secs(5),
+    Duration::from_secs(10),
+    Duration::from_secs(20),
+    Duration::from_secs(30),
+    Duration::from_mins(1),
+];
+
+/// A transaction id announced by the peer at `ip`, which is asked about the coins it creates
+/// when it's inserted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(super) struct AnnouncedMempoolItem {
     pub ip: IpAddr,
@@ -47,17 +64,29 @@ pub(super) struct AnnouncedMempoolItem {
 /// here after it commits, so whichever comes second sees the other.
 pub(super) type FinalRemovals = Arc<StdMutex<HashSet<Bytes32>>>;
 
+/// An announced transaction to look up, and how many lookups so far didn't find it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct MempoolLookup {
+    pub item: AnnouncedMempoolItem,
+    pub misses: usize,
+}
+
 /// Fetches the announced transactions that the wallet doesn't know about yet, and inserts the
-/// ones that involve its coins as pending transactions. A transaction that can't be fetched or
-/// inserted is skipped, so it doesn't hold up the rest.
+/// ones that involve its coins as pending transactions. A transaction that can't be inserted is
+/// skipped, so it doesn't hold up the rest.
+///
+/// Returns the lookups that didn't find their transaction, so they can be tried again later.
+/// The source can lag behind the node that announced it, so a transaction that was just
+/// announced often isn't there yet.
 pub(super) async fn discover_mempool_items(
     wallet: Arc<Wallet>,
     state: Arc<Mutex<PeerState>>,
-    items: Vec<AnnouncedMempoolItem>,
+    mempool_source: Arc<dyn MempoolSource>,
+    lookups: Vec<MempoolLookup>,
     final_removals: FinalRemovals,
     sync_sender: mpsc::Sender<SyncEvent>,
     command_sender: mpsc::Sender<SyncCommand>,
-) -> Result<(), WalletError> {
+) -> Result<Vec<MempoolLookup>, WalletError> {
     let mut known: HashSet<Bytes32> = wallet
         .db
         .mempool_items()
@@ -66,25 +95,55 @@ pub(super) async fn discover_mempool_items(
         .map(|item| item.hash)
         .collect();
 
-    for item in items {
-        if !known.insert(item.transaction_id) {
+    let mut missed = Vec::new();
+
+    for lookup in lookups {
+        let MempoolLookup {
+            item: AnnouncedMempoolItem { ip, transaction_id },
+            ..
+        } = lookup;
+
+        if known.contains(&transaction_id) {
             continue;
         }
 
+        let spend_bundle = match mempool_source.spend_bundle(transaction_id).await {
+            Ok(Some(spend_bundle)) => spend_bundle,
+            Ok(None) => {
+                missed.push(lookup);
+                continue;
+            }
+            Err(error) => {
+                warn!("Failed to look up mempool item {transaction_id}: {error}");
+                missed.push(lookup);
+                continue;
+            }
+        };
+
+        known.insert(transaction_id);
+
         // Each one is shown as soon as it's inserted, since the rest can take a while to fetch.
-        match discover_mempool_item(&wallet, &state, item, &final_removals, &command_sender).await {
+        match discover_mempool_item(
+            &wallet,
+            &state,
+            lookup.item,
+            spend_bundle,
+            &final_removals,
+            &command_sender,
+        )
+        .await
+        {
             Ok(true) => {
                 sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
             }
             Ok(false) => {}
             Err(error) => warn!(
-                "Failed to discover mempool item {} from peer {}: {error}",
-                item.transaction_id, item.ip
+                "Failed to discover mempool item {transaction_id} announced by peer {ip}: {error}"
             ),
         }
     }
 
-    Ok(())
+    Ok(missed)
 }
 
 /// Returns whether the transaction was inserted.
@@ -92,21 +151,12 @@ async fn discover_mempool_item(
     wallet: &Wallet,
     state: &Mutex<PeerState>,
     AnnouncedMempoolItem { ip, transaction_id }: AnnouncedMempoolItem,
+    spend_bundle: SpendBundle,
     final_removals: &FinalRemovals,
     command_sender: &mpsc::Sender<SyncCommand>,
 ) -> Result<bool, WalletError> {
-    // The node announces its own mempool, so only it is asked. If it disconnected, the
-    // transaction is announced again by the peer the wallet subscribes with next.
-    let Some(peer) = state.lock().await.peer(ip).map(|info| info.peer.clone()) else {
-        debug!("Peer {ip} disconnected before mempool item {transaction_id} was fetched");
-        return Ok(false);
-    };
-
-    // A node doesn't answer for a transaction that just left its mempool, so this times out.
-    let spend_bundle = peer.fetch_mempool_transaction(transaction_id).await?;
-
     if spend_bundle.name() != transaction_id {
-        warn!("Peer {ip} sent a different spend bundle for mempool item {transaction_id}");
+        warn!("Got a different spend bundle for mempool item {transaction_id}");
         return Ok(false);
     }
 
@@ -117,6 +167,13 @@ async fn discover_mempool_item(
         debug!("Mempool item {transaction_id} doesn't involve the wallet's coins");
         return Ok(false);
     }
+
+    // If it disconnected, the transaction is announced again by the peer the wallet
+    // subscribes with next.
+    let Some(peer) = state.lock().await.peer(ip).map(|info| info.peer.clone()) else {
+        debug!("Peer {ip} disconnected before mempool item {transaction_id} was inserted");
+        return Ok(false);
+    };
 
     let Some(subscriptions) = insert_discovered_transaction(
         &wallet.db,
@@ -143,7 +200,7 @@ async fn discover_mempool_item(
         return Ok(true);
     }
 
-    info!("Discovered mempool item {transaction_id} from peer {ip}");
+    info!("Discovered mempool item {transaction_id} announced by peer {ip}");
 
     if !subscriptions.is_empty() {
         command_sender
@@ -235,7 +292,7 @@ mod tests {
     use test_log::test;
     use tokio::time::timeout;
 
-    use crate::{SyncEvent, TestWallet, WalletPeer, mempool_peer, mempool_peer_serving};
+    use crate::{FakeMempool, SyncEvent, TestWallet, WalletPeer};
 
     use super::*;
 
@@ -267,11 +324,12 @@ mod tests {
         sign(from, coin_spends).await
     }
 
-    /// Announces the transactions the way the peer's message handler forwards them.
+    /// Announces the transactions from the wallet's peer, the way its message handler forwards
+    /// them.
     async fn announce(test: &TestWallet, transaction_ids: Vec<Bytes32>) -> anyhow::Result<()> {
         test.sender
             .send(SyncCommand::HandleMessage {
-                ip: MEMPOOL_PEER_IP,
+                ip: test.peer.socket_addr().ip(),
                 message: Message {
                     msg_type: ProtocolMessageTypes::MempoolItemsAdded,
                     id: None,
@@ -282,9 +340,10 @@ mod tests {
         Ok(())
     }
 
-    /// Runs a discovery batch against a peer that serves `spend_bundles`.
+    /// Runs discovery batches that look transactions up in `mempool`.
     struct Discovery {
         state: Arc<Mutex<PeerState>>,
+        mempool: Arc<FakeMempool>,
         final_removals: FinalRemovals,
         events: mpsc::Receiver<SyncEvent>,
         event_sender: mpsc::Sender<SyncEvent>,
@@ -293,42 +352,59 @@ mod tests {
     }
 
     impl Discovery {
-        async fn new(peer: WalletPeer) -> anyhow::Result<Self> {
+        async fn new(test: &TestWallet) -> Self {
             let state = Arc::new(Mutex::new(PeerState::default()));
-            state.lock().await.add_peer_at(MEMPOOL_PEER_IP, peer);
+            state
+                .lock()
+                .await
+                .add_peer_at(MEMPOOL_PEER_IP, WalletPeer::new(test.peer.clone()));
 
             let (event_sender, events) = mpsc::channel(10);
             let (command_sender, commands) = mpsc::channel(10);
 
-            Ok(Self {
+            Self {
                 state,
+                mempool: Arc::new(FakeMempool::default()),
                 final_removals: FinalRemovals::default(),
                 events,
                 event_sender,
                 commands,
                 command_sender,
-            })
+            }
         }
 
-        async fn serving(spend_bundles: Vec<SpendBundle>) -> anyhow::Result<Self> {
-            Self::new(mempool_peer(spend_bundles).await?).await
+        async fn serving(test: &TestWallet, spend_bundles: Vec<SpendBundle>) -> Self {
+            let discovery = Self::new(test).await;
+            for spend_bundle in spend_bundles {
+                discovery.mempool.add(spend_bundle);
+            }
+            discovery
         }
 
-        async fn run(&self, test: &TestWallet, transaction_ids: &[Bytes32]) -> anyhow::Result<()> {
-            let items = transaction_ids
+        /// Returns the ids of the transactions that weren't found.
+        async fn run(
+            &self,
+            test: &TestWallet,
+            transaction_ids: &[Bytes32],
+        ) -> anyhow::Result<Vec<Bytes32>> {
+            let lookups = transaction_ids
                 .iter()
-                .map(|&transaction_id| AnnouncedMempoolItem {
-                    ip: MEMPOOL_PEER_IP,
-                    transaction_id,
+                .map(|&transaction_id| MempoolLookup {
+                    item: AnnouncedMempoolItem {
+                        ip: MEMPOOL_PEER_IP,
+                        transaction_id,
+                    },
+                    misses: 0,
                 })
                 .collect();
 
-            timeout(
+            let missed = timeout(
                 Duration::from_mins(1),
                 discover_mempool_items(
                     test.wallet.clone(),
                     self.state.clone(),
-                    items,
+                    self.mempool.clone(),
+                    lookups,
                     self.final_removals.clone(),
                     self.event_sender.clone(),
                     self.command_sender.clone(),
@@ -336,7 +412,10 @@ mod tests {
             )
             .await??;
 
-            Ok(())
+            Ok(missed
+                .into_iter()
+                .map(|lookup| lookup.item.transaction_id)
+                .collect())
         }
 
         async fn remove(
@@ -370,10 +449,8 @@ mod tests {
         let second = unsubmitted_send(&other, test.puzzle_hash, 500).await?;
         let second_id = second.name();
 
-        test.state
-            .lock()
-            .await
-            .add_peer_at(MEMPOOL_PEER_IP, mempool_peer(vec![first, second]).await?);
+        test.mempool.add(first);
+        test.mempool.add(second);
 
         // The node may announce a transaction more than once.
         announce(&test, vec![first_id, first_id]).await?;
@@ -420,6 +497,36 @@ mod tests {
     }
 
     #[test(tokio::test)]
+    async fn transactions_the_source_does_not_have_yet_are_looked_up_again() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(0).await?;
+        let other = test.next(1000).await?;
+
+        let payment = unsubmitted_send(&other, test.puzzle_hash, 1000).await?;
+        let payment_id = payment.name();
+
+        announce(&test, vec![payment_id]).await?;
+
+        // The source lags behind the node that announced it, so the first lookup misses.
+        timeout(Duration::from_secs(10), async {
+            while !test.mempool.lookups().contains(&payment_id) {
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+        })
+        .await?;
+        assert!(test.wallet.db.mempool_items().await?.is_empty());
+
+        test.mempool.add(payment);
+        timeout(Duration::from_secs(30), test.wait_for_coins()).await?;
+
+        let items = test.wallet.db.mempool_items().await?;
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].hash, payment_id);
+        assert_eq!(test.mempool.lookups(), vec![payment_id, payment_id]);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
     async fn incoming_payments_are_discovered_and_cleared_once_confirmed() -> anyhow::Result<()> {
         let mut test = TestWallet::new(0).await?;
         let other = test.next(1000).await?;
@@ -427,7 +534,7 @@ mod tests {
         let payment = unsubmitted_send(&other, test.puzzle_hash, 1000).await?;
         let payment_id = payment.name();
 
-        let mut discovery = Discovery::serving(vec![payment.clone()]).await?;
+        let mut discovery = Discovery::serving(&test, vec![payment.clone()]).await;
         discovery.run(&test, &[payment_id]).await?;
         assert_eq!(discovery.events.try_recv()?, SyncEvent::CoinsUpdated);
 
@@ -474,7 +581,7 @@ mod tests {
         let payment = sign(&other, coin_spends).await?;
         let payment_id = payment.name();
 
-        let mut discovery = Discovery::serving(vec![payment]).await?;
+        let mut discovery = Discovery::serving(&test, vec![payment]).await;
         discovery.run(&test, &[payment_id]).await?;
 
         let items = test.wallet.db.mempool_items_with_coins().await?;
@@ -502,26 +609,22 @@ mod tests {
         let unrelated = unsubmitted_send(&other, other.puzzle_hash, 1000).await?;
         let unrelated_id = unrelated.name();
 
-        // The peer answers with a spend bundle of this wallet, but not the one it announced.
+        // The mempool answers with a spend bundle of this wallet, but not the one announced.
         let mismatched_id = Bytes32::new([7; 32]);
 
-        // The peer doesn't have it, so it never answers.
+        // The mempool doesn't have it, such as when it was confirmed in the meantime.
         let unanswered_id = Bytes32::new([8; 32]);
 
-        let mut discovery = Discovery::new(
-            mempool_peer_serving(vec![
-                (unrelated_id, unrelated),
-                (
-                    mismatched_id,
-                    unsubmitted_send(&test, test.puzzle_hash, 1000).await?,
-                ),
-            ])
-            .await?,
-        )
-        .await?;
-        discovery
+        let mut discovery = Discovery::serving(&test, vec![unrelated]).await;
+        discovery.mempool.add_as(
+            mismatched_id,
+            unsubmitted_send(&test, test.puzzle_hash, 1000).await?,
+        );
+        // Only the one that wasn't found is looked up again.
+        let missed = discovery
             .run(&test, &[unrelated_id, mismatched_id, unanswered_id])
             .await?;
+        assert_eq!(missed, vec![unanswered_id]);
 
         assert!(test.wallet.db.mempool_items().await?.is_empty());
         assert!(discovery.events.try_recv().is_err());
@@ -540,7 +643,7 @@ mod tests {
         test.wait_for_coins().await;
         assert!(test.wallet.db.mempool_items().await?.is_empty());
 
-        let mut discovery = Discovery::serving(vec![spend_bundle]).await?;
+        let mut discovery = Discovery::serving(&test, vec![spend_bundle]).await;
         discovery.run(&test, &[transaction_id]).await?;
 
         // Inserting it would have made the confirmed coin look pending again.
@@ -565,7 +668,7 @@ mod tests {
         test.wait_for_coins().await;
         assert_eq!(test.wallet.db.xch_balance().await?, 1000);
 
-        let mut discovery = Discovery::serving(vec![payment]).await?;
+        let mut discovery = Discovery::serving(&test, vec![payment]).await;
         discovery.run(&test, &[payment_id]).await?;
 
         assert!(test.wallet.db.mempool_items().await?.is_empty());
@@ -582,7 +685,7 @@ mod tests {
         let spend_bundle = unsubmitted_send(&test, test.puzzle_hash, 1000).await?;
         let transaction_id = spend_bundle.name();
 
-        let discovery = Discovery::serving(vec![spend_bundle]).await?;
+        let discovery = Discovery::serving(&test, vec![spend_bundle]).await;
 
         // The removal arrives before it's in the database, so there's nothing to remove yet.
         discovery
@@ -602,7 +705,7 @@ mod tests {
         let spend_bundle = unsubmitted_send(&test, test.puzzle_hash, 1000).await?;
         let transaction_id = spend_bundle.name();
 
-        let mut discovery = Discovery::serving(vec![spend_bundle]).await?;
+        let mut discovery = Discovery::serving(&test, vec![spend_bundle]).await;
 
         for reason in [MempoolRemoveReason::Conflict, MempoolRemoveReason::Expired] {
             discovery.final_removals.lock().expect("lock").clear();

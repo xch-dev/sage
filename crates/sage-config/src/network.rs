@@ -192,6 +192,18 @@ impl Network {
 
         inherited.xchandles.clone()
     }
+
+    /// The [Coinset](https://coinset.org) API for this network, or `None` if Coinset doesn't
+    /// serve it. Like XCHandles, a network only gets a built-in network's API if it shares that
+    /// network's genesis challenge.
+    pub fn coinset_api_url(&self) -> Option<&'static str> {
+        let (inherited, url) = match self.inherit? {
+            InheritedNetwork::Mainnet => (&*MAINNET, "https://api.coinset.org"),
+            InheritedNetwork::Testnet11 => (&*TESTNET11, "https://testnet11.api.coinset.org"),
+        };
+
+        (inherited.genesis_challenge == self.genesis_challenge).then_some(url)
+    }
 }
 
 fn default_drop_silent_peers() -> bool {
@@ -352,6 +364,28 @@ mod tests {
             TESTNET11_LAUNCHER_PARENT,
             TESTNET11_LAUNCHER_SOLUTION,
         );
+    }
+
+    #[test]
+    fn test_coinset_api_url() {
+        assert_eq!(MAINNET.coinset_api_url(), Some("https://api.coinset.org"));
+        assert_eq!(
+            TESTNET11.coinset_api_url(),
+            Some("https://testnet11.api.coinset.org")
+        );
+
+        // A custom network that inherits mainnet's introducers isn't mainnet.
+        let custom = Network {
+            genesis_challenge: Bytes32::new([1; 32]),
+            ..MAINNET.clone()
+        };
+        assert_eq!(custom.coinset_api_url(), None);
+
+        let standalone = Network {
+            inherit: None,
+            ..MAINNET.clone()
+        };
+        assert_eq!(standalone.coinset_api_url(), None);
     }
 
     #[test]

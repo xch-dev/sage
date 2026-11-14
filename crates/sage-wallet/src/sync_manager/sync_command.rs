@@ -34,4 +34,5 @@ pub enum SyncCommand {
     ConnectionClosed(IpAddr),
     SetTargetPeers(usize),
     SetDiscoverPeers(bool),
+    SetMempoolDiscovery(bool),
 }
