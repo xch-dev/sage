@@ -12,9 +12,10 @@ use tracing::debug;
 
 use crate::WalletPeer;
 
-/// How many blocks behind the highest peak a peer that sends mempool updates can be, and still
-/// be preferred for syncing the wallet.
-const MAX_SYNC_PEER_LAG: u32 = 3;
+/// How many blocks apart peers' peaks can be. A new peer further behind than this isn't added,
+/// and a peer that sends mempool updates is only preferred for syncing within this of the
+/// highest peak.
+pub(super) const MAX_PEER_LAG: u32 = 3;
 
 #[derive(Debug)]
 pub struct PeerInfo {
@@ -110,8 +111,7 @@ impl PeerState {
         self.peers
             .values()
             .max_by_key(|info| {
-                let close_to_peak =
-                    info.claimed_peak.saturating_add(MAX_SYNC_PEER_LAG) >= highest_peak;
+                let close_to_peak = info.claimed_peak.saturating_add(MAX_PEER_LAG) >= highest_peak;
                 (
                     info.sends_mempool_updates && close_to_peak,
                     info.claimed_peak,
@@ -299,7 +299,7 @@ mod tests {
         assert_eq!(sync_addr(&state), addr(&state, old));
 
         // One a few blocks behind is.
-        let new = add_peer(&mut state, 4, 30 - MAX_SYNC_PEER_LAG, now, false).await?;
+        let new = add_peer(&mut state, 4, 30 - MAX_PEER_LAG, now, false).await?;
         state.set_sends_mempool_updates(new);
         assert_eq!(sync_addr(&state), addr(&state, new));
 

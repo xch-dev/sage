@@ -383,6 +383,7 @@ pub async fn unresponsive_peer() -> anyhow::Result<WalletPeer> {
 pub struct FakeMempool {
     spend_bundles: StdMutex<HashMap<Bytes32, SpendBundle>>,
     lookups: StdMutex<Vec<Bytes32>>,
+    failing: StdMutex<bool>,
 }
 
 impl FakeMempool {
@@ -396,6 +397,11 @@ impl FakeMempool {
             .lock()
             .expect("fake mempool lock")
             .insert(transaction_id, spend_bundle);
+    }
+
+    /// Makes every lookup fail, like an API that's down.
+    pub fn fail(&self) {
+        *self.failing.lock().expect("fake mempool lock") = true;
     }
 
     /// The transaction ids that have been looked up, in order.
@@ -413,6 +419,11 @@ impl MempoolSource for FakeMempool {
             .lock()
             .expect("fake mempool lock")
             .push(transaction_id);
+
+        if *self.failing.lock().expect("fake mempool lock") {
+            return Box::pin(async { Err(WalletError::Coinset("unavailable".to_string())) });
+        }
+
         let spend_bundle = self
             .spend_bundles
             .lock()

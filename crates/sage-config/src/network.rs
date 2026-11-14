@@ -181,28 +181,30 @@ impl Network {
             return Some(xchandles.clone());
         }
 
-        let inherited = match self.inherit? {
-            InheritedNetwork::Mainnet => &*MAINNET,
-            InheritedNetwork::Testnet11 => &*TESTNET11,
-        };
-
-        if inherited.genesis_challenge != self.genesis_challenge {
-            return None;
-        }
-
-        inherited.xchandles.clone()
+        self.same_chain_as_inherited()?.xchandles.clone()
     }
 
     /// The [Coinset](https://coinset.org) API for this network, or `None` if Coinset doesn't
     /// serve it. Like XCHandles, a network only gets a built-in network's API if it shares that
     /// network's genesis challenge.
     pub fn coinset_api_url(&self) -> Option<&'static str> {
-        let (inherited, url) = match self.inherit? {
-            InheritedNetwork::Mainnet => (&*MAINNET, "https://api.coinset.org"),
-            InheritedNetwork::Testnet11 => (&*TESTNET11, "https://testnet11.api.coinset.org"),
+        self.same_chain_as_inherited()?;
+
+        Some(match self.inherit? {
+            InheritedNetwork::Mainnet => "https://api.coinset.org",
+            InheritedNetwork::Testnet11 => "https://testnet11.api.coinset.org",
+        })
+    }
+
+    /// The built-in network this one inherits from, if it's the same chain. A custom network
+    /// that only borrows a built-in network's introducers doesn't get its services.
+    fn same_chain_as_inherited(&self) -> Option<&'static Network> {
+        let inherited = match self.inherit? {
+            InheritedNetwork::Mainnet => &*MAINNET,
+            InheritedNetwork::Testnet11 => &*TESTNET11,
         };
 
-        (inherited.genesis_challenge == self.genesis_challenge).then_some(url)
+        (inherited.genesis_challenge == self.genesis_challenge).then_some(inherited)
     }
 }
 

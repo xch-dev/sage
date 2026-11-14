@@ -77,7 +77,8 @@ pub(super) struct MempoolLookup {
 ///
 /// Returns the lookups that didn't find their transaction, so they can be tried again later.
 /// The source can lag behind the node that announced it, so a transaction that was just
-/// announced often isn't there yet.
+/// announced often isn't there yet. Once the source fails, the rest of the batch is returned
+/// without being tried, since each lookup would most likely fail the same way.
 pub(super) async fn discover_mempool_items(
     wallet: Arc<Wallet>,
     state: Arc<Mutex<PeerState>>,
@@ -96,6 +97,7 @@ pub(super) async fn discover_mempool_items(
         .collect();
 
     let mut missed = Vec::new();
+    let mut source_failed = false;
 
     for lookup in lookups {
         let MempoolLookup {
@@ -107,6 +109,11 @@ pub(super) async fn discover_mempool_items(
             continue;
         }
 
+        if source_failed {
+            missed.push(lookup);
+            continue;
+        }
+
         let spend_bundle = match mempool_source.spend_bundle(transaction_id).await {
             Ok(Some(spend_bundle)) => spend_bundle,
             Ok(None) => {
@@ -114,7 +121,11 @@ pub(super) async fn discover_mempool_items(
                 continue;
             }
             Err(error) => {
-                warn!("Failed to look up mempool item {transaction_id}: {error}");
+                warn!(
+                    "Failed to look up mempool item {transaction_id}, so the rest of the batch \
+                     is looked up later: {error}"
+                );
+                source_failed = true;
                 missed.push(lookup);
                 continue;
             }
@@ -168,10 +179,18 @@ async fn discover_mempool_item(
         return Ok(false);
     }
 
-    // If it disconnected, the transaction is announced again by the peer the wallet
-    // subscribes with next.
-    let Some(peer) = state.lock().await.peer(ip).map(|info| info.peer.clone()) else {
-        debug!("Peer {ip} disconnected before mempool item {transaction_id} was inserted");
+    // Any peer can describe the coins it creates, so another one is used if the peer that
+    // announced it has disconnected since.
+    let peer = {
+        let state = state.lock().await;
+        state
+            .peer(ip)
+            .map(|info| info.peer.clone())
+            .or_else(|| state.acquire_peer())
+    };
+
+    let Some(peer) = peer else {
+        debug!("No peers are connected to insert mempool item {transaction_id} with");
         return Ok(false);
     };
 
@@ -628,6 +647,48 @@ mod tests {
 
         assert!(test.wallet.db.mempool_items().await?.is_empty());
         assert!(discovery.events.try_recv().is_err());
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn a_failing_source_defers_the_rest_of_the_batch() -> anyhow::Result<()> {
+        let test = TestWallet::new(1000).await?;
+        let spend_bundle = unsubmitted_send(&test, test.puzzle_hash, 1000).await?;
+        let first = Bytes32::new([1; 32]);
+        let second = spend_bundle.name();
+
+        let discovery = Discovery::serving(&test, vec![spend_bundle]).await;
+        discovery.mempool.fail();
+
+        // Both are looked up again later, but only the first is tried now.
+        let missed = discovery.run(&test, &[first, second]).await?;
+        assert_eq!(missed, vec![first, second]);
+        assert_eq!(discovery.mempool.lookups(), vec![first]);
+        assert!(test.wallet.db.mempool_items().await?.is_empty());
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn another_peer_is_used_when_the_announcing_peer_disconnected() -> anyhow::Result<()> {
+        let test = TestWallet::new(0).await?;
+        let other = test.next(1000).await?;
+        let payment = unsubmitted_send(&other, test.puzzle_hash, 1000).await?;
+        let payment_id = payment.name();
+
+        let mut discovery = Discovery::serving(&test, vec![payment]).await;
+
+        // The peer that announced it is gone, but the wallet is still connected to another.
+        discovery.state.lock().await.remove_peer(MEMPOOL_PEER_IP);
+        discovery.state.lock().await.add_peer_at(
+            IpAddr::from([10, 0, 0, 2]),
+            WalletPeer::new(test.peer.clone()),
+        );
+
+        discovery.run(&test, &[payment_id]).await?;
+        assert_eq!(discovery.events.try_recv()?, SyncEvent::CoinsUpdated);
+        assert_eq!(test.wallet.db.mempool_items().await?.len(), 1);
 
         Ok(())
     }

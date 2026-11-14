@@ -27,7 +27,10 @@ use tracing::{debug, info, warn};
 
 use crate::{SyncCommand, WalletError, WalletPeer};
 
-use super::{PeerInfo, SyncManager, dns::lookup_all, mempool_updates::MEMPOOL_UPDATES_CAPABILITY};
+use super::{
+    MAX_PEER_LAG, PeerInfo, SyncManager, dns::lookup_all,
+    mempool_updates::MEMPOOL_UPDATES_CAPABILITY,
+};
 
 #[derive(Streamable)]
 struct RequestPeersIntroducer {}
@@ -472,13 +475,13 @@ impl SyncManager {
         }
 
         for (existing_peer, height) in state.peers_with_heights() {
-            if message.height < height.saturating_sub(3) {
+            if message.height < height.saturating_sub(MAX_PEER_LAG) {
                 debug!(
-                    "Peer {} is behind by more than 3 blocks, disconnecting",
+                    "Peer {} is behind by more than {MAX_PEER_LAG} blocks, disconnecting",
                     peer.socket_addr()
                 );
                 return false;
-            } else if message.height > height.saturating_add(3) {
+            } else if message.height > height.saturating_add(MAX_PEER_LAG) {
                 state.ban(
                     existing_peer.socket_addr().ip(),
                     Duration::from_mins(15),
@@ -526,8 +529,11 @@ mod tests {
 
     use super::*;
 
-    #[test(tokio::test)]
-    async fn handshake_opts_into_mempool_updates() -> anyhow::Result<()> {
+    /// Handshakes with a local node that answers with `node_capabilities`, and returns the
+    /// capabilities the wallet sent and whether it thinks the node sends mempool updates.
+    async fn handshake_with(
+        node_capabilities: Vec<(u16, String)>,
+    ) -> anyhow::Result<(Vec<(u16, String)>, bool)> {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
         let addr = listener.local_addr()?;
         let (capabilities_sender, capabilities_receiver) = oneshot::channel();
@@ -550,6 +556,7 @@ mod tests {
                 id: None,
                 data: Handshake {
                     node_type: NodeType::FullNode,
+                    capabilities: node_capabilities,
                     ..handshake
                 }
                 .to_bytes()?
@@ -565,10 +572,35 @@ mod tests {
 
         let (ws, _) = connect_async(format!("ws://{addr}")).await?;
         let (peer, receiver) = Peer::from_websocket(ws, PeerOptions::default())?;
-        let _peer = handshake(peer, receiver, "testnet11".to_string(), NodeType::FullNode).await?;
+        let (_peer, _receiver, sends_mempool_updates) =
+            handshake(peer, receiver, "testnet11".to_string(), NodeType::FullNode).await?;
 
-        let capabilities = capabilities_receiver.await?;
-        assert!(capabilities.contains(&(MEMPOOL_UPDATES_CAPABILITY, "1".to_string())));
+        Ok((capabilities_receiver.await?, sends_mempool_updates))
+    }
+
+    #[test(tokio::test)]
+    async fn handshake_opts_into_mempool_updates() -> anyhow::Result<()> {
+        let base = vec![
+            (1, "1".to_string()),
+            (2, "1".to_string()),
+            (3, "1".to_string()),
+        ];
+        let mut current = base.clone();
+        current.push((MEMPOOL_UPDATES_CAPABILITY, "1".to_string()));
+
+        let (sent, sends_mempool_updates) = handshake_with(current).await?;
+        assert!(sent.contains(&(MEMPOOL_UPDATES_CAPABILITY, "1".to_string())));
+        assert!(sends_mempool_updates);
+
+        // Nodes from before CHIP-26 don't advertise it, and never send mempool updates.
+        let (_, sends_mempool_updates) = handshake_with(base.clone()).await?;
+        assert!(!sends_mempool_updates);
+
+        // Nor does a node that advertises it as unsupported.
+        let mut disabled = base;
+        disabled.push((MEMPOOL_UPDATES_CAPABILITY, "0".to_string()));
+        let (_, sends_mempool_updates) = handshake_with(disabled).await?;
+        assert!(!sends_mempool_updates);
 
         Ok(())
     }
