@@ -970,6 +970,14 @@ mod tests {
         assert!(manager.mempool_discovery_task.is_none());
         assert_eq!(manager.pending_mempool_items.len(), 1);
 
+        manager.initial_wallet_sync = InitialWalletSync::Syncing {
+            ip,
+            task: tokio::spawn(std::future::pending()),
+        };
+        manager.start_mempool_discovery();
+        assert!(manager.mempool_discovery_task.is_none());
+        assert_eq!(manager.pending_mempool_items.len(), 1);
+
         manager.initial_wallet_sync = InitialWalletSync::Subscribed(ip);
         manager.start_mempool_discovery();
         assert!(manager.mempool_discovery_task.is_some());

@@ -66,24 +66,22 @@ pub(super) async fn discover_mempool_items(
         .map(|item| item.hash)
         .collect();
 
-    let mut changed = false;
-
     for item in items {
         if !known.insert(item.transaction_id) {
             continue;
         }
 
+        // Each one is shown as soon as it's inserted, since the rest can take a while to fetch.
         match discover_mempool_item(&wallet, &state, item, &final_removals, &command_sender).await {
-            Ok(inserted) => changed |= inserted,
+            Ok(true) => {
+                sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
+            }
+            Ok(false) => {}
             Err(error) => warn!(
                 "Failed to discover mempool item {} from peer {}: {error}",
                 item.transaction_id, item.ip
             ),
         }
-    }
-
-    if changed {
-        sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
     }
 
     Ok(())
@@ -237,7 +235,7 @@ mod tests {
     use test_log::test;
     use tokio::time::timeout;
 
-    use crate::{SyncEvent, TestWallet, mempool_peer, mempool_peer_serving};
+    use crate::{SyncEvent, TestWallet, WalletPeer, mempool_peer, mempool_peer_serving};
 
     use super::*;
 
@@ -295,12 +293,9 @@ mod tests {
     }
 
     impl Discovery {
-        async fn new(spend_bundles: Vec<(Bytes32, SpendBundle)>) -> anyhow::Result<Self> {
+        async fn new(peer: WalletPeer) -> anyhow::Result<Self> {
             let state = Arc::new(Mutex::new(PeerState::default()));
-            state
-                .lock()
-                .await
-                .add_peer_at(MEMPOOL_PEER_IP, mempool_peer_serving(spend_bundles).await?);
+            state.lock().await.add_peer_at(MEMPOOL_PEER_IP, peer);
 
             let (event_sender, events) = mpsc::channel(10);
             let (command_sender, commands) = mpsc::channel(10);
@@ -316,13 +311,7 @@ mod tests {
         }
 
         async fn serving(spend_bundles: Vec<SpendBundle>) -> anyhow::Result<Self> {
-            Self::new(
-                spend_bundles
-                    .into_iter()
-                    .map(|spend_bundle| (spend_bundle.name(), spend_bundle))
-                    .collect(),
-            )
-            .await
+            Self::new(mempool_peer(spend_bundles).await?).await
         }
 
         async fn run(&self, test: &TestWallet, transaction_ids: &[Bytes32]) -> anyhow::Result<()> {
@@ -431,14 +420,14 @@ mod tests {
     }
 
     #[test(tokio::test)]
-    async fn incoming_payments_are_discovered() -> anyhow::Result<()> {
-        let test = TestWallet::new(0).await?;
+    async fn incoming_payments_are_discovered_and_cleared_once_confirmed() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(0).await?;
         let other = test.next(1000).await?;
 
         let payment = unsubmitted_send(&other, test.puzzle_hash, 1000).await?;
         let payment_id = payment.name();
 
-        let mut discovery = Discovery::serving(vec![payment]).await?;
+        let mut discovery = Discovery::serving(vec![payment.clone()]).await?;
         discovery.run(&test, &[payment_id]).await?;
         assert_eq!(discovery.events.try_recv()?, SyncEvent::CoinsUpdated);
 
@@ -449,6 +438,14 @@ mod tests {
         assert!(items[0].spent.is_empty());
         assert_eq!(items[0].created.len(), 1);
         assert_eq!(items[0].created[0].coin.amount, 1000);
+
+        // The coin it creates is the only link to it, so its coin state confirms it.
+        other.push_bundle(payment).await?;
+        test.wait_for_coins().await;
+
+        assert!(test.wallet.db.mempool_items().await?.is_empty());
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(test.wallet.db.selectable_xch_coins().await?.len(), 1);
 
         Ok(())
     }
@@ -511,13 +508,16 @@ mod tests {
         // The peer doesn't have it, so it never answers.
         let unanswered_id = Bytes32::new([8; 32]);
 
-        let mut discovery = Discovery::new(vec![
-            (unrelated_id, unrelated),
-            (
-                mismatched_id,
-                unsubmitted_send(&test, test.puzzle_hash, 1000).await?,
-            ),
-        ])
+        let mut discovery = Discovery::new(
+            mempool_peer_serving(vec![
+                (unrelated_id, unrelated),
+                (
+                    mismatched_id,
+                    unsubmitted_send(&test, test.puzzle_hash, 1000).await?,
+                ),
+            ])
+            .await?,
+        )
         .await?;
         discovery
             .run(&test, &[unrelated_id, mismatched_id, unanswered_id])
@@ -547,6 +547,30 @@ mod tests {
         assert!(test.wallet.db.mempool_items().await?.is_empty());
         assert_eq!(test.wallet.db.selectable_xch_coins().await?.len(), 1);
         assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+        assert!(discovery.events.try_recv().is_err());
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn a_payment_confirmed_while_being_fetched_is_not_inserted() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(0).await?;
+        let other = test.next(1000).await?;
+
+        // None of the coins it spends are this wallet's, so only the coin it creates shows
+        // that it's confirmed.
+        let payment = unsubmitted_send(&other, test.puzzle_hash, 1000).await?;
+        let payment_id = payment.name();
+        other.push_bundle(payment.clone()).await?;
+        test.wait_for_coins().await;
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+
+        let mut discovery = Discovery::serving(vec![payment]).await?;
+        discovery.run(&test, &[payment_id]).await?;
+
+        assert!(test.wallet.db.mempool_items().await?.is_empty());
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(test.wallet.db.selectable_xch_coins().await?.len(), 1);
         assert!(discovery.events.try_recv().is_err());
 
         Ok(())

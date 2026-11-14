@@ -657,17 +657,14 @@ pub async fn insert_transaction(
     transaction: Transaction,
     aggregated_signature: Signature,
 ) -> Result<Vec<Bytes32>, WalletError> {
-    Ok(insert_transaction_inner(
-        db,
-        peer,
-        genesis_challenge,
-        transaction_id,
-        transaction,
-        aggregated_signature,
-        false,
-    )
-    .await?
-    .unwrap_or_default())
+    let prepared = prepare_transaction(peer, genesis_challenge, transaction).await?;
+
+    let mut tx = db.tx().await?;
+    let subscriptions =
+        write_transaction(&mut tx, transaction_id, aggregated_signature, prepared).await?;
+    tx.commit().await?;
+
+    Ok(subscriptions)
 }
 
 /// Inserts a transaction found in a peer's mempool as already submitted, and returns the coin
@@ -685,37 +682,47 @@ pub async fn insert_discovered_transaction(
     transaction: Transaction,
     aggregated_signature: Signature,
 ) -> Result<Option<Vec<Bytes32>>, WalletError> {
-    insert_transaction_inner(
-        db,
-        peer,
-        genesis_challenge,
-        transaction_id,
-        transaction,
-        aggregated_signature,
-        true,
-    )
-    .await
+    let prepared = prepare_transaction(peer, genesis_challenge, transaction).await?;
+
+    let mut tx = db.tx().await?;
+
+    if is_confirmed(&mut tx, &prepared.transaction).await? {
+        return Ok(None);
+    }
+
+    let subscriptions =
+        write_transaction(&mut tx, transaction_id, aggregated_signature, prepared).await?;
+
+    // It's already in the peer's mempool, so it isn't submitted again right away.
+    tx.update_mempool_item_time(transaction_id).await?;
+
+    tx.commit().await?;
+
+    Ok(Some(subscriptions))
 }
 
-async fn insert_transaction_inner(
-    db: &Database,
+/// A transaction with what inserting it needs from the peer, fetched before the database
+/// transaction is opened.
+struct PreparedTransaction {
+    transaction: Transaction,
+    coin_spends: HashMap<Bytes32, CoinSpend>,
+    output_coin_ids: HashSet<Bytes32>,
+    puzzle_contexts: HashMap<Bytes32, PuzzleContext>,
+}
+
+async fn prepare_transaction(
     peer: &WalletPeer,
     genesis_challenge: Bytes32,
-    transaction_id: Bytes32,
     transaction: Transaction,
-    aggregated_signature: Signature,
-    discovered: bool,
-) -> Result<Option<Vec<Bytes32>>, WalletError> {
+) -> Result<PreparedTransaction, WalletError> {
     // Make lookups faster for inputs and outputs, and prepare pending coin spends.
     let mut coin_spends = HashMap::new();
-    let mut output_coin_ids = HashSet::new();
     let mut cached_coin_states = HashMap::new();
 
     for input in &transaction.inputs {
         coin_spends.insert(input.coin_spend.coin.coin_id(), input.coin_spend.clone());
 
         for output in &input.outputs {
-            output_coin_ids.insert(output.coin.coin_id());
             cached_coin_states.insert(
                 output.coin.coin_id(),
                 CoinState::new(output.coin, None, None),
@@ -734,20 +741,31 @@ async fn insert_transaction_inner(
         }
     }
 
-    // Insert the transaction into the database.
-    let mut tx = db.tx().await?;
+    Ok(PreparedTransaction {
+        output_coin_ids: output_coin_ids(&transaction),
+        transaction,
+        coin_spends,
+        puzzle_contexts,
+    })
+}
 
-    if discovered && is_confirmed(&mut tx, &transaction).await? {
-        return Ok(None);
-    }
+/// Writes the transaction and its coins into the database, and returns the coin ids to
+/// subscribe to.
+async fn write_transaction(
+    tx: &mut DatabaseTx<'_>,
+    transaction_id: Bytes32,
+    aggregated_signature: Signature,
+    prepared: PreparedTransaction,
+) -> Result<Vec<Bytes32>, WalletError> {
+    let PreparedTransaction {
+        transaction,
+        coin_spends,
+        output_coin_ids,
+        puzzle_contexts,
+    } = prepared;
 
     tx.insert_mempool_item(transaction_id, aggregated_signature, transaction.fee)
         .await?;
-
-    // It's already in the peer's mempool, so it isn't submitted again right away.
-    if discovered {
-        tx.update_mempool_item_time(transaction_id).await?;
-    }
 
     let mut subscriptions = Vec::new();
 
@@ -793,7 +811,7 @@ async fn insert_transaction_inner(
             }
 
             // We don't want to insert output coins that we won't own in the future.
-            if !has_custody_p2_puzzle_hash(&mut tx, &output.kind).await? {
+            if !has_custody_p2_puzzle_hash(tx, &output.kind).await? {
                 continue;
             }
 
@@ -810,9 +828,9 @@ async fn insert_transaction_inner(
 
             // Do the busy work of inserting the asset information into the database now that the coin exists.
 
-            let is_inserted = validate_wallet_coin(&mut tx, coin_id, &output.kind).await?
+            let is_inserted = validate_wallet_coin(tx, coin_id, &output.kind).await?
                 && insert_puzzle(
-                    &mut tx,
+                    tx,
                     coin_state,
                     output.kind.clone(),
                     puzzle_contexts
@@ -842,7 +860,5 @@ async fn insert_transaction_inner(
             .await?;
     }
 
-    tx.commit().await?;
-
-    Ok(Some(subscriptions))
+    Ok(subscriptions)
 }
