@@ -1,5 +1,6 @@
 import { Amount, AssetKind } from '@/bindings';
 import { fromMojos } from '@/lib/utils';
+import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { NumberFormat } from './NumberFormat';
 
@@ -22,17 +23,16 @@ export function AmountCell({ amount, assetKind, precision }: AmountCellProps) {
               ? 'text-green-600'
               : 'text-red-600'
         }
-        aria-label={`${fromMojos(amount, precision)} ${assetKind}`}
       >
         {assetKind === 'nft' ||
         assetKind === 'did' ||
         assetKind === 'option' ? (
           amountNum.eq(0) ? (
-            'Edited'
+            <Trans>Edited</Trans>
           ) : amountNum.gt(0) ? (
-            'Received'
+            <Trans>Received</Trans>
           ) : (
-            'Sent'
+            <Trans>Sent</Trans>
           )
         ) : (
           <NumberFormat

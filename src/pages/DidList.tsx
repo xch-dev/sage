@@ -57,7 +57,7 @@ import { commands, DidRecord, TransactionResponse } from '../bindings';
 
 export function DidList() {
   const navigate = useNavigate();
-  const { dids, updateDids } = useDids();
+  const { dids, updateDids, loaded } = useDids();
 
   const [showHidden, setShowHidden] = useState(false);
 
@@ -88,7 +88,7 @@ export function DidList() {
           </div>
         )}
 
-        {dids.length === 0 && (
+        {loaded && dids.length === 0 && (
           <Alert className='mt-4'>
             <UserRoundPlus className='h-4 w-4' />
             <AlertTitle>

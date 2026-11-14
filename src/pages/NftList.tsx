@@ -15,7 +15,7 @@ import { NftGroupMode, useNftParams } from '@/hooks/useNftParams';
 import { exportNfts } from '@/lib/exportNfts';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ImagePlusIcon } from 'lucide-react';
+import { ImageIcon, ImagePlusIcon } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -45,6 +45,7 @@ export function NftList() {
     owner,
     collection,
     isLoading,
+    hasLoaded,
     updateNfts,
     total,
   } = useNftData({
@@ -58,6 +59,16 @@ export function NftList() {
     minterDid,
     page: params.page,
   });
+
+  // Groups list their own cards, so only a flat list of NFTs can be empty.
+  const showEmpty =
+    hasLoaded &&
+    !isLoading &&
+    nfts.length === 0 &&
+    (!!collectionId ||
+      !!ownerDid ||
+      !!minterDid ||
+      group === NftGroupMode.None);
 
   const optionsRef = useRef<HTMLDivElement>(null);
   const [isOptionsVisible, setIsOptionsVisible] = useState(true);
@@ -162,6 +173,19 @@ export function NftList() {
             }
           />
         </div>
+
+        {showEmpty && (
+          <div className='flex flex-col items-center gap-2 py-16 text-center text-sm text-muted-foreground'>
+            <ImageIcon className='h-10 w-10' aria-hidden='true' />
+            <p>
+              {query ? (
+                <Trans>No NFTs match your search.</Trans>
+              ) : (
+                <Trans>You don&apos;t have any NFTs yet.</Trans>
+              )}
+            </p>
+          </div>
+        )}
 
         <main aria-label={t`NFT Collection`}>
           <NftCardList

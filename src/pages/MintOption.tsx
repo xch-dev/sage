@@ -260,14 +260,6 @@ export function MintOption() {
               className='pr-12'
               onValueChange={(values) => setFee(values.value)}
             />
-            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-              <span
-                className='text-muted-foreground text-sm'
-                id='price-currency'
-              >
-                {walletState.sync.unit.ticker}
-              </span>
-            </div>
           </div>
         </div>
 

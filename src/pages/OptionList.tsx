@@ -42,7 +42,8 @@ export function OptionList() {
   } = params;
   const [options, setOptions] = useState<OptionRecord[]>([]);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
+  // Starts loading, so that the empty state doesn't flash before the first fetch.
+  const [loading, setLoading] = useState(true);
 
   const updateOptions = useCallback(async () => {
     setLoading(true);
@@ -172,7 +173,7 @@ export function OptionList() {
           </div>
         )}
 
-        {options.length === 0 && filter === 'owned' && (
+        {options.length === 0 && filter === 'owned' && !loading && (
           <Alert className='mt-4'>
             <FilePenLine className='h-4 w-4' />
             <AlertTitle>
