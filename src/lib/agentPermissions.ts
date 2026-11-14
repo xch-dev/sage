@@ -60,3 +60,16 @@ export function hasSelectableWallet(
   const known = new Set(wallets.map((wallet) => wallet.fingerprint));
   return scope.fingerprints.some((fingerprint) => known.has(fingerprint));
 }
+
+export function hasUnsavedAgentChanges(
+  agent: SageAgent,
+  name: string,
+  editedCapabilities: UserBridgeCapability[] | null,
+  walletScope: SageAppWalletScope,
+): boolean {
+  return (
+    name.trim() !== agent.name ||
+    editedCapabilities !== null ||
+    walletScope !== agent.walletScope
+  );
+}

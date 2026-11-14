@@ -9,6 +9,7 @@ import {
   agentRequestedPermissions,
   defaultAgentWalletScope,
   hasSelectableWallet,
+  hasUnsavedAgentChanges,
   initialAgentCapabilities,
 } from './agentPermissions';
 
@@ -125,5 +126,36 @@ describe('hasSelectableWallet', () => {
         wallets,
       ),
     ).toBe(false);
+  });
+});
+
+describe('hasUnsavedAgentChanges', () => {
+  const agent = agentWith(['wallet.get_coins']);
+
+  it('is false for the untouched form', () => {
+    expect(
+      hasUnsavedAgentChanges(agent, 'agent', null, agent.walletScope),
+    ).toBe(false);
+  });
+
+  it('detects a renamed agent', () => {
+    expect(
+      hasUnsavedAgentChanges(agent, 'renamed', null, agent.walletScope),
+    ).toBe(true);
+  });
+
+  it('detects edited capabilities', () => {
+    expect(hasUnsavedAgentChanges(agent, 'agent', [], agent.walletScope)).toBe(
+      true,
+    );
+  });
+
+  it('detects a changed wallet scope', () => {
+    expect(
+      hasUnsavedAgentChanges(agent, 'agent', null, {
+        kind: 'selectedWallets',
+        fingerprints: [7],
+      }),
+    ).toBe(true);
   });
 });

@@ -9,10 +9,11 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::{
-    AgentServerHandle, AgentServerSettings, AgentToken, AppsHostState, CapabilityDefinition,
-    CapabilityFlags, Result, SageAgent, SageAppCapabilityDefinitionView, SageAppWalletScope,
-    SageAppsError, TauriAgentExecutor, UserBridgeCapability, agent_grantable_capabilities,
-    get_user_capability_definition, start_agent_server, unix_timestamp_ms,
+    AgentServerHandle, AgentServerSettings, AgentToken, AppsDb, AppsHostState,
+    CapabilityDefinition, CapabilityFlags, Result, SageAgent, SageAppCapabilityDefinitionView,
+    SageAppWalletScope, SageAppsError, TauriAgentExecutor, UserBridgeCapability,
+    agent_grantable_capabilities, get_user_capability_definition, start_agent_server,
+    unix_timestamp_ms,
 };
 
 const MAX_AGENT_NAME_LEN: usize = 64;
@@ -143,6 +144,32 @@ where
     Ok(())
 }
 
+/// Stores `next` and moves the server to it, restoring the stored settings if either step fails.
+async fn apply_server_settings<F, Fut>(
+    db: &AppsDb,
+    server: &mut Option<AgentServerHandle>,
+    next: AgentServerSettings,
+    start: F,
+) -> anyhow::Result<()>
+where
+    F: FnOnce(u16) -> Fut,
+    Fut: Future<Output = anyhow::Result<AgentServerHandle>>,
+{
+    let previous = db.get_agent_server_settings().await?;
+
+    let result = match db.set_agent_server_settings(next).await {
+        Ok(_) => change_server(server, next.enabled, next.port, start).await,
+        Err(err) => Err(err),
+    };
+
+    if result.is_err()
+        && let Err(err) = db.set_agent_server_settings(previous).await
+    {
+        error!("failed to restore agent server settings: {err}");
+    }
+    result
+}
+
 fn server_starter(
     app_handle: &AppHandle,
     state: &AppsHostState,
@@ -201,13 +228,9 @@ pub async fn apps_set_agent_server_settings(
         )));
     }
 
+    let settings = AgentServerSettings { enabled, port };
     let start = server_starter(&app_handle, &apps_state);
-    change_server(&mut server, enabled, port, start).await?;
-
-    let settings = apps_state
-        .db
-        .set_agent_server_settings(AgentServerSettings { enabled, port })
-        .await?;
+    apply_server_settings(&apps_state.db, &mut server, settings, start).await?;
     Ok(server_status(settings, server.as_ref()))
 }
 
@@ -320,7 +343,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::{AgentCallError, AgentTool, AgentToolExecutor, AppsDb};
+    use crate::{AgentCallError, AgentTool, AgentToolExecutor};
 
     struct NoopExecutor;
 
@@ -341,6 +364,29 @@ mod tests {
     ) -> impl FnOnce(u16) -> BoxFuture<'static, anyhow::Result<AgentServerHandle>> {
         let db = db.clone();
         move |port| start_agent_server(db, Arc::new(NoopExecutor), "test".to_string(), port).boxed()
+    }
+
+    #[tokio::test]
+    async fn failed_start_keeps_stored_settings() {
+        let dir = tempdir().unwrap();
+        let db = AppsDb::initialize(dir.path()).await.unwrap();
+        let before = db.get_agent_server_settings().await.unwrap();
+
+        let occupied = std::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let busy_port = occupied.local_addr().unwrap().port();
+        let next = AgentServerSettings {
+            enabled: true,
+            port: busy_port,
+        };
+
+        let mut server = None;
+        assert!(
+            apply_server_settings(&db, &mut server, next, starter(&db))
+                .await
+                .is_err()
+        );
+        assert!(server.is_none());
+        assert_eq!(db.get_agent_server_settings().await.unwrap(), before);
     }
 
     #[tokio::test]

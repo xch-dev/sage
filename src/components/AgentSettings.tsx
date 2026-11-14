@@ -27,6 +27,7 @@ import { useErrors } from '@/hooks/useErrors';
 import {
   defaultAgentWalletScope,
   hasSelectableWallet,
+  hasUnsavedAgentChanges,
   initialAgentCapabilities,
 } from '@/lib/agentPermissions';
 import { formatTimestamp } from '@/lib/utils';
@@ -88,7 +89,8 @@ export function AgentSettings() {
   const [editing, setEditing] = useState<SageAgent | null>(null);
   const [revoking, setRevoking] = useState<SageAgent | null>(null);
 
-  const lastPollError = useRef<string | null>(null);
+  // One slot per poll, so one poll succeeding doesn't re-arm the other's error.
+  const lastPollErrors = useRef({ status: '', rpc: '' });
 
   const refreshAgents = useCallback(() => {
     commands.appsListAgents().then(setAgents).catch(addError);
@@ -96,20 +98,20 @@ export function AgentSettings() {
 
   useEffect(() => {
     // Polling repeats every second, so only report an error when it changes.
-    const reportPollError = (error: unknown) => {
+    const reportPollError = (poll: 'status' | 'rpc') => (error: unknown) => {
       const customError = error as CustomError;
-      if (lastPollError.current === customError.reason) return;
-      lastPollError.current = customError.reason;
+      if (lastPollErrors.current[poll] === customError.reason) return;
+      lastPollErrors.current[poll] = customError.reason;
       addError(customError);
     };
     const pollRpcRunning = () =>
       commands
         .isRpcRunning()
         .then((running) => {
-          lastPollError.current = null;
+          lastPollErrors.current.rpc = '';
           setRpcRunning(running);
         })
-        .catch(reportPollError);
+        .catch(reportPollError('rpc'));
 
     commands
       .appsGetAgentServerStatus()
@@ -126,14 +128,14 @@ export function AgentSettings() {
       commands
         .appsGetAgentServerStatus()
         .then((s) => {
-          lastPollError.current = null;
+          lastPollErrors.current.status = '';
           setStatus((prev) =>
             prev && prev.running === s.running && prev.enabled === s.enabled
               ? prev
               : s,
           );
         })
-        .catch(reportPollError);
+        .catch(reportPollError('status'));
       pollRpcRunning();
     }, 1000);
 
@@ -466,6 +468,9 @@ function AgentDialog({
       <DialogContent
         className='max-h-[90vh] overflow-y-auto'
         {...(token ? { 'aria-describedby': undefined } : {})}
+        // The token is shown once, so a stray Escape or outside click must not dismiss it.
+        onEscapeKeyDown={(e) => token && e.preventDefault()}
+        onInteractOutside={(e) => token && e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>
@@ -523,7 +528,20 @@ function AgentDialog({
           ) : (
             <>
               {agent && (
-                <Button variant='outline' disabled={pending} onClick={rotate}>
+                <Button
+                  variant='outline'
+                  disabled={
+                    pending ||
+                    hasUnsavedAgentChanges(
+                      agent,
+                      name,
+                      editedCapabilities,
+                      walletScope,
+                    )
+                  }
+                  title={t`Save or cancel your changes before rotating the token.`}
+                  onClick={rotate}
+                >
                   <Trans>Rotate token</Trans>
                 </Button>
               )}

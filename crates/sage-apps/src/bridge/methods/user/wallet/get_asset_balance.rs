@@ -9,6 +9,7 @@ use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
     UserBridgeCapability, WalletAssetCoinType, parse_required_params,
+    require_loaded_wallet_in_scope,
 };
 
 const BALANCE_PAGE_SIZE: u32 = 100;
@@ -80,7 +81,7 @@ impl BridgeMethod for WalletGetAssetBalance {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
@@ -92,6 +93,7 @@ impl BridgeMethod for WalletGetAssetBalance {
         let mut spendable_coin_count = 0_u32;
         let mut offset = 0_u32;
         let sage = tools.app_state.lock().await;
+        require_loaded_wallet_in_scope(&ctx, &sage)?;
 
         loop {
             let coins = sage

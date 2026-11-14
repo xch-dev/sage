@@ -8,6 +8,15 @@ pub enum SageAppWalletScope {
     SelectedWallets { fingerprints: Vec<u32> },
 }
 
+impl SageAppWalletScope {
+    pub fn allows(&self, fingerprint: u32) -> bool {
+        match self {
+            Self::AllWallets => true,
+            Self::SelectedWallets { fingerprints } => fingerprints.contains(&fingerprint),
+        }
+    }
+}
+
 impl Default for SageAppWalletScope {
     fn default() -> Self {
         Self::SelectedWallets {

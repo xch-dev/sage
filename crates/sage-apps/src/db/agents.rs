@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::{Row, sqlite::SqliteRow};
 
@@ -191,40 +191,6 @@ impl AppsDb {
             .await?;
 
         Ok(settings)
-    }
-
-    async fn read_setting<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
-        let row = sqlx::query("SELECT value_json FROM sage_app_settings WHERE key = ?")
-            .bind(key)
-            .fetch_optional(&self.pool)
-            .await
-            .with_context(|| format!("failed to read setting {key}"))?;
-
-        row.map(|row| {
-            serde_json::from_str(&row.try_get::<String, _>("value_json")?)
-                .with_context(|| format!("failed to deserialize setting {key}"))
-        })
-        .transpose()
-    }
-
-    async fn write_setting<T: Serialize>(&self, key: &str, value: &T) -> Result<()> {
-        sqlx::query(
-            r"
-            INSERT INTO sage_app_settings (key, value_json, updated_at_ms)
-            VALUES (?, ?, ?)
-            ON CONFLICT(key) DO UPDATE SET
-                value_json = excluded.value_json,
-                updated_at_ms = excluded.updated_at_ms
-            ",
-        )
-        .bind(key)
-        .bind(serde_json::to_string(value)?)
-        .bind(unix_timestamp_ms())
-        .execute(&self.pool)
-        .await
-        .with_context(|| format!("failed to persist setting {key}"))?;
-
-        Ok(())
     }
 }
 

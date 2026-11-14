@@ -10,7 +10,7 @@ use utoipa::ToSchema;
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    UserBridgeCapability, parse_required_params,
+    UserBridgeCapability, parse_required_params, require_loaded_wallet_in_scope,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -186,22 +186,18 @@ impl BridgeMethod for WalletGetAssetCoins {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: WalletGetAssetCoinsParams = parse_required_params(self, request)?;
         validate_params(&params)?;
 
-        let response = tools
-            .app_state
-            .lock()
-            .await
-            .get_asset_coins(params.into())
-            .await
-            .map_err(|err| {
-                BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
-            })?;
+        let sage = tools.app_state.lock().await;
+        require_loaded_wallet_in_scope(&ctx, &sage)?;
+        let response = sage.get_asset_coins(params.into()).await.map_err(|err| {
+            BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
+        })?;
 
         Ok(Box::new(WalletGetAssetCoinsResult::from(response)))
     }

@@ -56,6 +56,17 @@ pub(crate) fn current_scoped_wallet(
     Ok((response, fingerprint))
 }
 
+/// Rejects the call if the loaded wallet is outside the caller's scope; call with the lock held.
+pub(crate) fn require_loaded_wallet_in_scope(
+    ctx: &BridgeContext<'_>,
+    sage: &Sage,
+) -> Result<(), BridgeMethodHandleError> {
+    match sage.config.global.fingerprint {
+        Some(fingerprint) => require_scoped_fingerprint(ctx, Some(fingerprint)).map(|_| ()),
+        None => Ok(()),
+    }
+}
+
 pub(crate) fn require_scoped_fingerprint(
     ctx: &BridgeContext<'_>,
     fingerprint: Option<u32>,

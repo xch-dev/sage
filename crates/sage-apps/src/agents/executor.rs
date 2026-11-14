@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use serde_json::Value;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 use uuid::Uuid;
 
 use crate::{
     AgentCallError, AgentTool, AppState, RustBridgeRequest, RustBridgeResponse, SageAgent,
-    authorize_agent_call, process_agent,
+    process_agent,
 };
 
 #[async_trait]
@@ -38,9 +38,6 @@ impl AgentToolExecutor for TauriAgentExecutor {
     ) -> Result<Value, AgentCallError> {
         let app_state = self.app_handle.state::<AppState>();
 
-        let fingerprint = current_fingerprint(&app_state).await;
-        authorize_agent_call(agent, tool, fingerprint)?;
-
         let request = RustBridgeRequest {
             bridge_version: Some("v1".to_string()),
             id: Uuid::new_v4().to_string(),
@@ -52,11 +49,6 @@ impl AgentToolExecutor for TauriAgentExecutor {
 
         response_to_result(response)
     }
-}
-
-async fn current_fingerprint(app_state: &State<'_, AppState>) -> Option<u32> {
-    let state = app_state.lock().await;
-    state.config.global.fingerprint
 }
 
 fn response_to_result(response: RustBridgeResponse) -> Result<Value, AgentCallError> {

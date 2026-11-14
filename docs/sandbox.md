@@ -108,6 +108,8 @@ curl -s -X POST "$bridge/bob/invoke/issue_cat" -H 'content-type: application/jso
   The app logs "Failed to refresh sandbox state" to the console on each load because of this.
 - Native features: file dialogs, biometrics, NFC, QR scanning, the share sheet, and window controls.
 - The RPC server settings, since starting it would bind the real RPC port.
+- The agent (MCP) server settings, for the same reason. Settings shows it stopped with no agents, and
+  changing anything there fails.
 - CAT names from the token registry, NFT metadata and images from their URIs, and block timestamps.
   The backends run in Sage's test mode, which turns these background lookups off.
 - Mempool states. The simulator confirms transactions immediately, so a pending transaction never

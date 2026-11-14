@@ -1,5 +1,6 @@
 {
   "build": {
+    "beforeDevCommand": "pnpm run dev:prepare && pnpm run dev",
     "beforeBuildCommand": "pnpm run build:packages && pnpm run build:frontend"
   },
   "bundle": {
