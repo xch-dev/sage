@@ -50,7 +50,7 @@ pub(super) const MEMPOOL_RETRY_DELAYS: [Duration; 6] = [
 
 /// A transaction id announced by the peer at `ip`, which is asked about the coins it creates
 /// when it's inserted.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct AnnouncedMempoolItem {
     pub ip: IpAddr,
     pub transaction_id: Bytes32,
@@ -71,14 +71,22 @@ pub(super) struct MempoolLookup {
     pub misses: usize,
 }
 
+/// The lookups of a discovery batch that should be tried again.
+#[derive(Debug, Default)]
+pub(super) struct UnfinishedLookups {
+    /// Lookups that didn't find their transaction, or failed, which count as a miss.
+    pub missed: Vec<MempoolLookup>,
+    /// Lookups that weren't tried, which don't.
+    pub deferred: Vec<MempoolLookup>,
+}
+
 /// Fetches the announced transactions that the wallet doesn't know about yet, and inserts the
-/// ones that involve its coins as pending transactions. A transaction that can't be inserted is
-/// skipped, so it doesn't hold up the rest.
+/// ones that involve its coins as pending transactions.
 ///
-/// Returns the lookups that didn't find their transaction, so they can be tried again later.
-/// The source can lag behind the node that announced it, so a transaction that was just
-/// announced often isn't there yet. Once the source fails, the rest of the batch is returned
-/// without being tried, since each lookup would most likely fail the same way.
+/// Returns the lookups to try again later. The source can lag behind the node that announced a
+/// transaction, so one that was just announced often isn't there yet, and inserting it can fail
+/// if a peer disconnects. Once the source fails, the rest of the batch is deferred without being
+/// tried, since each lookup would most likely fail the same way.
 pub(super) async fn discover_mempool_items(
     wallet: Arc<Wallet>,
     state: Arc<Mutex<PeerState>>,
@@ -87,16 +95,19 @@ pub(super) async fn discover_mempool_items(
     final_removals: FinalRemovals,
     sync_sender: mpsc::Sender<SyncEvent>,
     command_sender: mpsc::Sender<SyncCommand>,
-) -> Result<Vec<MempoolLookup>, WalletError> {
-    let mut known: HashSet<Bytes32> = wallet
-        .db
-        .mempool_items()
-        .await?
-        .into_iter()
-        .map(|item| item.hash)
-        .collect();
+) -> UnfinishedLookups {
+    let known: HashSet<Bytes32> = match wallet.db.mempool_items().await {
+        Ok(items) => items.into_iter().map(|item| item.hash).collect(),
+        Err(error) => {
+            warn!("Failed to read the wallet's mempool items, so they're looked up later: {error}");
+            return UnfinishedLookups {
+                missed: Vec::new(),
+                deferred: lookups,
+            };
+        }
+    };
 
-    let mut missed = Vec::new();
+    let mut unfinished = UnfinishedLookups::default();
     let mut source_failed = false;
 
     for lookup in lookups {
@@ -110,14 +121,14 @@ pub(super) async fn discover_mempool_items(
         }
 
         if source_failed {
-            missed.push(lookup);
+            unfinished.deferred.push(lookup);
             continue;
         }
 
         let spend_bundle = match mempool_source.spend_bundle(transaction_id).await {
             Ok(Some(spend_bundle)) => spend_bundle,
             Ok(None) => {
-                missed.push(lookup);
+                unfinished.missed.push(lookup);
                 continue;
             }
             Err(error) => {
@@ -126,12 +137,10 @@ pub(super) async fn discover_mempool_items(
                      is looked up later: {error}"
                 );
                 source_failed = true;
-                missed.push(lookup);
+                unfinished.missed.push(lookup);
                 continue;
             }
         };
-
-        known.insert(transaction_id);
 
         // Each one is shown as soon as it's inserted, since the rest can take a while to fetch.
         match discover_mempool_item(
@@ -148,13 +157,19 @@ pub(super) async fn discover_mempool_items(
                 sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
             }
             Ok(false) => {}
-            Err(error) => warn!(
-                "Failed to discover mempool item {transaction_id} announced by peer {ip}: {error}"
-            ),
+            Err(error) => {
+                // Usually a peer that disconnected or timed out while describing the coins it
+                // creates, so it's tried again.
+                warn!(
+                    "Failed to discover mempool item {transaction_id} announced by peer {ip}: \
+                     {error}"
+                );
+                unfinished.missed.push(lookup);
+            }
         }
     }
 
-    Ok(missed)
+    unfinished
 }
 
 /// Returns whether the transaction was inserted.
@@ -190,8 +205,7 @@ async fn discover_mempool_item(
     };
 
     let Some(peer) = peer else {
-        debug!("No peers are connected to insert mempool item {transaction_id} with");
-        return Ok(false);
+        return Err(WalletError::NoPeers);
     };
 
     let Some(subscriptions) = insert_discovered_transaction(
@@ -400,12 +414,13 @@ mod tests {
             discovery
         }
 
-        /// Returns the ids of the transactions that weren't found.
+        /// Returns the ids of the lookups that missed, and of the ones deferred without being
+        /// tried.
         async fn run(
             &self,
             test: &TestWallet,
             transaction_ids: &[Bytes32],
-        ) -> anyhow::Result<Vec<Bytes32>> {
+        ) -> anyhow::Result<(Vec<Bytes32>, Vec<Bytes32>)> {
             let lookups = transaction_ids
                 .iter()
                 .map(|&transaction_id| MempoolLookup {
@@ -417,7 +432,7 @@ mod tests {
                 })
                 .collect();
 
-            let missed = timeout(
+            let unfinished = timeout(
                 Duration::from_mins(1),
                 discover_mempool_items(
                     test.wallet.clone(),
@@ -429,12 +444,16 @@ mod tests {
                     self.command_sender.clone(),
                 ),
             )
-            .await??;
+            .await?;
 
-            Ok(missed
-                .into_iter()
-                .map(|lookup| lookup.item.transaction_id)
-                .collect())
+            let ids = |lookups: Vec<MempoolLookup>| {
+                lookups
+                    .into_iter()
+                    .map(|lookup| lookup.item.transaction_id)
+                    .collect()
+            };
+
+            Ok((ids(unfinished.missed), ids(unfinished.deferred)))
         }
 
         async fn remove(
@@ -640,10 +659,11 @@ mod tests {
             unsubmitted_send(&test, test.puzzle_hash, 1000).await?,
         );
         // Only the one that wasn't found is looked up again.
-        let missed = discovery
+        let (missed, deferred) = discovery
             .run(&test, &[unrelated_id, mismatched_id, unanswered_id])
             .await?;
         assert_eq!(missed, vec![unanswered_id]);
+        assert!(deferred.is_empty());
 
         assert!(test.wallet.db.mempool_items().await?.is_empty());
         assert!(discovery.events.try_recv().is_err());
@@ -661,10 +681,31 @@ mod tests {
         let discovery = Discovery::serving(&test, vec![spend_bundle]).await;
         discovery.mempool.fail();
 
-        // Both are looked up again later, but only the first is tried now.
-        let missed = discovery.run(&test, &[first, second]).await?;
-        assert_eq!(missed, vec![first, second]);
+        // Both are looked up again later, but only the first is tried now, so only it counts
+        // as a miss.
+        let (missed, deferred) = discovery.run(&test, &[first, second]).await?;
+        assert_eq!(missed, vec![first]);
+        assert_eq!(deferred, vec![second]);
         assert_eq!(discovery.mempool.lookups(), vec![first]);
+        assert!(test.wallet.db.mempool_items().await?.is_empty());
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn a_transaction_that_cannot_be_inserted_yet_is_looked_up_again() -> anyhow::Result<()> {
+        let test = TestWallet::new(0).await?;
+        let other = test.next(1000).await?;
+        let payment = unsubmitted_send(&other, test.puzzle_hash, 1000).await?;
+        let payment_id = payment.name();
+
+        let discovery = Discovery::serving(&test, vec![payment]).await;
+
+        // There's no peer to describe the coins it creates.
+        discovery.state.lock().await.remove_peer(MEMPOOL_PEER_IP);
+
+        let (missed, _) = discovery.run(&test, &[payment_id]).await?;
+        assert_eq!(missed, vec![payment_id]);
         assert!(test.wallet.db.mempool_items().await?.is_empty());
 
         Ok(())

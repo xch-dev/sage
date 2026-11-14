@@ -20,7 +20,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use mempool_updates::{
     AnnouncedMempoolItem, FinalRemovals, MAX_PENDING_MEMPOOL_ITEMS, MEMPOOL_RETRY_DELAYS,
-    MempoolLookup, discover_mempool_items, remove_mempool_items,
+    MempoolLookup, UnfinishedLookups, discover_mempool_items, remove_mempool_items,
 };
 use sage_config::Network;
 use tokio::{
@@ -68,7 +68,7 @@ pub struct SyncManager {
     transaction_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     offer_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
     blocktime_queue_task: Option<JoinHandle<Result<(), WalletError>>>,
-    mempool_discovery_task: Option<JoinHandle<Result<Vec<MempoolLookup>, WalletError>>>,
+    mempool_discovery_task: Option<JoinHandle<UnfinishedLookups>>,
     pending_coin_subscriptions: Vec<Bytes32>,
     pending_puzzle_subscriptions: Vec<Bytes32>,
     /// Transactions announced by peers, by id, and when to look each one up. They're looked up
@@ -76,11 +76,9 @@ pub struct SyncManager {
     /// pay to are already known. New ones are due right away, and ones that weren't found are
     /// due again after a backoff.
     mempool_queue: IndexMap<Bytes32, (Instant, MempoolLookup)>,
-    /// The transactions the running discovery batch is looking up.
+    /// The transactions the running discovery batch is looking up. One that leaves the mempool
+    /// in the meantime, for any reason, is taken out, so its lookup isn't tried again.
     mempool_in_flight: HashSet<Bytes32>,
-    /// Transactions that left the mempool, for any reason, while the batch was running. Their
-    /// lookups won't find them, so they aren't tried again.
-    mempool_left_during_batch: HashSet<Bytes32>,
     final_mempool_removals: FinalRemovals,
     /// Where announced transactions are fetched from, or `None` if the network has nowhere.
     mempool_source: Option<Arc<dyn MempoolSource>>,
@@ -177,7 +175,6 @@ impl SyncManager {
             pending_puzzle_subscriptions: Vec::new(),
             mempool_queue: IndexMap::new(),
             mempool_in_flight: HashSet::new(),
-            mempool_left_during_batch: HashSet::new(),
             final_mempool_removals: FinalRemovals::default(),
         };
 
@@ -392,49 +389,61 @@ impl SyncManager {
         }
         self.mempool_queue.clear();
         self.mempool_in_flight.clear();
-        self.mempool_left_during_batch.clear();
     }
 
-    /// Drops queued lookups of transactions that left the mempool, and remembers them so the
-    /// running batch doesn't look them up again either.
+    /// Drops lookups of transactions that left the mempool, including ones the running batch
+    /// is doing, so they aren't tried again.
     fn forget_mempool_items(&mut self, transaction_ids: &HashSet<Bytes32>) {
         self.mempool_queue
             .retain(|transaction_id, _| !transaction_ids.contains(transaction_id));
-
-        if self.mempool_discovery_task.is_some() {
-            self.mempool_left_during_batch
-                .extend(transaction_ids.intersection(&self.mempool_in_flight));
-        }
+        self.mempool_in_flight
+            .retain(|transaction_id| !transaction_ids.contains(transaction_id));
     }
 
-    /// Schedules another lookup of each transaction that wasn't found, until it has been tried
-    /// as many times as there are retry delays.
-    fn retry_mempool_lookups(&mut self, missed: Vec<MempoolLookup>, now: Instant) {
-        for lookup in missed {
+    /// Queues another lookup of each transaction from the batch that wasn't found, after a
+    /// backoff, until it has been tried as many times as there are retry delays. Lookups that
+    /// were deferred without being tried keep their count.
+    fn retry_mempool_lookups(&mut self, unfinished: UnfinishedLookups, now: Instant) {
+        let missed = unfinished.missed.into_iter().map(|lookup| (lookup, true));
+        let deferred = unfinished
+            .deferred
+            .into_iter()
+            .map(|lookup| (lookup, false));
+
+        for (lookup, tried) in missed.chain(deferred) {
             let transaction_id = lookup.item.transaction_id;
 
             // It left the mempool while it was being looked up, so it won't be found.
-            if self.mempool_left_during_batch.contains(&transaction_id) {
+            if !self.mempool_in_flight.remove(&transaction_id) {
                 continue;
             }
 
-            let Some(&delay) = MEMPOOL_RETRY_DELAYS.get(lookup.misses) else {
+            let misses = if tried {
+                lookup.misses + 1
+            } else {
+                lookup.misses
+            };
+
+            let Some(&delay) = MEMPOOL_RETRY_DELAYS.get(misses.saturating_sub(1)) else {
                 info!(
-                    "Giving up on mempool item {transaction_id}, which wasn't found after {} lookups",
-                    lookup.misses + 1
+                    "Giving up on mempool item {transaction_id}, which wasn't found after \
+                     {misses} lookups"
                 );
                 continue;
             };
 
-            if self.mempool_queue.len() >= MAX_PENDING_MEMPOOL_ITEMS {
+            if self.mempool_queue.len() + self.mempool_in_flight.len() >= MAX_PENDING_MEMPOOL_ITEMS
+            {
                 debug!("Too many pending mempool items, not looking up {transaction_id} again");
                 continue;
             }
 
-            info!(
-                "Mempool item {transaction_id} wasn't found, looking it up again in {}s",
-                delay.as_secs()
-            );
+            if tried {
+                info!(
+                    "Mempool item {transaction_id} wasn't found, looking it up again in {}s",
+                    delay.as_secs()
+                );
+            }
 
             self.mempool_queue.insert(
                 transaction_id,
@@ -442,18 +451,17 @@ impl SyncManager {
                     now + delay,
                     MempoolLookup {
                         item: lookup.item,
-                        misses: lookup.misses + 1,
+                        misses,
                     },
                 ),
             );
         }
     }
 
-    /// Handles the end of a discovery batch, which returns the lookups that missed.
-    fn finish_mempool_discovery(&mut self, missed: Vec<MempoolLookup>, now: Instant) {
+    /// Handles the end of a discovery batch.
+    fn finish_mempool_discovery(&mut self, unfinished: UnfinishedLookups, now: Instant) {
+        self.retry_mempool_lookups(unfinished, now);
         self.mempool_in_flight.clear();
-        self.retry_mempool_lookups(missed, now);
-        self.mempool_left_during_batch.clear();
     }
 
     fn start_mempool_discovery(&mut self) {
@@ -496,7 +504,6 @@ impl SyncManager {
             .iter()
             .map(|lookup| lookup.item.transaction_id)
             .collect();
-        self.mempool_left_during_batch.clear();
 
         // Removals that arrived before now were applied to the queue, so only ones that
         // arrive during this batch matter to it.
@@ -972,18 +979,11 @@ impl SyncManager {
             && let Some(result) = poll_once(task).await
         {
             self.mempool_discovery_task = None;
-            let missed = match result {
-                Err(error) => {
-                    warn!("Mempool discovery failed with panic: {error}");
-                    Vec::new()
-                }
-                Ok(Err(error)) => {
-                    warn!("Mempool discovery failed with error: {error}");
-                    Vec::new()
-                }
-                Ok(Ok(missed)) => missed,
-            };
-            self.finish_mempool_discovery(missed, Instant::now());
+            let unfinished = result.unwrap_or_else(|error| {
+                warn!("Mempool discovery failed with panic: {error}");
+                UnfinishedLookups::default()
+            });
+            self.finish_mempool_discovery(unfinished, Instant::now());
         }
 
         // The startup analyze writes nothing for a wallet whose tables were still
@@ -1089,6 +1089,21 @@ mod tests {
         }
     }
 
+    fn missed(lookups: Vec<MempoolLookup>) -> UnfinishedLookups {
+        UnfinishedLookups {
+            missed: lookups,
+            deferred: Vec::new(),
+        }
+    }
+
+    /// Queues retries of lookups, as if a batch had just missed them.
+    fn miss(manager: &mut SyncManager, lookups: Vec<MempoolLookup>, now: Instant) {
+        manager
+            .mempool_in_flight
+            .extend(lookups.iter().map(|lookup| lookup.item.transaction_id));
+        manager.retry_mempool_lookups(missed(lookups), now);
+    }
+
     fn queued(manager: &SyncManager) -> Vec<Bytes32> {
         manager.mempool_queue.keys().copied().collect()
     }
@@ -1149,7 +1164,7 @@ mod tests {
         let ip = IpAddr::from([10, 0, 0, 1]);
 
         start_fake_batch(&mut manager, &[1, 2]);
-        manager.retry_mempool_lookups(vec![lookup(ip, 3, 0)], Instant::now());
+        miss(&mut manager, vec![lookup(ip, 3, 0)], Instant::now());
 
         let many: Vec<Bytes32> = (0..u16::try_from(MAX_PENDING_MEMPOOL_ITEMS)?)
             .map(|i| {
@@ -1164,10 +1179,13 @@ mod tests {
 
         // The batch's misses take the room it held, and once the queue is full there's no room
         // for more retries.
-        manager.finish_mempool_discovery(vec![lookup(ip, 1, 0), lookup(ip, 2, 0)], Instant::now());
+        manager.finish_mempool_discovery(
+            missed(vec![lookup(ip, 1, 0), lookup(ip, 2, 0)]),
+            Instant::now(),
+        );
         assert_eq!(manager.mempool_queue.len(), MAX_PENDING_MEMPOOL_ITEMS);
 
-        manager.retry_mempool_lookups(vec![lookup(ip, 5, 0)], Instant::now());
+        miss(&mut manager, vec![lookup(ip, 5, 0)], Instant::now());
         assert!(!manager.mempool_queue.contains_key(&id(5)));
 
         Ok(())
@@ -1191,7 +1209,7 @@ mod tests {
         let ip = IpAddr::from([10, 0, 0, 1]);
 
         manager.queue_mempool_items(ip, vec![id(1), id(2)]);
-        manager.retry_mempool_lookups(vec![lookup(ip, 3, 0)], Instant::now());
+        miss(&mut manager, vec![lookup(ip, 3, 0)], Instant::now());
 
         for byte in [1, 3] {
             manager
@@ -1216,10 +1234,12 @@ mod tests {
             .handle_message(ip, removal(1, MempoolRemoveReason::BlockInclusion)?)
             .await?;
 
-        manager.finish_mempool_discovery(vec![lookup(ip, 1, 0), lookup(ip, 2, 0)], Instant::now());
+        manager.finish_mempool_discovery(
+            missed(vec![lookup(ip, 1, 0), lookup(ip, 2, 0)]),
+            Instant::now(),
+        );
         assert_eq!(queued(&manager), [id(2)]);
         assert!(manager.mempool_in_flight.is_empty());
-        assert!(manager.mempool_left_during_batch.is_empty());
 
         Ok(())
     }
@@ -1273,7 +1293,7 @@ mod tests {
         ] {
             let (mut manager, sender) = bare_manager(None);
             manager.queue_mempool_items(ip, vec![id(1)]);
-            manager.retry_mempool_lookups(vec![lookup(ip, 2, 0)], Instant::now());
+            miss(&mut manager, vec![lookup(ip, 2, 0)], Instant::now());
             start_fake_batch(&mut manager, &[3]);
 
             sender.send(command).await?;
@@ -1295,7 +1315,7 @@ mod tests {
         manager.initial_wallet_sync = InitialWalletSync::Subscribed(ip);
         let now = Instant::now();
 
-        manager.retry_mempool_lookups(vec![lookup(ip, 1, 0)], now);
+        miss(&mut manager, vec![lookup(ip, 1, 0)], now);
         assert_eq!(
             manager.mempool_queue[&id(1)],
             (now + MEMPOOL_RETRY_DELAYS[0], lookup(ip, 1, 1))
@@ -1319,15 +1339,41 @@ mod tests {
         }
 
         // Each miss waits longer, until it has been tried after every delay.
-        manager.finish_mempool_discovery(vec![lookup(ip, 1, 1)], now);
+        manager.finish_mempool_discovery(missed(vec![lookup(ip, 1, 1)]), now);
         assert_eq!(
             manager.mempool_queue[&id(1)],
             (now + MEMPOOL_RETRY_DELAYS[1], lookup(ip, 1, 2))
         );
         manager.mempool_queue.clear();
 
-        manager.retry_mempool_lookups(vec![lookup(ip, 1, MEMPOOL_RETRY_DELAYS.len())], now);
+        let last = MEMPOOL_RETRY_DELAYS.len() - 1;
+        miss(&mut manager, vec![lookup(ip, 1, last)], now);
+        assert_eq!(
+            manager.mempool_queue[&id(1)],
+            (now + MEMPOOL_RETRY_DELAYS[last], lookup(ip, 1, last + 1))
+        );
+        manager.mempool_queue.clear();
+
+        miss(
+            &mut manager,
+            vec![lookup(ip, 1, MEMPOOL_RETRY_DELAYS.len())],
+            now,
+        );
         assert!(manager.mempool_queue.is_empty());
+
+        // Lookups deferred without being tried keep their count.
+        manager.mempool_in_flight.insert(id(2));
+        manager.retry_mempool_lookups(
+            UnfinishedLookups {
+                missed: Vec::new(),
+                deferred: vec![lookup(ip, 2, 2)],
+            },
+            now,
+        );
+        assert_eq!(
+            manager.mempool_queue[&id(2)],
+            (now + MEMPOOL_RETRY_DELAYS[1], lookup(ip, 2, 2))
+        );
 
         Ok(())
     }
@@ -1341,7 +1387,7 @@ mod tests {
 
         // Turning it off drops what's queued and stops the batch that's looking things up.
         manager.queue_mempool_items(ip, vec![id(1)]);
-        manager.retry_mempool_lookups(vec![lookup(ip, 2, 0)], Instant::now());
+        miss(&mut manager, vec![lookup(ip, 2, 0)], Instant::now());
         start_fake_batch(&mut manager, &[3]);
         sender.send(SyncCommand::SetMempoolDiscovery(false)).await?;
         manager.process_commands().await;

@@ -5,7 +5,7 @@ use chia_wallet_sdk::{
     prelude::*,
 };
 use futures_util::future::BoxFuture;
-use sage_config::Network;
+use sage_config::{InheritedNetwork, Network};
 use tokio::time::timeout;
 use tracing::debug;
 
@@ -30,10 +30,11 @@ pub trait MempoolSource: Send + Sync {
 /// Looks up mempool transactions with the network's [Coinset](https://coinset.org) API, or
 /// returns `None` for a network that Coinset doesn't serve.
 pub fn coinset_mempool(network: &Network) -> Option<Arc<dyn MempoolSource>> {
-    let url = network.coinset_api_url()?;
-    Some(Arc::new(CoinsetMempool {
-        client: CoinsetClient::new(url.to_string()),
-    }))
+    let client = match network.same_chain_as()? {
+        InheritedNetwork::Mainnet => CoinsetClient::mainnet(),
+        InheritedNetwork::Testnet11 => CoinsetClient::testnet11(),
+    };
+    Some(Arc::new(CoinsetMempool { client }))
 }
 
 struct CoinsetMempool {
