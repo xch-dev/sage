@@ -12,7 +12,7 @@ use tokio::{
 };
 use tracing::warn;
 
-use crate::{PeerState, SyncEvent, WalletError};
+use crate::{OfferSettlement, PeerState, SyncEvent, WalletError};
 
 #[derive(Debug)]
 pub struct OfferQueue {
@@ -58,7 +58,7 @@ impl OfferQueue {
             return Ok(());
         }
 
-        let mut settlement_coin_ids = HashMap::new();
+        let mut settlements = HashMap::new();
         let mut input_coin_ids = HashMap::new();
         let mut pending_offer_coins = HashMap::new();
 
@@ -68,12 +68,7 @@ impl OfferQueue {
             let spend_bundle = decode_offer(&row.encoded_offer)?;
             let offer = Offer::from_spend_bundle(&mut allocator, &spend_bundle)?;
 
-            for coin in offer.offered_coins().flatten() {
-                settlement_coin_ids
-                    .entry(coin.coin_id())
-                    .or_insert(HashSet::new())
-                    .insert(row.offer_id);
-            }
+            settlements.insert(row.offer_id, OfferSettlement::new(&offer));
 
             let input_coins = offer
                 .cancellable_coin_spends()?
@@ -107,11 +102,11 @@ impl OfferQueue {
 
         let coin_states = match peer
             .fetch_coins(
-                settlement_coin_ids
-                    .keys()
-                    .chain(input_coin_ids.keys())
-                    .chain(split_coin_ids.iter())
-                    .copied()
+                settlements
+                    .values()
+                    .flat_map(OfferSettlement::coin_ids)
+                    .chain(input_coin_ids.keys().copied())
+                    .chain(split_coin_ids.iter().copied())
                     .collect::<HashSet<_>>()
                     .into_iter()
                     .collect(),
@@ -131,18 +126,34 @@ impl OfferQueue {
             }
         };
 
+        let chain_coin_states = coin_states
+            .into_iter()
+            .map(|coin_state| (coin_state.coin.coin_id(), coin_state))
+            .collect::<HashMap<_, _>>();
+
         let mut new_offer_statuses = HashMap::new();
-        let mut chain_coin_states = HashMap::new();
 
-        for coin_state in coin_states {
-            chain_coin_states.insert(coin_state.coin.coin_id(), coin_state);
+        // Offers whose settlement couldn't be checked are left as they are until the next batch,
+        // rather than being considered cancelled or expired when they may have been taken.
+        let mut unchecked_offer_ids = HashSet::new();
 
-            if let Some(offer_ids) = settlement_coin_ids.get(&coin_state.coin.coin_id()) {
-                for &offer_id in offer_ids {
+        for (&offer_id, settlement) in &settlements {
+            match settlement.is_settled(&peer, &chain_coin_states).await {
+                Ok(true) => {
                     new_offer_statuses.insert(offer_id, OfferStatus::Completed);
                 }
+                Ok(false) => {}
+                Err(err) => {
+                    warn!(
+                        "Settlement lookup for offer {offer_id} failed for {}: {err}",
+                        peer.socket_addr()
+                    );
+                    unchecked_offer_ids.insert(offer_id);
+                }
             }
+        }
 
+        for coin_state in chain_coin_states.values() {
             if coin_state.spent_height.is_none() {
                 continue;
             }
@@ -171,8 +182,13 @@ impl OfferQueue {
             }
         }
 
+        for offer_id in &unchecked_offer_ids {
+            new_offer_statuses.remove(offer_id);
+        }
+
         for (offer_id, coins) in pending_offer_coins {
-            if new_offer_statuses.contains_key(&offer_id) {
+            if new_offer_statuses.contains_key(&offer_id) || unchecked_offer_ids.contains(&offer_id)
+            {
                 continue;
             }
 

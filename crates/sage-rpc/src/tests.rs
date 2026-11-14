@@ -508,6 +508,125 @@ async fn test_taken_offer_declares_its_fee() -> Result<()> {
 }
 
 #[tokio::test]
+async fn test_offer_not_completed_by_another_offer_of_the_same_coin() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(1000).await?;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let coin_id = app
+        .sage
+        .lock()
+        .await
+        .wallet()?
+        .db
+        .selectable_xch_coins()
+        .await?[0]
+        .coin_id();
+
+    let offer_amount = |amount: u64| OfferAmount {
+        asset_id: None,
+        hidden_puzzle_hash: None,
+        amount: Amount::u64(amount),
+    };
+
+    // Both offers spend the same coin for the same amount, so they create the same settlement
+    // coin, and only differ in what they ask for. Neither is imported, so the coin isn't reserved.
+    let make_offer = async |app: &TestApp, requested: u64| {
+        app.make_offer(MakeOffer {
+            confirmed_handles: Vec::new(),
+            requested_assets: vec![offer_amount(requested)],
+            offered_assets: vec![offer_amount(300)],
+            fee: Amount::u64(0),
+            receive_address: None,
+            expires_at_second: None,
+            auto_import: false,
+            coin_ids: Some(vec![coin_id.to_string()]),
+            pre_split_fee: None,
+        })
+        .await
+    };
+
+    let first = make_offer(&app, 100).await?.offer;
+    let second = make_offer(&app, 200).await?.offer;
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
+
+    app.take_offer(TakeOffer {
+        offer: second.clone(),
+        fee: Amount::u64(0),
+        auto_submit: true,
+    })
+    .await?;
+
+    let status = async |app: &TestApp, offer: &str| -> Result<OfferRecordStatus> {
+        Ok(app
+            .view_offer(ViewOffer {
+                offer: offer.to_string(),
+            })
+            .await?
+            .status)
+    };
+
+    let mut second_status = status(&app, &second).await?;
+
+    for _ in 0..100 {
+        if matches!(second_status, OfferRecordStatus::Completed) {
+            break;
+        }
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        second_status = status(&app, &second).await?;
+    }
+
+    assert!(
+        matches!(second_status, OfferRecordStatus::Completed),
+        "{second_status:?}"
+    );
+
+    // The first offer's coin was spent by taking the second one, which cancels it.
+    let first_status = status(&app, &first).await?;
+    assert!(
+        matches!(first_status, OfferRecordStatus::Cancelled),
+        "{first_status:?}"
+    );
+
+    // The offer queue comes to the same conclusion for an imported offer.
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let first_id = app
+        .import_offer(ImportOffer { offer: first })
+        .await?
+        .offer_id;
+
+    let updated = StdMutex::new(None);
+
+    app.consume_until(|event| {
+        if let SyncEvent::OfferUpdated { offer_id, status } = event
+            && offer_id.to_string() == first_id
+        {
+            *updated.lock().expect("lock poisoned") = Some(status);
+            return true;
+        }
+
+        false
+    })
+    .await;
+
+    assert_eq!(
+        updated.into_inner().expect("lock poisoned"),
+        Some(OfferStatus::Cancelled)
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_coin_id_lookups_reject_non_hex_input() -> Result<()> {
     let mut app = TestApp::new().await?;
 
