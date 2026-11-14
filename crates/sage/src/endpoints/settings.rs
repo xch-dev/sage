@@ -6,10 +6,10 @@ use sage_api::{
     GetPeers, GetPeersResponse, GetSelectedTheme, GetSelectedThemeResponse, NetworkKind,
     PeerRecord, RemovePeer, RemovePeerResponse, SetChangeAddress, SetChangeAddressResponse,
     SetDeltaSync, SetDeltaSyncOverride, SetDeltaSyncOverrideResponse, SetDeltaSyncResponse,
-    SetDiscoverPeers, SetDiscoverPeersResponse, SetNetwork, SetNetworkOverride,
-    SetNetworkOverrideResponse, SetNetworkResponse, SetSelectedTheme, SetSelectedThemeResponse,
-    SetTargetPeers, SetTargetPeersResponse, SetTransactionExpiration,
-    SetTransactionExpirationResponse,
+    SetDiscoverPeers, SetDiscoverPeersResponse, SetMempoolDiscovery, SetMempoolDiscoveryResponse,
+    SetNetwork, SetNetworkOverride, SetNetworkOverrideResponse, SetNetworkResponse,
+    SetSelectedTheme, SetSelectedThemeResponse, SetTargetPeers, SetTargetPeersResponse,
+    SetTransactionExpiration, SetTransactionExpirationResponse,
 };
 use sage_config::{MAINNET, MIN_TRANSACTION_EXPIRATION, TESTNET11};
 use sage_wallet::SyncCommand;
@@ -76,6 +76,21 @@ impl Sage {
         }
 
         Ok(SetDiscoverPeersResponse {})
+    }
+
+    pub async fn set_mempool_discovery(
+        &mut self,
+        req: SetMempoolDiscovery,
+    ) -> Result<SetMempoolDiscoveryResponse> {
+        if self.config.network.mempool_discovery != req.mempool_discovery {
+            self.config.network.mempool_discovery = req.mempool_discovery;
+            self.save_config()?;
+            self.command_sender
+                .send(SyncCommand::SetMempoolDiscovery(req.mempool_discovery))
+                .await?;
+        }
+
+        Ok(SetMempoolDiscoveryResponse {})
     }
 
     pub async fn set_target_peers(

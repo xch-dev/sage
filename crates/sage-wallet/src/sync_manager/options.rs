@@ -1,9 +1,12 @@
 use std::time::Duration;
 
 #[derive(Debug, Clone, Copy)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct SyncOptions {
     pub target_peers: usize,
     pub discover_peers: bool,
+    /// Whether to look up announced mempool transactions with the network's Coinset API.
+    pub mempool_discovery: bool,
     pub dns_batch_size: usize,
     pub connection_batch_size: usize,
     pub max_peer_age_seconds: u64,

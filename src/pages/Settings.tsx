@@ -708,6 +708,9 @@ function NetworkSettings() {
   const { addError } = useErrors();
 
   const [discoverPeers, setDiscoverPeers] = useState<boolean | null>(null);
+  const [mempoolDiscovery, setMempoolDiscovery] = useState<boolean | null>(
+    null,
+  );
   const [targetPeersText, setTargetPeersText] = useState<string | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
@@ -807,6 +810,22 @@ function NetworkSettings() {
                   .setTargetPeers({ target_peers: targetPeers })
                   .catch(addError);
               }
+            }}
+          />
+        }
+      />
+
+      <SettingItem
+        label={t`Mempool Discovery`}
+        description={t`Look up pending transactions with Coinset, so they show before they're confirmed, even after a resync. Coinset can see which pending transactions are yours.`}
+        control={
+          <Switch
+            checked={mempoolDiscovery ?? config?.mempool_discovery ?? true}
+            onCheckedChange={(checked) => {
+              commands
+                .setMempoolDiscovery({ mempool_discovery: checked })
+                .catch(addError)
+                .finally(() => setMempoolDiscovery(checked));
             }}
           />
         }

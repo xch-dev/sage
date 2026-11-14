@@ -83,6 +83,24 @@ pub struct SetDiscoverPeers {
     pub discover_peers: bool,
 }
 
+/// Enable or disable looking up announced mempool transactions with Coinset
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Peers",
+        description = "Enable or disable looking up the wallet's mempool transactions with the Coinset API, so they show up before they're confirmed.",
+        response_type = "EmptyResponse"
+    )
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct SetMempoolDiscovery {
+    /// Whether to look up mempool transactions with Coinset
+    #[cfg_attr(feature = "openapi", schema(example = true))]
+    pub mempool_discovery: bool,
+}
+
 /// Set target number of peers to maintain
 #[cfg_attr(
     feature = "openapi",
@@ -316,6 +334,7 @@ pub struct EmptyResponse {}
 pub type AddPeerResponse = EmptyResponse;
 pub type RemovePeerResponse = EmptyResponse;
 pub type SetDiscoverPeersResponse = EmptyResponse;
+pub type SetMempoolDiscoveryResponse = EmptyResponse;
 pub type SetTargetPeersResponse = EmptyResponse;
 pub type SetNetworkResponse = EmptyResponse;
 pub type SetNetworkOverrideResponse = EmptyResponse;

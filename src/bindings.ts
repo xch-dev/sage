@@ -314,6 +314,9 @@ async networkConfig() : Promise<NetworkConfig> {
 async setDiscoverPeers(req: SetDiscoverPeers) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_discover_peers", { req });
 },
+async setMempoolDiscovery(req: SetMempoolDiscovery) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_mempool_discovery", { req });
+},
 async setTargetPeers(req: SetTargetPeers) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_target_peers", { req });
 },
@@ -2953,7 +2956,14 @@ xchandles?: XchandlesConfig | null;
  * quiet for a long time.
  */
 drop_silent_peers: boolean }
-export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean }
+export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean; 
+/**
+ * Whether to look up the mempool transactions that full nodes announce for the wallet
+ * with the network's Coinset API, so that incoming and pending transactions show up
+ * before they're confirmed, including after a resync. This tells Coinset which mempool
+ * transactions involve the wallet.
+ */
+mempool_discovery: boolean }
 export type NetworkKind = "mainnet" | "testnet" | "unknown"
 export type NetworkList = { networks: Network[] }
 export type NewNftUri = { 
@@ -3655,6 +3665,14 @@ export type SetDiscoverPeers = {
  * Whether to enable peer discovery
  */
 discover_peers: boolean }
+/**
+ * Enable or disable looking up announced mempool transactions with Coinset
+ */
+export type SetMempoolDiscovery = { 
+/**
+ * Whether to look up mempool transactions with Coinset
+ */
+mempool_discovery: boolean }
 /**
  * Set the active network
  */

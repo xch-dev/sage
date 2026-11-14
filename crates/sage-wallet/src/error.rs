@@ -39,6 +39,9 @@ pub enum WalletError {
     #[error("Timeout exceeded")]
     Elapsed(#[from] Elapsed),
 
+    #[error("Coinset request failed: {0}")]
+    Coinset(String),
+
     #[error("Missing spend with id {0}")]
     MissingSpend(Bytes32),
 

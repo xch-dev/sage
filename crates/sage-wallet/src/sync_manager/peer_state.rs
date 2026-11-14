@@ -12,6 +12,11 @@ use tracing::debug;
 
 use crate::WalletPeer;
 
+/// How many blocks apart peers' peaks can be. A new peer further behind than this isn't added,
+/// and a peer that sends mempool updates is only preferred for syncing within this of the
+/// highest peak.
+pub(super) const MAX_PEER_LAG: u32 = 3;
+
 #[derive(Debug)]
 pub struct PeerInfo {
     pub peer: WalletPeer,
@@ -21,6 +26,9 @@ pub struct PeerInfo {
     pub last_peak_at: Instant,
     pub receive_message_task: JoinHandle<()>,
     pub user_managed: bool,
+    /// Whether the peer announces the wallet's mempool transactions (CHIP-26). Nodes older than
+    /// that don't, so the wallet would only see its transactions once they're confirmed.
+    pub sends_mempool_updates: bool,
 }
 
 impl Drop for PeerInfo {
@@ -94,6 +102,30 @@ impl PeerState {
         self.peers_by_peak().next().cloned()
     }
 
+    /// The peer to subscribe the wallet with. Only that peer announces the wallet's mempool
+    /// transactions, so one that sends mempool updates is preferred, as long as it's within
+    /// a few blocks of the highest peak.
+    pub fn acquire_sync_peer(&self) -> Option<WalletPeer> {
+        let highest_peak = self.peers.values().map(|info| info.claimed_peak).max()?;
+
+        self.peers
+            .values()
+            .max_by_key(|info| {
+                let close_to_peak = info.claimed_peak.saturating_add(MAX_PEER_LAG) >= highest_peak;
+                (
+                    info.sends_mempool_updates && close_to_peak,
+                    info.claimed_peak,
+                )
+            })
+            .map(|info| info.peer.clone())
+    }
+
+    pub(super) fn set_sends_mempool_updates(&mut self, ip: IpAddr) {
+        if let Some(info) = self.peers.get_mut(&ip) {
+            info.sends_mempool_updates = true;
+        }
+    }
+
     /// Every peer, the one claiming the highest peak first.
     pub fn peers_by_peak(&self) -> impl Iterator<Item = &WalletPeer> {
         self.peers
@@ -164,6 +196,24 @@ impl PeerState {
         self.peers.insert(state.peer.socket_addr().ip(), state);
     }
 
+    /// Adds a peer under an IP other than its connection's, since every local test peer
+    /// connects on 127.0.0.1.
+    #[cfg(test)]
+    pub(crate) fn add_peer_at(&mut self, ip: IpAddr, peer: WalletPeer) {
+        self.peers.insert(
+            ip,
+            PeerInfo {
+                peer,
+                claimed_peak: 0,
+                header_hash: Bytes32::default(),
+                last_peak_at: Instant::now(),
+                receive_message_task: tokio::spawn(async {}),
+                user_managed: false,
+                sends_mempool_updates: false,
+            },
+        );
+    }
+
     pub fn banned_peers(&mut self) -> &HashMap<IpAddr, u64> {
         self.banned_peers.retain(|_, ban_until| {
             let start = SystemTime::now();
@@ -206,6 +256,7 @@ mod tests {
                 last_peak_at,
                 receive_message_task: tokio::spawn(async {}),
                 user_managed,
+                sends_mempool_updates: false,
             },
         );
         Ok(ip)
@@ -227,6 +278,35 @@ mod tests {
             .collect_vec();
 
         assert_eq!(addrs, [addr(highest), addr(middle), addr(lowest)]);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn sync_peer_prefers_peers_that_send_mempool_updates() -> anyhow::Result<()> {
+        let now = Instant::now();
+        let mut state = PeerState::default();
+        let addr = |state: &PeerState, ip| state.peer(ip).map(|info| info.peer.socket_addr());
+        let sync_addr = |state: &PeerState| state.acquire_sync_peer().map(|p| p.socket_addr());
+
+        // Without any that send mempool updates, the highest peak wins.
+        let old = add_peer(&mut state, 2, 30, now, false).await?;
+        let older = add_peer(&mut state, 3, 25, now, false).await?;
+        assert_eq!(sync_addr(&state), addr(&state, old));
+
+        // One that's too far behind isn't preferred.
+        state.set_sends_mempool_updates(older);
+        assert_eq!(sync_addr(&state), addr(&state, old));
+
+        // One a few blocks behind is.
+        let new = add_peer(&mut state, 4, 30 - MAX_PEER_LAG, now, false).await?;
+        state.set_sends_mempool_updates(new);
+        assert_eq!(sync_addr(&state), addr(&state, new));
+
+        // Among those, the highest peak wins.
+        let newer = add_peer(&mut state, 5, 29, now, false).await?;
+        state.set_sends_mempool_updates(newer);
+        assert_eq!(sync_addr(&state), addr(&state, newer));
 
         Ok(())
     }

@@ -85,6 +85,10 @@ impl DatabaseTx<'_> {
         mempool_items_for_output(&mut *self.tx, coin_id).await
     }
 
+    pub async fn update_mempool_item_time(&mut self, mempool_item_id: Bytes32) -> Result<()> {
+        update_mempool_item_time(&mut *self.tx, mempool_item_id).await
+    }
+
     pub async fn remove_mempool_item(&mut self, mempool_item_id: Bytes32) -> Result<()> {
         remove_mempool_item(&mut self.tx, mempool_item_id).await
     }
