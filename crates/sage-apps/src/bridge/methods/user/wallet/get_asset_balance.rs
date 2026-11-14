@@ -9,7 +9,6 @@ use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
     UserBridgeCapability, WalletAssetCoinType, parse_required_params,
-    require_loaded_wallet_in_scope,
 };
 
 const BALANCE_PAGE_SIZE: u32 = 100;
@@ -92,8 +91,7 @@ impl BridgeMethod for WalletGetAssetBalance {
         let mut spendable = 0_u128;
         let mut spendable_coin_count = 0_u32;
         let mut offset = 0_u32;
-        let sage = tools.app_state.lock().await;
-        require_loaded_wallet_in_scope(&ctx, &sage)?;
+        let sage = tools.sage(&ctx).await?;
 
         loop {
             let coins = sage

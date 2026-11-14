@@ -71,15 +71,14 @@ impl BridgeMethod for WalletGetPublicKeys {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: WalletGetPublicKeysParams = parse_optional_params(self, request)?;
         let response = tools
-            .app_state
-            .lock()
-            .await
+            .sage(&ctx)
+            .await?
             .get_derivations(params.into())
             .await
             .map_err(|err| {

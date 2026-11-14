@@ -31,14 +31,15 @@ import {
   initialAgentCapabilities,
 } from '@/lib/agentPermissions';
 import { formatTimestamp } from '@/lib/utils';
-import { t } from '@lingui/core/macro';
+import { plural, t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { WalletScopeEditorWallet } from 'sage-app-ui';
 
 const DEFAULT_PORT = 9258;
 const MIN_PORT = 1024;
 const MAX_PORT = 65535;
+const REFRESH_INTERVAL_MS = 5000;
 
 function isValidPort(value: string) {
   if (!/^\d+$/.test(value)) return false;
@@ -47,7 +48,7 @@ function isValidPort(value: string) {
 }
 
 function capabilitySummary(count: number) {
-  return count === 1 ? t`1 capability` : t`${count} capabilities`;
+  return plural(count, { one: '# capability', other: '# capabilities' });
 }
 
 function lastUsedSummary(lastUsedAtMs: number | null) {
@@ -68,8 +69,10 @@ function scopeSummary(scope: SageAppWalletScope, currentFingerprint?: number) {
   ) {
     return t`This wallet`;
   }
-  const count = scope.fingerprints.length;
-  return count === 1 ? t`1 wallet` : t`${count} wallets`;
+  return plural(scope.fingerprints.length, {
+    one: '# wallet',
+    other: '# wallets',
+  });
 }
 
 export function AgentSettings() {
@@ -89,30 +92,11 @@ export function AgentSettings() {
   const [editing, setEditing] = useState<SageAgent | null>(null);
   const [revoking, setRevoking] = useState<SageAgent | null>(null);
 
-  // One slot per poll, so one poll succeeding doesn't re-arm the other's error.
-  const lastPollErrors = useRef({ status: '', rpc: '' });
-
   const refreshAgents = useCallback(() => {
     commands.appsListAgents().then(setAgents).catch(addError);
   }, [addError]);
 
   useEffect(() => {
-    // Polling repeats every second, so only report an error when it changes.
-    const reportPollError = (poll: 'status' | 'rpc') => (error: unknown) => {
-      const customError = error as CustomError;
-      if (lastPollErrors.current[poll] === customError.reason) return;
-      lastPollErrors.current[poll] = customError.reason;
-      addError(customError);
-    };
-    const pollRpcRunning = () =>
-      commands
-        .isRpcRunning()
-        .then((running) => {
-          lastPollErrors.current.rpc = '';
-          setRpcRunning(running);
-        })
-        .catch(reportPollError('rpc'));
-
     commands
       .appsGetAgentServerStatus()
       .then((s) => {
@@ -122,22 +106,20 @@ export function AgentSettings() {
       .catch(addError);
     commands.appsListAgentCapabilities().then(setDefinitions).catch(addError);
     refreshAgents();
-    pollRpcRunning();
+    commands.isRpcRunning().then(setRpcRunning).catch(addError);
 
+    // Agents are used, and the RPC server toggled, outside this component. A failure here was
+    // already reported by the first load, so it isn't repeated on every tick.
     const interval = setInterval(() => {
       commands
-        .appsGetAgentServerStatus()
-        .then((s) => {
-          lastPollErrors.current.status = '';
-          setStatus((prev) =>
-            prev && prev.running === s.running && prev.enabled === s.enabled
-              ? prev
-              : s,
-          );
-        })
-        .catch(reportPollError('status'));
-      pollRpcRunning();
-    }, 1000);
+        .appsListAgents()
+        .then(setAgents)
+        .catch(() => undefined);
+      commands
+        .isRpcRunning()
+        .then(setRpcRunning)
+        .catch(() => undefined);
+    }, REFRESH_INTERVAL_MS);
 
     return () => clearInterval(interval);
   }, [addError, refreshAgents]);
@@ -169,6 +151,7 @@ export function AgentSettings() {
 
   const port = status?.port ?? DEFAULT_PORT;
   const revokingName = revoking?.name ?? '';
+  const startError = status?.startError ?? '';
   const portChanged =
     status !== null && portValid && Number(portInput) !== port;
 
@@ -239,6 +222,14 @@ export function AgentSettings() {
             <div className='text-sm text-destructive'>
               <Trans>
                 Port must be between {MIN_PORT} and {MAX_PORT}.
+              </Trans>
+            </div>
+          )}
+          {status?.startError && (
+            <div className='text-sm text-destructive'>
+              <Trans>
+                The agent server couldn&apos;t start: {startError}. Turn it off
+                and on again to retry.
               </Trans>
             </div>
           )}
@@ -441,6 +432,8 @@ function AgentDialog({
       }
     } catch (error) {
       addError(error as CustomError);
+      // The save may have failed because a wallet was deleted, which changes the saved scope.
+      onChanged();
     } finally {
       setPending(false);
     }

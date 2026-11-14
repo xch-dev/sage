@@ -126,6 +126,29 @@ impl AppsDb {
         Ok(result.rows_affected() > 0)
     }
 
+    /// Drops wallets that no longer exist from every agent's scope.
+    pub async fn retain_agent_wallets(&self, existing: &[u32]) -> Result<()> {
+        for agent in self.list_agents().await? {
+            let SageAppWalletScope::SelectedWallets { fingerprints } = &agent.wallet_scope else {
+                continue;
+            };
+
+            let kept: Vec<u32> = fingerprints
+                .iter()
+                .copied()
+                .filter(|fingerprint| existing.contains(fingerprint))
+                .collect();
+
+            if kept.len() != fingerprints.len() {
+                let scope = SageAppWalletScope::SelectedWallets { fingerprints: kept };
+                self.update_agent(&agent.id, &agent.name, &agent.capabilities, &scope)
+                    .await?;
+            }
+        }
+
+        Ok(())
+    }
+
     pub async fn set_agent_token_hash(&self, id: &str, token_hash: &str) -> Result<bool> {
         let result = sqlx::query(
             r"
@@ -238,6 +261,34 @@ mod tests {
             Some(agent.clone())
         );
         assert_eq!(db.get_agent(&agent.id).await.unwrap(), Some(agent));
+    }
+
+    #[tokio::test]
+    async fn deleted_wallets_are_dropped_from_scopes() {
+        let base = tempdir().unwrap();
+        let db = AppsDb::initialize(base.path()).await.unwrap();
+        let all = sample("all");
+        let mut selected = sample("selected");
+        selected.wallet_scope = SageAppWalletScope::SelectedWallets {
+            fingerprints: vec![7, 8],
+        };
+        db.insert_agent(&all, "h1").await.unwrap();
+        db.insert_agent(&selected, "h2").await.unwrap();
+
+        db.retain_agent_wallets(&[8, 9]).await.unwrap();
+
+        let scope = |id: &str| {
+            let db = db.clone();
+            let id = id.to_string();
+            async move { db.get_agent(&id).await.unwrap().unwrap().wallet_scope }
+        };
+        assert_eq!(scope(&all.id).await, SageAppWalletScope::AllWallets);
+        assert_eq!(
+            scope(&selected.id).await,
+            SageAppWalletScope::SelectedWallets {
+                fingerprints: vec![8]
+            }
+        );
     }
 
     #[tokio::test]

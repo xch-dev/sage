@@ -67,7 +67,7 @@ Every tool acts on the wallet currently logged in to Sage. If no wallet is logge
 - **Rotate token** (in the edit dialog) issues a new token and immediately invalidates the old one. Update your client with the new token.
 - **Revoke** deletes the agent after a confirmation. Its token stops working immediately, even for connected clients.
 
-If the current wallet is outside an agent's scope, its calls fail until you switch back.
+If the current wallet is outside an agent's scope, its calls fail with `wallet_not_in_scope` until you switch back. A deleted wallet is dropped from every agent's scope the next time Sage starts or Settings lists the agents, so importing it again later doesn't give an agent access back.
 
 ## Security
 

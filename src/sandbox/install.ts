@@ -108,7 +108,7 @@ function appsCommand(cmd: string): unknown {
       return false;
     // The agent server binds a real port, so Settings shows it as stopped with no agents.
     case 'apps_get_agent_server_status':
-      return { running: false, enabled: false, port: 9258 };
+      return { running: false, enabled: false, port: 9258, startError: null };
     case 'apps_list_agents':
     case 'apps_list_agent_capabilities':
       return [];

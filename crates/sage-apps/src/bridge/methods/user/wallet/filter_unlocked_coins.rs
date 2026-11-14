@@ -58,7 +58,7 @@ impl BridgeMethod for WalletFilterUnlockedCoins {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
@@ -70,9 +70,8 @@ impl BridgeMethod for WalletFilterUnlockedCoins {
         }
 
         let response = tools
-            .app_state
-            .lock()
-            .await
+            .sage(&ctx)
+            .await?
             .filter_unlocked_coins(params.into())
             .await
             .map_err(|err| {

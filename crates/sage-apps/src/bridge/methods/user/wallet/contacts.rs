@@ -160,12 +160,12 @@ impl BridgeMethod for WalletGetContacts {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: GetContacts = parse_required_params(self, request)?;
-        let sage = tools.app_state.lock().await;
+        let sage = tools.sage(&ctx).await?;
 
         let result = sage
             .get_contacts(params)
@@ -191,12 +191,12 @@ impl BridgeMethod for WalletLookupAddressContacts {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: LookupAddressContacts = parse_required_params(self, request)?;
-        let sage = tools.app_state.lock().await;
+        let sage = tools.sage(&ctx).await?;
 
         let result = sage
             .lookup_address_contacts(params)

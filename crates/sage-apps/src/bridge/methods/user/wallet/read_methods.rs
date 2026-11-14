@@ -8,7 +8,7 @@ use sage_api::{
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    UserBridgeCapability, parse_required_params, require_loaded_wallet_in_scope,
+    UserBridgeCapability, parse_required_params,
 };
 
 macro_rules! define_wallet_read_no_params_async_method {
@@ -40,8 +40,7 @@ macro_rules! define_wallet_read_no_params_async_method {
                 tools: BridgeTools<'_>,
                 _request: &RustBridgeRequest,
             ) -> BridgeHandleResult {
-                let sage = tools.app_state.lock().await;
-                require_loaded_wallet_in_scope(&ctx, &sage)?;
+                let sage = tools.sage(&ctx).await?;
 
                 let result = sage.$handler($request_ident {}).await.map_err(|err| {
                     BridgeMethodHandleError::internal_error(format!(
@@ -85,8 +84,7 @@ macro_rules! define_wallet_read_no_params_sync_method {
                 tools: BridgeTools<'_>,
                 _request: &RustBridgeRequest,
             ) -> BridgeHandleResult {
-                let sage = tools.app_state.lock().await;
-                require_loaded_wallet_in_scope(&ctx, &sage)?;
+                let sage = tools.sage(&ctx).await?;
 
                 let result = sage.$handler($request_ident {}).map_err(|err| {
                     BridgeMethodHandleError::internal_error(format!(
@@ -132,8 +130,7 @@ macro_rules! define_wallet_read_params_async_method {
             ) -> BridgeHandleResult {
                 let params: $request_ty = parse_required_params(self, request)?;
 
-                let sage = tools.app_state.lock().await;
-                require_loaded_wallet_in_scope(&ctx, &sage)?;
+                let sage = tools.sage(&ctx).await?;
 
                 let result = sage.$handler(params).await.map_err(|err| {
                     BridgeMethodHandleError::internal_error(format!(

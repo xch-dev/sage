@@ -36,6 +36,7 @@ use crate::{
 const INSTRUCTIONS: &str = "Tools act on the wallet that is currently open in Sage. \
      Only the tools this agent has been granted are listed.";
 const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
+const LAST_USED_RESOLUTION_MS: i64 = 60_000;
 
 #[derive(Debug, Clone)]
 pub(crate) struct AuthenticatedAgent(pub SageAgent);
@@ -139,13 +140,13 @@ async fn authenticate(State(db): State<AppsDb>, mut request: Request, next: Next
         Ok(None) => return unauthorized(),
         Err(err) => {
             error!("agent token lookup failed: {err:#}");
-            return unauthorized();
+            return unavailable();
         }
     };
 
-    if let Err(err) = db
-        .touch_agent_last_used(&agent.id, unix_timestamp_ms())
-        .await
+    let now = unix_timestamp_ms();
+    if last_used_is_stale(agent.last_used_at_ms, now)
+        && let Err(err) = db.touch_agent_last_used(&agent.id, now).await
     {
         warn!("failed to record agent {} last use: {err:#}", agent.id);
     }
@@ -161,6 +162,18 @@ fn bearer_token(headers: &HeaderMap) -> Option<AgentToken> {
         return None;
     }
     AgentToken::parse(token.trim())
+}
+
+/// Last use is shown to the minute, so most requests skip the write.
+fn last_used_is_stale(last_used_at_ms: Option<i64>, now_ms: i64) -> bool {
+    last_used_at_ms.is_none_or(|last| now_ms.saturating_sub(last) >= LAST_USED_RESOLUTION_MS)
+}
+
+/// A failed lookup says nothing about the token, so it must not read as a revoked one.
+fn unavailable() -> Response {
+    let mut response = Response::new(Body::empty());
+    *response.status_mut() = StatusCode::SERVICE_UNAVAILABLE;
+    response
 }
 
 fn unauthorized() -> Response {
@@ -741,6 +754,28 @@ mod tests {
         )
         .await;
         assert!(!response.status().is_success(), "{}", response.status());
+    }
+
+    #[tokio::test]
+    async fn lookup_failure_is_not_reported_as_unauthorized() {
+        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        f.db.pool().close().await;
+
+        let response = post_initialize(&f.router, Some(&f.bearer())).await;
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[test]
+    fn last_used_is_rewritten_once_a_minute() {
+        assert!(last_used_is_stale(None, 0));
+        assert!(!last_used_is_stale(
+            Some(1_000),
+            1_000 + LAST_USED_RESOLUTION_MS - 1
+        ));
+        assert!(last_used_is_stale(
+            Some(1_000),
+            1_000 + LAST_USED_RESOLUTION_MS
+        ));
     }
 
     #[tokio::test]

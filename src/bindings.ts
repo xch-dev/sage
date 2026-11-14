@@ -669,7 +669,11 @@ address: string;
  */
 handles: HandleRecord[] }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
-export type AgentServerStatus = { running: boolean; enabled: boolean; port: number }
+export type AgentServerStatus = { running: boolean; enabled: boolean; port: number; 
+/**
+ * Why the server failed to start with Sage, while it is still stopped.
+ */
+startError: string | null }
 export type Amount = string | number
 export type AppLaunchGateResult = { allowed: boolean; kind: string; capability: SandboxCapability | null; message: string | null }
 export type AppModalPresentation = { visibleOverAppIds: string[]; visibleOverLaunchpad: boolean; priority: number }

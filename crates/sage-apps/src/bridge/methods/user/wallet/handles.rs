@@ -64,12 +64,12 @@ impl BridgeMethod for WalletResolveHandle {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: ResolveHandle = parse_required_params(self, request)?;
-        let sage = tools.app_state.lock().await;
+        let sage = tools.sage(&ctx).await?;
 
         let mut result = sage
             .resolve_handle(params)
@@ -96,12 +96,12 @@ impl BridgeMethod for WalletGetHandle {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: GetHandle = parse_required_params(self, request)?;
-        let sage = tools.app_state.lock().await;
+        let sage = tools.sage(&ctx).await?;
 
         let mut result = sage
             .get_handle(params)
@@ -147,14 +147,14 @@ impl BridgeMethod for WalletGetHandles {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: GetHandles = parse_required_params(self, request)?;
         validate_get_handles(&params)?;
 
-        let sage = tools.app_state.lock().await;
+        let sage = tools.sage(&ctx).await?;
 
         let result = sage
             .get_handles(params)
@@ -180,12 +180,12 @@ impl BridgeMethod for WalletLookupAddressHandles {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: LookupAddressHandles = parse_required_params(self, request)?;
-        let sage = tools.app_state.lock().await;
+        let sage = tools.sage(&ctx).await?;
 
         let result = sage
             .lookup_address_handles(params)

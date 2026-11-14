@@ -46,11 +46,11 @@ impl BridgeMethod for WalletListWallets {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let sage = tools.app_state.lock().await;
+        let sage = tools.sage(&ctx).await?;
 
         let wallets = sage.get_wallets(GetWallets {}).map_err(|err| {
             BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))

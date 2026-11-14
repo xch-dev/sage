@@ -73,7 +73,7 @@ impl BridgeMethod for AppGetInfo {
         tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let network_id = tools.app_state.lock().await.network_id();
+        let network_id = tools.sage(&ctx).await?.network_id();
 
         let result = ctx.app()?.with(|app| {
             let network = effective_network_permissions(

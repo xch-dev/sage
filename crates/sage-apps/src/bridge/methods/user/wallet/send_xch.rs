@@ -105,6 +105,7 @@ impl From<WalletSendXchParams> for SendXch {
 }
 
 async fn execute_send_xch(
+    ctx: BridgeContext<'_>,
     tools: BridgeTools<'_>,
     params: WalletSendXchParams,
     confirmed_address: Option<String>,
@@ -119,9 +120,8 @@ async fn execute_send_xch(
     }
 
     let result = tools
-        .app_state
-        .lock()
-        .await
+        .sage(&ctx)
+        .await?
         .send_xch(request)
         .await
         .map_err(|err| {
@@ -194,9 +194,8 @@ impl BridgeMethod for WalletSendXch {
             && is_handle_recipient(summary)
         {
             let result = tools
-                .app_state
-                .lock()
-                .await
+                .sage(&ctx)
+                .await?
                 .resolve_handle(ResolveHandle {
                     handle: summary.address.trim().to_string(),
                 })
@@ -228,18 +227,18 @@ impl BridgeMethod for WalletSendXch {
     async fn handle_approved(
         &self,
         approval: &RustBridgeApprovalRequest,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
         response: Option<&RustBridgeApprovalResponse>,
     ) -> BridgeHandleResult {
         let (params, confirmed_address) = approved_send_xch_params(approval, response)?;
-        execute_send_xch(tools, params, confirmed_address).await
+        execute_send_xch(ctx, tools, params, confirmed_address).await
     }
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
@@ -253,7 +252,7 @@ impl BridgeMethod for WalletSendXch {
             ));
         }
 
-        execute_send_xch(tools, params, None).await
+        execute_send_xch(ctx, tools, params, None).await
     }
 }
 

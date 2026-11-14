@@ -9,7 +9,7 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::{
-    AgentServerHandle, AgentServerSettings, AgentToken, AppsDb, AppsHostState,
+    AgentServerHandle, AgentServerSettings, AgentToken, AppState, AppsDb, AppsHostState,
     CapabilityDefinition, CapabilityFlags, Result, SageAgent, SageAppCapabilityDefinitionView,
     SageAppWalletScope, SageAppsError, TauriAgentExecutor, UserBridgeCapability,
     agent_grantable_capabilities, get_user_capability_definition, start_agent_server,
@@ -19,12 +19,20 @@ use crate::{
 const MAX_AGENT_NAME_LEN: usize = 64;
 const MIN_AGENT_SERVER_PORT: u16 = 1024;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentServerStatus {
     pub running: bool,
     pub enabled: bool,
     pub port: u16,
+    /// Why the server failed to start with Sage, while it is still stopped.
+    pub start_error: Option<String>,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct AgentServerState {
+    handle: Option<AgentServerHandle>,
+    start_error: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Type)]
@@ -67,6 +75,29 @@ pub(crate) fn validate_agent_request(
     Ok(())
 }
 
+fn validate_wallet_scope(
+    wallet_scope: &SageAppWalletScope,
+    existing: &[u32],
+) -> std::result::Result<(), String> {
+    let SageAppWalletScope::SelectedWallets { fingerprints } = wallet_scope else {
+        return Ok(());
+    };
+
+    match fingerprints.iter().find(|f| !existing.contains(f)) {
+        Some(fingerprint) => Err(format!("Wallet {fingerprint} doesn't exist")),
+        None => Ok(()),
+    }
+}
+
+async fn wallet_fingerprints(app_state: &AppState) -> Vec<u32> {
+    let sage = app_state.lock().await;
+    sage.wallet_config
+        .wallets
+        .iter()
+        .map(|wallet| wallet.fingerprint)
+        .collect()
+}
+
 fn bad_request(reason: impl Into<String>) -> SageAppsError {
     SageAppsError {
         kind: ErrorKind::Api,
@@ -81,15 +112,16 @@ fn not_found(id: &str) -> SageAppsError {
     }
 }
 
-fn server_status(
-    settings: AgentServerSettings,
-    server: Option<&AgentServerHandle>,
-) -> AgentServerStatus {
-    let running_port = server.map(AgentServerHandle::port);
+fn server_status(settings: AgentServerSettings, server: &AgentServerState) -> AgentServerStatus {
+    let running_port = server.handle.as_ref().map(AgentServerHandle::port);
     AgentServerStatus {
         running: running_port.is_some(),
         enabled: settings.enabled,
         port: running_port.unwrap_or(settings.port),
+        start_error: match running_port {
+            Some(_) => None,
+            None => server.start_error.clone().filter(|_| settings.enabled),
+        },
     }
 }
 
@@ -183,6 +215,11 @@ fn server_starter(
 pub async fn start_agent_server_if_enabled(app_handle: AppHandle) {
     let state = app_handle.state::<AppsHostState>();
 
+    let wallets = wallet_fingerprints(&app_handle.state::<AppState>()).await;
+    if let Err(err) = state.db.retain_agent_wallets(&wallets).await {
+        error!("failed to drop deleted wallets from agent scopes: {err}");
+    }
+
     let settings = match state.db.get_agent_server_settings().await {
         Ok(settings) => settings,
         Err(err) => {
@@ -197,8 +234,9 @@ pub async fn start_agent_server_if_enabled(app_handle: AppHandle) {
 
     let mut server = state.agent_server.lock().await;
     let start = server_starter(&app_handle, &state);
-    if let Err(err) = change_server(&mut server, true, settings.port, start).await {
+    if let Err(err) = change_server(&mut server.handle, true, settings.port, start).await {
         error!("failed to start agent server: {err}");
+        server.start_error = Some(err.to_string());
     }
 }
 
@@ -209,7 +247,7 @@ pub async fn apps_get_agent_server_status(
 ) -> Result<AgentServerStatus> {
     let server = apps_state.agent_server.lock().await;
     let settings = apps_state.db.get_agent_server_settings().await?;
-    Ok(server_status(settings, server.as_ref()))
+    Ok(server_status(settings, &server))
 }
 
 #[command]
@@ -230,13 +268,19 @@ pub async fn apps_set_agent_server_settings(
 
     let settings = AgentServerSettings { enabled, port };
     let start = server_starter(&app_handle, &apps_state);
-    apply_server_settings(&apps_state.db, &mut server, settings, start).await?;
-    Ok(server_status(settings, server.as_ref()))
+    apply_server_settings(&apps_state.db, &mut server.handle, settings, start).await?;
+    server.start_error = None;
+    Ok(server_status(settings, &server))
 }
 
 #[command]
 #[specta::specta]
-pub async fn apps_list_agents(apps_state: State<'_, AppsHostState>) -> Result<Vec<SageAgent>> {
+pub async fn apps_list_agents(
+    app_state: State<'_, AppState>,
+    apps_state: State<'_, AppsHostState>,
+) -> Result<Vec<SageAgent>> {
+    let wallets = wallet_fingerprints(&app_state).await;
+    apps_state.db.retain_agent_wallets(&wallets).await?;
     Ok(apps_state.db.list_agents().await?)
 }
 
@@ -252,12 +296,15 @@ pub async fn apps_list_agent_capabilities() -> Result<Vec<SageAppCapabilityDefin
 #[command]
 #[specta::specta]
 pub async fn apps_create_agent(
+    app_state: State<'_, AppState>,
     apps_state: State<'_, AppsHostState>,
     name: String,
     capabilities: Vec<UserBridgeCapability>,
     wallet_scope: SageAppWalletScope,
 ) -> Result<CreatedAgent> {
     validate_agent_request(&name, &capabilities).map_err(bad_request)?;
+    validate_wallet_scope(&wallet_scope, &wallet_fingerprints(&app_state).await)
+        .map_err(bad_request)?;
 
     let now = unix_timestamp_ms();
     let agent = SageAgent {
@@ -282,6 +329,7 @@ pub async fn apps_create_agent(
 #[command]
 #[specta::specta]
 pub async fn apps_update_agent(
+    app_state: State<'_, AppState>,
     apps_state: State<'_, AppsHostState>,
     id: String,
     name: String,
@@ -289,6 +337,8 @@ pub async fn apps_update_agent(
     wallet_scope: SageAppWalletScope,
 ) -> Result<SageAgent> {
     validate_agent_request(&name, &capabilities).map_err(bad_request)?;
+    validate_wallet_scope(&wallet_scope, &wallet_fingerprints(&app_state).await)
+        .map_err(bad_request)?;
 
     let capabilities = capabilities.into_iter().collect();
     if !apps_state
@@ -412,8 +462,47 @@ mod tests {
             enabled: true,
             port: busy_port,
         };
-        assert_eq!(server_status(settings, server.as_ref()).port, old_port);
-        server.take().unwrap().stop().await;
+        let mut state = AgentServerState {
+            handle: server,
+            start_error: Some("stale".to_string()),
+        };
+        let status = server_status(settings, &state);
+        assert_eq!(status.port, old_port);
+        assert_eq!(status.start_error, None);
+        state.handle.take().unwrap().stop().await;
+    }
+
+    #[test]
+    fn scope_naming_a_missing_wallet_is_rejected() {
+        let scope = |fingerprints: &[u32]| SageAppWalletScope::SelectedWallets {
+            fingerprints: fingerprints.to_vec(),
+        };
+
+        assert!(validate_wallet_scope(&SageAppWalletScope::AllWallets, &[]).is_ok());
+        assert!(validate_wallet_scope(&scope(&[7]), &[7, 8]).is_ok());
+        assert!(validate_wallet_scope(&scope(&[7, 9]), &[7, 8]).is_err());
+    }
+
+    #[test]
+    fn start_error_is_reported_only_while_enabled_and_stopped() {
+        let state = AgentServerState {
+            handle: None,
+            start_error: Some("address in use".to_string()),
+        };
+        let enabled = AgentServerSettings {
+            enabled: true,
+            port: 9258,
+        };
+        let disabled = AgentServerSettings {
+            enabled: false,
+            port: 9258,
+        };
+
+        assert_eq!(
+            server_status(enabled, &state).start_error.as_deref(),
+            Some("address in use")
+        );
+        assert_eq!(server_status(disabled, &state).start_error, None);
     }
 
     #[tokio::test]

@@ -1,5 +1,8 @@
 use async_trait::async_trait;
+use sage::Sage;
 use serde::de::DeserializeOwned;
+use tauri::{AppHandle, State};
+use tokio::sync::MutexGuard;
 
 use crate::{
     AppState, AppsHostState, BridgeCapability, RustBridgeApprovalRequest,
@@ -83,7 +86,7 @@ pub(crate) enum BridgeCaller<'a> {
     Agent(&'a SageAgent),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct BridgeContext<'a> {
     pub caller: BridgeCaller<'a>,
 }
@@ -105,13 +108,58 @@ impl BridgeContext<'_> {
             BridgeCaller::Agent(agent) => agent.is_wallet_in_scope(fingerprint),
         }
     }
+
+    /// Rejects a loaded wallet outside the caller's scope, without naming it.
+    pub fn require_wallet_in_scope(
+        &self,
+        loaded_fingerprint: Option<u32>,
+    ) -> Result<(), BridgeMethodHandleError> {
+        match loaded_fingerprint {
+            Some(fingerprint) if !self.is_wallet_in_scope(fingerprint) => {
+                Err(BridgeMethodHandleError::new(
+                    "wallet_not_in_scope",
+                    "the current wallet is outside the caller's wallet scope",
+                ))
+            }
+            _ => Ok(()),
+        }
+    }
 }
 
 #[derive(Debug)]
 pub(crate) struct BridgeTools<'a> {
-    pub app_handle: &'a tauri::AppHandle,
-    pub app_state: &'a tauri::State<'a, AppState>,
-    pub host_state: &'a tauri::State<'a, AppsHostState>,
+    pub app_handle: &'a AppHandle,
+    pub host_state: &'a State<'a, AppsHostState>,
+    app_state: &'a State<'a, AppState>,
+}
+
+impl<'a> BridgeTools<'a> {
+    pub fn new(
+        app_handle: &'a AppHandle,
+        app_state: &'a State<'a, AppState>,
+        host_state: &'a State<'a, AppsHostState>,
+    ) -> Self {
+        Self {
+            app_handle,
+            host_state,
+            app_state,
+        }
+    }
+
+    /// Locks the wallet state, refusing callers whose scope excludes the loaded wallet.
+    pub async fn sage(
+        &self,
+        ctx: &BridgeContext<'_>,
+    ) -> Result<MutexGuard<'a, Sage>, BridgeMethodHandleError> {
+        let sage = self.app_state.lock().await;
+        ctx.require_wallet_in_scope(sage.config.global.fingerprint)?;
+        Ok(sage)
+    }
+
+    /// The wallet state without a scope check, for callers that authorize the request themselves.
+    pub fn unscoped_app_state(&self) -> &'a State<'a, AppState> {
+        self.app_state
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -240,5 +288,22 @@ mod bridge_caller_tests {
 
         assert!(ctx.is_wallet_in_scope(7));
         assert!(!ctx.is_wallet_in_scope(8));
+    }
+
+    #[test]
+    fn out_of_scope_wallet_is_refused_without_naming_it() {
+        let agent = agent(SageAppWalletScope::SelectedWallets {
+            fingerprints: vec![7],
+        });
+        let ctx = BridgeContext {
+            caller: BridgeCaller::Agent(&agent),
+        };
+
+        assert!(ctx.require_wallet_in_scope(Some(7)).is_ok());
+        assert!(ctx.require_wallet_in_scope(None).is_ok());
+
+        let err = ctx.require_wallet_in_scope(Some(8)).unwrap_err();
+        assert_eq!(err.code, "wallet_not_in_scope");
+        assert!(!err.message.contains('8'));
     }
 }

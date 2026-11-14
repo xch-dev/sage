@@ -253,7 +253,7 @@ impl BridgeMethod for WalletSignCoinSpends {
 
     async fn prepare_approval(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
@@ -261,9 +261,8 @@ impl BridgeMethod for WalletSignCoinSpends {
         validate_params(&params)?;
 
         let summary = tools
-            .app_state
-            .lock()
-            .await
+            .sage(&ctx)
+            .await?
             .view_coin_spends(params.preview_request())
             .await
             .map_err(|err| {
@@ -284,7 +283,7 @@ impl BridgeMethod for WalletSignCoinSpends {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
@@ -292,9 +291,8 @@ impl BridgeMethod for WalletSignCoinSpends {
         validate_params(&params)?;
 
         let response = tools
-            .app_state
-            .lock()
-            .await
+            .sage(&ctx)
+            .await?
             .sign_coin_spends(params.into_request())
             .await
             .map_err(|err| {

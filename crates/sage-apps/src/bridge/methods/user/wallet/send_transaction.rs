@@ -153,7 +153,7 @@ impl BridgeMethod for WalletSendTransaction {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
@@ -161,9 +161,8 @@ impl BridgeMethod for WalletSendTransaction {
         validate_params(&params)?;
 
         let response = tools
-            .app_state
-            .lock()
-            .await
+            .sage(&ctx)
+            .await?
             .send_transaction_immediately(params.into())
             .await
             .map_err(|err| {

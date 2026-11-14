@@ -170,11 +170,7 @@ pub(crate) async fn process_agent(
         caller: BridgeCaller::Agent(agent),
     };
     let host_state = app_handle.state::<AppsHostState>();
-    let tools = || BridgeTools {
-        app_handle,
-        app_state,
-        host_state: &host_state,
-    };
+    let tools = || BridgeTools::new(app_handle, app_state, &host_state);
 
     match method.prepare_approval(ctx(), tools(), request).await {
         Ok(Some(_)) => RustBridgeResponse::error(
@@ -236,11 +232,7 @@ async fn process_shared(
             BridgeContext {
                 caller: BridgeCaller::App(app),
             },
-            BridgeTools {
-                app_handle,
-                app_state,
-                host_state: &app_handle.state::<AppsHostState>(),
-            },
+            BridgeTools::new(app_handle, app_state, &app_handle.state::<AppsHostState>()),
             request,
         )
         .await
@@ -288,11 +280,7 @@ async fn execute_bridge_request(
             BridgeContext {
                 caller: BridgeCaller::App(&origin.app),
             },
-            BridgeTools {
-                app_handle,
-                app_state,
-                host_state: &app_handle.state::<AppsHostState>(),
-            },
+            BridgeTools::new(app_handle, app_state, &app_handle.state::<AppsHostState>()),
             request,
         )
         .await;
@@ -337,11 +325,7 @@ async fn execute_approved_bridge_request(
             BridgeContext {
                 caller: BridgeCaller::App(&origin.app),
             },
-            BridgeTools {
-                app_handle,
-                app_state,
-                host_state: &app_handle.state::<AppsHostState>(),
-            },
+            BridgeTools::new(app_handle, app_state, &app_handle.state::<AppsHostState>()),
             &pending.request,
             response,
         )
