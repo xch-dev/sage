@@ -5,7 +5,7 @@ import { nftUri } from '@/lib/nftUri';
 import { cn, formatAddress, isValidAddress } from '@/lib/utils';
 import { plural, t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ReactNode, useCallback, useState } from 'react';
+import { ReactNode, useCallback, useRef, useState } from 'react';
 import { MultiAssetPicker } from './MultiAssetPicker';
 
 export interface NftPickerProps {
@@ -21,8 +21,11 @@ export interface NftPickerProps {
 export function NftPicker({ selected, onToggle, children }: NftPickerProps) {
   const [listed, setListed] = useState<string[]>([]);
   const thumbnails = useNftThumbnails(listed);
+  // Loads can finish out of order, and only the latest one is shown.
+  const latestLoad = useRef(0);
 
   const load = useCallback(async (query: string, limit: number) => {
+    const thisLoad = ++latestLoad.current;
     const page = isValidAddress(query, 'nft')
       ? await commands.getNft({ nft_id: query }).then(({ nft }) => ({
           items: nft ? [nft] : [],
@@ -44,7 +47,9 @@ export function NftPicker({ selected, onToggle, children }: NftPickerProps) {
             hasMore: data.total > limit,
           }));
 
-    setListed(page.items.map((nft) => nft.launcher_id));
+    if (thisLoad === latestLoad.current) {
+      setListed(page.items.map((nft) => nft.launcher_id));
+    }
     return page;
   }, []);
 

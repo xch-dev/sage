@@ -376,6 +376,47 @@ describe('AssetSelector pickers', () => {
     );
   });
 
+  it('loads thumbnails for the latest NFT search, not an earlier one', async () => {
+    const nft = (id: string, name: string) => ({
+      launcher_id: id,
+      name,
+      metadata_updater_kind: null,
+    });
+    type NftsResponse = Awaited<ReturnType<typeof commands.getNfts>>;
+    let finishFirst: (value: NftsResponse) => void = () => undefined;
+    vi.mocked(commands.getNfts)
+      .mockReturnValueOnce(
+        new Promise<NftsResponse>((resolve) => {
+          finishFirst = resolve;
+        }),
+      )
+      .mockResolvedValueOnce({
+        nfts: [nft('nft1searched', 'Searched NFT')],
+        total: 1,
+      } as unknown as Awaited<ReturnType<typeof commands.getNfts>>);
+    renderOffering(empty);
+
+    // Search while the first list is still loading, then let it finish last.
+    fireEvent.click(screen.getByRole('button', { name: 'NFT' }));
+    fireEvent.change(
+      await screen.findByPlaceholderText('Search by name or paste an NFT ID'),
+      { target: { value: 'Searched' } },
+    );
+    await screen.findByRole('option', { name: /Searched NFT/ });
+    vi.mocked(commands.getNftThumbnail).mockClear();
+    await act(async () => {
+      finishFirst({
+        nfts: [nft('nft1stale', 'Stale NFT')],
+        total: 1,
+      } as unknown as NftsResponse);
+    });
+
+    expect(screen.getByRole('option', { name: /Searched NFT/ })).toBeTruthy();
+    expect(commands.getNftThumbnail).not.toHaveBeenCalledWith({
+      nft_id: 'nft1stale',
+    });
+  });
+
   it('loads more NFTs when there are more than fit', async () => {
     vi.mocked(commands.getNfts).mockResolvedValueOnce({
       nfts: [
