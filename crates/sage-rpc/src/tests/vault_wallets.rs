@@ -6,18 +6,28 @@ use chia_wallet_sdk::{
     driver::{InnerPuzzleSpend, MipsSpend, P2Singleton, Vault, VaultVersion},
     prelude::*,
     test::BlsPair,
-    types::{MessageFlags, MessageSide, puzzles::BlsMember},
+    types::{
+        MessageFlags, MessageSide, Mod,
+        puzzles::{
+            BlsMember, Force1of2RestrictedVariable, Force1of2RestrictedVariableSolution,
+            ForceSingletonRecreationMod, PreventConditionOpcode, PreventMultipleCreateCoinsMod,
+            Timelock,
+        },
+    },
     utils::Address,
 };
 use rand::Rng;
 use sage_api::{
-    AttachVaultSigner, DeleteWallet, ExportVaultConfig, GetKeys, GetSyncStatus, GetVault,
-    GetWallet, GetWalletAddress, GetWallets, ImportVault, ImportVaultConfig, Login,
+    AttachVaultSigner, DeleteKey, DeleteWallet, ExportVaultConfig, GetKeys, GetSyncStatus,
+    GetVault, GetWallet, GetWalletAddress, GetWallets, ImportVault, ImportVaultConfig, Login,
     RebuildVaultConfig, SendXch, VaultConfigSource, VaultMemberKind, VaultRecord,
     VaultRecoveryKeys, VaultState, WalletKind,
 };
-use sage_database::{VaultConfig, VaultMember, VaultSigners};
-use sage_wallet::{build_vault, parse_vault_config_file, vault_config_file, vault_hashes};
+use sage_database::{VaultConfig, VaultMember, VaultRecoveryConfig, VaultSigners};
+use sage_wallet::{
+    build_vault, build_vault_recovery, parse_vault_config_file, recovery_restrictions,
+    vault_config_file, vault_hashes,
+};
 use tokio::time::sleep;
 
 use super::TestApp;
@@ -122,6 +132,114 @@ async fn spend_vault_to(
     sim.spend_coins(ctx.take(), slice::from_ref(custody))?;
 
     Ok(vault.child(new_custody_hash.into(), vault.coin.amount))
+}
+
+/// Starts recovery with the recovery key, moving the vault to the recovery state, which moves it to
+/// `post_recovery` once the timelock expires.
+async fn start_recovery(
+    app: &TestApp,
+    vault: &Vault,
+    config: &VaultConfig,
+    recovery: &SecretKey,
+    post_recovery: &VaultConfig,
+) -> Result<()> {
+    let mut sim = app.sim.lock().await;
+    let mut ctx = SpendContext::new();
+    let hashes = vault_hashes(config)?;
+    let recovery_side = config.recovery.as_ref().expect("the vault has recovery");
+    let recovery_member_hash = hashes.recovery_member_hash.expect("the vault has recovery");
+
+    let built = build_vault_recovery(
+        &mut ctx,
+        &VaultRecoveryConfig {
+            custody: config.custody.clone(),
+            recovery_timelock: recovery_side.timelock,
+            version: recovery_side.version,
+            recovery_custody_hash: vault_hashes(post_recovery)?.custody_hash.into(),
+            amount: vault.coin.amount,
+        },
+        post_recovery,
+    )?;
+
+    let conditions = Conditions::new()
+        .create_coin(
+            built.hashes.custody_hash.into(),
+            vault.coin.amount,
+            Memos::Some(built.memo_list),
+        )
+        .assert_my_amount(vault.coin.amount);
+    let mut spend = MipsSpend::new(ctx.delegated_spend(conditions)?);
+
+    spend.members.insert(
+        hashes.custody_hash,
+        InnerPuzzleSpend::m_of_n(
+            0,
+            vec![],
+            1,
+            vec![hashes.custody_member_hash, recovery_member_hash],
+        ),
+    );
+    let member = ctx.curry(BlsMember::new(recovery.public_key()))?;
+    spend.members.insert(
+        recovery_member_hash,
+        InnerPuzzleSpend::new(
+            0,
+            recovery_restrictions(
+                hashes.custody_member_hash,
+                recovery_side.timelock,
+                recovery_side.version,
+            ),
+            Spend::new(member, NodePtr::NIL),
+        ),
+    );
+
+    // The recovery path's delegated puzzle wrappers, in order.
+    let force_1_of_2 = Force1of2RestrictedVariable::new(
+        hashes.custody_member_hash.into(),
+        0,
+        vec![Timelock::new(recovery_side.timelock).curry_tree_hash()]
+            .tree_hash()
+            .into(),
+        ().tree_hash().into(),
+    );
+    let puzzle = ctx.curry(force_1_of_2)?;
+    let finish_puzzle = built
+        .recovery_finish_puzzle
+        .expect("a recovery state has a finish puzzle");
+    let finish_puzzle_hash = ctx.tree_hash(finish_puzzle).into();
+    let solution = ctx.alloc(&Force1of2RestrictedVariableSolution::new(
+        finish_puzzle_hash,
+    ))?;
+    spend
+        .restrictions
+        .insert(force_1_of_2.curry_tree_hash(), Spend::new(puzzle, solution));
+
+    for opcode in [60, 62, 66, 67] {
+        let wrapper = PreventConditionOpcode::new(opcode);
+        let puzzle = ctx.curry(wrapper)?;
+        spend
+            .restrictions
+            .insert(wrapper.curry_tree_hash(), Spend::new(puzzle, NodePtr::NIL));
+    }
+
+    let puzzle = ctx.alloc_mod::<PreventMultipleCreateCoinsMod>()?;
+    spend.restrictions.insert(
+        PreventMultipleCreateCoinsMod::mod_hash(),
+        Spend::new(puzzle, NodePtr::NIL),
+    );
+
+    if recovery_side.version == VaultVersion::ForceSingletonRecreation {
+        let puzzle = ctx.alloc_mod::<ForceSingletonRecreationMod>()?;
+        spend.restrictions.insert(
+            ForceSingletonRecreationMod::mod_hash(),
+            Spend::new(puzzle, NodePtr::NIL),
+        );
+    }
+
+    vault.spend(&mut ctx, &spend)?;
+    sim.spend_coins(ctx.take(), slice::from_ref(recovery))?;
+
+    Ok(())
 }
 
 async fn wait_for_peer(app: &TestApp) -> Result<()> {
@@ -679,11 +797,18 @@ async fn test_rebuild_after_rekey() -> Result<()> {
 
     wait_for_peer(&app).await?;
 
-    // Only the old custody has been spent through, so only its config can be rebuilt, and the
-    // current one stays unknown.
+    // Only the old custody has been spent through, so only its config can be rebuilt. The keys
+    // don't rebuild the current one, so importing with them says why.
     let recovery_keys = || Some(recovery_key(hex::encode(recovery.pk.to_bytes()), Some(60)));
-    let fingerprint = app
+    let error = app
         .import_vault(import(Some(launcher_id), None, recovery_keys()))
+        .await
+        .expect_err("the current custody hasn't been spent through");
+    assert!(error.to_string().contains("hasn't been spent"), "{error}");
+
+    // Without them, the vault is imported with its current config unknown.
+    let fingerprint = app
+        .import_vault(import(Some(launcher_id), None, None))
         .await?
         .fingerprint;
 
@@ -835,6 +960,72 @@ async fn test_vault_without_config() -> Result<()> {
     Ok(())
 }
 
+/// While recovery is pending, the vault's config is the one from before it started, whose custody
+/// can cancel it and whose recovery members started it.
+#[tokio::test]
+async fn test_vault_recovery_pending() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let custody = BlsPair::new(1);
+    let recovery = BlsPair::new(2);
+    let config = vault_config(custody.pk, recovery.pk);
+    let vault = mint_vault(&app, &config, true).await?;
+    let launcher_id = vault.info.launcher_id;
+
+    wait_for_peer(&app).await?;
+
+    let fingerprint = app
+        .import_vault(import(Some(launcher_id), None, None))
+        .await?
+        .fingerprint;
+    wait_for_vault(&mut app, |record| record.config.is_some()).await?;
+    let exported = app.export_vault_config(ExportVaultConfig {}).await?.config;
+
+    let post_recovery = vault_config(recovery.pk, custody.pk);
+    start_recovery(&app, &vault, &config, &recovery.sk, &post_recovery).await?;
+
+    let record = wait_for_vault(&mut app, |record| {
+        record.state == VaultState::RecoveryPending
+    })
+    .await?;
+    let record_config = record
+        .config
+        .expect("the config from before recovery is known");
+    assert_eq!(
+        record_config.custody.members[0].key,
+        hex::encode(custody.pk.to_bytes())
+    );
+    if let (Some(started_at), Some(finishes_at)) =
+        (record.recovery_started_at, record.recovery_finishes_at)
+    {
+        assert_eq!(finishes_at, started_at + 60);
+    }
+
+    // The config from before recovery is exported, and its keys can be attached in their roles.
+    assert_eq!(
+        app.export_vault_config(ExportVaultConfig {}).await?.config,
+        exported
+    );
+
+    let attached = app
+        .attach_vault_signer(AttachVaultSigner {
+            fingerprint,
+            key: hex::encode(custody.sk.to_bytes()),
+        })
+        .await?;
+    assert!(attached.custody && !attached.recovery);
+
+    let attached = app
+        .attach_vault_signer(AttachVaultSigner {
+            fingerprint,
+            key: hex::encode(recovery.sk.to_bytes()),
+        })
+        .await?;
+    assert!(!attached.custody && attached.recovery);
+
+    Ok(())
+}
+
 #[tokio::test]
 async fn test_attach_vault_signers() -> Result<()> {
     let mut app = TestApp::new().await?;
@@ -941,9 +1132,44 @@ async fn test_attach_vault_signers() -> Result<()> {
         .is_err()
     );
 
-    // Deleting the vault deletes its signers' keys, since nothing else uses them.
+    // A signer's key is in use, so it can't be deleted on its own.
+    let error = app
+        .delete_key(DeleteKey {
+            fingerprint: custody.public_key().get_fingerprint(),
+        })
+        .await
+        .expect_err("the key is used by the vault");
+    assert!(error.to_string().contains("used by a wallet"), "{error}");
+
+    // Another vault with the same recovery key, which is attached to it too.
+    let other_config = vault_config(BlsPair::new(3).pk, recovery.pk);
+    let other = mint_vault(&app, &other_config, true).await?;
+    let other_fingerprint = app
+        .import_vault(import(Some(other.info.launcher_id), None, None))
+        .await?
+        .fingerprint;
+    wait_for_vault(&mut app, |record| record.config.is_some()).await?;
+    app.attach_vault_signer(AttachVaultSigner {
+        fingerprint: other_fingerprint,
+        key: hex::encode(recovery.sk.to_bytes()),
+    })
+    .await?;
+
+    // Deleting the first vault deletes the keys nothing else uses, and keeps the shared one.
     app.delete_wallet(DeleteWallet {
         fingerprint,
+        delete_keys: true,
+    })
+    .await?;
+    let keys = app.get_keys(GetKeys {}).await?.keys;
+    assert_eq!(
+        keys.iter().map(|key| key.fingerprint).collect::<Vec<_>>(),
+        [recovery.pk.get_fingerprint()]
+    );
+
+    // Once nothing uses it, it goes too.
+    app.delete_wallet(DeleteWallet {
+        fingerprint: other_fingerprint,
         delete_keys: true,
     })
     .await?;

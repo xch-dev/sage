@@ -98,6 +98,11 @@ export function ImportWatchWalletForm({
 
       setPending(false);
 
+      // The address may have been changed while it was being looked up, in
+      // which case the result is for another address, and it's submitted again.
+      const current = splitAddresses(form.getValues('addresses'));
+      if (current.length !== 1 || current[0] !== addresses[0]) return;
+
       if (launcherId) {
         setVault(launcherId);
         return;

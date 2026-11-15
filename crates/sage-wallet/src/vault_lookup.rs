@@ -7,13 +7,12 @@
 use chia_wallet_sdk::{
     driver::{Layer, P2Singleton, SingletonLayer},
     prelude::*,
-    puzzles::DELEGATED_PUZZLE_FEEDER_HASH,
     types::puzzles::{
         DelegatedPuzzleFeederArgs, INDEX_WRAPPER_HASH, IndexWrapperArgs, SingletonMember,
     },
 };
 
-use crate::{WalletError, WalletPeer};
+use crate::{WalletError, WalletPeer, is_mips_top_level};
 
 /// How many spent coins at an address are checked for the vault that owns it.
 const MAX_ADDRESS_SPENDS_CHECKED: usize = 10;
@@ -95,22 +94,8 @@ pub fn is_vault_puzzle(puzzle: &Program) -> bool {
         return false;
     };
 
-    let Some(index) = singleton.inner_puzzle.as_curried() else {
-        return false;
-    };
-
-    if index.mod_hash != INDEX_WRAPPER_HASH {
-        return false;
-    }
-
-    let Ok(index) = IndexWrapperArgs::<usize, NodePtr>::from_clvm(&allocator, index.args) else {
-        return false;
-    };
-
-    index.nonce == 0
-        && Puzzle::parse(&allocator, index.inner_puzzle)
-            .as_curried()
-            .is_some_and(|feeder| feeder.mod_hash == DELEGATED_PUZZLE_FEEDER_HASH.into())
+    // Sync treats the same singletons as vaults.
+    is_mips_top_level(&allocator, singleton.inner_puzzle)
 }
 
 /// What was found about the vault that owns an address.

@@ -41,6 +41,22 @@ export function timelockSeconds(
   return seconds > 0 && Number.isSafeInteger(seconds) ? seconds : undefined;
 }
 
+/** A timelock in seconds, split into the days, hours, and minutes it's
+ *  entered in, plus any seconds left over. */
+export function timelockParts(seconds: number): {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+} {
+  return {
+    days: Math.floor(seconds / 86_400),
+    hours: Math.floor((seconds % 86_400) / 3600),
+    minutes: Math.floor((seconds % 3600) / 60),
+    seconds: seconds % 60,
+  };
+}
+
 /** The recovery keys, threshold, and timelock as entered. */
 export interface RecoveryInput {
   keys: string;

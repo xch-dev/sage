@@ -38,6 +38,7 @@ import { keyWalletName } from '@/lib/walletKind';
 import {
   EMPTY_RECOVERY,
   RecoveryInput,
+  timelockParts,
   vaultRecoveryKeys,
 } from '@/lib/vaultRecovery';
 import { t } from '@lingui/core/macro';
@@ -76,16 +77,18 @@ function memberKindLabel(kind: VaultMemberKind): string {
   }
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds % 86_400 === 0) {
-    const days = seconds / 86_400;
-    return days === 1 ? t`1 day` : t`${days} days`;
-  }
-  if (seconds % 3600 === 0) {
-    const hours = seconds / 3600;
-    return hours === 1 ? t`1 hour` : t`${hours} hours`;
-  }
-  return t`${seconds} seconds`;
+/** A timelock in the same units it's entered in, such as "12 hours 30 minutes". */
+function formatDuration(timelock: number): string {
+  const { days, hours, minutes, seconds } = timelockParts(timelock);
+
+  return [
+    days === 1 ? t`1 day` : days > 0 ? t`${days} days` : null,
+    hours === 1 ? t`1 hour` : hours > 0 ? t`${hours} hours` : null,
+    minutes === 1 ? t`1 minute` : minutes > 0 ? t`${minutes} minutes` : null,
+    seconds === 1 ? t`1 second` : seconds > 0 ? t`${seconds} seconds` : null,
+  ]
+    .filter((part) => part !== null)
+    .join(' ');
 }
 
 function SignersList({ signers }: { signers: VaultSignersRecord }) {
@@ -439,32 +442,32 @@ export default function Vault() {
           <CardContent className='space-y-4'>
             {vault && vault.signers.length > 0 ? (
               <ul className='space-y-2'>
-                {vault.signers.map((signer) => (
-                  <li
-                    key={signer.fingerprint}
-                    className='flex flex-wrap items-center gap-2 text-sm'
-                  >
-                    <KeyRound className='h-4 w-4' aria-hidden='true' />
-                    {keyWalletName(wallets, signer.fingerprint) && (
-                      <span className='font-medium'>
-                        {keyWalletName(wallets, signer.fingerprint)}
+                {vault.signers.map((signer) => {
+                  const name = keyWalletName(wallets, signer.fingerprint);
+
+                  return (
+                    <li
+                      key={signer.fingerprint}
+                      className='flex flex-wrap items-center gap-2 text-sm'
+                    >
+                      <KeyRound className='h-4 w-4' aria-hidden='true' />
+                      {name && <span className='font-medium'>{name}</span>}
+                      <span className='font-mono text-muted-foreground'>
+                        {signer.fingerprint}
                       </span>
-                    )}
-                    <span className='font-mono text-muted-foreground'>
-                      {signer.fingerprint}
-                    </span>
-                    {signer.custody && (
-                      <Badge variant='outline'>
-                        <Trans>Custody</Trans>
-                      </Badge>
-                    )}
-                    {signer.recovery && (
-                      <Badge variant='outline'>
-                        <Trans>Recovery</Trans>
-                      </Badge>
-                    )}
-                  </li>
-                ))}
+                      {signer.custody && (
+                        <Badge variant='outline'>
+                          <Trans>Custody</Trans>
+                        </Badge>
+                      )}
+                      {signer.recovery && (
+                        <Badge variant='outline'>
+                          <Trans>Recovery</Trans>
+                        </Badge>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className='text-sm text-muted-foreground'>

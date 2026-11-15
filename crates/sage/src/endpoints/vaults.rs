@@ -53,8 +53,8 @@ impl Sage {
 
         // The vault must exist, and a config file must rebuild its custody on chain, as must
         // recovery keys from its spends.
-        // If a rebuilt config isn't the current one, it's still stored, since it's verified, but the
-        // current config stays unknown.
+        // Recovery keys that only rebuild an older config are an error, as when rebuilding later,
+        // unless recovery is pending and it's the config from before recovery started.
         let config = if let Some(candidates) = config_file {
             let latest = self.latest_vault_coin(launcher_id).await?;
             Some(matching_config(
@@ -63,11 +63,15 @@ impl Sage {
                 latest.coin.puzzle_hash,
             )?)
         } else if let Some(recovery) = &req.recovery {
-            Some(
-                self.rebuild_config(launcher_id, Some(recovery), MAX_VAULT_SPENDS_CHECKED)
-                    .await?
-                    .row,
-            )
+            let rebuilt = self
+                .rebuild_config(launcher_id, Some(recovery), MAX_VAULT_SPENDS_CHECKED)
+                .await?;
+
+            if !rebuilt.is_current && !rebuilt.in_recovery {
+                return Err(Error::VaultCustodyUnrevealed);
+            }
+
+            Some(rebuilt.row)
         } else {
             // A vault without recovery is rebuilt from its spends alone. Otherwise, its config is
             // read from its memos, or stays unknown until it's rebuilt with its recovery keys.
@@ -322,7 +326,7 @@ impl Sage {
     }
 
     pub async fn find_vault(&self, req: FindVault) -> Result<FindVaultResponse> {
-        let p2_puzzle_hash = Address::decode(req.address.trim())?.puzzle_hash;
+        let p2_puzzle_hash = self.parse_address(req.address.trim().to_string())?;
 
         let launcher_id = match self.find_vault_by_address(p2_puzzle_hash).await {
             Ok(launcher_id) => Some(encode_vault_id(launcher_id)?),

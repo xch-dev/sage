@@ -687,6 +687,11 @@ async fn test_rebuild_during_recovery() -> anyhow::Result<()> {
         &recovery,
         VaultVersion::ForceSingletonRecreation,
     );
+    let third_config = vault_config(
+        &BlsPair::new(5),
+        &recovery,
+        VaultVersion::ForceSingletonRecreation,
+    );
 
     let vault = mint(&test, &config, false).await?;
     let custody_hash = vault.custody_hash();
@@ -697,14 +702,17 @@ async fn test_rebuild_during_recovery() -> anyhow::Result<()> {
     .await?;
     let vault = vault.child(custody_hash);
 
-    // Recovery is started and cancelled, then started again to other custody, and the vault is
-    // recreated while it's pending. Each recovery state has its own custody hash.
+    // Recovery is started and cancelled twice, each time to another custody, then started a third
+    // time, and the vault is recreated while it's pending. Each recovery state has its own custody
+    // hash, and none of them uses up the searches for older custodies.
     let vault = start_recovery(&test, &vault, &config, &recovery, &new_config).await?;
     let vault = cancel_recovery(&test, &vault, &config, &custody, &new_config).await?;
     let vault = start_recovery(&test, &vault, &config, &recovery, &other_config).await?;
+    let vault = cancel_recovery(&test, &vault, &config, &custody, &other_config).await?;
+    let vault = start_recovery(&test, &vault, &config, &recovery, &third_config).await?;
 
     let mut ctx = SpendContext::new();
-    let (hashes, _) = recovery_state(&mut ctx, &config, &other_config, amount)?;
+    let (hashes, _) = recovery_state(&mut ctx, &config, &third_config, amount)?;
     let recovery_hash = vault.custody_hash();
     custody_spend(&test, &vault, hashes, &custody, |_| {
         Ok(Conditions::new().create_coin(recovery_hash, amount, Memos::None))

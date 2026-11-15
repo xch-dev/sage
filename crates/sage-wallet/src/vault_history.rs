@@ -629,6 +629,9 @@ pub struct RebuiltVaultConfig {
     pub row: VaultConfigRow,
     /// Whether it's the config of the vault's latest coin.
     pub is_current: bool,
+    /// Whether the vault's latest coin is in the recovery state, in which case an older config can
+    /// be the one from before recovery started.
+    pub in_recovery: bool,
 }
 
 /// Rebuilds the config of a vault's current custody from its spends, from the latest spend back. Up
@@ -667,20 +670,54 @@ pub async fn rebuild_vault_config(
     let mut older_searches = 0;
     let mut older: Option<VaultConfigRow> = None;
 
-    let spent = lineage
-        .iter()
-        .rev()
-        .filter_map(|coin_state| Some((coin_state.coin.coin_id(), coin_state.spent_height?)))
-        .take(max_spends);
+    // The custody each spend revealed, from the latest spend back. A spend through the recovery side
+    // reveals none.
+    let mut spends = Vec::new();
 
-    for (coin_id, spent_height) in spent {
-        let (puzzle, solution) = peer.fetch_puzzle_solution(coin_id, spent_height).await?;
+    for (index, coin_state) in lineage.iter().enumerate().rev() {
+        if spends.len() >= max_spends {
+            break;
+        }
 
-        let Some(reveal) = parse_vault_spend(launcher_id, &puzzle, &solution) else {
+        let Some(spent_height) = coin_state.spent_height else {
             continue;
         };
 
+        let (puzzle, solution) = peer
+            .fetch_puzzle_solution(coin_state.coin.coin_id(), spent_height)
+            .await?;
+
+        spends.push((index, parse_vault_spend(launcher_id, &puzzle, &solution)));
+    }
+
+    // A spend through the recovery side starts recovery, so the coin it creates is in the recovery
+    // state, as is the vault whenever its custody recreates it before recovery finishes or is
+    // cancelled. The recovery state can't be rebuilt, so it isn't searched for.
+    let recovery_coins: HashSet<Bytes32> = spends
+        .iter()
+        .filter(|(_, reveal)| reveal.is_none())
+        .filter_map(|(index, _)| lineage.get(index + 1))
+        .map(|coin_state| coin_state.coin.coin_id())
+        .collect();
+
+    let recovery_states: HashSet<Bytes32> = spends
+        .iter()
+        .filter(|(index, _)| recovery_coins.contains(&lineage[*index].coin.coin_id()))
+        .filter_map(|(_, reveal)| reveal.as_ref().map(|reveal| reveal.custody_hash))
+        .collect();
+
+    let in_recovery = recovery_coins.contains(&latest.coin.coin_id())
+        || recovery_states
+            .iter()
+            .any(|custody_hash| is_current(*custody_hash));
+
+    for reveal in spends.into_iter().filter_map(|(_, reveal)| reveal) {
         let custody_hash = reveal.custody_hash;
+
+        if recovery_states.contains(&custody_hash) {
+            continue;
+        }
+
         let current = is_current(custody_hash);
 
         // Once an older custody is rebuilt, only the current one could be better. A vault can go
@@ -759,6 +796,7 @@ pub async fn rebuild_vault_config(
                 return Ok(RebuiltVaultConfig {
                     row,
                     is_current: true,
+                    in_recovery,
                 });
             }
 
@@ -770,6 +808,7 @@ pub async fn rebuild_vault_config(
         return Ok(RebuiltVaultConfig {
             row,
             is_current: false,
+            in_recovery,
         });
     }
 

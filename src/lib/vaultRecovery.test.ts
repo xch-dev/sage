@@ -4,6 +4,7 @@ import {
   EMPTY_TIMELOCK,
   RecoveryInput,
   recoveryKeys,
+  timelockParts,
   timelockSeconds,
   vaultRecoveryKeys,
 } from './vaultRecovery';
@@ -89,5 +90,28 @@ describe('vaultRecoveryKeys', () => {
       timelock: null,
     });
     expect(vaultRecoveryKeys(input('ab\nab', '2'))?.threshold).toBeNull();
+  });
+});
+
+describe('timelockParts', () => {
+  it('splits a timelock into the units it is entered in', () => {
+    expect(timelockParts(86_400)).toEqual({
+      days: 1,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    });
+    expect(timelockParts(45_000)).toEqual({
+      days: 0,
+      hours: 12,
+      minutes: 30,
+      seconds: 0,
+    });
+    expect(timelockParts(90_061)).toEqual({
+      days: 1,
+      hours: 1,
+      minutes: 1,
+      seconds: 1,
+    });
   });
 });
