@@ -35,7 +35,7 @@ use crate::{
     vault_hashes,
 };
 
-use super::{SpendableVault, Wallet, insert_signers_spend, insert_top_level_spend};
+use super::{CurrentVault, SpendableVault, Wallet, insert_signers_spend, insert_top_level_spend};
 
 /// A recovery that's ready to be signed by the vault's recovery keys.
 #[derive(Debug, Clone)]
@@ -131,7 +131,17 @@ impl Wallet {
     /// The recovery that the vault's current coin is in, if it can be spent now.
     pub async fn pending_recovery(&self) -> Result<PendingRecovery, WalletError> {
         let current = self.current_vault().await?;
+        self.recovery_of(current).await
+    }
 
+    /// The recovery that the vault's latest coin is in, even if it can't be spent right now, for
+    /// example because a spend that cancels it is pending.
+    pub async fn vault_recovery(&self) -> Result<PendingRecovery, WalletError> {
+        let latest = self.latest_vault(false).await?;
+        self.recovery_of(latest).await
+    }
+
+    async fn recovery_of(&self, current: CurrentVault) -> Result<PendingRecovery, WalletError> {
         let VaultState::RecoveryPending { timelock_from, .. } = current.status.state else {
             return Err(WalletError::VaultNoRecoveryPending);
         };

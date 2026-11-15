@@ -11,20 +11,21 @@ use chia_wallet_sdk::{
     clvm_traits::FromClvm,
     clvm_utils::{ToTreeHash, TreeHash},
     clvmr::{Allocator, NodePtr},
-    driver::Puzzle,
+    driver::{Layer, Puzzle, SingletonLayer},
     prelude::*,
     types::{
-        Mod,
+        Condition, Mod,
         puzzles::{
             AddDelegatedPuzzleWrapper, AddDelegatedPuzzleWrapperSolution,
             DelegatedPuzzleFeederSolution, Force1of2RestrictedVariable,
             Force1of2RestrictedVariableSolution, Timelock,
         },
+        run_puzzle,
     },
 };
 use sage_database::{VaultConfig, VaultRecoveryRow};
 
-use crate::{recovery_state_hashes, vault_hashes};
+use crate::{WalletError, parse_custody_reveal, recovery_state_hashes, vault_hashes};
 
 /// What the spend that starts a vault's recovery reveals about the recovery state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -128,4 +129,89 @@ pub fn observed_recovery(
         recovery_timelock: recovery.timelock,
         is_started_locally: false,
     })
+}
+
+/// Which recovery a spend through a vault's recovery side makes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VaultRecoverySpendKind {
+    /// It starts a recovery, through the recovery keys.
+    Start,
+    /// It finishes a recovery, through the timelocked finish member.
+    Finish,
+}
+
+/// A spend through a vault's recovery side, which clear signing can't parse, since the delegated
+/// puzzle of a recovery start is wrapped, and a recovery finish has none.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct VaultRecoverySpend {
+    pub coin: Coin,
+    /// The vault's custody hash before the spend.
+    pub custody_hash: Bytes32,
+    /// The custody hash the vault is recreated with, from running its puzzle, or `None` if it isn't.
+    pub child_custody_hash: Option<Bytes32>,
+    pub kind: VaultRecoverySpendKind,
+}
+
+/// Finds a spend of the vault with the launcher id through its recovery side. Returns `None` if the
+/// vault isn't spent, or is spent through its custody, which reveals its signers.
+pub fn parse_vault_recovery_spend(
+    coin_spends: &[CoinSpend],
+    launcher_id: Bytes32,
+) -> Result<Option<VaultRecoverySpend>, WalletError> {
+    let mut allocator = Allocator::new();
+
+    for coin_spend in coin_spends {
+        let puzzle = coin_spend.puzzle_reveal.to_clvm(&mut allocator)?;
+        let puzzle = Puzzle::parse(&allocator, puzzle);
+
+        let Some(singleton) = SingletonLayer::<Puzzle>::parse_puzzle(&allocator, puzzle)? else {
+            continue;
+        };
+
+        if singleton.launcher_id != launcher_id {
+            continue;
+        }
+
+        let solution = coin_spend.solution.to_clvm(&mut allocator)?;
+        let solution = SingletonLayer::<Puzzle>::parse_solution(&allocator, solution)?;
+
+        if parse_custody_reveal(
+            &allocator,
+            singleton.inner_puzzle.ptr(),
+            solution.inner_solution,
+        )
+        .is_some()
+        {
+            return Ok(None);
+        }
+
+        let kind = if parse_recovery_start(&allocator, solution.inner_solution).is_some() {
+            VaultRecoverySpendKind::Start
+        } else {
+            VaultRecoverySpendKind::Finish
+        };
+
+        let output = run_puzzle(
+            &mut allocator,
+            singleton.inner_puzzle.ptr(),
+            solution.inner_solution,
+        )?;
+        let conditions = Vec::<Condition>::from_clvm(&allocator, output)?;
+
+        // The singleton layer only allows one odd child, which is the next vault coin.
+        let child_custody_hash = conditions
+            .into_iter()
+            .filter_map(Condition::into_create_coin)
+            .find(|create_coin| create_coin.amount % 2 == 1)
+            .map(|create_coin| create_coin.puzzle_hash);
+
+        return Ok(Some(VaultRecoverySpend {
+            coin: coin_spend.coin,
+            custody_hash: singleton.inner_puzzle.curried_puzzle_hash().into(),
+            child_custody_hash,
+            kind,
+        }));
+    }
+
+    Ok(None)
 }

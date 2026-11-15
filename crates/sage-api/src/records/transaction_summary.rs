@@ -49,6 +49,21 @@ pub struct VaultSpendRecord {
     /// XCH that leaves the vault's spends without being accounted for, which would be left as
     /// an extra fee
     pub unaccounted_xch: Amount,
+    /// Whether the spend starts or finishes a recovery, through the vault's recovery side, rather
+    /// than spending it through its custody. Its new custody is found by running its puzzle
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub recovery: Option<VaultRecoverySpendKind>,
+}
+
+/// What a spend through a vault's recovery side does
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum VaultRecoverySpendKind {
+    Start,
+    Finish,
 }
 
 fn zero_amount() -> Amount {

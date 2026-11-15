@@ -193,6 +193,12 @@ impl Wallet {
     /// unconfirmed spend at a time. A spend made while another is pending would spend the same
     /// coin, so it's refused until the pending one confirms.
     pub async fn current_vault(&self) -> Result<CurrentVault, WalletError> {
+        self.latest_vault(true).await
+    }
+
+    /// The vault's latest coin, which must be spendable now if `spendable` is true. Otherwise, it
+    /// can be unconfirmed or have a pending spend, which is enough to describe it.
+    async fn latest_vault(&self, spendable: bool) -> Result<CurrentVault, WalletError> {
         let Some(launcher_id) = self.vault_launcher_id() else {
             return Err(WalletError::VaultSpendNotSupported);
         };
@@ -213,11 +219,11 @@ impl Wallet {
             return Err(WalletError::VaultNotSynced);
         };
 
-        if row.created_height.is_none() || row.spent_height.is_some() {
+        if spendable && (row.created_height.is_none() || row.spent_height.is_some()) {
             return Err(WalletError::VaultSpendPending);
         }
 
-        if self.db.is_coin_spend_pending(row.coin.coin_id()).await? {
+        if spendable && self.db.is_coin_spend_pending(row.coin.coin_id()).await? {
             return Err(WalletError::VaultSpendPending);
         }
 

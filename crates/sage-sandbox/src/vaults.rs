@@ -13,21 +13,11 @@ use chia_wallet_sdk::{
     driver::{InnerPuzzleSpend, MipsSpend, P2Singleton, Vault, VaultVersion},
     prelude::*,
     test::{PeerSimulator, Simulator},
-    types::{
-        MessageFlags, MessageSide, Mod,
-        puzzles::{
-            BlsMember, Force1of2RestrictedVariable, Force1of2RestrictedVariableSolution,
-            ForceSingletonRecreationMod, PreventConditionOpcode, PreventMultipleCreateCoinsMod,
-            Timelock,
-        },
-    },
+    types::{MessageFlags, MessageSide, puzzles::BlsMember},
     utils::Address,
 };
-use sage_database::{VaultConfig, VaultMember, VaultRecoveryConfig, VaultSigners};
-use sage_wallet::{
-    VaultHashes, build_vault, build_vault_recovery, recovery_restrictions, vault_config_file,
-    vault_hashes,
-};
+use sage_database::{VaultConfig, VaultMember, VaultSigners};
+use sage_wallet::{build_vault, spend_start_recovery, vault_config_file, vault_hashes};
 use serde::Serialize;
 use tracing::info;
 
@@ -310,105 +300,16 @@ fn start_recovery(
     post_recovery: &VaultConfig,
 ) -> Result<()> {
     let mut ctx = SpendContext::new();
-    let hashes = vault_hashes(config)?;
-    let recovery_side = config
-        .recovery
-        .as_ref()
-        .expect("a recovering vault has recovery");
-    let recovery_member_hash = recovery_member_hash(hashes);
 
-    let recovery_config = VaultRecoveryConfig {
-        custody: config.custody.clone(),
-        recovery_timelock: recovery_side.timelock,
-        version: recovery_side.version,
-        recovery_custody_hash: vault_hashes(post_recovery)?.custody_hash.into(),
-        amount: vault.coin.amount,
-    };
-    let built = build_vault_recovery(&mut ctx, &recovery_config, post_recovery)?;
-
-    // Force singleton recreation requires the vault to assert its amount, which it recreates.
-    let conditions = Conditions::new()
-        .create_coin(
-            built.hashes.custody_hash.into(),
-            vault.coin.amount,
-            Memos::Some(built.memo_list),
-        )
-        .assert_my_amount(vault.coin.amount);
-    let mut spend = MipsSpend::new(ctx.delegated_spend(conditions)?);
-
-    spend.members.insert(
-        hashes.custody_hash,
-        InnerPuzzleSpend::m_of_n(
-            0,
-            vec![],
-            1,
-            vec![hashes.custody_member_hash, recovery_member_hash],
-        ),
-    );
-    let member = ctx.curry(BlsMember::new(recovery.public_key()))?;
-    spend.members.insert(
-        recovery_member_hash,
-        InnerPuzzleSpend::new(
-            0,
-            recovery_restrictions(
-                hashes.custody_member_hash,
-                recovery_side.timelock,
-                recovery_side.version,
-            ),
-            Spend::new(member, NodePtr::NIL),
-        ),
-    );
-
-    // The recovery path's delegated puzzle wrappers, in order.
-    let force_1_of_2 = Force1of2RestrictedVariable::new(
-        hashes.custody_member_hash.into(),
-        0,
-        vec![Timelock::new(recovery_side.timelock).curry_tree_hash()]
-            .tree_hash()
-            .into(),
-        ().tree_hash().into(),
-    );
-    let puzzle = ctx.curry(force_1_of_2)?;
-    // The wrapper rebuilds the timelocked right side from the finish member's puzzle hash.
-    let finish_puzzle = built
-        .recovery_finish_puzzle
-        .expect("a recovery state has a finish puzzle");
-    let finish_puzzle_hash = ctx.tree_hash(finish_puzzle).into();
-    let solution = ctx.alloc(&Force1of2RestrictedVariableSolution::new(
-        finish_puzzle_hash,
-    ))?;
-    spend
-        .restrictions
-        .insert(force_1_of_2.curry_tree_hash(), Spend::new(puzzle, solution));
-
-    for opcode in [60, 62, 66, 67] {
-        let wrapper = PreventConditionOpcode::new(opcode);
-        let puzzle = ctx.curry(wrapper)?;
-        spend
-            .restrictions
-            .insert(wrapper.curry_tree_hash(), Spend::new(puzzle, NodePtr::NIL));
-    }
-
-    let puzzle = ctx.alloc_mod::<PreventMultipleCreateCoinsMod>()?;
-    spend.restrictions.insert(
-        PreventMultipleCreateCoinsMod::mod_hash(),
-        Spend::new(puzzle, NodePtr::NIL),
-    );
-
-    if recovery_side.version == VaultVersion::ForceSingletonRecreation {
-        let puzzle = ctx.alloc_mod::<ForceSingletonRecreationMod>()?;
-        spend.restrictions.insert(
-            ForceSingletonRecreationMod::mod_hash(),
-            Spend::new(puzzle, NodePtr::NIL),
-        );
-    }
-
-    vault.spend(&mut ctx, &spend)?;
+    spend_start_recovery(
+        &mut ctx,
+        vault,
+        config,
+        post_recovery,
+        &[recovery.public_key()],
+        true,
+    )?;
     sim.spend_coins(ctx.take(), slice::from_ref(recovery))?;
 
     Ok(())
-}
-
-fn recovery_member_hash(hashes: VaultHashes) -> TreeHash {
-    hashes.recovery_member_hash.expect("the vault has recovery")
 }

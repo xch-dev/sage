@@ -28,6 +28,45 @@ pub struct VaultRecord {
     /// If the mint fails, the vault wallet is removed
     #[serde(default)]
     pub minting: bool,
+    /// The pending recovery, while recovery is pending and the custody that can cancel it is known
+    #[serde(default)]
+    pub recovery: Option<VaultRecoveryRecord>,
+    /// The latest block timestamp that's been synced, in unix seconds. A recovery's countdown is
+    /// measured against it rather than the local clock, which can run ahead of the chain
+    #[serde(default)]
+    pub chain_timestamp: Option<u64>,
+}
+
+/// A vault's pending recovery
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct VaultRecoveryRecord {
+    /// Whether this wallet started the recovery. A recovery that it didn't start should be
+    /// cancelled, unless it was started from another device
+    pub started_locally: bool,
+    /// Whether a custody key that can cancel the recovery is attached
+    pub can_cancel: bool,
+    /// Why the recovery can't be finished now, or none if it can
+    pub finish_blocker: Option<VaultRecoveryFinishBlocker>,
+    /// The custody that the vault moves to once the recovery finishes, if its memo revealed it
+    pub post_recovery: Option<VaultSignersRecord>,
+}
+
+/// Why a vault's recovery can't be finished
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum VaultRecoveryFinishBlocker {
+    /// The recovery's memo didn't reveal the vault's custody once it finishes, so it can only be
+    /// cancelled
+    UnknownCustody,
+    /// The vault's custody once it finishes has no key in the keychain, so Sage won't hand the
+    /// vault to it
+    NotOurs,
+    /// The recovery timelock hasn't expired yet
+    Timelock,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
