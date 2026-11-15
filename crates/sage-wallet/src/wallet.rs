@@ -443,7 +443,9 @@ impl Wallet {
         self.ensure_spendable()?;
 
         if self.vault_launcher_id().is_some() {
-            return self.complete_vault_spends(ctx, deltas, spends).await;
+            return self
+                .complete_vault_spends(ctx, deltas, spends, Conditions::new())
+                .await;
         }
 
         let mut p2_puzzles = IndexMap::new();
@@ -570,15 +572,40 @@ impl Wallet {
         Ok(spends.spend(ctx, coin_spends)?)
     }
 
+    /// Finishes the spends of a vault wallet, like [`Wallet::complete_spends`], with extra
+    /// conditions that the vault singleton outputs, such as to create intermediate launchers.
+    pub async fn complete_spends_with_vault_conditions(
+        &self,
+        ctx: &mut SpendContext,
+        deltas: &Deltas,
+        mut spends: Spends,
+        vault_conditions: Conditions,
+    ) -> Result<Outputs, WalletError> {
+        if self.vault_launcher_id().is_none() {
+            return Err(WalletError::VaultSpendNotSupported);
+        }
+
+        if let Some(expires_at) = self.transaction_expires_at()? {
+            spends.conditions.required = spends
+                .conditions
+                .required
+                .assert_before_seconds_absolute(expires_at);
+        }
+
+        self.complete_vault_spends(ctx, deltas, spends, vault_conditions)
+            .await
+    }
+
     /// Finishes the spends of a vault wallet, whose coins are spent by its singleton.
     async fn complete_vault_spends(
         &self,
         ctx: &mut SpendContext,
         deltas: &Deltas,
         spends: Spends,
+        vault_conditions: Conditions,
     ) -> Result<Outputs, WalletError> {
         let vault = self.spendable_vault().await?;
-        self.complete_vault_spends_with(ctx, deltas, spends, &vault)
+        self.complete_vault_spends_with(ctx, deltas, spends, &vault, vault_conditions)
             .await
     }
 
@@ -590,6 +617,7 @@ impl Wallet {
         deltas: &Deltas,
         mut spends: Spends,
         vault: &SpendableVault,
+        vault_conditions: Conditions,
     ) -> Result<Outputs, WalletError> {
         let mut p2_puzzles = HashMap::new();
 
@@ -598,7 +626,20 @@ impl Wallet {
                 continue;
             }
 
-            p2_puzzles.insert(p2_puzzle_hash, self.db.p2_puzzle(p2_puzzle_hash).await?);
+            let p2_puzzle = self.db.p2_puzzle(p2_puzzle_hash).await?;
+
+            // A clawback is spent through the vault address of whichever side the vault is.
+            if let P2Puzzle::Clawback(clawback) = p2_puzzle {
+                for side in [clawback.sender_puzzle_hash, clawback.receiver_puzzle_hash] {
+                    if let Ok(side_puzzle @ P2Puzzle::P2Singleton(_)) =
+                        self.db.p2_puzzle(side).await
+                    {
+                        p2_puzzles.insert(side, side_puzzle);
+                    }
+                }
+            }
+
+            p2_puzzles.insert(p2_puzzle_hash, p2_puzzle);
         }
 
         // The vault approves each coin's spend with a message, which ties them together, so they
@@ -608,6 +649,6 @@ impl Wallet {
 
         let spends = spends.prepare(ctx, deltas, Relation::None)?;
 
-        self.spend_vault_coins(ctx, spends, &p2_puzzles, vault)
+        self.spend_vault_coins(ctx, spends, &p2_puzzles, vault, vault_conditions)
     }
 }

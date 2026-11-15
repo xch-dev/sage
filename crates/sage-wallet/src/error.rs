@@ -141,6 +141,12 @@ pub enum WalletError {
     #[error("A vault recovery's fee must be paid by a BLS wallet")]
     VaultFeeWalletNotBls,
 
+    #[error("Every TAIL nonce of the vault has been used")]
+    VaultTailNoncesExhausted,
+
+    #[error("The CAT {0} can't be issued by this vault")]
+    NotVaultTail(Bytes32),
+
     #[error("Vault layout error: {0}")]
     VaultLayout(#[from] VaultLayoutError),
 

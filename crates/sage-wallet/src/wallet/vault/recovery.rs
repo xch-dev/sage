@@ -364,7 +364,7 @@ impl Wallet {
                 .assert_before_seconds_absolute(expires_at);
         }
 
-        self.complete_vault_spends_with(ctx, &deltas, spends, vault)
+        self.complete_vault_spends_with(ctx, &deltas, spends, vault, Conditions::new())
             .await?;
 
         Ok(())
