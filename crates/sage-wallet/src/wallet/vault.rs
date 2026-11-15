@@ -366,9 +366,16 @@ impl Wallet {
         for (asset, kind) in spends.unspent() {
             let spend = match kind {
                 SpendKind::Conditions(spend) => {
-                    let conditions = spend.finish();
+                    let mut conditions = spend.finish();
 
                     let p2_puzzle = p2_puzzles.get(&asset.p2_puzzle_hash());
+
+                    // A coin locked to fixed conditions or the vault, such as an offer's pre-split
+                    // coin, asserts its own id when the vault spends it. Otherwise its delegated
+                    // spend could be swapped onto the fixed path of another coin.
+                    if matches!(p2_puzzle, Some(P2Puzzle::P2ConditionsOrSingleton(_))) {
+                        conditions = conditions.assert_my_coin_id(asset.coin().coin_id());
+                    }
 
                     // A clawback is spent by whichever side the vault is, through its address.
                     // The vault asserts that the path is open, so clear signing can tell which

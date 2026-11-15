@@ -3,6 +3,7 @@ mod cancel_offer;
 mod make_offer;
 mod offer_assets;
 mod take_offer;
+mod vault_offer;
 
 pub use aggregate_offer::*;
 pub use make_offer::*;
