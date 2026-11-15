@@ -334,6 +334,22 @@ impl TestWallet {
         })
     }
 
+    /// Signs and submits a vault transaction that changes the vault's custody on purpose, such as
+    /// cancelling a recovery or rekeying. Like Sage's recovery endpoints, which sign these
+    /// themselves, it skips the clear signing check that refuses custody changes.
+    pub async fn transact_custody_change(&self, coin_spends: Vec<CoinSpend>) -> anyhow::Result<()> {
+        let spend_bundle = sign_with_secret_keys(
+            SpendBundle::new(coin_spends, Signature::default()),
+            &self.agg_sig,
+            slice::from_ref(&self.master_sk),
+            false,
+        )?;
+
+        self.push_bundle(spend_bundle).await?;
+
+        Ok(())
+    }
+
     pub async fn transact(&self, coin_spends: Vec<CoinSpend>) -> anyhow::Result<()> {
         let spend_bundle = self.sign(coin_spends).await?;
 

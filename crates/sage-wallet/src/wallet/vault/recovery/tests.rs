@@ -222,7 +222,7 @@ async fn test_vault_recovery_cancel() -> anyhow::Result<()> {
 
         // The custody cancels it, paying the fee from the vault's XCH.
         let coin_spends = vault.wallet.cancel_vault_recovery(100).await?;
-        vault.transact(coin_spends).await?;
+        vault.transact_custody_change(coin_spends).await?;
 
         let status = wait_for_custody(&mut vault, &config).await?;
         assert_eq!(
@@ -316,7 +316,7 @@ async fn test_vault_rekey() -> anyhow::Result<()> {
     );
 
     let coin_spends = vault.wallet.rekey_vault(&new_config, 100).await?;
-    vault.transact(coin_spends).await?;
+    vault.transact_custody_change(coin_spends).await?;
 
     // The memo reveals the new config.
     let status = wait_for_custody(&mut vault, &new_config).await?;
@@ -380,7 +380,7 @@ async fn test_vault_recovery_without_memo() -> anyhow::Result<()> {
         );
 
         let coin_spends = vault.wallet.cancel_vault_recovery(0).await?;
-        vault.transact(coin_spends).await?;
+        vault.transact_custody_change(coin_spends).await?;
         wait_for_custody(&mut vault, &config).await?;
     }
 
