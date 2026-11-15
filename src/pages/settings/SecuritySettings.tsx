@@ -17,17 +17,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { AUTO_LOCK_OPTIONS, useAutoLock } from '@/hooks/useAutoLock';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
-import { plural, t } from '@lingui/core/macro';
+import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import { EyeIcon, MoreVerticalIcon, PlusIcon, TrashIcon } from 'lucide-react';
@@ -41,45 +33,8 @@ export function SecuritySettings() {
   return (
     <>
       {isMobile && <BiometricSettings />}
-      <AutoLockSettings />
       <KeySettings />
     </>
-  );
-}
-
-function AutoLockSettings() {
-  const { minutes, setMinutes } = useAutoLock();
-
-  const optionLabel = (option: number) => {
-    if (option === 0) return t`Never`;
-    if (option === 60) return t`1 hour`;
-    return plural(option, { one: '# minute', other: '# minutes' });
-  };
-
-  return (
-    <SettingsSection title={t`Session`}>
-      <SettingItem
-        label={t`Auto-Lock`}
-        description={t`Log out of the wallet after this long without any activity`}
-        control={
-          <Select
-            value={minutes.toString()}
-            onValueChange={(value) => setMinutes(Number(value))}
-          >
-            <SelectTrigger className='w-[140px]' aria-label={t`Auto-Lock`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {AUTO_LOCK_OPTIONS.map((option) => (
-                <SelectItem key={option} value={option.toString()}>
-                  {optionLabel(option)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        }
-      />
-    </SettingsSection>
   );
 }
 

@@ -74,9 +74,7 @@ function settingsPages(isMobile: boolean): SettingsPage[] {
       id: 'security',
       group: 'app',
       label: t`Security`,
-      description: isMobile
-        ? t`Biometrics, auto-lock and keychain`
-        : t`Auto-lock and keychain`,
+      description: isMobile ? t`Biometrics and keychain` : t`Keychain`,
       icon: ShieldCheckIcon,
       render: () => <SecuritySettings />,
     },
