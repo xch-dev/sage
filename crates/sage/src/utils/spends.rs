@@ -53,7 +53,7 @@ impl Sage {
         let secret_keys = self.vault_signer_secret_keys(wallet.fingerprint)?;
 
         if secret_keys.is_empty() && !partial {
-            return Err(Error::NoSigningKey);
+            return Err(Error::NoVaultSigners);
         }
 
         Ok(sign_with_secret_keys(

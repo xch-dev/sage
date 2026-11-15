@@ -8,7 +8,10 @@ use chia_wallet_sdk::{driver::VaultVersion, prelude::*};
 use sage_api::{MintVault, MintVaultResponse};
 use sage_config::{PendingVaultMint, Wallet as WalletEntry, WalletKind as ConfigWalletKind};
 use sage_database::{Database, VaultConfig, VaultMember, VaultSigners};
-use sage_wallet::{MIN_RECOVERY_TIMELOCK, WalletError, WalletKind, track_vault, vault_custody_key};
+use sage_wallet::{
+    MIN_RECOVERY_TIMELOCK, Status, WalletError, WalletKind, submit_to_peers, track_vault,
+    vault_custody_key,
+};
 use tracing::{info, warn};
 
 use crate::{
@@ -158,6 +161,17 @@ impl Sage {
             track_vault(&mut tx, launcher_id).await?;
             tx.commit().await?;
 
+            // The vault wallet is usually opened right after, which stops this wallet's sync from
+            // submitting the mint later, so it's sent to the peers now. It's also recorded as a
+            // pending transaction of this wallet, which resubmits it when it's opened again.
+            let peers = self.peer_state.lock().await.peers();
+
+            if let Status::Failed(_status, error) =
+                submit_to_peers(&peers, spend_bundle.clone()).await?
+            {
+                return Err(Error::VaultMintRejected(error.unwrap_or_default()));
+            }
+
             self.submit(spend_bundle).await
         }
         .await;
@@ -263,18 +277,17 @@ impl Sage {
 
         let now = now();
 
-        let expired = match mint.expires_at {
-            Some(expires_at) => now > expires_at.saturating_add(MINT_EXPIRATION_GRACE),
+        let expired = if let Some(expires_at) = mint.expires_at {
+            now > expires_at.saturating_add(MINT_EXPIRATION_GRACE)
+        } else {
             // Without an expiration, the mint failed once the funding wallet no longer has the
             // transaction pending, since it would have been found on chain otherwise.
-            None => {
-                let funding = self.vault_database(mint.funding_fingerprint).await?;
-                !funding
-                    .mempool_items()
-                    .await?
-                    .iter()
-                    .any(|item| item.hash == mint.transaction_id)
-            }
+            let funding = self.vault_database(mint.funding_fingerprint).await?;
+            !funding
+                .mempool_items()
+                .await?
+                .iter()
+                .any(|item| item.hash == mint.transaction_id)
         };
 
         Ok(expired.then_some(false))

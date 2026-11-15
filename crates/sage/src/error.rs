@@ -183,6 +183,12 @@ pub enum Error {
     #[error("The recovery timelock must be at least one second")]
     InvalidRecoveryTimelock,
 
+    #[error("No keys that sign for this vault are attached, so it can't sign transactions")]
+    NoVaultSigners,
+
+    #[error("The vault's mint was rejected: {0}")]
+    VaultMintRejected(String),
+
     #[error("A new vault's recovery timelock must be at least {0} seconds")]
     VaultRecoveryTimelockTooShort(u64),
 
@@ -410,7 +416,7 @@ impl Error {
     pub fn kind(&self) -> ErrorKind {
         match self {
             Self::Recipients(..) => ErrorKind::Recipient,
-            Self::Wallet(..) | Self::NoSigningKey => ErrorKind::Wallet,
+            Self::Wallet(..) | Self::NoSigningKey | Self::NoVaultSigners => ErrorKind::Wallet,
             Self::Xchandles(error) => match error {
                 XchandlesError::Database(..) => ErrorKind::Internal,
                 error if error.is_not_registered() => ErrorKind::NotFound,
@@ -480,6 +486,7 @@ impl Error {
             | Self::VaultImportSource
             | Self::VaultRecoveryTimelockTooShort(..)
             | Self::VaultRecoveryKeySource
+            | Self::VaultMintRejected(..)
             | Self::VaultAddressNeverSpent
             | Self::NotVaultAddress
             | Self::VaultConfigMismatch
