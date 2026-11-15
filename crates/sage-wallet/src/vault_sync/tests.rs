@@ -5,18 +5,11 @@ use chia_wallet_sdk::{
     clvm_utils::{tree_hash, tree_hash_atom, tree_hash_pair},
     driver::{
         InnerPuzzleSpend, MipsSpend, P2ConditionsOrSingleton, P2ConditionsOrSingletonVersion,
-        Restriction, RestrictionKind, Vault, VaultVersion,
+        Vault, VaultVersion,
     },
     prelude::*,
     test::{BlsPair, sign_transaction},
-    types::{
-        Mod,
-        puzzles::{
-            BlsMember, Force1of2RestrictedVariable, Force1of2RestrictedVariableSolution,
-            ForceSingletonRecreationMod, PreventConditionOpcode, PreventMultipleCreateCoinsMod,
-            Timelock,
-        },
-    },
+    types::puzzles::BlsMember,
 };
 use sage_database::{
     P2Puzzle, VaultConfig, VaultLayout, VaultMember, VaultRecovery, VaultRecoveryConfig,
@@ -26,10 +19,10 @@ use test_log::test;
 use tokio::time::sleep;
 
 use crate::{
-    ChildKind, FixedConditionsMemo, RecoveryKey, RecoverySearch, SyncCommand, SyncEvent,
-    TestWallet, VAULT_ADDRESS_GAP, VaultHashes, WalletNftMint, WalletPeer, build_vault,
+    ChildKind, FixedConditionsMemo, RecoveryKey, RecoverySearch, SpendableVault, SyncCommand,
+    SyncEvent, TestWallet, VAULT_ADDRESS_GAP, VaultHashes, WalletNftMint, WalletPeer, build_vault,
     build_vault_recovery, is_relevant_child, p2_singleton_puzzle_hash, rebuild_vault_config,
-    recovery_restrictions, track_vault, vault_hashes,
+    spend_finish_recovery, spend_start_recovery, spend_vault_custody, track_vault, vault_hashes,
 };
 
 const TIMELOCK: u64 = 60;
@@ -45,10 +38,6 @@ fn vault_config(custody: &BlsPair, recovery: &BlsPair, version: VaultVersion) ->
 
 fn recovery_of(config: &VaultConfig) -> &VaultRecovery {
     config.recovery.as_ref().expect("the vault has recovery")
-}
-
-fn recovery_member_hash(hashes: VaultHashes) -> TreeHash {
-    hashes.recovery_member_hash.expect("the vault has recovery")
 }
 
 /// The current coin of a vault, as the test spends it.
@@ -204,97 +193,17 @@ async fn start_recovery(
     post_recovery: &VaultConfig,
 ) -> anyhow::Result<TestVault> {
     let mut ctx = SpendContext::new();
-    let hashes = vault_hashes(config)?;
-    let recovery_side = recovery_of(config);
-
-    let recovery_config = VaultRecoveryConfig {
-        custody: config.custody.clone(),
-        recovery_timelock: recovery_side.timelock,
-        version: recovery_side.version,
-        recovery_custody_hash: vault_hashes(post_recovery)?.custody_hash.into(),
-        amount: vault.vault.coin.amount,
-    };
-    let built = build_vault_recovery(&mut ctx, &recovery_config, post_recovery)?;
-    let recovery_custody_hash: Bytes32 = built.hashes.custody_hash.into();
-
-    // Force singleton recreation requires the vault to assert its amount, which it recreates.
-    let conditions = Conditions::new()
-        .create_coin(
-            recovery_custody_hash,
-            vault.vault.coin.amount,
-            Memos::Some(built.memo_list),
-        )
-        .assert_my_amount(vault.vault.coin.amount);
-    let mut spend = MipsSpend::new(ctx.delegated_spend(conditions)?);
-
-    spend.members.insert(
-        hashes.custody_hash,
-        InnerPuzzleSpend::m_of_n(
-            0,
-            vec![],
-            1,
-            vec![hashes.custody_member_hash, recovery_member_hash(hashes)],
-        ),
-    );
-    let member = bls_member(&mut ctx, recovery.pk)?;
-    spend.members.insert(
-        recovery_member_hash(hashes),
-        InnerPuzzleSpend::new(
-            0,
-            recovery_restrictions(
-                hashes.custody_member_hash,
-                recovery_side.timelock,
-                recovery_side.version,
-            ),
-            member,
-        ),
-    );
-
-    // The recovery path's delegated puzzle wrappers, in order.
-    let force_1_of_2 = Force1of2RestrictedVariable::new(
-        hashes.custody_member_hash.into(),
-        0,
-        vec![Timelock::new(recovery_side.timelock).curry_tree_hash()]
-            .tree_hash()
-            .into(),
-        ().tree_hash().into(),
-    );
-    let puzzle = ctx.curry(force_1_of_2)?;
-    // The wrapper rebuilds the timelocked right side from the finish member's puzzle hash.
-    let finish_puzzle_hash = ctx.tree_hash(built.recovery_finish_puzzle.unwrap()).into();
-    let solution = ctx.alloc(&Force1of2RestrictedVariableSolution::new(
-        finish_puzzle_hash,
-    ))?;
-    spend
-        .restrictions
-        .insert(force_1_of_2.curry_tree_hash(), Spend::new(puzzle, solution));
-
-    for opcode in [60, 62, 66, 67] {
-        let wrapper = PreventConditionOpcode::new(opcode);
-        let puzzle = ctx.curry(wrapper)?;
-        spend
-            .restrictions
-            .insert(wrapper.curry_tree_hash(), Spend::new(puzzle, NodePtr::NIL));
-    }
-
-    let puzzle = ctx.alloc_mod::<PreventMultipleCreateCoinsMod>()?;
-    spend.restrictions.insert(
-        PreventMultipleCreateCoinsMod::mod_hash(),
-        Spend::new(puzzle, NodePtr::NIL),
-    );
-
-    if recovery_side.version == VaultVersion::ForceSingletonRecreation {
-        let puzzle = ctx.alloc_mod::<ForceSingletonRecreationMod>()?;
-        spend.restrictions.insert(
-            ForceSingletonRecreationMod::mod_hash(),
-            Spend::new(puzzle, NodePtr::NIL),
-        );
-    }
-
-    vault.vault.spend(&mut ctx, &spend)?;
+    let started = spend_start_recovery(
+        &mut ctx,
+        &vault.vault,
+        config,
+        post_recovery,
+        &[recovery.pk],
+        true,
+    )?;
     push(test, ctx.take(), slice::from_ref(&recovery.sk)).await?;
 
-    Ok(vault.child(recovery_custody_hash))
+    Ok(vault.child(started.custody_hash))
 }
 
 /// The hashes and finish puzzle of a vault in the recovery state.
@@ -304,15 +213,26 @@ fn recovery_state(
     post_recovery: &VaultConfig,
     amount: u64,
 ) -> anyhow::Result<(VaultHashes, NodePtr)> {
-    let recovery_config = VaultRecoveryConfig {
+    let built = build_vault_recovery(
+        ctx,
+        &recovery_config(config, post_recovery, amount)?,
+        post_recovery,
+    )?;
+    Ok((built.hashes, built.recovery_finish_puzzle.unwrap()))
+}
+
+fn recovery_config(
+    config: &VaultConfig,
+    post_recovery: &VaultConfig,
+    amount: u64,
+) -> anyhow::Result<VaultRecoveryConfig> {
+    Ok(VaultRecoveryConfig {
         custody: config.custody.clone(),
         recovery_timelock: recovery_of(config).timelock,
         version: recovery_of(config).version,
         recovery_custody_hash: vault_hashes(post_recovery)?.custody_hash.into(),
         amount,
-    };
-    let built = build_vault_recovery(ctx, &recovery_config, post_recovery)?;
-    Ok((built.hashes, built.recovery_finish_puzzle.unwrap()))
+    })
 }
 
 /// Cancels recovery with the original custody, recreating the vault with its original config.
@@ -325,16 +245,20 @@ async fn cancel_recovery(
 ) -> anyhow::Result<TestVault> {
     let mut ctx = SpendContext::new();
     let (hashes, _) = recovery_state(&mut ctx, config, post_recovery, vault.vault.coin.amount)?;
-    let custody_hash = vault_hashes(config)?.custody_hash.into();
-    let amount = vault.vault.coin.amount;
+    let built = build_vault(&mut ctx, config)?;
 
-    custody_spend(test, vault, hashes, custody, |ctx| {
-        let memo_list = build_vault(ctx, config)?.memo_list;
-        Ok(Conditions::new().create_coin(custody_hash, amount, Memos::Some(memo_list)))
-    })
-    .await?;
+    let spendable = SpendableVault {
+        vault: vault.vault,
+        custody: config.custody.clone(),
+        recovery_member_hash: hashes.recovery_member_hash,
+        child_custody_hash: built.hashes.custody_hash,
+        child_memo: Some(built.memo_list),
+    };
 
-    Ok(vault.child(custody_hash))
+    spend_vault_custody(&mut ctx, &spendable, Conditions::new(), &[custody.pk])?;
+    push(test, ctx.take(), slice::from_ref(&custody.sk)).await?;
+
+    Ok(vault.child(built.hashes.custody_hash.into()))
 }
 
 /// Finishes recovery once the timelock has expired, which anyone can do without a signature.
@@ -345,38 +269,12 @@ async fn finish_recovery(
     post_recovery: &VaultConfig,
 ) -> anyhow::Result<TestVault> {
     let mut ctx = SpendContext::new();
-    let (hashes, finish_puzzle) =
-        recovery_state(&mut ctx, config, post_recovery, vault.vault.coin.amount)?;
-
-    let mut spend = MipsSpend::new(ctx.delegated_spend(Conditions::new())?);
-    spend.members.insert(
-        hashes.custody_hash,
-        InnerPuzzleSpend::m_of_n(
-            0,
-            vec![],
-            1,
-            vec![hashes.custody_member_hash, recovery_member_hash(hashes)],
-        ),
-    );
-
-    let timelock = Timelock::new(recovery_of(config).timelock);
-    spend.members.insert(
-        recovery_member_hash(hashes),
-        InnerPuzzleSpend::new(
-            0,
-            vec![Restriction {
-                kind: RestrictionKind::MemberCondition,
-                puzzle_hash: timelock.curry_tree_hash(),
-            }],
-            Spend::new(finish_puzzle, NodePtr::NIL),
-        ),
-    );
-    let puzzle = ctx.curry(timelock)?;
-    spend
-        .restrictions
-        .insert(timelock.curry_tree_hash(), Spend::new(puzzle, NodePtr::NIL));
-
-    vault.vault.spend(&mut ctx, &spend)?;
+    spend_finish_recovery(
+        &mut ctx,
+        &vault.vault,
+        &recovery_config(config, post_recovery, vault.vault.coin.amount)?,
+        post_recovery,
+    )?;
     push(test, ctx.take(), &[]).await?;
 
     Ok(vault.child(vault_hashes(post_recovery)?.custody_hash.into()))

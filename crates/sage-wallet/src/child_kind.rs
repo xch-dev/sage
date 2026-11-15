@@ -14,7 +14,7 @@ use sage_database::{
 };
 use tracing::{debug_span, warn};
 
-use crate::{WalletError, vault_memo_list_custody_hash};
+use crate::{RecoveryStart, WalletError, parse_recovery_start, vault_memo_list_custody_hash};
 
 /// The memos of a coin locked to a fixed set of conditions or a vault, such as an offer's pre-split
 /// coin, which are `(vault_address, (conditions, ...))`.
@@ -74,6 +74,10 @@ pub enum ChildKind {
         lineage_proof: Option<LineageProof>,
         /// The CHIP-0043 memo list attached to the coin's creation, which may reveal its config.
         memo_list: Option<Program>,
+        /// What the parent's spend revealed about the recovery state, if it was spent through
+        /// its recovery side to start recovery. It's only trusted once it rebuilds the coin's
+        /// custody hash.
+        recovery_start: Option<RecoveryStart>,
     },
     /// An XCH coin locked to a fixed set of conditions or a vault, such as an offer's pre-split
     /// coin.
@@ -561,6 +565,7 @@ fn parse_vault_child(
             custody_hash,
             lineage_proof: None,
             memo_list,
+            recovery_start: None,
         }));
     }
 
@@ -610,6 +615,7 @@ fn parse_vault_child(
             parent_amount: parent_coin.amount,
         }),
         memo_list,
+        recovery_start: parse_recovery_start(allocator, solution.inner_solution),
     }))
 }
 
