@@ -1,9 +1,13 @@
 import { OfferState, useOfferState } from '@/state';
 import { useCallback, useMemo } from 'react';
+import { useDefaultFee } from './useDefaultFee';
 import { useDefaultOfferExpiry } from './useDefaultOfferExpiry';
+import { useDefaultOfferSplit } from './useDefaultOfferSplit';
 
 export default function useOfferStateWithDefault() {
   const { expiry } = useDefaultOfferExpiry();
+  const { splitByDefault } = useDefaultOfferSplit();
+  const { fee: defaultFee } = useDefaultFee();
 
   const offerState = useOfferState();
 
@@ -23,10 +27,10 @@ export default function useOfferStateWithDefault() {
         },
         expiration: expiry.enabled ? expiry : null,
         splitNftOffers: false,
-        preSplit: false,
-        preSplitFee: '',
+        preSplit: splitByDefault,
+        preSplitFee: defaultFee,
       },
-    [expiry, offerState],
+    [expiry, offerState, splitByDefault, defaultFee],
   );
 
   const setState = useCallback(

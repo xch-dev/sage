@@ -103,6 +103,7 @@ afterEach(() => {
   cleanup();
   useOfferState.setState(null);
   dialog.props = null;
+  localStorage.clear();
 });
 
 function renderWithOfferedNfts(count: number | string[]) {
@@ -232,6 +233,29 @@ describe('MakeOffer settings', () => {
       '0.0002',
     );
     expect(dialog.props?.preSplitFee).toBe('0.0002');
+  });
+
+  it('splits coins by default, paying the default fee', () => {
+    localStorage.setItem('defaultFee', JSON.stringify({ fee: '0.001' }));
+    renderPage();
+
+    expect(toggle('Split coins first').getAttribute('aria-checked')).toBe(
+      'true',
+    );
+    expect((screen.getByLabelText('Split fee') as HTMLInputElement).value).toBe(
+      '0.001',
+    );
+    expect(dialog.props?.preSplitFee).toBe('0.001');
+  });
+
+  it("doesn't split coins when the setting is off", () => {
+    localStorage.setItem('default-offer-split', 'false');
+    renderPage();
+
+    expect(toggle('Split coins first').getAttribute('aria-checked')).toBe(
+      'false',
+    );
+    expect(dialog.props?.preSplitFee).toBeNull();
   });
 
   it('clears the offer on Cancel', () => {

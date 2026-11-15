@@ -4,6 +4,7 @@ import { useColdWalletUnsigned } from '@/hooks/useColdWalletUnsigned';
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
+import { useDefaultOfferSplit } from '@/hooks/useDefaultOfferSplit';
 import { useErrors } from '@/hooks/useErrors';
 import {
   Duration,
@@ -28,6 +29,7 @@ export function TransactionSettings() {
   const { addError } = useErrors();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
   const { clawback, setClawback } = useDefaultClawback();
+  const { splitByDefault, setSplitByDefault } = useDefaultOfferSplit();
   const { setFee } = useDefaultFee();
 
   const [defaultWalletConfig, setDefaultWalletConfig] =
@@ -170,6 +172,18 @@ export function TransactionSettings() {
               </div>
             )}
           </SettingItem>
+        )}
+        {offersEnabled && (
+          <SettingItem
+            label={t`Split Coins for Offers`}
+            description={t`Split coins to the exact amounts before making an offer, so the rest of your balance stays spendable. This can still be changed for each offer.`}
+            control={
+              <Switch
+                checked={splitByDefault}
+                onCheckedChange={setSplitByDefault}
+              />
+            }
+          />
         )}
         <SettingItem
           label={t`Transaction Expiration`}
