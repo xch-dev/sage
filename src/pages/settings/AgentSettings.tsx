@@ -9,10 +9,6 @@ import {
 } from '@/bindings';
 import { AgentPermissionsPanel } from '@/components/AgentPermissionsPanel';
 import { CopyBox } from '@/components/CopyBox';
-import {
-  ServerStatusIndicator,
-  SettingsSection,
-} from '@/components/SettingsSection';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,6 +41,7 @@ import { formatTimestamp } from '@/lib/utils';
 import { plural, t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useCallback, useEffect, useState } from 'react';
+import { ServerStatusIndicator, SettingsSection } from './SettingsSection';
 
 const REFRESH_INTERVAL_MS = 5000;
 

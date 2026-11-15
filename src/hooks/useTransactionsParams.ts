@@ -1,9 +1,12 @@
 import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 
-const TRANSACTION_PAGE_SIZE_STORAGE_KEY = 'sage-wallet-transaction-page-size';
-const TRANSACTION_SORT_MODE_STORAGE_KEY = 'sage-wallet-transaction-sort-mode';
-const TRANSACTION_VIEW_MODE_STORAGE_KEY = 'sage-wallet-transaction-view-mode';
+export const TRANSACTION_PAGE_SIZE_STORAGE_KEY =
+  'sage-wallet-transaction-page-size';
+export const TRANSACTION_SORT_MODE_STORAGE_KEY =
+  'sage-wallet-transaction-sort-mode';
+export const TRANSACTION_VIEW_MODE_STORAGE_KEY =
+  'sage-wallet-transaction-view-mode';
 
 export interface TransactionParams {
   page: number;

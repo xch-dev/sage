@@ -218,6 +218,28 @@ async fn test_hand_written_commands() -> Result<()> {
     let (_, body) = bridge.invoke("alice", "get_logs", json!({})).await;
     assert_eq!(body, json!([]));
 
+    let (status, _) = bridge
+        .invoke("alice", "set_rpc_port", json!({ "port": 9300 }))
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let (_, body) = bridge.invoke("alice", "get_rpc_port", json!({})).await;
+    assert_eq!(body, json!(9300));
+    let (status, _) = bridge
+        .invoke("alice", "set_rpc_port", json!({ "port": 0 }))
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+
+    let (status, _) = bridge
+        .invoke("alice", "set_log_level", json!({ "level": "debug" }))
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let (_, body) = bridge.invoke("alice", "get_log_level", json!({})).await;
+    assert_eq!(body, json!("DEBUG"));
+    let (status, _) = bridge
+        .invoke("alice", "set_log_level", json!({ "level": "loud" }))
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+
     // An index past the end moves the wallet to the end instead of failing.
     let (status, body) = bridge
         .invoke(

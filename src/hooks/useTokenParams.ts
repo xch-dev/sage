@@ -2,10 +2,10 @@ import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { ViewMode } from '@/components/ViewToggle';
 
-const ZERO_BALANCE_STORAGE_KEY = 'sage-wallet-show-zero-balance';
-const TOKEN_SORT_STORAGE_KEY = 'sage-wallet-token-sort';
-const TOKEN_VIEW_MODE_STORAGE_KEY = 'sage-wallet-token-view-mode';
-const HIDDEN_CATS_STORAGE_KEY = 'sage-wallet-show-hidden-cats';
+export const ZERO_BALANCE_STORAGE_KEY = 'sage-wallet-show-zero-balance';
+export const TOKEN_SORT_STORAGE_KEY = 'sage-wallet-token-sort';
+export const TOKEN_VIEW_MODE_STORAGE_KEY = 'sage-wallet-token-view-mode';
+export const HIDDEN_CATS_STORAGE_KEY = 'sage-wallet-show-hidden-cats';
 
 export interface TokenParams {
   viewMode: ViewMode;

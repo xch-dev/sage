@@ -152,6 +152,7 @@ const router = createHashRouter(
         />
       </Route>
       <Route path='/settings' element={<Settings />} />
+      <Route path='/settings/:section' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />
       <Route path='/peers' element={<PeerList />} />
       <Route path='/themes' element={<Themes />} />

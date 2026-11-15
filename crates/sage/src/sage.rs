@@ -1259,4 +1259,22 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn rpc_port_and_log_level_are_saved_and_rejected_values_are_ignored() -> Result<()> {
+        let dir = TempDir::new()?;
+        let mut sage = load(dir.path())?;
+
+        sage.set_rpc_port(9300)?;
+        sage.set_log_level("debug")?;
+
+        assert!(matches!(sage.set_rpc_port(0), Err(Error::InvalidRpcPort)));
+        assert!(sage.set_log_level("loud").is_err());
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.config.rpc.port, 9300);
+        assert_eq!(sage.config.global.log_level, "DEBUG");
+
+        Ok(())
+    }
 }

@@ -6,7 +6,7 @@ Each agent gets its own token. A token only grants the capabilities and wallets 
 
 ## Enable the server
 
-1. Open **Settings → Advanced → Agents**.
+1. Open **Settings → Connected Apps**, and find the **Agents** section.
 2. Turn on the agent server. It listens on `127.0.0.1` only, over plain HTTP, on port 9258 by default. The port can be changed (1024 to 65535).
 3. The server is off by default and stays off until you enable it.
 

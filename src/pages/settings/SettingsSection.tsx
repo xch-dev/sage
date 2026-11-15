@@ -1,22 +1,55 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FeeAmountInput } from '@/components/ui/masked-input';
+import { FeeAmountInput, IntegerInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { Trans } from '@lingui/react/macro';
 import { cloneElement, isValidElement, useId } from 'react';
 
 interface SettingsSectionProps {
   title: string;
+  description?: string;
+  destructive?: boolean;
   children: React.ReactNode;
 }
 
-export function SettingsSection({ title, children }: SettingsSectionProps) {
+export function SettingsSection({
+  title,
+  description,
+  destructive,
+  children,
+}: SettingsSectionProps) {
   return (
-    <div className='divide-y rounded-md border bg-card text-card-foreground overflow-hidden'>
-      <div className='p-3'>
-        <h3 className='text-sm font-medium'>{title}</h3>
+    <section
+      className={`divide-y rounded-md border bg-card text-card-foreground overflow-hidden ${
+        destructive ? 'border-destructive/50' : ''
+      }`}
+    >
+      <div className='p-3 space-y-1'>
+        <h3
+          className={`text-sm font-medium ${destructive ? 'text-destructive' : ''}`}
+        >
+          {title}
+        </h3>
+        {description && (
+          <p className='text-sm text-muted-foreground'>{description}</p>
+        )}
       </div>
       <div className='divide-y'>{children}</div>
+    </section>
+  );
+}
+
+export function ServerStatusIndicator({ running }: { running: boolean }) {
+  return (
+    <div className='flex items-center gap-3'>
+      <div
+        className={`h-3 w-3 rounded-full ${
+          running ? 'bg-green-500' : 'bg-red-500'
+        }`}
+      />
+      <span className='font-medium'>
+        {running ? <Trans>Running</Trans> : <Trans>Stopped</Trans>}
+      </span>
     </div>
   );
 }
@@ -63,17 +96,23 @@ export function SettingItem({
   );
 }
 
-export function ServerStatusIndicator({ running }: { running: boolean }) {
+interface TimeInputProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+export function TimeInput({ label, value, onChange }: TimeInputProps) {
   return (
-    <div className='flex items-center gap-3'>
-      <div
-        className={`h-3 w-3 rounded-full ${
-          running ? 'bg-green-500' : 'bg-red-500'
-        }`}
+    <div className='space-y-2'>
+      <Label className='text-sm text-muted-foreground'>{label}</Label>
+      <IntegerInput
+        aria-label={label}
+        value={value}
+        placeholder='0'
+        min={0}
+        onValueChange={(values) => onChange(values.value)}
       />
-      <span className='font-medium'>
-        {running ? <Trans>Running</Trans> : <Trans>Stopped</Trans>}
-      </span>
     </div>
   );
 }

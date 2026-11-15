@@ -6,6 +6,6 @@ export interface TokenViewProps {
 
 export interface PricedTokenRecord extends TokenRecord {
   balance: number | string;
-  balanceInUsd: number;
-  priceInUsd: number;
+  balanceInFiat: number;
+  priceInFiat: number;
 }

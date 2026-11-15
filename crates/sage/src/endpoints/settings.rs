@@ -13,6 +13,7 @@ use sage_api::{
 };
 use sage_config::{MAINNET, MIN_TRANSACTION_EXPIRATION, TESTNET11};
 use sage_wallet::SyncCommand;
+use tracing::Level;
 
 use crate::{Error, Result, Sage};
 
@@ -234,5 +235,22 @@ impl Sage {
         }
 
         Ok(SetTransactionExpirationResponse {})
+    }
+
+    /// Sets the log level. The logger is set up when Sage starts, so it applies after a restart.
+    pub fn set_log_level(&mut self, level: &str) -> Result<()> {
+        let level: Level = level.parse()?;
+        self.config.global.log_level = level.to_string();
+        self.save_config()
+    }
+
+    /// Sets the RPC server's port. A running server keeps its port until it's restarted.
+    pub fn set_rpc_port(&mut self, port: u16) -> Result<()> {
+        if port == 0 {
+            return Err(Error::InvalidRpcPort);
+        }
+
+        self.config.rpc.port = port;
+        self.save_config()
     }
 }

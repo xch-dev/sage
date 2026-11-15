@@ -109,13 +109,26 @@ export function formatAddress(
   return `${cleanAddress.slice(0, chars)}...${cleanAddress.slice(-trailingChars)}`;
 }
 
-export function formatUsdPrice(price: number): string {
-  if (price < 0.01) {
-    return '< 0.01¢';
-  } else if (price < 1) {
-    return `${(price * 100).toFixed(2)}¢`;
+/** A unit price in a fiat currency, with more precision for prices below 1. */
+export function formatFiatPrice(price: number, currency: string): string {
+  const format = (value: number, options: Intl.NumberFormatOptions) =>
+    value.toLocaleString(navigator.language, {
+      style: 'currency',
+      currency,
+      ...options,
+    });
+
+  if (price > 0 && price < 0.0001) {
+    return `< ${format(0.0001, { maximumFractionDigits: 4 })}`;
+  } else if (price > 0 && Number(price.toPrecision(3)) < 1) {
+    // At least two digits, so half a dollar reads $0.50 rather than $0.5.
+    return format(price, {
+      minimumSignificantDigits: 2,
+      maximumSignificantDigits: 3,
+    });
   } else {
-    return `$${price.toFixed(2)}`;
+    // The currency's usual decimal places, such as 2 for USD and none for JPY.
+    return format(price, {});
   }
 }
 
