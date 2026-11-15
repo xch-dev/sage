@@ -4,16 +4,16 @@ use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, prelude::*, puzzles::SETTLEMENT_
 use sage_api::{
     Amount, CoinJson, CoinSpendJson, HandleRecord, SpendBundleJson, TransactionInput,
     TransactionOutput, TransactionSummary, VaultRecoverySpendKind as ApiVaultRecoverySpendKind,
-    VaultSpendRecord,
+    VaultSingletonSpendRecord, VaultSpendRecord,
 };
 use sage_assets::{Data, base64_data_uri};
 use sage_database::{Asset, AssetKind, Database, ParsedNftMetadata};
 use sage_wallet::{
-    CoinKind, Transaction, VaultRecoverySpendKind, compute_nft_info, parse_vault_recovery_spend,
-    parse_vault_spend_bundle,
+    CoinKind, Transaction, VaultRecoverySpendKind, VaultSingletonKind, VaultSpendSummary,
+    WalletError, compute_nft_info, parse_vault_recovery_spend,
 };
 
-use crate::{Error, HandleSend, Result, Sage, encode_vault_id};
+use crate::{Error, HandleSend, Result, Sage, encode_asset_id, encode_vault_id};
 
 use super::{parse_coin_id, parse_hash, parse_program, parse_signature};
 
@@ -37,7 +37,10 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let vault = match wallet.vault_launcher_id() {
-            Some(launcher_id) => vault_spend_record(&coin_spends, launcher_id)?,
+            Some(launcher_id) => {
+                let summary = wallet.parse_vault_spend(&coin_spends).await;
+                vault_spend_record(&coin_spends, summary, launcher_id, self.network().prefix())?
+            }
             None => None,
         };
 
@@ -171,10 +174,12 @@ impl Sage {
     }
 }
 
-/// Checks what the vault's spend in the transaction does, if it's spent.
+/// What the vault's spend in the transaction does, if it's spent, from its clear signing summary.
 fn vault_spend_record(
     coin_spends: &[CoinSpend],
+    summary: std::result::Result<Option<VaultSpendSummary>, WalletError>,
     launcher_id: Bytes32,
+    prefix: String,
 ) -> Result<Option<VaultSpendRecord>> {
     let launcher_id_string = encode_vault_id(launcher_id)?;
 
@@ -192,6 +197,7 @@ fn vault_spend_record(
             melted: recovery.child_custody_hash.is_none(),
             reserved_fee: Amount::u64(0),
             unaccounted_xch: Amount::u64(0),
+            singletons: Vec::new(),
             recovery: Some(match recovery.kind {
                 VaultRecoverySpendKind::Start => ApiVaultRecoverySpendKind::Start,
                 VaultRecoverySpendKind::Finish => ApiVaultRecoverySpendKind::Finish,
@@ -199,20 +205,40 @@ fn vault_spend_record(
         }));
     }
 
-    Ok(match parse_vault_spend_bundle(coin_spends, launcher_id) {
+    Ok(match summary {
         Ok(None) => None,
-        Ok(Some(summary)) => Some(VaultSpendRecord {
-            launcher_id: launcher_id_string,
-            verified: true,
-            error: None,
-            custody_changed: summary
-                .child_custody_hash
-                .is_some_and(|custody_hash| custody_hash != summary.custody_hash),
-            melted: summary.child_custody_hash.is_none(),
-            reserved_fee: Amount::u64(summary.reserved_fee),
-            unaccounted_xch: Amount::u128(summary.unaccounted_xch),
-            recovery: None,
-        }),
+        Ok(Some(summary)) => {
+            let mut singletons = Vec::new();
+
+            for singleton in &summary.singletons {
+                let kind = match singleton.kind {
+                    VaultSingletonKind::Did => AssetKind::Did,
+                    VaultSingletonKind::Option => AssetKind::Option,
+                };
+
+                singletons.push(VaultSingletonSpendRecord {
+                    launcher_id: encode_asset_id(singleton.launcher_id, kind)?.unwrap_or_default(),
+                    address: singleton
+                        .child_p2_puzzle_hash
+                        .map(|puzzle_hash| Address::new(puzzle_hash, prefix.clone()).encode())
+                        .transpose()?,
+                });
+            }
+
+            Some(VaultSpendRecord {
+                launcher_id: launcher_id_string,
+                verified: true,
+                error: None,
+                custody_changed: summary
+                    .child_custody_hash
+                    .is_some_and(|custody_hash| custody_hash != summary.custody_hash),
+                melted: summary.child_custody_hash.is_none(),
+                reserved_fee: Amount::u64(summary.reserved_fee),
+                unaccounted_xch: Amount::u128(summary.unaccounted_xch),
+                singletons,
+                recovery: None,
+            })
+        }
         Err(error) => Some(VaultSpendRecord {
             launcher_id: launcher_id_string,
             verified: false,
@@ -221,6 +247,7 @@ fn vault_spend_record(
             melted: false,
             reserved_fee: Amount::u64(0),
             unaccounted_xch: Amount::u64(0),
+            singletons: Vec::new(),
             recovery: None,
         }),
     })

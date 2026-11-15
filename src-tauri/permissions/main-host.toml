@@ -45,6 +45,7 @@ commands.allow = [
     "bulk_send_cat",
     "auto_combine_cat",
     "issue_cat",
+    "issue_more_cat",
     "create_did",
     "bulk_mint_nfts",
     "transfer_nfts",

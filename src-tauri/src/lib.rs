@@ -74,6 +74,7 @@ macro_rules! sage_commands {
             commands::bulk_send_cat,
             commands::auto_combine_cat,
             commands::issue_cat,
+            commands::issue_more_cat,
             commands::create_did,
             commands::bulk_mint_nfts,
             commands::transfer_nfts,

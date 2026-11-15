@@ -200,15 +200,9 @@ impl Sage {
             }
         };
 
-        let master_sk = self.master_secret_key(&wallet)?;
-
-        let offer = wallet
-            .sign_transaction(
-                unsigned,
-                &AggSigConstants::new(self.network().agg_sig_me()),
-                master_sk,
-                false,
-            )
+        // A vault's offer only spends its pre-split coins, which are already signed for.
+        let offer = self
+            .sign_with(&wallet, unsigned, wallet.vault_launcher_id().is_some())
             .await?;
 
         let encoded_offer = encode_offer(&offer)?;
@@ -279,20 +273,11 @@ impl Sage {
 
         let taken = wallet.take_offer(offer, fee).await?;
 
-        let master_sk = self.master_secret_key(&wallet)?;
-
         let TakenOffer {
             offer,
             spend_bundle,
         } = taken;
-        let spend_bundle = wallet
-            .sign_transaction(
-                spend_bundle,
-                &AggSigConstants::new(self.network().agg_sig_me()),
-                master_sk,
-                false,
-            )
-            .await?;
+        let spend_bundle = self.sign_with(&wallet, spend_bundle, false).await?;
         let spend_bundle = offer.take(spend_bundle);
 
         debug!(

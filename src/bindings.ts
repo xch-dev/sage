@@ -137,6 +137,9 @@ async autoCombineCat(req: AutoCombineCat) : Promise<AutoCombineCatResponse> {
 async issueCat(req: IssueCat) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("issue_cat", { req });
 },
+async issueMoreCat(req: IssueMoreCat) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("issue_more_cat", { req });
+},
 async createDid(req: CreateDid) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("create_did", { req });
 },
@@ -839,9 +842,10 @@ export type BulkMintNfts = {
  */
 mints: NftMint[]; 
 /**
- * DID ID for the NFT collection
+ * DID ID for the NFT collection. A vault wallet can leave it out to mint the NFTs with the
+ * vault itself as their minter
  */
-did_id: string; 
+did_id?: string | null; 
 /**
  * Transaction fee
  */
@@ -2893,6 +2897,31 @@ amount: Amount;
  */
 revocable?: boolean; 
 /**
+ * Whether the vault can issue more of the CAT later, with `issue_more_cat`. Only vault
+ * wallets can, since the CAT's TAIL is controlled by the vault
+ */
+multi_issuance?: boolean; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Issue more of a CAT whose TAIL is controlled by the open vault
+ */
+export type IssueMoreCat = { 
+/**
+ * The CAT's asset id
+ */
+asset_id: string; 
+/**
+ * How much more to issue
+ */
+amount: Amount; 
+/**
  * Transaction fee
  */
 fee: Amount; 
@@ -4760,6 +4789,19 @@ recovery: boolean }
  */
 export type VaultSignersRecord = { threshold: number; members: VaultMemberRecord[] }
 /**
+ * The spend of a DID or option owned by a vault
+ */
+export type VaultSingletonSpendRecord = { 
+/**
+ * The DID or option id
+ */
+launcher_id: string; 
+/**
+ * The address the singleton is sent to, or `null` if it's melted, such as when an option is
+ * exercised
+ */
+address: string | null }
+/**
  * What a vault spend does, checked with clear signing before the vault's custody signs it
  */
 export type VaultSpendRecord = { 
@@ -4793,7 +4835,12 @@ unaccounted_xch: Amount;
  * Whether the spend starts or finishes a recovery, through the vault's recovery side, rather
  * than spending it through its custody. Its new custody is found by running its puzzle
  */
-recovery?: VaultRecoverySpendKind | null }
+recovery?: VaultRecoverySpendKind | null; 
+/**
+ * The DIDs and options that the vault spends, which Sage checks itself, since clear signing
+ * doesn't cover them
+ */
+singletons?: VaultSingletonSpendRecord[] }
 export type VaultState = 
 /**
  * None of the vault's coins have been synced yet

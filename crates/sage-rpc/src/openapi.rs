@@ -106,6 +106,8 @@ pub fn generate_openapi() -> OpenApi {
         .schema_from::<sage_api::NftSortMode>()
         .schema_from::<sage_api::NftUriKind>()
         .schema_from::<sage_api::TransactionSummary>()
+        .schema_from::<sage_api::VaultSpendRecord>()
+        .schema_from::<sage_api::VaultSingletonSpendRecord>()
         .schema_from::<sage_api::TransactionInput>()
         .schema_from::<sage_api::TransactionOutput>()
         .schema_from::<sage_api::TransactionCoinRecord>()

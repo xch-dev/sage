@@ -2,6 +2,7 @@ mod contacts;
 mod keys;
 mod recipients;
 mod vault_mint;
+mod vault_offers;
 mod vault_recovery;
 mod vault_wallets;
 mod wallets;
@@ -616,6 +617,7 @@ async fn reused_cat_offers(
         ticker: "RSD".to_string(),
         amount: Amount::u64(1000),
         revocable: false,
+        multi_issuance: false,
         fee: Amount::u64(0),
         auto_submit: true,
     })
@@ -1042,6 +1044,7 @@ async fn test_pre_split_cat_offer() -> Result<()> {
         ticker: "SPL".to_string(),
         amount: Amount::u64(1000),
         revocable: false,
+        multi_issuance: false,
         fee: Amount::u64(0),
         auto_submit: true,
     })

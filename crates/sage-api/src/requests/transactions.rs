@@ -228,6 +228,36 @@ pub struct IssueCat {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub revocable: bool,
+    /// Whether the vault can issue more of the CAT later, with `issue_more_cat`. Only vault
+    /// wallets can, since the CAT's TAIL is controlled by the vault
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub multi_issuance: bool,
+    /// Transaction fee
+    pub fee: Amount,
+    /// Whether to automatically submit the transaction
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub auto_submit: bool,
+}
+
+/// Issue more of a CAT whose TAIL is controlled by the open vault
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "CAT Tokens",
+        description = "Issue more of a CAT that the open vault issued with `multi_issuance`. Only vault wallets can do this.",
+        response_type = "TransactionResponse"
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct IssueMoreCat {
+    /// The CAT's asset id
+    pub asset_id: String,
+    /// How much more to issue
+    pub amount: Amount,
     /// Transaction fee
     pub fee: Amount,
     /// Whether to automatically submit the transaction
@@ -410,8 +440,11 @@ pub struct CreateDid {
 pub struct BulkMintNfts {
     /// List of NFTs to mint
     pub mints: Vec<NftMint>,
-    /// DID ID for the NFT collection
-    pub did_id: String,
+    /// DID ID for the NFT collection. A vault wallet can leave it out to mint the NFTs with the
+    /// vault itself as their minter
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub did_id: Option<String>,
     /// Transaction fee
     pub fee: Amount,
     /// Whether to automatically submit the transaction
@@ -927,6 +960,7 @@ pub type BulkSendXchResponse = TransactionResponse;
 pub type CombineResponse = TransactionResponse;
 pub type SplitResponse = TransactionResponse;
 pub type IssueCatResponse = TransactionResponse;
+pub type IssueMoreCatResponse = TransactionResponse;
 pub type SendCatResponse = TransactionResponse;
 pub type BulkSendCatResponse = TransactionResponse;
 pub type MultiSendResponse = TransactionResponse;

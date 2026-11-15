@@ -145,6 +145,7 @@ async fn alice_with_assets(app: &mut TestApp) -> Result<(u32, Holdings, Vec<Stri
         ticker: "WCH".to_string(),
         amount: Amount::u64(1000),
         revocable: false,
+        multi_issuance: false,
         fee: Amount::u64(0),
         auto_submit: true,
     })
