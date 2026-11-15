@@ -345,6 +345,7 @@ mod tests {
 
                 [defaults]
                 delta_sync = true
+                transaction_expiration = 3600
 
                 [[wallets]]
                 name = "Main"
@@ -360,7 +361,8 @@ mod tests {
                 {
                   "version": 1,
                   "defaults": {
-                    "delta_sync": true
+                    "delta_sync": true,
+                    "transaction_expiration": 3600
                   },
                   "wallets": [
                     {
