@@ -85,28 +85,21 @@ export interface OfferChoiceOption {
   value: string;
   label: ReactNode;
   description?: ReactNode;
-  /** Shown below the option while it is selected. */
-  children?: ReactNode;
 }
 
 export interface OfferChoiceProps {
   label: string;
   value: string;
   onValueChange: (value: string) => void;
-  options: OfferChoiceOption[];
-  disabled?: boolean;
+  options: [OfferChoiceOption, OfferChoiceOption];
 }
 
-/**
- * A pair of radio options, side by side on wide screens, each with its own
- * details shown below it while it is selected.
- */
+/** A pair of radio options, side by side on wide screens. */
 export function OfferChoice({
   label,
   value,
   onValueChange,
   options,
-  disabled,
 }: OfferChoiceProps) {
   const id = useId();
 
@@ -125,16 +118,12 @@ export function OfferChoice({
               index === 0
                 ? 'pb-4 lg:pb-0 lg:pr-6'
                 : 'border-t border-border pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0',
-              !checked && !disabled && 'opacity-60 hover:opacity-90',
-              disabled && 'opacity-50',
+              !checked && 'opacity-60 hover:opacity-90',
             )}
           >
             <label
               htmlFor={inputId}
-              className={cn(
-                'relative flex items-start gap-3 text-sm',
-                disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-              )}
+              className='relative flex cursor-pointer items-start gap-3 text-sm'
             >
               <input
                 id={inputId}
@@ -142,7 +131,6 @@ export function OfferChoice({
                 name={id}
                 value={option.value}
                 checked={checked}
-                disabled={disabled}
                 onChange={() => onValueChange(option.value)}
                 aria-labelledby={`${inputId}-label`}
                 aria-describedby={
@@ -175,9 +163,6 @@ export function OfferChoice({
                 )}
               </span>
             </label>
-            {checked && option.children && (
-              <div className='lg:pl-7'>{option.children}</div>
-            )}
           </div>
         );
       })}

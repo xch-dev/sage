@@ -8,6 +8,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 interface DialogProps {
+  fee: string;
   splitNftOffers: boolean;
   preSplitFee: string | null;
 }
@@ -30,8 +31,17 @@ vi.mock('@/components/ExpirationInput', () => ({
 vi.mock('@/components/Header', () => ({ default: () => null }));
 vi.mock('@/components/ReadOnlyButton', () => ({ ReadOnlyButton: () => null }));
 vi.mock('@/components/ui/masked-input', () => ({
-  FeeAmountInput: (props: { 'aria-label'?: string }) => (
-    <input aria-label={props['aria-label']} />
+  // Named like the real input, which defaults to "Network fee amount".
+  FeeAmountInput: (props: {
+    'aria-label'?: string;
+    value?: string;
+    onValueChange?: (values: { value: string }) => void;
+  }) => (
+    <input
+      aria-label={props['aria-label'] ?? 'Network fee amount'}
+      value={props.value}
+      onChange={(e) => props.onValueChange?.({ value: e.target.value })}
+    />
   ),
 }));
 vi.mock('@/hooks/useErrors', () => ({
@@ -63,13 +73,18 @@ afterEach(() => {
   dialog.props = null;
 });
 
-function renderWithOfferedNfts(count: number) {
+function renderWithOfferedNfts(count: number | string[]) {
+  const nfts =
+    typeof count === 'number'
+      ? Array.from({ length: count }, (_, i) => `nft${i}`)
+      : count;
+
   useOfferState.setState({
     fee: '',
     expiration: null,
     offered: {
       tokens: [],
-      nfts: Array.from({ length: count }, (_, i) => `nft${i}`),
+      nfts,
       options: [],
     },
     requested: { tokens: [], nfts: [], options: [] },
@@ -124,6 +139,34 @@ describe('MakeOffer settings', () => {
     fireEvent.click(radio('One offer'));
     expect(dialog.props?.splitNftOffers).toBe(false);
     expect(dialog.props?.preSplitFee).toBe('');
+  });
+
+  it("doesn't count an NFT row that hasn't been filled in", () => {
+    renderWithOfferedNfts(['nft0', '']);
+
+    expect(screen.queryByRole('group', { name: 'NFT offers' })).toBeNull();
+    expect(toggle('Split coins first').disabled).toBe(false);
+  });
+
+  it('passes each typed fee to the dialog', () => {
+    renderWithOfferedNfts(2);
+    fireEvent.change(screen.getByLabelText('Network fee amount'), {
+      target: { value: '0.25' },
+    });
+    fireEvent.click(toggle('Split coins first'));
+    fireEvent.change(screen.getByLabelText('Split fee'), {
+      target: { value: '0.0001' },
+    });
+
+    expect(dialog.props?.fee).toBe('0.25');
+    expect(dialog.props?.preSplitFee).toBe('0.0001');
+
+    // The split fee comes back after splitting the NFT offers and undoing it.
+    fireEvent.click(radio('One offer per NFT'));
+    expect(dialog.props?.preSplitFee).toBeNull();
+    fireEvent.click(radio('One offer'));
+    expect(dialog.props?.preSplitFee).toBe('0.0001');
+    expect(dialog.props?.fee).toBe('0.25');
   });
 
   it('sets and clears the expiration', () => {
