@@ -212,7 +212,9 @@ export default function Layout(props: LayoutProps) {
 
   if (
     !wallet &&
-    (location.pathname === '/settings' || location.pathname === '/themes')
+    (location.pathname === '/settings' ||
+      location.pathname.startsWith('/settings/') ||
+      location.pathname === '/themes')
   ) {
     return <MinimalLayout {...props} />;
   }
