@@ -45,7 +45,6 @@ export interface PermissionEditorProps {
   emptyText?: string;
   requiredSectionTitle?: string;
   optionalSectionTitle?: string;
-  showMoreLabel?: (count: number) => string;
   collapseUngrantedOptional?: boolean;
 }
 
@@ -168,7 +167,6 @@ export function PermissionEditor({
   emptyText = 'This app does not request any permissions.',
   requiredSectionTitle = 'Required permissions',
   optionalSectionTitle = 'Optional permissions',
-  showMoreLabel = defaultShowMoreLabel,
   collapseUngrantedOptional = true,
 }: PermissionEditorProps) {
   const definitionsByKey = useMemo(
@@ -462,7 +460,6 @@ export function PermissionEditor({
       emptyText={emptyText}
       requiredSectionTitle={requiredSectionTitle}
       optionalSectionTitle={optionalSectionTitle}
-      showMoreLabel={showMoreLabel}
       collapseUngrantedOptional={collapseUngrantedOptional}
       onToggleEntry={handleToggleEntry}
     />
@@ -476,7 +473,6 @@ function PermissionSections({
   emptyText,
   requiredSectionTitle,
   optionalSectionTitle,
-  showMoreLabel,
   collapseUngrantedOptional,
   onToggleEntry,
 }: {
@@ -486,7 +482,6 @@ function PermissionSections({
   emptyText: string;
   requiredSectionTitle: string;
   optionalSectionTitle: string;
-  showMoreLabel: (count: number) => string;
   collapseUngrantedOptional: boolean;
   onToggleEntry: (
     entry: PermissionEntry,
@@ -555,7 +550,8 @@ function PermissionSections({
                 className='inline-flex items-center rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
                 onClick={() => setExpanded(true)}
               >
-                {showMoreLabel(ungrantedOptionalEntries.length)}
+                Show {ungrantedOptionalEntries.length} more optional permission
+                {ungrantedOptionalEntries.length === 1 ? '' : 's'}
               </button>
             ) : null
           }
@@ -563,10 +559,6 @@ function PermissionSections({
       ) : null}
     </div>
   );
-}
-
-function defaultShowMoreLabel(count: number): string {
-  return `Show ${count} more optional permission${count === 1 ? '' : 's'}`;
 }
 
 function emptyGrantedPermissions(): SageGrantedPermissionsView {

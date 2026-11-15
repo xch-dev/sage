@@ -6942,7 +6942,6 @@ dependencies = [
  "erased-serde",
  "futures",
  "hex",
- "http",
  "mime_guess",
  "parking_lot",
  "rand 0.8.8",

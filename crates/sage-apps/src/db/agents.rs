@@ -141,12 +141,39 @@ impl AppsDb {
 
             if kept.len() != fingerprints.len() {
                 let scope = SageAppWalletScope::SelectedWallets { fingerprints: kept };
-                self.update_agent(&agent.id, &agent.name, &agent.capabilities, &scope)
+                self.replace_agent_wallet_scope(&agent.id, &agent.wallet_scope, &scope)
                     .await?;
             }
         }
 
         Ok(())
+    }
+
+    /// Changes only the wallet scope, and only if it is still `expected`, so that an edit saved
+    /// since the agent was read isn't overwritten.
+    async fn replace_agent_wallet_scope(
+        &self,
+        id: &str,
+        expected: &SageAppWalletScope,
+        wallet_scope: &SageAppWalletScope,
+    ) -> Result<bool> {
+        let result = sqlx::query(
+            r"
+            UPDATE sage_agents
+            SET wallet_scope_json = ?,
+                updated_at_ms = ?
+            WHERE agent_id = ? AND wallet_scope_json = ?
+            ",
+        )
+        .bind(serde_json::to_string(wallet_scope)?)
+        .bind(unix_timestamp_ms())
+        .bind(id)
+        .bind(serde_json::to_string(expected)?)
+        .execute(&self.pool)
+        .await
+        .context("failed to update agent wallet scope")?;
+
+        Ok(result.rows_affected() > 0)
     }
 
     pub async fn set_agent_token_hash(&self, id: &str, token_hash: &str) -> Result<bool> {
@@ -289,6 +316,44 @@ mod tests {
                 fingerprints: vec![8]
             }
         );
+    }
+
+    #[tokio::test]
+    async fn pruning_a_stale_scope_keeps_a_newer_edit() {
+        let base = tempdir().unwrap();
+        let db = AppsDb::initialize(base.path()).await.unwrap();
+        let mut agent = sample("a");
+        let stale = SageAppWalletScope::SelectedWallets {
+            fingerprints: vec![7, 8],
+        };
+        agent.wallet_scope = stale.clone();
+        db.insert_agent(&agent, "h1").await.unwrap();
+
+        // The user removes every capability after the prune read the agent, but before it wrote.
+        let caps = BTreeSet::new();
+        db.update_agent(&agent.id, "a", &caps, &stale)
+            .await
+            .unwrap();
+        let pruned = SageAppWalletScope::SelectedWallets {
+            fingerprints: vec![8],
+        };
+        assert!(
+            db.replace_agent_wallet_scope(&agent.id, &stale, &pruned)
+                .await
+                .unwrap()
+        );
+        let got = db.get_agent(&agent.id).await.unwrap().unwrap();
+        assert_eq!(got.capabilities, caps);
+        assert_eq!(got.wallet_scope, pruned);
+
+        // A scope the user changed since it was read is left alone.
+        assert!(
+            !db.replace_agent_wallet_scope(&agent.id, &stale, &SageAppWalletScope::AllWallets)
+                .await
+                .unwrap()
+        );
+        let got = db.get_agent(&agent.id).await.unwrap().unwrap();
+        assert_eq!(got.wallet_scope, pruned);
     }
 
     #[tokio::test]

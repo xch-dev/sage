@@ -72,12 +72,6 @@ describe('PermissionEditor', () => {
     expect(screen.queryByText('Read transactions')).not.toBeNull();
     expect(screen.queryByRole('button', { name: /Show/ })).toBeNull();
   });
-
-  it('uses a custom show more label', () => {
-    renderEditor({ showMoreLabel: (count) => `More (${count})` });
-
-    expect(screen.queryByRole('button', { name: 'More (1)' })).not.toBeNull();
-  });
 });
 
 describe('WalletScopeEditor', () => {

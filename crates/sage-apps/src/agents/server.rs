@@ -7,11 +7,11 @@ use axum::{
     http::{
         HeaderMap, HeaderValue, StatusCode,
         header::{AUTHORIZATION, WWW_AUTHENTICATE},
+        request::Parts,
     },
     middleware::{self, Next},
     response::Response,
 };
-use http::request::Parts;
 use rmcp::{
     ErrorData, RoleServer, ServerHandler,
     model::{
@@ -294,7 +294,7 @@ mod tests {
     use tower::ServiceExt;
 
     use super::*;
-    use crate::{AgentCallError, SageAppWalletScope, UserBridgeCapability};
+    use crate::{BridgeMethodHandleError, SageAppWalletScope, UserBridgeCapability};
 
     const PROTOCOL_VERSION: &str = "2025-06-18";
     const VERSION: &str = "9.9.9-test";
@@ -308,12 +308,12 @@ mod tests {
             _agent: &SageAgent,
             tool: &AgentTool,
             arguments: Value,
-        ) -> Result<Value, AgentCallError> {
+        ) -> Result<Value, BridgeMethodHandleError> {
             if tool.name == "get_sync_status" {
-                return Err(AgentCallError {
-                    code: "no_wallet",
-                    message: "no wallet is open".to_string(),
-                });
+                return Err(BridgeMethodHandleError::new(
+                    "no_wallet",
+                    "no wallet is open",
+                ));
             }
             if tool.name == "get_asset_coins" {
                 return Ok(json!([{ "coin": 1 }, { "coin": 2 }]));
@@ -753,7 +753,59 @@ mod tests {
             build_request(Some(&f.bearer()), "evil.example", None, &initialize_body()),
         )
         .await;
-        assert!(!response.status().is_success(), "{}", response.status());
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[tokio::test]
+    async fn host_header_with_port_is_checked() {
+        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let auth = f.bearer();
+
+        for host in ["evil.example:9258", "127.0.0.1.evil.example"] {
+            let response = send(
+                &f.router,
+                build_request(Some(&auth), host, None, &initialize_body()),
+            )
+            .await;
+            assert_eq!(response.status(), StatusCode::FORBIDDEN, "{host}");
+        }
+
+        for host in ["127.0.0.1:9258", "localhost:9258", "[::1]:9258"] {
+            let response = send(
+                &f.router,
+                build_request(Some(&auth), host, None, &initialize_body()),
+            )
+            .await;
+            assert_eq!(response.status(), StatusCode::OK, "{host}");
+        }
+    }
+
+    #[tokio::test]
+    async fn secret_and_signing_grants_expose_no_tools() {
+        // Such grants can't be made through Sage, only by editing the database.
+        let f = fixture(&[
+            UserBridgeCapability::WalletGetSecretKey,
+            UserBridgeCapability::WalletSignCoinSpends,
+            UserBridgeCapability::WalletSendXch,
+        ])
+        .await;
+        let auth = f.bearer();
+        let session = initialize(&f.router, &auth).await;
+
+        let list = rpc_ok(&f.router, &auth, &session, "tools/list", json!({})).await;
+        assert!(tool_names(&list).is_empty(), "{list}");
+
+        for name in ["get_secret_key", "sign_coin_spends", "send_xch"] {
+            let message = rpc_ok(
+                &f.router,
+                &auth,
+                &session,
+                "tools/call",
+                json!({ "name": name, "arguments": {} }),
+            )
+            .await;
+            assert_eq!(message["error"]["code"], -32602, "{name}: {message}");
+        }
     }
 
     #[tokio::test]

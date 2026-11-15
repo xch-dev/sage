@@ -393,7 +393,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::{AgentCallError, AgentTool, AgentToolExecutor};
+    use crate::{AgentTool, AgentToolExecutor, BridgeMethodHandleError};
 
     struct NoopExecutor;
 
@@ -404,7 +404,7 @@ mod tests {
             _agent: &SageAgent,
             _tool: &AgentTool,
             _arguments: Value,
-        ) -> std::result::Result<Value, AgentCallError> {
+        ) -> std::result::Result<Value, BridgeMethodHandleError> {
             Ok(Value::Null)
         }
     }

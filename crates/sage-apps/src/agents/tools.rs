@@ -4,8 +4,8 @@ use sage_api::{
 use serde_json::{Value, json};
 
 use crate::{
-    SageAgent, UserBridgeCapability, WalletGetAssetBalanceParams, WalletGetAssetCoinsParams,
-    schema_of,
+    BridgeMethod, BridgeMethodHandleError, BridgeRegistry, SageAgent, UserBridgeCapability,
+    WalletGetAssetBalanceParams, WalletGetAssetCoinsParams, schema_of,
 };
 
 pub(crate) struct AgentTool {
@@ -14,12 +14,6 @@ pub(crate) struct AgentTool {
     pub capability: UserBridgeCapability,
     pub description: &'static str,
     pub input_schema: fn() -> Value,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct AgentCallError {
-    pub code: &'static str,
-    pub message: String,
 }
 
 fn no_params() -> Value {
@@ -129,10 +123,6 @@ pub(crate) fn find_agent_tool(name: &str) -> Option<&'static AgentTool> {
     TOOLS.iter().find(|tool| tool.name == name)
 }
 
-pub(crate) fn find_agent_tool_by_bridge_method(method: &str) -> Option<&'static AgentTool> {
-    TOOLS.iter().find(|tool| tool.bridge_method == method)
-}
-
 pub(crate) fn agent_grantable_capabilities() -> Vec<UserBridgeCapability> {
     let mut capabilities: Vec<_> = TOOLS.iter().map(|tool| tool.capability).collect();
     capabilities.sort();
@@ -147,33 +137,42 @@ pub(crate) fn tools_for_agent(agent: &SageAgent) -> Vec<&'static AgentTool> {
         .collect()
 }
 
-pub(crate) fn authorize_agent_call(
+/// Checks that an agent may call a tool on the current wallet, and finds its bridge method.
+pub(crate) fn authorize_agent_call<'a>(
+    registry: &'a BridgeRegistry,
     agent: &SageAgent,
     tool: &AgentTool,
     current_fingerprint: Option<u32>,
-) -> Result<(), AgentCallError> {
+) -> Result<&'a dyn BridgeMethod, BridgeMethodHandleError> {
     if !agent.capabilities.contains(&tool.capability) {
-        return Err(AgentCallError {
-            code: "permission_denied",
-            message: format!("agent is not granted access to {}", tool.name),
-        });
+        return Err(BridgeMethodHandleError::new(
+            "permission_denied",
+            format!("agent is not granted access to {}", tool.name),
+        ));
     }
 
+    let Some(method) = registry.get(tool.bridge_method) else {
+        return Err(BridgeMethodHandleError::new(
+            "method_not_found",
+            format!("Unknown bridge method: {}", tool.bridge_method),
+        ));
+    };
+
     let Some(fingerprint) = current_fingerprint else {
-        return Err(AgentCallError {
-            code: "no_wallet",
-            message: "no wallet is currently logged in".to_string(),
-        });
+        return Err(BridgeMethodHandleError::new(
+            "no_wallet",
+            "no wallet is currently logged in",
+        ));
     };
 
     if !agent.is_wallet_in_scope(fingerprint) {
-        return Err(AgentCallError {
-            code: "wallet_not_in_scope",
-            message: "the current wallet is outside this agent's wallet scope".to_string(),
-        });
+        return Err(BridgeMethodHandleError::new(
+            "wallet_not_in_scope",
+            "the current wallet is outside this agent's wallet scope",
+        ));
     }
 
-    Ok(())
+    Ok(method)
 }
 
 #[cfg(test)]
@@ -182,7 +181,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        BridgeMethodCapability, BridgeRegistry, BridgeRegistryKind, SageAppWalletScope,
+        BridgeMethodCapability, BridgeRegistryKind, SageAppWalletScope,
         get_user_capability_definition,
     };
 
@@ -198,6 +197,10 @@ mod tests {
             updated_at_ms: 0,
             last_used_at_ms: None,
         }
+    }
+
+    fn registry() -> BridgeRegistry {
+        BridgeRegistry::new(BridgeRegistryKind::User)
     }
 
     fn tool(name: &str) -> &'static AgentTool {
@@ -347,14 +350,18 @@ mod tests {
     #[test]
     fn call_refused_without_grant() {
         let agent = agent(&[WalletGetSyncStatus], SageAppWalletScope::AllWallets);
-        let err = authorize_agent_call(&agent, tool("get_wallet"), Some(1)).unwrap_err();
+        let err = authorize_agent_call(&registry(), &agent, tool("get_wallet"), Some(1))
+            .err()
+            .expect("refused");
         assert_eq!(err.code, "permission_denied");
     }
 
     #[test]
     fn call_refused_without_current_wallet() {
         let agent = agent(&[WalletGetWallet], SageAppWalletScope::AllWallets);
-        let err = authorize_agent_call(&agent, tool("get_wallet"), None).unwrap_err();
+        let err = authorize_agent_call(&registry(), &agent, tool("get_wallet"), None)
+            .err()
+            .expect("refused");
         assert_eq!(err.code, "no_wallet");
     }
 
@@ -366,7 +373,9 @@ mod tests {
                 fingerprints: vec![7],
             },
         );
-        let err = authorize_agent_call(&agent, tool("get_wallet"), Some(8)).unwrap_err();
+        let err = authorize_agent_call(&registry(), &agent, tool("get_wallet"), Some(8))
+            .err()
+            .expect("refused");
         assert_eq!(err.code, "wallet_not_in_scope");
     }
 
@@ -378,9 +387,27 @@ mod tests {
                 fingerprints: vec![7],
             },
         );
+        let registry = registry();
+        let result = authorize_agent_call(&registry, &agent, tool("get_wallet"), Some(7));
         assert_eq!(
-            authorize_agent_call(&agent, tool("get_wallet"), Some(7)),
-            Ok(())
+            result.map(BridgeMethod::name).ok(),
+            Some("wallet.getWallet")
         );
+    }
+
+    #[test]
+    fn call_refused_for_a_method_missing_from_the_registry() {
+        let tool = AgentTool {
+            name: "missing",
+            bridge_method: "wallet.missing",
+            capability: WalletGetWallet,
+            description: "",
+            input_schema: no_params,
+        };
+        let agent = agent(&[WalletGetWallet], SageAppWalletScope::AllWallets);
+        let err = authorize_agent_call(&registry(), &agent, &tool, Some(1))
+            .err()
+            .expect("refused");
+        assert_eq!(err.code, "method_not_found");
     }
 }

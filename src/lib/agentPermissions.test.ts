@@ -11,6 +11,8 @@ import {
   hasSelectableWallet,
   hasUnsavedAgentChanges,
   initialAgentCapabilities,
+  isValidAgentPort,
+  mcpClientSnippets,
 } from './agentPermissions';
 
 const flags = {
@@ -157,5 +159,41 @@ describe('hasUnsavedAgentChanges', () => {
         fingerprints: [7],
       }),
     ).toBe(true);
+  });
+});
+
+describe('isValidAgentPort', () => {
+  it('accepts ports from 1024 to 65535', () => {
+    expect(isValidAgentPort('1024')).toBe(true);
+    expect(isValidAgentPort('9258')).toBe(true);
+    expect(isValidAgentPort('65535')).toBe(true);
+  });
+
+  it('rejects privileged, out of range and non-numeric ports', () => {
+    for (const value of ['', '0', '1023', '65536', '12a', '-1', '9258.5']) {
+      expect(isValidAgentPort(value), value).toBe(false);
+    }
+  });
+});
+
+describe('mcpClientSnippets', () => {
+  const token = `sage_agent_${'ab'.repeat(32)}`;
+
+  it('builds the Claude Code command for the port and token', () => {
+    expect(mcpClientSnippets(token, 9300).claudeCode).toBe(
+      `claude mcp add --transport http sage http://127.0.0.1:9300/mcp --header "Authorization: Bearer ${token}"`,
+    );
+  });
+
+  it('builds a JSON client config for the port and token', () => {
+    expect(JSON.parse(mcpClientSnippets(token, 9300).json)).toEqual({
+      mcpServers: {
+        sage: {
+          type: 'http',
+          url: 'http://127.0.0.1:9300/mcp',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      },
+    });
   });
 });

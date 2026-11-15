@@ -172,7 +172,7 @@ pub(crate) type BridgeApprovalRequestResult =
     Result<Option<RustBridgeApprovalRequest>, BridgeMethodHandleError>;
 
 impl BridgeMethodHandleError {
-    pub(super) fn new(code: &'static str, message: impl Into<String>) -> Self {
+    pub(crate) fn new(code: &'static str, message: impl Into<String>) -> Self {
         Self {
             code,
             message: message.into(),
@@ -183,7 +183,7 @@ impl BridgeMethodHandleError {
         Self::new("invalid_request", message)
     }
 
-    pub(super) fn internal_error(message: impl Into<String>) -> Self {
+    pub(crate) fn internal_error(message: impl Into<String>) -> Self {
         Self::new("internal_error", message)
     }
 }
@@ -250,7 +250,7 @@ where
 mod bridge_caller_tests {
     use std::collections::BTreeSet;
 
-    use crate::{SageAgent, SageAppWalletScope};
+    use crate::{SageAgent, SageAppWalletScope, test_app_with_scope};
 
     use super::{BridgeCaller, BridgeContext};
 
@@ -264,6 +264,22 @@ mod bridge_caller_tests {
             updated_at_ms: 0,
             last_used_at_ms: None,
         }
+    }
+
+    #[test]
+    fn app_context_uses_app_scope() {
+        let (app, _dir) = test_app_with_scope(SageAppWalletScope::SelectedWallets {
+            fingerprints: vec![7],
+        });
+        let ctx = BridgeContext {
+            caller: BridgeCaller::App(&app),
+        };
+
+        assert!(ctx.app().is_ok());
+        assert!(ctx.require_wallet_in_scope(Some(7)).is_ok());
+        assert!(ctx.require_wallet_in_scope(None).is_ok());
+        let err = ctx.require_wallet_in_scope(Some(8)).unwrap_err();
+        assert_eq!(err.code, "wallet_not_in_scope");
     }
 
     #[test]

@@ -1,3 +1,6 @@
+#[cfg(test)]
+pub(crate) use tests::test_app_with_scope;
+
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -674,6 +677,12 @@ mod tests {
     }
 
     fn test_app() -> (SharedSageApp, TempDir) {
+        test_app_with_scope(SageAppWalletScope::AllWallets)
+    }
+
+    pub(crate) fn test_app_with_scope(
+        wallet_scope: SageAppWalletScope,
+    ) -> (SharedSageApp, TempDir) {
         let dir = tempdir().unwrap();
         fs::write(dir.path().join("index.html"), "x").unwrap();
 
@@ -703,7 +712,7 @@ mod tests {
             granted_permissions,
             SageAppStorage::Unmanaged,
             snapshot,
-            SageAppWalletScope::AllWallets,
+            wallet_scope,
         )
         .unwrap();
         let app = UserSageApp::new_installed(common, UserSageAppSource::Zip);

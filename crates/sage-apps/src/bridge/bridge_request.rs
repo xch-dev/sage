@@ -1,17 +1,19 @@
+use serde_json::Value;
 use tauri::{AppHandle, Manager, State, Webview};
+use uuid::Uuid;
 
 use crate::{
-    AppState, AppsHostState, BridgeApprovalsChangedEvent, BridgeCaller, BridgeCapability,
-    BridgeContext, BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry,
-    BridgeRegistryKind, BridgeTools, PendingBridgeApproval, ResolveBridgeApprovalArgs,
-    RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse,
-    SageAgent, SharedSageApp, SystemBridgeCapability, UserBridgeCapability, assert_bridge_origin,
-    authorize_agent_call, current_wallet_fingerprint, emit_bridge_response_to_app,
-    emit_system_runtime_event_to_listeners, ensure_app_is_enabled_for_scope,
-    ensure_approval_expiry_loop, find_agent_tool_by_bridge_method,
-    get_system_capability_definition, get_user_capability_definition, list_pending_approvals,
-    resolve_app, start_bridge_approval_runtime, sync_bridge_approval_runtime,
-    take_pending_approval, unix_timestamp_ms, write_pending_approval,
+    AgentTool, AppState, AppsHostState, BridgeApprovalsChangedEvent, BridgeCaller,
+    BridgeCapability, BridgeContext, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError,
+    BridgeOrigin, BridgeRegistry, BridgeRegistryKind, BridgeTools, PendingBridgeApproval,
+    ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult,
+    RustBridgeRequest, RustBridgeResponse, SageAgent, SharedSageApp, SystemBridgeCapability,
+    UserBridgeCapability, assert_bridge_origin, authorize_agent_call, current_wallet_fingerprint,
+    emit_bridge_response_to_app, emit_system_runtime_event_to_listeners,
+    ensure_app_is_enabled_for_scope, ensure_approval_expiry_loop, get_system_capability_definition,
+    get_user_capability_definition, list_pending_approvals, resolve_app,
+    start_bridge_approval_runtime, sync_bridge_approval_runtime, take_pending_approval,
+    unix_timestamp_ms, write_pending_approval,
 };
 
 pub(crate) async fn process(
@@ -132,58 +134,51 @@ pub(crate) async fn process_after_approval(
     Ok(())
 }
 
+/// Runs an agent's tool call. Agents can only call the methods in their catalog.
 pub(crate) async fn process_agent(
     app_handle: &AppHandle,
     app_state: &State<'_, AppState>,
     agent: &SageAgent,
-    request: &RustBridgeRequest,
-) -> RustBridgeResponse {
+    tool: &AgentTool,
+    arguments: Value,
+) -> Result<Value, BridgeMethodHandleError> {
     let registry = BridgeRegistry::new(BridgeRegistryKind::User);
 
-    let method = match assert_method(&registry, request) {
-        Ok(method) => method,
-        Err(response) => return response,
-    };
-
-    let Some(tool) = find_agent_tool_by_bridge_method(&request.method) else {
-        return RustBridgeResponse::error(
-            &request.id,
-            "permission_denied",
-            format!("{} is not available to agents", request.method),
-        );
-    };
-
     let fingerprint = current_wallet_fingerprint(app_state).await;
-    if let Err(err) = authorize_agent_call(agent, tool, fingerprint) {
-        return RustBridgeResponse::error(&request.id, err.code, err.message);
-    }
+    let method = authorize_agent_call(&registry, agent, tool, fingerprint)?;
 
     if method.requires_signing() && app_state.lock().await.is_watch_only() {
-        return RustBridgeResponse::error(
-            &request.id,
+        return Err(BridgeMethodHandleError::new(
             "watch_only",
             "Watch-only wallets can't create or sign transactions",
-        );
+        ));
     }
 
+    let request = RustBridgeRequest {
+        bridge_version: Some("v1".to_string()),
+        id: Uuid::new_v4().to_string(),
+        method: tool.bridge_method.to_string(),
+        params_json: Some(arguments.to_string()),
+    };
     let ctx = || BridgeContext {
         caller: BridgeCaller::Agent(agent),
     };
     let host_state = app_handle.state::<AppsHostState>();
     let tools = || BridgeTools::new(app_handle, app_state, &host_state);
 
-    match method.prepare_approval(ctx(), tools(), request).await {
-        Ok(Some(_)) => RustBridgeResponse::error(
-            &request.id,
+    if method
+        .prepare_approval(ctx(), tools(), &request)
+        .await?
+        .is_some()
+    {
+        return Err(BridgeMethodHandleError::new(
             "approval_unsupported",
             "Agent approvals arrive in a later release",
-        ),
-        Ok(None) => {
-            let result = method.handle(ctx(), tools(), request).await;
-            bridge_handle_result_to_response(&request.id, method.name(), result)
-        }
-        Err(err) => RustBridgeResponse::error(&request.id, err.code, err.message),
+        ));
     }
+
+    let result = method.handle(ctx(), tools(), &request).await?;
+    serialize_bridge_result(method.name(), &*result)
 }
 
 async fn process_shared(
@@ -339,17 +334,21 @@ fn bridge_handle_result_to_response(
     method_name: &str,
     result: crate::BridgeHandleResult,
 ) -> RustBridgeResponse {
-    match result {
-        Ok(value) => match erased_serde::serialize(&*value, serde_json::value::Serializer) {
-            Ok(value) => RustBridgeResponse::success(request_id, &value),
-            Err(err) => RustBridgeResponse::error(
-                request_id,
-                "internal_error",
-                format!("failed to encode {method_name} result: {err}"),
-            ),
-        },
+    match result.and_then(|value| serialize_bridge_result(method_name, &*value)) {
+        Ok(value) => RustBridgeResponse::success(request_id, &value),
         Err(err) => RustBridgeResponse::error(request_id, err.code, err.message),
     }
+}
+
+fn serialize_bridge_result(
+    method_name: &str,
+    value: &(dyn erased_serde::Serialize + Send),
+) -> Result<Value, BridgeMethodHandleError> {
+    erased_serde::serialize(value, serde_json::value::Serializer).map_err(|err| {
+        BridgeMethodHandleError::internal_error(format!(
+            "failed to encode {method_name} result: {err}"
+        ))
+    })
 }
 
 async fn active_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u32> {

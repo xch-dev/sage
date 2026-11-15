@@ -73,3 +73,40 @@ export function hasUnsavedAgentChanges(
     walletScope !== agent.walletScope
   );
 }
+
+export const DEFAULT_AGENT_PORT = 9258;
+export const MIN_AGENT_PORT = 1024;
+export const MAX_AGENT_PORT = 65535;
+
+// Ports below 1024 need elevated privileges on most systems, so they're not offered.
+export function isValidAgentPort(value: string): boolean {
+  if (!/^\d+$/.test(value)) return false;
+  const port = Number(value);
+  return port >= MIN_AGENT_PORT && port <= MAX_AGENT_PORT;
+}
+
+export interface McpClientSnippets {
+  claudeCode: string;
+  json: string;
+}
+
+// The setup snippets shown with a new token, for Claude Code and for other MCP clients.
+export function mcpClientSnippets(
+  token: string,
+  port: number,
+): McpClientSnippets {
+  const url = `http://127.0.0.1:${port}/mcp`;
+
+  return {
+    claudeCode: `claude mcp add --transport http sage ${url} --header "Authorization: Bearer ${token}"`,
+    json: JSON.stringify({
+      mcpServers: {
+        sage: {
+          type: 'http',
+          url,
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      },
+    }),
+  };
+}

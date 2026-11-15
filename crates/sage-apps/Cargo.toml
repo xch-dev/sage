@@ -37,7 +37,6 @@ parking_lot = "0.12.5"
 futures = "0.3.32"
 rmcp = { version = "3.10", default-features = false, features = ["server", "transport-streamable-http-server"] }
 axum = { workspace = true }
-http = "1"
 utoipa = { workspace = true }
 
 [dev-dependencies]
