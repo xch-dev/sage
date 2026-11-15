@@ -8,7 +8,7 @@ import { useWallet } from '@/contexts/WalletContext';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import { useNetwork } from '@/hooks/useNetwork';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
-import { useOfferState } from '@/state';
+import { splitOfferNfts } from '@/state';
 import { offersEnabled } from '@/lib/features';
 import { mintGardenCollectionUrl, mintGardenDidUrl } from '@/lib/urls';
 //import { getMintGardenProfile } from '@/lib/marketplaces';
@@ -471,8 +471,9 @@ export function NftGroupCard({
                             : t`Selected NFTs are already in the offer`;
                         toast.success(message, {
                           onClick: () => {
-                            // The NFTs were just added, so the offer exists.
-                            useOfferState.setState({ splitNftOffers: true });
+                            // The offer may have been cleared since the NFTs
+                            // were added, while the toast was still showing.
+                            splitOfferNfts();
                             navigate('/offers/make');
                           },
                         });

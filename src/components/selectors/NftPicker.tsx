@@ -2,7 +2,7 @@ import { NftRecord, commands } from '@/bindings';
 import { MutableNftBadge } from '@/components/MutableNftBadge';
 import { useNftThumbnails } from '@/hooks/useOwnedNft';
 import { nftUri } from '@/lib/nftUri';
-import { formatAddress, isValidAddress } from '@/lib/utils';
+import { cn, formatAddress, isValidAddress } from '@/lib/utils';
 import { plural, t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ReactNode, useCallback, useState } from 'react';
@@ -41,7 +41,7 @@ export function NftPicker({ selected, onToggle, children }: NftPickerProps) {
           })
           .then((data) => ({
             items: data.nfts,
-            hasMore: data.nfts.length >= limit,
+            hasMore: data.total > limit,
           }));
 
     setListed(page.items.map((nft) => nft.launcher_id));
@@ -62,29 +62,59 @@ export function NftPicker({ selected, onToggle, children }: NftPickerProps) {
         plural(count, { one: '# NFT added', other: '# NFTs added' })
       }
       renderItem={(nft) => (
-        <>
-          <img
-            src={thumbnails[nft.launcher_id] ?? nftUri(null, null)}
-            alt=''
-            className='h-10 w-10 shrink-0 rounded-md object-cover'
-            loading='lazy'
-          />
-          <span className='flex min-w-0 flex-1 flex-col'>
-            <span className='flex min-w-0 items-center gap-1.5'>
-              <span className='truncate'>{nft.name ?? t`Unnamed NFT`}</span>
-              <MutableNftBadge
-                kind={nft.metadata_updater_kind}
-                className='shrink-0'
-              />
-            </span>
-            <span className='truncate font-mono text-xs text-muted-foreground'>
-              {formatAddress(nft.launcher_id, 10, 6)}
-            </span>
-          </span>
-        </>
+        <NftSummary
+          nftId={nft.launcher_id}
+          nft={nft}
+          thumbnail={thumbnails[nft.launcher_id] ?? null}
+          size='lg'
+        />
       )}
     >
       {children}
     </MultiAssetPicker>
+  );
+}
+
+export interface NftSummaryProps {
+  nftId: string;
+  /** Null while the NFT is loading. */
+  nft: NftRecord | null;
+  thumbnail: string | null;
+  size?: 'md' | 'lg';
+}
+
+/** An NFT's image, name and ID, for pickers and offer rows. */
+export function NftSummary({
+  nftId,
+  nft,
+  thumbnail,
+  size = 'md',
+}: NftSummaryProps) {
+  return (
+    <>
+      <img
+        src={thumbnail ?? nftUri(null, null)}
+        alt=''
+        className={cn(
+          'shrink-0 object-cover',
+          size === 'lg' ? 'h-10 w-10 rounded-md' : 'h-8 w-8 rounded',
+        )}
+        loading='lazy'
+      />
+      <span className='flex min-w-0 flex-1 flex-col'>
+        <span className='flex min-w-0 items-center gap-1.5 text-sm'>
+          <span className='truncate'>{nft?.name ?? t`Unnamed NFT`}</span>
+          {nft && (
+            <MutableNftBadge
+              kind={nft.metadata_updater_kind}
+              className='shrink-0'
+            />
+          )}
+        </span>
+        <span className='truncate font-mono text-xs text-muted-foreground'>
+          {formatAddress(nftId, 10, 6)}
+        </span>
+      </span>
+    </>
   );
 }

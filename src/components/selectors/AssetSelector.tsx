@@ -1,5 +1,4 @@
 import { TokenRecord, commands } from '@/bindings';
-import { MutableNftBadge } from '@/components/MutableNftBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TokenAmountInput } from '@/components/ui/masked-input';
@@ -7,7 +6,6 @@ import { useOwnedNft } from '@/hooks/useOwnedNft';
 import { useOwnedOption } from '@/hooks/useOwnedOption';
 import { useRequestedNft } from '@/hooks/useRequestedNft';
 import { optionsEnabled } from '@/lib/features';
-import { nftUri } from '@/lib/nftUri';
 import {
   cn,
   formatAddress,
@@ -27,7 +25,7 @@ import {
 } from 'lucide-react';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { NumberFormat } from '../NumberFormat';
-import { NftPicker } from './NftPicker';
+import { NftPicker, NftSummary } from './NftPicker';
 import {
   OfferAssetRow,
   OfferAssetRowFooter,
@@ -490,25 +488,7 @@ function OfferedNftRow({ nftId, inOpenOffer, onRemove }: OfferedNftRowProps) {
       }
     >
       <div className='flex h-12 min-w-0 flex-1 items-center gap-3 px-3'>
-        <img
-          src={thumbnail ?? nftUri(null, null)}
-          alt=''
-          className='h-8 w-8 shrink-0 rounded object-cover'
-        />
-        <div className='flex min-w-0 flex-col'>
-          <span className='flex min-w-0 items-center gap-1.5 text-sm'>
-            <span className='truncate'>{nft?.name ?? t`Unnamed NFT`}</span>
-            {nft && (
-              <MutableNftBadge
-                kind={nft.metadata_updater_kind}
-                className='shrink-0'
-              />
-            )}
-          </span>
-          <span className='truncate font-mono text-xs text-muted-foreground'>
-            {formatAddress(nftId, 10, 6)}
-          </span>
-        </div>
+        <NftSummary nftId={nftId} nft={nft} thumbnail={thumbnail} />
       </div>
     </OfferAssetRow>
   );
@@ -561,8 +541,7 @@ function RequestedOptionRow({
   onRemove,
   autoFocus,
 }: RequestedOptionRowProps) {
-  const invalid =
-    value.trim() !== '' && !isValidAddress(value.trim(), 'option');
+  const invalid = value !== '' && !isValidAddress(value, 'option');
 
   return (
     <OfferAssetRow
@@ -585,7 +564,9 @@ function RequestedOptionRow({
           autoComplete='off'
           spellCheck={false}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          // Pasted IDs often bring a space or newline, which the offer
+          // wouldn't accept.
+          onChange={(e) => onChange(e.target.value.trim())}
           autoFocus={autoFocus}
         />
       </div>

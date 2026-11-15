@@ -1,6 +1,7 @@
 import { TokenRecord } from '@/bindings';
 import { AssetIcon } from '@/components/AssetIcon';
 import { NumberFormat } from '@/components/NumberFormat';
+import { Button } from '@/components/ui/button';
 import {
   Command,
   CommandEmpty,
@@ -15,6 +16,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
+  cn,
   formatAddress,
   fromMojos,
   getAssetDisplayName,
@@ -22,7 +24,6 @@ import {
 } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { Button } from '@/components/ui/button';
 import { CheckIcon, ClipboardPaste } from 'lucide-react';
 import { ReactNode, useMemo, useState } from 'react';
 
@@ -275,7 +276,10 @@ export function TokenIcon({
 }) {
   return (
     <span
-      className={`flex h-8 w-8 shrink-0 items-center justify-center ${className ?? ''}`}
+      className={cn(
+        'flex h-8 w-8 shrink-0 items-center justify-center',
+        className,
+      )}
     >
       <AssetIcon
         asset={{

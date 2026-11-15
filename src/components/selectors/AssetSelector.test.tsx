@@ -9,6 +9,7 @@ import {
   render,
   screen,
 } from '@testing-library/react';
+import { bech32m } from 'bech32';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/bindings', () => ({
@@ -57,6 +58,7 @@ vi.mock('@/bindings', () => ({
             metadata_updater_kind: null,
           },
         ],
+        total: 2,
       }),
     ),
     getNft: vi.fn(() => Promise.resolve({ nft: null })),
@@ -392,5 +394,51 @@ describe('AssetSelector pickers', () => {
     } finally {
       vi.mocked(commands.getAllCats).mockResolvedValue({ cats: [] });
     }
+  });
+});
+
+describe('AssetSelector row edits', () => {
+  it('changes a row to another token and clears its amount', async () => {
+    const setAssets = renderOffering(tokens('cat1', '5'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Change token' }));
+    fireEvent.click(await screen.findByRole('option', { name: /^Chia/ }));
+    expect(setAssets).toHaveBeenCalledWith(tokens(null, ''));
+  });
+
+  it('leaves a row alone when its own token is picked again', async () => {
+    const setAssets = renderOffering(tokens('cat1', '5'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Change token' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Cat/ }));
+    expect(setAssets).not.toHaveBeenCalled();
+  });
+
+  it('flags a requested option ID that is not valid', () => {
+    renderSelector({ assets: { ...noAssets, options: ['option1bad'] } });
+    expect(screen.getByText("This isn't a valid option ID.")).toBeTruthy();
+  });
+
+  it("doesn't flag an empty or valid requested option ID", () => {
+    const validId = bech32m.encode(
+      'option',
+      bech32m.toWords(new Uint8Array(32).fill(3)),
+    );
+    renderSelector({ assets: { ...noAssets, options: ['', validId] } });
+    expect(screen.queryByText("This isn't a valid option ID.")).toBeNull();
+  });
+
+  it('stores a pasted option ID without surrounding whitespace', () => {
+    const setAssets = renderSelector({
+      assets: { ...noAssets, options: [''] },
+    });
+
+    fireEvent.change(screen.getByLabelText('Option ID'), {
+      target: { value: ' option1example ' },
+    });
+    expect(setAssets).toHaveBeenCalledWith({
+      ...noAssets,
+      options: ['option1example'],
+    });
   });
 });

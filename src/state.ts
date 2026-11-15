@@ -69,6 +69,16 @@ export const useNavigationStore = create<NavigationStore>((set) => ({
     })),
 }));
 
+/**
+ * Turns on one offer per NFT for the offer being made. It does nothing once
+ * the offer has been cleared, since a partial state isn't a whole offer.
+ */
+export function splitOfferNfts() {
+  useOfferState.setState(
+    (state) => state && { ...state, splitNftOffers: true },
+  );
+}
+
 export function clearState() {
   useWalletState.setState(defaultState());
   useOfferState.setState(null);

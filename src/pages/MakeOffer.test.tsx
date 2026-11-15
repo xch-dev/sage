@@ -266,6 +266,29 @@ describe('MakeOffer settings', () => {
     expect(useOfferState.getState()).toBeNull();
   });
 
+  it('clears the offer on Cancel with a split fee set', () => {
+    renderWithOfferedNfts(1);
+    act(() =>
+      useOfferState.setState({ preSplit: true, preSplitFee: '0.0002' }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(useOfferState.getState()).toBeNull();
+  });
+
+  it('shows the stored network fee when coming back', () => {
+    renderWithOfferedNfts(1);
+    fireEvent.change(screen.getByLabelText('Network fee amount'), {
+      target: { value: '0.5' },
+    });
+    cleanup();
+
+    renderPage();
+    expect(
+      (screen.getByLabelText('Network fee amount') as HTMLInputElement).value,
+    ).toBe('0.5');
+  });
+
   it('sets and clears the expiration', () => {
     renderWithOfferedNfts(0);
     expect(toggle('Expiration').getAttribute('aria-checked')).toBe('false');
