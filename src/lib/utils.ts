@@ -120,7 +120,7 @@ export function formatFiatPrice(price: number, currency: string): string {
 
   if (price > 0 && price < 0.0001) {
     return `< ${format(0.0001, { maximumFractionDigits: 4 })}`;
-  } else if (price > 0 && price < 1) {
+  } else if (price > 0 && Number(price.toPrecision(3)) < 1) {
     // At least two digits, so half a dollar reads $0.50 rather than $0.5.
     return format(price, {
       minimumSignificantDigits: 2,

@@ -134,8 +134,6 @@ export function TokenCard({
                   value={balanceInFiat}
                   style='currency'
                   currency={fiatCurrency}
-                  minimumFractionDigits={2}
-                  maximumFractionDigits={2}
                 />
               </div>
             </>

@@ -229,7 +229,6 @@ function fiatColumns(currency: string): ColumnDef<PricedTokenRecord>[] {
             value={row.original.balanceInFiat}
             style='currency'
             currency={currency}
-            maximumFractionDigits={2}
           />
         </div>
       ),

@@ -17,6 +17,8 @@ describe('formatFiatPrice', () => {
     [0.00345, '$0.00345'],
     [0.5, '$0.50'],
     [0.999, '$0.999'],
+    // Rounds up to 1, so it's shown like 1.
+    [0.9996, '$1.00'],
     [1, '$1.00'],
     [1234.5, '$1,234.50'],
   ])('formats %d USD as %s', (price, expected) => {

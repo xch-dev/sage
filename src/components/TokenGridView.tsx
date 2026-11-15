@@ -160,8 +160,6 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                               value={token.balanceInFiat}
                               style='currency'
                               currency={fiatCurrency}
-                              minimumFractionDigits={2}
-                              maximumFractionDigits={2}
                             />
                           </div>
                         </TooltipTrigger>

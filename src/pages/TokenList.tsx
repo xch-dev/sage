@@ -263,7 +263,6 @@ export function TokenList() {
                   value={totalFiatBalance}
                   style='currency'
                   currency={fiatCurrency}
-                  maximumFractionDigits={2}
                 />
               </span>
             </div>
