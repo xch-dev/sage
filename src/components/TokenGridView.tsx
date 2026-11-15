@@ -101,7 +101,7 @@ function TokenCardMenu({
 }
 
 export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
-  const { currency, pricesEnabled } = usePrices();
+  const { fiatCurrency } = usePrices();
 
   return (
     <div
@@ -151,7 +151,7 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                     )}
                   </div>
                   <div className='flex justify-between items-center text-sm text-muted-foreground'>
-                    {pricesEnabled ? (
+                    {fiatCurrency ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div>
@@ -159,7 +159,7 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                             <NumberFormat
                               value={token.balanceInFiat}
                               style='currency'
-                              currency={currency}
+                              currency={fiatCurrency}
                               minimumFractionDigits={2}
                               maximumFractionDigits={2}
                             />
@@ -168,7 +168,7 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                         <TooltipContent>
                           <span>
                             1 {token.ticker ?? 'CAT'}{' '}
-                            {formatFiatPrice(token.priceInFiat, currency)}
+                            {formatFiatPrice(token.priceInFiat, fiatCurrency)}
                           </span>
                         </TooltipContent>
                       </Tooltip>

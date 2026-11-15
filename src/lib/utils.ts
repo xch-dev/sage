@@ -118,17 +118,17 @@ export function formatFiatPrice(price: number, currency: string): string {
       ...options,
     });
 
-  if (price === 0) {
-    return format(0, { maximumFractionDigits: 2 });
-  } else if (price < 0.0001) {
+  if (price > 0 && price < 0.0001) {
     return `< ${format(0.0001, { maximumFractionDigits: 4 })}`;
-  } else if (price < 1) {
-    return format(price, { maximumSignificantDigits: 3 });
-  } else {
+  } else if (price > 0 && price < 1) {
+    // At least two digits, so half a dollar reads $0.50 rather than $0.5.
     return format(price, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumSignificantDigits: 2,
+      maximumSignificantDigits: 3,
     });
+  } else {
+    // The currency's usual decimal places, such as 2 for USD and none for JPY.
+    return format(price, {});
   }
 }
 

@@ -31,8 +31,7 @@ import { useWalletState } from '../state';
 export function TokenList() {
   const navigate = useNavigate();
   const walletState = useWalletState();
-  const { getBalanceInFiat, getPriceInFiat, currency, pricesEnabled } =
-    usePrices();
+  const { getBalanceInFiat, getPriceInFiat, fiatCurrency } = usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
@@ -42,14 +41,14 @@ export function TokenList() {
     () =>
       tokens.map((token): PricedTokenRecord & { sortValue: number } => {
         const balance = Number(toDecimal(token.balance, token.precision));
-        const usdValue = parseFloat(
+        const fiatValue = parseFloat(
           getBalanceInFiat(token.asset_id, balance.toString()),
         );
 
         return {
           ...token,
-          balanceInFiat: usdValue,
-          sortValue: usdValue,
+          balanceInFiat: fiatValue,
+          sortValue: fiatValue,
           priceInFiat: getPriceInFiat(token.asset_id),
         };
       }),
@@ -204,9 +203,7 @@ export function TokenList() {
             setParams({ search: value });
           }}
           className='mb-4'
-          onExport={() =>
-            exportTokens(pricedTokens, pricesEnabled ? currency : null)
-          }
+          onExport={() => exportTokens(pricedTokens, fiatCurrency)}
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
@@ -238,7 +235,7 @@ export function TokenList() {
           </div>
         )}
 
-        {pricesEnabled && pricedTokens.length > 0 && (
+        {fiatCurrency && pricedTokens.length > 0 && (
           <div className='mt-6 pt-4 border-t border-border'>
             <div className='flex justify-between items-center font-semibold text-lg'>
               <div className='flex items-center gap-2'>
@@ -265,7 +262,7 @@ export function TokenList() {
                 <NumberFormat
                   value={totalFiatBalance}
                   style='currency'
-                  currency={currency}
+                  currency={fiatCurrency}
                   maximumFractionDigits={2}
                 />
               </span>

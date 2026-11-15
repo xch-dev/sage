@@ -56,7 +56,7 @@ export function TokenOptions({
   className,
   onExport,
 }: TokenOptionsProps) {
-  const { currency, pricesEnabled } = usePrices();
+  const { fiatCurrency } = usePrices();
   const [searchValue, setSearchValue] = useState(query);
   const debouncedSearch = useDebounce(searchValue);
 
@@ -180,8 +180,8 @@ export function TokenOptions({
                   <ArrowUpAz className='mr-2 h-4 w-4' aria-hidden='true' />
                 )}
                 {sortMode === TokenSortMode.Name
-                  ? pricesEnabled
-                    ? t`Sort by Balance (${currency})`
+                  ? fiatCurrency
+                    ? t`Sort by Balance (${fiatCurrency})`
                     : t`Sort by Balance`
                   : t`Sort by Name`}
               </DropdownMenuItem>

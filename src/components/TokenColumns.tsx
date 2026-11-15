@@ -33,11 +33,11 @@ export interface TokenActionHandlers {
   onToggleVisibility?: (asset: PricedTokenRecord) => void;
 }
 
-/** The fiat currency for the value and price columns, or null to leave them out. */
+/** `currency` is the fiat currency for the value and price columns, or null to leave them out. */
 export const columns = (
-  actionHandlers?: TokenActionHandlers,
-  isTestnet = false,
-  currency: string | null = 'USD',
+  actionHandlers: TokenActionHandlers | undefined,
+  isTestnet: boolean,
+  currency: string | null,
 ): ColumnDef<PricedTokenRecord>[] => [
   {
     id: 'icon',

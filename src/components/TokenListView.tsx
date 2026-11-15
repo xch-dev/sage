@@ -12,16 +12,12 @@ type TokenListViewProps = TokenViewProps & {
 
 export function TokenListView({ tokens, actionHandlers }: TokenListViewProps) {
   const { isTestnet } = useNetwork();
-  const { currency, pricesEnabled } = usePrices();
+  const { fiatCurrency } = usePrices();
 
   return (
     <div role='region' aria-label={t`Token List`}>
       <DataTable
-        columns={columns(
-          actionHandlers,
-          isTestnet,
-          pricesEnabled ? currency : null,
-        )}
+        columns={columns(actionHandlers, isTestnet, fiatCurrency)}
         data={tokens}
         aria-label={t`Token list`}
         rowLabel={t`asset`}

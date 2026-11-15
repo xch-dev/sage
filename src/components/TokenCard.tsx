@@ -66,7 +66,7 @@ export function TokenCard({
   const walletState = useWalletState();
   const navigate = useNavigate();
   const { isTestnet } = useNetwork();
-  const { currency, pricesEnabled } = usePrices();
+  const { fiatCurrency } = usePrices();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
@@ -126,14 +126,14 @@ export function TokenCard({
               </>
             )}
           </div>
-          {pricesEnabled && (
+          {fiatCurrency && (
             <>
               <Separator />
               <div className='text-sm text-muted-foreground'>
                 <NumberFormat
                   value={balanceInFiat}
                   style='currency'
-                  currency={currency}
+                  currency={fiatCurrency}
                   minimumFractionDigits={2}
                   maximumFractionDigits={2}
                 />

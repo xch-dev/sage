@@ -32,10 +32,9 @@ export interface PriceContextType {
   getBalanceInFiat: (assetId: string | null, balance: string) => string;
   getPriceInFiat: (assetId: string | null) => number;
   getCatAskPriceInXch: (assetId: string) => number | null;
-  /** The currency that fiat values are in. */
-  currency: FiatCurrency;
-  /** Whether prices are looked up at all. When they aren't, fiat values are all zero. */
-  pricesEnabled: boolean;
+  /** The currency that fiat values are in, or null when price lookups are off and fiat values are
+   *  all zero. */
+  fiatCurrency: FiatCurrency | null;
   isLoading: boolean;
 }
 
@@ -202,8 +201,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         getBalanceInFiat,
         getPriceInFiat,
         getCatAskPriceInXch,
-        currency,
-        pricesEnabled,
+        fiatCurrency: pricesEnabled ? currency : null,
         isLoading: pricesEnabled && (network === null || isPriceLoading),
       }}
     >

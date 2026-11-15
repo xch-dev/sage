@@ -1,4 +1,3 @@
-import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/components/Layout';
 import { COIN_PAGE_SIZE_STORAGE_KEY } from '@/hooks/useCoinPageSize';
 import {
   NFT_CARD_SIZE_STORAGE_KEY,
@@ -33,6 +32,8 @@ import {
   TRANSACTION_SORT_MODE_STORAGE_KEY,
   TRANSACTION_VIEW_MODE_STORAGE_KEY,
 } from '@/hooks/useTransactionsParams';
+
+export const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
 /** How lists are shown: sorting, filters, page and card sizes, view modes, and the sidebar. */
 const VIEW_PREFERENCE_KEYS = [
