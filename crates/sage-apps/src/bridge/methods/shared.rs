@@ -44,6 +44,12 @@ pub(crate) trait BridgeMethod: Send + Sync {
         false
     }
 
+    /// Whether a vault can sign for the method, with the keys of its custody signers. Methods that
+    /// sign with a single key, such as signing a message by public key, can't be used by a vault.
+    fn supports_vaults(&self) -> bool {
+        true
+    }
+
     /// Override only when approved execution differs from the normal request path.
     async fn handle_approved(
         &self,

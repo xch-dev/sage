@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sage_api::GetWallets;
+use sage_api::{GetWallets, WalletKind};
 use serde::Serialize;
 use specta::Type;
 
@@ -18,6 +18,29 @@ pub struct SystemWalletView {
     pub fingerprint: u32,
     pub name: String,
     pub emoji: Option<String>,
+    pub kind: SystemWalletKind,
+}
+
+/// What kind of wallet it is, which determines what it can sign.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum SystemWalletKind {
+    /// A BLS key, which signs with keys derived from it.
+    Bls,
+    /// A read-only list of addresses, which can't sign.
+    Watch,
+    /// A vault, which signs with its custody signers' keys.
+    Vault,
+}
+
+impl From<&WalletKind> for SystemWalletKind {
+    fn from(kind: &WalletKind) -> Self {
+        match kind {
+            WalletKind::Bls => Self::Bls,
+            WalletKind::Watch { .. } => Self::Watch,
+            WalletKind::Vault { .. } => Self::Vault,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -61,6 +84,7 @@ impl BridgeMethod for WalletListWallets {
                 .wallets
                 .into_iter()
                 .map(|wallet| SystemWalletView {
+                    kind: (&wallet.kind).into(),
                     fingerprint: wallet.fingerprint,
                     name: wallet.name,
                     emoji: wallet.emoji,
