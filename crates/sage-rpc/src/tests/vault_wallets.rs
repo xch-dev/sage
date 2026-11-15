@@ -1011,6 +1011,11 @@ async fn test_vault_recovery_pending() -> Result<()> {
     let config = vault_config(custody.pk, recovery.pk);
     let vault = mint_vault(&app, &config, true).await?;
     let launcher_id = vault.info.launcher_id;
+    let exported = vault_config_file(launcher_id, &config)?;
+
+    // Recovery is started before the vault is imported.
+    let post_recovery = vault_config(recovery.pk, custody.pk);
+    start_recovery(&app, &vault, &config, &recovery.sk, &post_recovery).await?;
 
     wait_for_peer(&app).await?;
 
@@ -1018,11 +1023,6 @@ async fn test_vault_recovery_pending() -> Result<()> {
         .import_vault(import(Some(launcher_id), None, None))
         .await?
         .fingerprint;
-    wait_for_vault(&mut app, |record| record.config.is_some()).await?;
-    let exported = app.export_vault_config(ExportVaultConfig {}).await?.config;
-
-    let post_recovery = vault_config(recovery.pk, custody.pk);
-    start_recovery(&app, &vault, &config, &recovery.sk, &post_recovery).await?;
 
     let record = wait_for_vault(&mut app, |record| {
         record.state == VaultState::RecoveryPending

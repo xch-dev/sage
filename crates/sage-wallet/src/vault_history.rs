@@ -629,8 +629,8 @@ pub struct RebuiltVaultConfig {
     pub row: VaultConfigRow,
     /// Whether it's the config of the vault's latest coin.
     pub is_current: bool,
-    /// Whether the vault's latest coin is in the recovery state, in which case an older config can
-    /// be the one from before recovery started.
+    /// Whether the vault's latest coin is in the recovery state, and an older config is the one
+    /// from before recovery started.
     pub in_recovery: bool,
 }
 
@@ -700,12 +700,19 @@ pub async fn rebuild_vault_config(
         .collect();
 
     let mut is_recovery = vec![false; lineage.len()];
+    // The puzzle hash of the coin whose spend started the latest recovery.
+    let mut started_from = None;
 
     for index in 1..lineage.len() {
         let parent = index - 1;
 
         is_recovery[index] = match revealed.get(&parent) {
-            Some(false) => !is_recovery[parent],
+            Some(false) => {
+                if !is_recovery[parent] {
+                    started_from = Some(lineage[parent].coin.puzzle_hash);
+                }
+                !is_recovery[parent]
+            }
             Some(true) => {
                 is_recovery[parent]
                     && lineage[index].coin.puzzle_hash == lineage[parent].coin.puzzle_hash
@@ -816,10 +823,15 @@ pub async fn rebuild_vault_config(
     }
 
     if let Some(row) = older {
+        // An older config is only the one from before recovery started if it's the custody that
+        // started it.
+        let started_recovery = started_from
+            == Some(SingletonArgs::curry_tree_hash(launcher_id, row.custody_hash.into()).into());
+
         return Ok(RebuiltVaultConfig {
             row,
             is_current: false,
-            in_recovery,
+            in_recovery: in_recovery && started_recovery,
         });
     }
 
