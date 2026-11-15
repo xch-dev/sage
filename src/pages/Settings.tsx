@@ -21,7 +21,13 @@ import {
   WalletIcon,
 } from 'lucide-react';
 import { ReactNode } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import {
+  Link,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
 import { AboutSettings } from './settings/AboutSettings';
 import { AppearanceSettings } from './settings/AppearanceSettings';
 import { ConnectionSettings } from './settings/ConnectionSettings';
@@ -32,6 +38,10 @@ import { TransactionSettings } from './settings/TransactionSettings';
 import { WalletSettings, WalletSyncSettings } from './settings/WalletSettings';
 
 type SettingsGroup = 'app' | 'wallet' | 'about';
+
+interface SettingsLinkState {
+  fromIndex?: boolean;
+}
 
 interface SettingsPage {
   id: string;
@@ -128,6 +138,7 @@ function settingsPages(isMobile: boolean): SettingsPage[] {
 export default function Settings() {
   const { wallet } = useWallet();
   const navigate = useNavigate();
+  const location = useLocation();
   const insets = useInsets();
   const { section } = useParams<{ section?: string }>();
 
@@ -149,13 +160,22 @@ export default function Settings() {
     { group: 'about' },
   ];
 
+  // Going back from a page opened from the list returns to that list entry, rather than adding
+  // another one, so the system back button doesn't reopen the page.
+  const backToIndex = () => {
+    if ((location.state as SettingsLinkState | null)?.fromIndex) {
+      navigate(-1);
+    } else {
+      navigate('/settings', { replace: true });
+    }
+  };
+
   const header = activePage ? (
-    <Header title={activePage.label} back={() => navigate('/settings')} />
+    <Header title={activePage.label} back={backToIndex} />
   ) : (
     <Header
       title={t`Settings`}
       back={!wallet ? () => navigate('/') : undefined}
-      hideBack={!!wallet}
     />
   );
 
@@ -171,13 +191,14 @@ export default function Settings() {
         {activePage ? (
           <div className='flex flex-col gap-4'>
             {/* The header's back button is hidden on mobile. */}
-            <Link
-              to='/settings'
-              className='md:hidden flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground'
+            <button
+              type='button'
+              onClick={backToIndex}
+              className='md:hidden self-start flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground'
             >
               <ChevronLeftIcon className='h-4 w-4' aria-hidden='true' />
               <Trans>Settings</Trans>
-            </Link>
+            </button>
             {activePage.render(wallet?.fingerprint ?? null)}
           </div>
         ) : (
@@ -204,6 +225,9 @@ export default function Settings() {
                         <Link
                           key={page.id}
                           to={`/settings/${page.id}`}
+                          state={
+                            { fromIndex: true } satisfies SettingsLinkState
+                          }
                           className='flex items-center gap-3 p-3 transition-colors hover:bg-muted/50'
                         >
                           <div className='rounded-md bg-muted p-2'>

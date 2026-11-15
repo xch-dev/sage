@@ -16,7 +16,6 @@ export default function Header(
   props: PropsWithChildren<{
     title: string | ReactNode;
     back?: () => void;
-    hideBack?: boolean;
     mobileActionItems?: ReactNode;
     children?: ReactNode;
     paginationControls?: ReactNode;
@@ -27,8 +26,7 @@ export default function Header(
   const navigate = useNavigate();
   const location = useLocation();
 
-  const hasBackButton =
-    !props.hideBack && (props.back || location.pathname.split('/').length > 2);
+  const hasBackButton = props.back || location.pathname.split('/').length > 2;
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   return (

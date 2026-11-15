@@ -150,25 +150,31 @@ export function NetworkSettings() {
         )}
       </SettingsSection>
 
-      <SyncSettings />
+      <SyncSettings
+        mempoolDiscovery={config?.mempool_discovery ?? true}
+        setMempoolDiscovery={(mempool_discovery) => {
+          if (config) setConfig({ ...config, mempool_discovery });
+        }}
+      />
     </>
   );
 }
 
-function SyncSettings() {
+interface SyncSettingsProps {
+  mempoolDiscovery: boolean;
+  setMempoolDiscovery: (mempoolDiscovery: boolean) => void;
+}
+
+function SyncSettings({
+  mempoolDiscovery,
+  setMempoolDiscovery,
+}: SyncSettingsProps) {
   const { addError } = useErrors();
 
   const [defaults, setDefaults] = useState<WalletDefaults | null>(null);
-  const [mempoolDiscovery, setMempoolDiscovery] = useState<boolean | null>(
-    null,
-  );
 
   useEffect(() => {
     commands.defaultWalletConfig().then(setDefaults).catch(addError);
-    commands
-      .networkConfig()
-      .then((config) => setMempoolDiscovery(config.mempool_discovery))
-      .catch(addError);
   }, [addError]);
 
   return (
@@ -192,7 +198,7 @@ function SyncSettings() {
         description={t`Look up pending transactions with Coinset, so they show before they're confirmed, even after a resync. Coinset can see which pending transactions are yours.`}
         control={
           <Switch
-            checked={mempoolDiscovery ?? true}
+            checked={mempoolDiscovery}
             onCheckedChange={(checked) => {
               commands
                 .setMempoolDiscovery({ mempool_discovery: checked })

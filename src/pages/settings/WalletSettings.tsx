@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { CustomError } from '@/contexts/ErrorContext';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import {
@@ -263,9 +264,8 @@ export function WalletSyncSettings({ fingerprint }: { fingerprint: number }) {
   const walletState = useWalletState();
 
   const [key, setKey] = useState<KeyInfo | null>(null);
-  const [wallet, setWallet] = useState<Wallet | null>(null);
   // Watch wallets only know their addresses, so they have no derivations.
-  const isWatch = wallet?.type === 'watch';
+  const { isWatchOnly: isWatch } = useWallet();
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [resyncOpen, setResyncOpen] = useState(false);
@@ -315,11 +315,8 @@ export function WalletSyncSettings({ fingerprint }: { fingerprint: number }) {
   }, [addError, fingerprint]);
 
   useEffect(() => {
-    commands.walletConfig(fingerprint).then(setWallet).catch(addError);
-
-    // Fetch database stats when component mounts
     fetchDatabaseStats();
-  }, [addError, fingerprint, fetchDatabaseStats]);
+  }, [fetchDatabaseStats]);
 
   const derivationIndex = walletState.sync.unhardened_derivation_index;
 
