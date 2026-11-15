@@ -18,17 +18,26 @@ const SPEND: &str = "BLS wallets sign with their derived keys. Vaults spend thro
 
 /// Endpoints that spend NFTs, DIDs, options, CAT issuance or clawbacks.
 const ASSET_SPEND: &str = "BLS wallets sign with their derived keys. Vaults spend the asset through the vault \
-     singleton with their custody signers, as for XCH and CAT sends (vault support for these assets \
-     is added by #953). Watch wallets can't sign, and return a wallet error.";
+     singleton with their custody signers, as for XCH and CAT sends. Sage checks where a vault's DIDs \
+     and options go itself, since clear signing doesn't cover them. A clawback is spent by whichever \
+     side the vault is on. Watch wallets can't sign, and return a wallet error.";
 
 /// Endpoints that make, take or cancel offers.
-const OFFER_SPEND: &str = "BLS wallets sign with their derived keys. Vaults make offers from pre-split coins \
-     that the offer spends without the vault's signature, and take and cancel them through the vault \
-     (added by #955). Watch wallets can't sign, and return a wallet error.";
+const OFFER_SPEND: &str = "BLS wallets sign with their derived keys. Vaults always make offers from pre-split \
+     coins locked to the offer's fixed conditions, which the offer spends without the vault's \
+     signature, so the vault stays usable while it's open. Only XCH and CATs can be offered from a \
+     vault, and offers that would spend the vault itself are refused. Vaults take offers through the \
+     vault, and cancel them by taking the pre-split coins back through the vault. Watch wallets can't \
+     sign, and return a wallet error.";
 
 /// Endpoints for vault recovery and rekeying.
-const VAULT_RECOVERY: &str = "Only for vault wallets, added by #954. BLS and watch wallets return an error \
-     that the wallet isn't a vault.";
+const VAULT_RECOVERY: &str = "Only for vault wallets. Starting and finishing a recovery can't pay a fee from the \
+     vault, so an optional fee is paid by a BLS wallet given by fingerprint. Cancelling and rekeying \
+     pay the fee from the vault's XCH. These change the vault's custody, which the generic signing \
+     path refuses, so they're signed by the endpoint itself when `auto_submit` is set. Recovery and \
+     rekeying are refused while a vault spend is pending, and a recovery can only be finished once \
+     its timelock has expired by block timestamps, and to a custody whose key this wallet holds. BLS \
+     and watch wallets return an error that the wallet isn't a vault.";
 
 /// Endpoints that only work for vault wallets.
 const VAULT_ONLY: &str = "Only for vault wallets. BLS and watch wallets return an error that the wallet \
@@ -191,7 +200,7 @@ pub(crate) fn wallet_kind_notes(endpoint: &str) -> Option<&'static str> {
              can't sign, and return a wallet error."
         }
 
-        "issue_cat" | "create_did" | "bulk_mint_nfts" | "transfer_nfts" | "add_nft_uri"
+        "issue_cat" | "issue_more_cat" | "create_did" | "bulk_mint_nfts" | "transfer_nfts" | "add_nft_uri"
         | "assign_nfts_to_did" | "transfer_dids" | "normalize_dids" | "mint_option"
         | "transfer_options" | "exercise_options" | "cancel_options" | "finalize_clawback"
         | "claim_clawback" => ASSET_SPEND,
