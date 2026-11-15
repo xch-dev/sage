@@ -960,6 +960,46 @@ async fn test_vault_without_config() -> Result<()> {
     Ok(())
 }
 
+/// A vault without memos can be imported with its recovery keys while recovery is pending, with the
+/// config from before recovery started.
+#[tokio::test]
+async fn test_import_vault_during_recovery() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let custody = BlsPair::new(1);
+    let recovery = BlsPair::new(2);
+    let config = vault_config(custody.pk, recovery.pk);
+    let vault = mint_vault(&app, &config, false).await?;
+    let launcher_id = vault.info.launcher_id;
+    let vault = spend_from_address(&app, &vault, &config, &custody.sk).await?;
+
+    let post_recovery = vault_config(recovery.pk, custody.pk);
+    start_recovery(&app, &vault, &config, &recovery.sk, &post_recovery).await?;
+
+    wait_for_peer(&app).await?;
+
+    app.import_vault(import(
+        Some(launcher_id),
+        None,
+        Some(recovery_key(hex::encode(recovery.pk.to_bytes()), Some(60))),
+    ))
+    .await?;
+
+    let record = wait_for_vault(&mut app, |record| {
+        record.state == VaultState::RecoveryPending
+    })
+    .await?;
+    let record_config = record
+        .config
+        .expect("the config from before recovery is known");
+    assert_eq!(
+        record_config.custody.members[0].key,
+        hex::encode(custody.pk.to_bytes())
+    );
+
+    Ok(())
+}
+
 /// While recovery is pending, the vault's config is the one from before it started, whose custody
 /// can cancel it and whose recovery members started it.
 #[tokio::test]

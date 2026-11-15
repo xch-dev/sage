@@ -732,8 +732,82 @@ async fn test_rebuild_during_recovery() -> anyhow::Result<()> {
     .await?;
 
     assert!(!rebuilt.is_current);
+    assert!(rebuilt.in_recovery);
     assert_eq!(rebuilt.row.custody_hash, custody_hash);
     assert_eq!(rebuilt.row.layout, VaultLayout::Custody(config));
+
+    Ok(())
+}
+
+/// Finishing recovery also goes through the recovery side, but the custody it moves to isn't in the
+/// recovery state, so it can be rebuilt once it's been spent through.
+#[test(tokio::test)]
+async fn test_rebuild_after_recovery_finished() -> anyhow::Result<()> {
+    let test = TestWallet::new(0).await?;
+
+    let custody = BlsPair::new(1);
+    let recovery = BlsPair::new(2);
+    let new_custody = BlsPair::new(3);
+    let config = vault_config(&custody, &recovery, VaultVersion::ForceSingletonRecreation);
+    let new_config = vault_config(
+        &new_custody,
+        &recovery,
+        VaultVersion::ForceSingletonRecreation,
+    );
+
+    let vault = mint(&test, &config, false).await?;
+    let custody_hash = vault.custody_hash();
+    let amount = vault.vault.coin.amount;
+    custody_spend(&test, &vault, vault_hashes(&config)?, &custody, |_| {
+        Ok(Conditions::new().create_coin(custody_hash, amount, Memos::None))
+    })
+    .await?;
+    let vault = vault.child(custody_hash);
+
+    let vault = start_recovery(&test, &vault, &config, &recovery, &new_config).await?;
+
+    let peer = WalletPeer::new(test.peer.clone());
+    let search = || RecoverySearch::new(&[RecoveryKey::Bls(recovery.pk)], None, vec![TIMELOCK]);
+
+    // While recovery is pending, the config from before it started is rebuilt.
+    let rebuilt = rebuild_vault_config(
+        &peer,
+        vault.launcher_id(),
+        test.wallet.genesis_challenge,
+        Some(search()?),
+        100,
+    )
+    .await?;
+    assert!(!rebuilt.is_current);
+    assert!(rebuilt.in_recovery);
+    assert_eq!(rebuilt.row.custody_hash, custody_hash);
+
+    test.sim.lock().await.pass_time(TIMELOCK + 1);
+    let vault = finish_recovery(&test, &vault, &config, &new_config).await?;
+
+    // The new custody is spent through, without a memo.
+    let new_custody_hash = vault.custody_hash();
+    custody_spend(
+        &test,
+        &vault,
+        vault_hashes(&new_config)?,
+        &new_custody,
+        |_| Ok(Conditions::new().create_coin(new_custody_hash, amount, Memos::None)),
+    )
+    .await?;
+
+    let rebuilt = rebuild_vault_config(
+        &peer,
+        vault.launcher_id(),
+        test.wallet.genesis_challenge,
+        Some(search()?),
+        100,
+    )
+    .await?;
+    assert!(rebuilt.is_current);
+    assert!(!rebuilt.in_recovery);
+    assert_eq!(rebuilt.row.custody_hash, new_custody_hash);
+    assert_eq!(rebuilt.row.layout, VaultLayout::Custody(new_config));
 
     Ok(())
 }

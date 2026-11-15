@@ -690,26 +690,37 @@ pub async fn rebuild_vault_config(
         spends.push((index, parse_vault_spend(launcher_id, &puzzle, &solution)));
     }
 
-    // A spend through the recovery side starts recovery, so the coin it creates is in the recovery
-    // state, as is the vault whenever its custody recreates it before recovery finishes or is
-    // cancelled. The recovery state can't be rebuilt, so it isn't searched for.
-    let recovery_coins: HashSet<Bytes32> = spends
+    // Which coins are in the recovery state, from the oldest spend checked forward. A spend through
+    // the recovery side starts recovery, unless the coin is already in the recovery state, when it
+    // finishes it. The custody recreating the vault keeps it in the recovery state, and moving it to
+    // another custody cancels it. The recovery state can't be rebuilt, so it isn't searched for.
+    let revealed: HashMap<usize, bool> = spends
         .iter()
-        .filter(|(_, reveal)| reveal.is_none())
-        .filter_map(|(index, _)| lineage.get(index + 1))
-        .map(|coin_state| coin_state.coin.coin_id())
+        .map(|(index, reveal)| (*index, reveal.is_some()))
         .collect();
+
+    let mut is_recovery = vec![false; lineage.len()];
+
+    for index in 1..lineage.len() {
+        let parent = index - 1;
+
+        is_recovery[index] = match revealed.get(&parent) {
+            Some(false) => !is_recovery[parent],
+            Some(true) => {
+                is_recovery[parent]
+                    && lineage[index].coin.puzzle_hash == lineage[parent].coin.puzzle_hash
+            }
+            None => false,
+        };
+    }
 
     let recovery_states: HashSet<Bytes32> = spends
         .iter()
-        .filter(|(index, _)| recovery_coins.contains(&lineage[*index].coin.coin_id()))
+        .filter(|(index, _)| is_recovery[*index])
         .filter_map(|(_, reveal)| reveal.as_ref().map(|reveal| reveal.custody_hash))
         .collect();
 
-    let in_recovery = recovery_coins.contains(&latest.coin.coin_id())
-        || recovery_states
-            .iter()
-            .any(|custody_hash| is_current(*custody_hash));
+    let in_recovery = is_recovery.last().copied().unwrap_or(false);
 
     for reveal in spends.into_iter().filter_map(|(_, reveal)| reveal) {
         let custody_hash = reveal.custody_hash;
