@@ -40,7 +40,7 @@ export default function Token() {
   if (assetId === 'xch') assetId = null;
 
   const { addError } = useErrors();
-  const { getBalanceInUsd } = usePrices();
+  const { getBalanceInFiat } = usePrices();
 
   const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [response, setResponse] = useState<EnhancedTransactionResponse | null>(
@@ -85,13 +85,13 @@ export default function Token() {
     };
   }, [assetId, updateToken]);
 
-  const balanceInUsd = useMemo(() => {
+  const balanceInFiat = useMemo(() => {
     if (!asset) return '0';
-    return getBalanceInUsd(
+    return getBalanceInFiat(
       asset.asset_id,
       toDecimal(asset.balance, asset.precision),
     );
-  }, [asset, getBalanceInUsd]);
+  }, [asset, getBalanceInFiat]);
 
   const redownload = () => {
     if (!assetId) return;
@@ -225,7 +225,7 @@ export default function Token() {
             <div className='flex flex-col gap-4 max-w-screen-lg'>
               <TokenCard
                 asset={asset}
-                balanceInUsd={balanceInUsd}
+                balanceInFiat={balanceInFiat}
                 onRedownload={redownload}
                 onVisibilityChange={() => {
                   setVisibility(asset?.visible ?? true);

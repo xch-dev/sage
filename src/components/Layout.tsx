@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
+import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/lib/viewPreferences';
 import { t } from '@lingui/core/macro';
 import { Eye, PanelLeft, PanelLeftClose, Snowflake } from 'lucide-react';
 import { PropsWithChildren } from 'react';
@@ -74,8 +75,6 @@ function WalletTransitionWrapper({
     </div>
   );
 }
-
-const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
 type LayoutProps = PropsWithChildren<object> & {
   transparentBackground?: boolean;
@@ -212,7 +211,9 @@ export default function Layout(props: LayoutProps) {
 
   if (
     !wallet &&
-    (location.pathname === '/settings' || location.pathname === '/themes')
+    (location.pathname === '/settings' ||
+      location.pathname.startsWith('/settings/') ||
+      location.pathname === '/themes')
   ) {
     return <MinimalLayout {...props} />;
   }
