@@ -134,6 +134,7 @@ macro_rules! sage_commands {
             commands::cancel_offers,
             commands::network_config,
             commands::set_discover_peers,
+            commands::set_mempool_discovery,
             commands::set_target_peers,
             commands::set_network,
             commands::set_network_override,

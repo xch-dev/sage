@@ -105,6 +105,7 @@ commands.allow = [
     "cancel_offers",
     "network_config",
     "set_discover_peers",
+    "set_mempool_discovery",
     "set_target_peers",
     "set_network",
     "set_network_override",

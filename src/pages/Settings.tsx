@@ -358,7 +358,7 @@ function GlobalSettings() {
           description={t`Choose your preferred language`}
           control={
             <Select value={locale} onValueChange={changeLanguage}>
-              <SelectTrigger className='w-[140px]'>
+              <SelectTrigger className='w-[140px]' aria-label={t`Language`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -554,6 +554,7 @@ function TimeInput({ label, value, onChange }: TimeInputProps) {
     <div className='space-y-2'>
       <Label className='text-sm text-muted-foreground'>{label}</Label>
       <IntegerInput
+        aria-label={label}
         value={value}
         placeholder='0'
         min={0}
@@ -648,6 +649,9 @@ function NetworkSettings() {
   const { addError } = useErrors();
 
   const [discoverPeers, setDiscoverPeers] = useState<boolean | null>(null);
+  const [mempoolDiscovery, setMempoolDiscovery] = useState<boolean | null>(
+    null,
+  );
   const [targetPeersText, setTargetPeersText] = useState<string | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
@@ -694,7 +698,7 @@ function NetworkSettings() {
           >
             <SelectTrigger
               id='network'
-              aria-label='Select network'
+              aria-label={t`Default Network`}
               className='w-[140px]'
             >
               <SelectValue placeholder={<Trans>Select network</Trans>} />
@@ -747,6 +751,22 @@ function NetworkSettings() {
                   .setTargetPeers({ target_peers: targetPeers })
                   .catch(addError);
               }
+            }}
+          />
+        }
+      />
+
+      <SettingItem
+        label={t`Mempool Discovery`}
+        description={t`Look up pending transactions with Coinset, so they show before they're confirmed, even after a resync. Coinset can see which pending transactions are yours.`}
+        control={
+          <Switch
+            checked={mempoolDiscovery ?? config?.mempool_discovery ?? true}
+            onCheckedChange={(checked) => {
+              commands
+                .setMempoolDiscovery({ mempool_discovery: checked })
+                .catch(addError)
+                .finally(() => setMempoolDiscovery(checked));
             }}
           />
         }

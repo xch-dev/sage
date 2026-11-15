@@ -181,16 +181,26 @@ impl Network {
             return Some(xchandles.clone());
         }
 
-        let inherited = match self.inherit? {
+        let inherited = match self.same_chain_as()? {
             InheritedNetwork::Mainnet => &*MAINNET,
             InheritedNetwork::Testnet11 => &*TESTNET11,
         };
 
-        if inherited.genesis_challenge != self.genesis_challenge {
-            return None;
-        }
-
         inherited.xchandles.clone()
+    }
+
+    /// The built-in network this one inherits from, if it's the same chain, so services for
+    /// that network (such as XCHandles and Coinset) work for this one too. A custom network that
+    /// only borrows a built-in network's introducers isn't the same chain.
+    pub fn same_chain_as(&self) -> Option<InheritedNetwork> {
+        let inherit = self.inherit?;
+
+        let inherited = match inherit {
+            InheritedNetwork::Mainnet => &*MAINNET,
+            InheritedNetwork::Testnet11 => &*TESTNET11,
+        };
+
+        (inherited.genesis_challenge == self.genesis_challenge).then_some(inherit)
     }
 }
 
@@ -352,6 +362,31 @@ mod tests {
             TESTNET11_LAUNCHER_PARENT,
             TESTNET11_LAUNCHER_SOLUTION,
         );
+    }
+
+    #[test]
+    fn test_same_chain_as() {
+        assert!(matches!(
+            MAINNET.same_chain_as(),
+            Some(InheritedNetwork::Mainnet)
+        ));
+        assert!(matches!(
+            TESTNET11.same_chain_as(),
+            Some(InheritedNetwork::Testnet11)
+        ));
+
+        // A custom network that inherits mainnet's introducers isn't mainnet.
+        let custom = Network {
+            genesis_challenge: Bytes32::new([1; 32]),
+            ..MAINNET.clone()
+        };
+        assert!(custom.same_chain_as().is_none());
+
+        let standalone = Network {
+            inherit: None,
+            ..MAINNET.clone()
+        };
+        assert!(standalone.same_chain_as().is_none());
     }
 
     #[test]

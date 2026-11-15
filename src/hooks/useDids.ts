@@ -10,11 +10,13 @@ export function useDids() {
   const isMountedRef = useRef(false);
   const [dids, setDids] = useState<DidRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const updateDids = useCallback(async () => {
     // Only fetch DIDs if there's an authenticated wallet
     if (!wallet) {
       setDids([]);
+      setLoaded(true);
       return;
     }
 
@@ -31,6 +33,7 @@ export function useDids() {
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
+        setLoaded(true);
       }
     }
   }, [addError, wallet]);
@@ -83,5 +86,6 @@ export function useDids() {
     dids: sortedDids,
     updateDids,
     loading,
+    loaded,
   };
 }

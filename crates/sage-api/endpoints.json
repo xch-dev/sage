@@ -105,6 +105,7 @@
   "remove_peer": true,
   "add_peer": true,
   "set_discover_peers": true,
+  "set_mempool_discovery": true,
   "set_target_peers": true,
   "set_network": true,
   "set_network_override": true,

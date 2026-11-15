@@ -131,13 +131,21 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                   <AssetIcon asset={{ ...token, kind: 'token' }} size='sm' />
                 </CardHeader>
                 <CardContent className='flex flex-col gap-1'>
-                  <div className='text-2xl font-medium truncate'>
-                    <NumberFormat
-                      value={fromMojos(token.balance, token.precision)}
-                      minimumFractionDigits={0}
-                      maximumFractionDigits={token.precision}
-                    />{' '}
-                    {token.ticker ?? ''}
+                  {/* Only the number truncates, so the ticker stays visible for large balances. */}
+                  <div
+                    className='flex gap-1.5 text-2xl font-medium'
+                    title={`${fromMojos(token.balance, token.precision)} ${token.ticker ?? ''}`.trim()}
+                  >
+                    <span className='truncate min-w-0'>
+                      <NumberFormat
+                        value={fromMojos(token.balance, token.precision)}
+                        minimumFractionDigits={0}
+                        maximumFractionDigits={token.precision}
+                      />
+                    </span>
+                    {token.ticker && (
+                      <span className='shrink-0'>{token.ticker}</span>
+                    )}
                   </div>
                   <div className='flex justify-between items-center text-sm text-muted-foreground'>
                     <Tooltip>

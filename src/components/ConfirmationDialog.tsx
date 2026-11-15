@@ -138,11 +138,9 @@ export default function ConfirmationDialog({
             <Trans>Confirm Transaction</Trans>
           </DialogTitle>
           <DialogDescription>
-            <div className='text-sm text-muted-foreground'>
-              <Trans>
-                Please review the transaction details before submitting.
-              </Trans>
-            </div>
+            <Trans>
+              Please review the transaction details before submitting.
+            </Trans>
           </DialogDescription>
         </DialogHeader>
 
