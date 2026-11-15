@@ -191,10 +191,11 @@ export function MakeOffer() {
                 <FeeAmountInput
                   id='fee'
                   value={state.fee}
-                  onValueChange={(values: { value: string }) => {
-                    setState({
-                      fee: values.value,
-                    });
+                  onValueChange={(values, sourceInfo) => {
+                    // A prop change only echoes the stored fee. Writing it back
+                    // would recreate the offer while Cancel is clearing it.
+                    if (sourceInfo?.source === 'prop') return;
+                    setState({ fee: values.value });
                   }}
                 />
               </div>
@@ -302,7 +303,8 @@ export function MakeOffer() {
                   id='pre-split-fee'
                   aria-label={t`Split fee`}
                   value={preSplitFee}
-                  onValueChange={(values: { value: string }) => {
+                  onValueChange={(values, sourceInfo) => {
+                    if (sourceInfo?.source === 'prop') return;
                     setState({ preSplitFee: values.value });
                   }}
                 />

@@ -2,8 +2,14 @@
 
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { ReactNode } from 'react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from '@testing-library/react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -35,14 +41,11 @@ vi.mock('@/components/ui/masked-input', () => ({
   FeeAmountInput: (props: {
     'aria-label'?: string;
     value?: string;
-    onValueChange?: (values: { value: string }) => void;
-  }) => (
-    <input
-      aria-label={props['aria-label'] ?? 'Network fee amount'}
-      value={props.value ?? ''}
-      onChange={(e) => props.onValueChange?.({ value: e.target.value })}
-    />
-  ),
+    onValueChange?: (
+      values: { value: string },
+      sourceInfo: { source: 'prop' | 'event' },
+    ) => void;
+  }) => <MockFeeInput {...props} />,
 }));
 vi.mock('@/hooks/useErrors', () => ({
   useErrors: () => ({ addError: vi.fn() }),
@@ -66,6 +69,35 @@ import { MakeOffer } from './MakeOffer';
 beforeAll(() => {
   i18n.loadAndActivate({ locale: 'en', messages: {} });
 });
+
+// Like react-number-format, reports a change when the value prop changes.
+function MockFeeInput(props: {
+  'aria-label'?: string;
+  value?: string;
+  onValueChange?: (
+    values: { value: string },
+    sourceInfo: { source: 'prop' | 'event' },
+  ) => void;
+}) {
+  const { value = '', onValueChange } = props;
+  const previous = useRef(value);
+
+  useEffect(() => {
+    if (previous.current === value) return;
+    previous.current = value;
+    onValueChange?.({ value }, { source: 'prop' });
+  }, [value, onValueChange]);
+
+  return (
+    <input
+      aria-label={props['aria-label'] ?? 'Network fee amount'}
+      value={value}
+      onChange={(e) =>
+        onValueChange?.({ value: e.target.value }, { source: 'event' })
+      }
+    />
+  );
+}
 
 afterEach(() => {
   cleanup();
@@ -200,6 +232,14 @@ describe('MakeOffer settings', () => {
       '0.0002',
     );
     expect(dialog.props?.preSplitFee).toBe('0.0002');
+  });
+
+  it('clears the offer on Cancel', () => {
+    renderWithOfferedNfts(1);
+    act(() => useOfferState.setState({ fee: '0.5' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(useOfferState.getState()).toBeNull();
   });
 
   it('sets and clears the expiration', () => {
