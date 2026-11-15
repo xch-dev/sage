@@ -4,15 +4,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TokenAmountInput } from '@/components/ui/masked-input';
 import { useOwnedNft } from '@/hooks/useOwnedNft';
+import { useOwnedOption } from '@/hooks/useOwnedOption';
 import { useRequestedNft } from '@/hooks/useRequestedNft';
 import { optionsEnabled } from '@/lib/features';
 import { nftUri } from '@/lib/nftUri';
-import { formatAddress, fromMojos, toDecimal } from '@/lib/utils';
+import {
+  cn,
+  formatAddress,
+  fromMojos,
+  isValidAddress,
+  toDecimal,
+} from '@/lib/utils';
 import { Assets } from '@/state';
 import BigNumber from 'bignumber.js';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { AlertTriangle, ChevronDown, PlusIcon } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowUpToLine,
+  ChevronDown,
+  PlusIcon,
+} from 'lucide-react';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { NumberFormat } from '../NumberFormat';
 import { NftPicker } from './NftPicker';
@@ -21,7 +33,7 @@ import {
   OfferAssetRowFooter,
   RequestedNftPreview,
 } from './OfferAssetRow';
-import { OptionSelector } from './OptionSelector';
+import { OptionPicker, OptionSummary } from './OptionPicker';
 import { TokenIcon, TokenPicker } from './TokenPicker';
 
 interface AssetSelectorProps {
@@ -138,9 +150,20 @@ export function AssetSelector({
     });
   };
 
+  const toggleOfferedOption = (optionId: string) => {
+    const index = assets.options.indexOf(optionId);
+    if (index !== -1) {
+      removeOption(index);
+      return;
+    }
+    setOptionIds([...optionIds, generateId()]);
+    setAssets({ ...assets, options: [...assets.options, optionId] });
+  };
+
   const addOption = () => {
     const newId = generateId();
     setOptionIds([...optionIds, newId]);
+    setFocusId(newId);
     setAssets({
       ...assets,
       options: [...assets.options, ''],
@@ -271,43 +294,12 @@ export function AssetSelector({
               )
             }
           >
-            <div className='min-w-0 flex-1'>
-              <TokenAmountInput
-                id={`${prefix}-cat-${i}-amount`}
-                aria-label={t`Amount`}
-                className='h-12 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0'
-                placeholder={t`Amount`}
-                value={amount}
-                onValueChange={(values) =>
-                  updateToken(i, 'amount', values.value)
-                }
-                precision={assetId === null ? 12 : 3}
-                hideMaxButton
-                autoFocus={tokenIds[i] === focusId}
-              />
-            </div>
-            {offering && (
-              <Button
-                type='button'
-                variant='ghost'
-                className='h-12 shrink-0 rounded-none px-3 text-xs'
-                disabled={!maxValue || maxValue.isZero()}
-                onClick={() =>
-                  maxValue && updateToken(i, 'amount', maxValue.toFixed())
-                }
-                aria-label={t`Use maximum spendable balance`}
-                title={t`Use maximum spendable balance`}
-              >
-                <Trans>Max</Trans>
-              </Button>
-            )}
             <TokenPicker
               tokens={tokens}
               offering={offering}
               value={assetId}
               taken={assets.tokens.map((t) => t.asset_id)}
               onOpen={loadTokens}
-              align='end'
               onSelect={(newAssetId) => {
                 if (newAssetId === assetId) return;
                 const newTokens = [...assets.tokens];
@@ -329,6 +321,40 @@ export function AssetSelector({
                 />
               </Button>
             </TokenPicker>
+            <div className='relative min-w-0 flex-1'>
+              <TokenAmountInput
+                id={`${prefix}-cat-${i}-amount`}
+                aria-label={t`Amount`}
+                className={cn(
+                  'h-12 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0',
+                  offering && 'pr-11',
+                )}
+                placeholder={t`Amount`}
+                value={amount}
+                onValueChange={(values) =>
+                  updateToken(i, 'amount', values.value)
+                }
+                precision={assetId === null ? 12 : 3}
+                hideMaxButton
+                autoFocus={tokenIds[i] === focusId}
+              />
+              {offering && (
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='icon'
+                  className='absolute right-1.5 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground hover:text-foreground'
+                  disabled={!maxValue || maxValue.isZero()}
+                  onClick={() =>
+                    maxValue && updateToken(i, 'amount', maxValue.toFixed())
+                  }
+                  aria-label={t`Use maximum spendable balance`}
+                  title={t`Use maximum spendable balance`}
+                >
+                  <ArrowUpToLine className='h-4 w-4' aria-hidden='true' />
+                </Button>
+              )}
+            </div>
           </OfferAssetRow>
         );
       })}
@@ -355,49 +381,27 @@ export function AssetSelector({
         ),
       )}
 
-      {assets.options.map((option, i) => (
-        <OfferAssetRow
-          key={optionIds[i] || `option-${i}`}
-          onRemove={() => removeOption(i)}
-          removeLabel={t`Remove option`}
-          tone={
-            offering && option && assetsInOffers.has(option)
-              ? 'warning'
-              : undefined
-          }
-          footer={
-            offering &&
-            option &&
-            assetsInOffers.has(option) && (
-              <OfferAssetRowFooter tone='warning'>
-                <AlertTriangle className='h-3 w-3' aria-hidden='true' />
-                <Trans>This option is part of an open offer</Trans>
-              </OfferAssetRowFooter>
-            )
-          }
-        >
-          <div className='min-w-0 flex-1'>
-            {offering ? (
-              <OptionSelector
-                value={option || null}
-                onChange={(optionId) => updateOption(i, optionId || '')}
-                disabled={assets.options.filter(
-                  (id, idx) => id !== '' && idx !== i,
-                )}
-                className={rowSelectClassName}
-              />
-            ) : (
-              <Input
-                aria-label={t`Option ID`}
-                className={rowInputClassName}
-                placeholder={t`Option ID`}
-                value={option}
-                onChange={(e) => updateOption(i, e.target.value)}
-              />
-            )}
-          </div>
-        </OfferAssetRow>
-      ))}
+      {assets.options.map((option, i) =>
+        offering ? (
+          // Offered options are only added from the picker, so are never blank.
+          option && (
+            <OfferedOptionRow
+              key={optionIds[i] || `option-${i}`}
+              optionId={option}
+              inOpenOffer={assetsInOffers.has(option)}
+              onRemove={() => removeOption(i)}
+            />
+          )
+        ) : (
+          <RequestedOptionRow
+            key={optionIds[i] || `option-${i}`}
+            value={option}
+            onChange={(value) => updateOption(i, value)}
+            onRemove={() => removeOption(i)}
+            autoFocus={optionIds[i] === focusId}
+          />
+        ),
+      )}
 
       <div className='flex flex-wrap gap-2'>
         <TokenPicker
@@ -430,20 +434,29 @@ export function AssetSelector({
           </Button>
         )}
 
-        {optionsEnabled && (
-          <Button variant='outline' size='sm' onClick={addOption}>
-            <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
-            <Trans>Option</Trans>
-          </Button>
-        )}
+        {optionsEnabled &&
+          (offering ? (
+            <OptionPicker
+              selected={assets.options.filter((o) => o)}
+              onToggle={toggleOfferedOption}
+            >
+              <Button variant='outline' size='sm'>
+                <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
+                <Trans>Option</Trans>
+              </Button>
+            </OptionPicker>
+          ) : (
+            <Button variant='outline' size='sm' onClick={addOption}>
+              <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
+              <Trans>Option</Trans>
+            </Button>
+          ))}
       </div>
     </div>
   );
 }
 
-// The selectors and inputs sit inside an OfferAssetRow, which draws the border.
-const rowSelectClassName =
-  'h-12 rounded-none border-0 bg-transparent shadow-none';
+// The inputs sit inside an OfferAssetRow, which draws the border.
 const rowInputClassName =
   'h-12 rounded-none border-0 bg-transparent font-mono text-sm shadow-none focus-visible:ring-0';
 
@@ -496,6 +509,85 @@ function OfferedNftRow({ nftId, inOpenOffer, onRemove }: OfferedNftRowProps) {
             {formatAddress(nftId, 10, 6)}
           </span>
         </div>
+      </div>
+    </OfferAssetRow>
+  );
+}
+
+interface OfferedOptionRowProps {
+  optionId: string;
+  inOpenOffer: boolean;
+  onRemove: () => void;
+}
+
+function OfferedOptionRow({
+  optionId,
+  inOpenOffer,
+  onRemove,
+}: OfferedOptionRowProps) {
+  const option = useOwnedOption(optionId);
+
+  return (
+    <OfferAssetRow
+      onRemove={onRemove}
+      removeLabel={t`Remove option`}
+      tone={inOpenOffer ? 'warning' : undefined}
+      footer={
+        inOpenOffer && (
+          <OfferAssetRowFooter tone='warning'>
+            <AlertTriangle className='h-3 w-3' aria-hidden='true' />
+            <Trans>This option is part of an open offer</Trans>
+          </OfferAssetRowFooter>
+        )
+      }
+    >
+      <div className='flex h-12 min-w-0 flex-1 items-center gap-3 px-3'>
+        <OptionSummary option={option} />
+      </div>
+    </OfferAssetRow>
+  );
+}
+
+interface RequestedOptionRowProps {
+  value: string;
+  onChange: (value: string) => void;
+  onRemove: () => void;
+  autoFocus?: boolean;
+}
+
+function RequestedOptionRow({
+  value,
+  onChange,
+  onRemove,
+  autoFocus,
+}: RequestedOptionRowProps) {
+  const invalid =
+    value.trim() !== '' && !isValidAddress(value.trim(), 'option');
+
+  return (
+    <OfferAssetRow
+      onRemove={onRemove}
+      removeLabel={t`Remove option`}
+      tone={invalid ? 'error' : undefined}
+      footer={
+        invalid && (
+          <OfferAssetRowFooter tone='error'>
+            <Trans>This isn&apos;t a valid option ID.</Trans>
+          </OfferAssetRowFooter>
+        )
+      }
+    >
+      <div className='min-w-0 flex-1'>
+        <Input
+          aria-label={t`Option ID`}
+          className={rowInputClassName}
+          placeholder={t`Option ID (option1…)`}
+          autoComplete='off'
+          spellCheck={false}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          autoFocus={autoFocus}
+        />
       </div>
     </OfferAssetRow>
   );

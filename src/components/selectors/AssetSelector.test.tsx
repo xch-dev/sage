@@ -60,11 +60,35 @@ vi.mock('@/bindings', () => ({
       }),
     ),
     getNft: vi.fn(() => Promise.resolve({ nft: null })),
+    getOption: vi.fn(() => Promise.resolve({ option: null })),
+    getOptions: vi.fn(() =>
+      Promise.resolve({
+        options: [
+          {
+            launcher_id: 'option1live',
+            name: 'Live option',
+            expiration_seconds: 4102444800,
+            underlying_asset: { kind: 'token', ticker: 'CAT', precision: 3 },
+            underlying_amount: 1000,
+            strike_asset: { kind: 'token', ticker: 'XCH', precision: 12 },
+            strike_amount: 1000000000000,
+          },
+          {
+            launcher_id: 'option1expired',
+            name: 'Expired option',
+            expiration_seconds: 1,
+            underlying_asset: { kind: 'token', ticker: 'CAT', precision: 3 },
+            underlying_amount: 1000,
+            strike_asset: { kind: 'token', ticker: 'XCH', precision: 12 },
+            strike_amount: 1000000000000,
+          },
+        ],
+      }),
+    ),
     getNftThumbnail: vi.fn(() => Promise.resolve({ thumbnail: null })),
   },
   events: { syncEvent: { listen: vi.fn(() => Promise.resolve(vi.fn())) } },
 }));
-vi.mock('./OptionSelector', () => ({ OptionSelector: () => null }));
 vi.mock('@/components/ui/masked-input', () => ({
   TokenAmountInput: (props: {
     value: string;
@@ -284,5 +308,20 @@ describe('AssetSelector pickers', () => {
 
     fireEvent.click(screen.getByRole('option', { name: /First NFT/ }));
     expect(setAssets).toHaveBeenLastCalledWith(empty);
+  });
+
+  it('adds unexpired options from the picker', async () => {
+    const setAssets = renderOffering(empty);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Option' }));
+    const option = await screen.findByRole('option', { name: /Live option/ });
+    expect(screen.getByText('1 CAT for 1 XCH', { exact: false })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: /Expired option/ })).toBeNull();
+
+    fireEvent.click(option);
+    expect(setAssets).toHaveBeenLastCalledWith({
+      ...empty,
+      options: ['option1live'],
+    });
   });
 });
