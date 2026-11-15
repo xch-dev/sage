@@ -102,6 +102,7 @@ vi.mock('@/components/ui/masked-input', () => ({
   ),
 }));
 
+import { commands, TokenRecord } from '@/bindings';
 import { Assets } from '@/state';
 import { AssetSelector } from './AssetSelector';
 
@@ -323,5 +324,73 @@ describe('AssetSelector pickers', () => {
       ...empty,
       options: ['option1live'],
     });
+  });
+
+  it('shows requestable tokens a page at a time, held tokens first', async () => {
+    const cat = (i: number, balance = '0') =>
+      ({
+        asset_id: i.toString(16).padStart(64, '0'),
+        name: `Token ${i.toString().padStart(3, '0')}`,
+        ticker: `T${i}`,
+        precision: 3,
+        balance,
+        selectable_balance: balance,
+        visible: true,
+      }) as unknown as TokenRecord;
+    const cats = Array.from({ length: 120 }, (_, i) => cat(i + 1));
+    cats[80] = cat(81, '5000');
+    vi.mocked(commands.getAllCats).mockResolvedValue({ cats });
+
+    try {
+      renderOffering(empty, '0', false);
+      fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+      await screen.findByRole('option', { name: /Token 001/ });
+
+      const options = () => screen.getAllByRole('option');
+      expect(options()).toHaveLength(50);
+      expect(options()[0].textContent).toMatch(/^Chia/);
+      expect(options()[1].textContent).toMatch(/Token 081/);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+      expect(options()).toHaveLength(100);
+    } finally {
+      vi.mocked(commands.getAllCats).mockResolvedValue({ cats: [] });
+    }
+  });
+
+  it('puts an exact ticker match first', async () => {
+    const token = (assetId: string, name: string, ticker: string) =>
+      ({
+        asset_id: assetId.repeat(64),
+        name,
+        ticker,
+        precision: 3,
+        balance: '0',
+        selectable_balance: '0',
+        visible: true,
+      }) as unknown as TokenRecord;
+    vi.mocked(commands.getAllCats).mockResolvedValue({
+      cats: [
+        token('a', 'Another SBX fork', 'SBXX'),
+        token('b', 'Spacebucks', 'SBX'),
+      ],
+    });
+
+    try {
+      renderOffering(empty, '0', false);
+      fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+      fireEvent.change(
+        await screen.findByPlaceholderText(
+          'Search tokens or paste an asset ID',
+        ),
+        { target: { value: 'sbx' } },
+      );
+      await screen.findByRole('option', { name: /Spacebucks/ });
+      expect(screen.getAllByRole('option')[0].textContent).toMatch(
+        /^Spacebucks/,
+      );
+    } finally {
+      vi.mocked(commands.getAllCats).mockResolvedValue({ cats: [] });
+    }
   });
 });

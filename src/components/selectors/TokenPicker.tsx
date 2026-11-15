@@ -22,8 +22,12 @@ import {
 } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { Button } from '@/components/ui/button';
 import { CheckIcon, ClipboardPaste } from 'lucide-react';
 import { ReactNode, useMemo, useState } from 'react';
+
+// Every CAT on Dexie can be requested, so the list is cut short until searched.
+const pageSize = 50;
 
 export interface TokenPickerProps {
   /** The tokens to choose from, XCH included. */
@@ -55,38 +59,55 @@ export function TokenPicker({
 }: TokenPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [limit, setLimit] = useState(pageSize);
 
   const query = search.trim().toLowerCase();
   const pastedAssetId = isValidAssetId(query) ? query : null;
 
-  const items = useMemo(
-    () =>
-      tokens
-        .filter((token) => token.visible)
-        .filter((token) => !offering || Number(token.balance) !== 0)
-        .filter((token) => {
-          if (!query) return true;
-          if (pastedAssetId) return token.asset_id === pastedAssetId;
-          return (
-            token.name?.toLowerCase().includes(query) ||
-            token.ticker?.toLowerCase().includes(query) ||
-            token.asset_id?.startsWith(query)
-          );
-        }),
-    [tokens, offering, query, pastedAssetId],
-  );
+  const matches = useMemo(() => {
+    const ranked = tokens
+      .filter((token) => token.visible)
+      .filter((token) => !offering || Number(token.balance) !== 0)
+      .map((token) => ({
+        token,
+        rank: pastedAssetId
+          ? token.asset_id === pastedAssetId
+            ? 0
+            : null
+          : searchRank(token, query),
+      }))
+      .filter(
+        (match): match is { token: TokenRecord; rank: number } =>
+          match.rank !== null,
+      );
+
+    // Best matches first, then XCH and the tokens you hold. Otherwise the
+    // order is kept, which is alphabetical.
+    return ranked
+      .sort(
+        (a, b) =>
+          a.rank - b.rank ||
+          listOrder(a.token, offering) - listOrder(b.token, offering),
+      )
+      .map((match) => match.token);
+  }, [tokens, offering, query, pastedAssetId]);
+
+  const items = matches.slice(0, limit);
 
   // Any CAT can be requested by its asset ID, even one the wallet hasn't seen.
   const canUsePastedId =
     !offering &&
     pastedAssetId !== null &&
-    items.length === 0 &&
+    matches.length === 0 &&
     !taken.includes(pastedAssetId);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     if (next) onOpen?.();
-    else setSearch('');
+    else {
+      setSearch('');
+      setLimit(pageSize);
+    }
   };
 
   const select = (assetId: string | null) => {
@@ -109,7 +130,10 @@ export function TokenPicker({
                 : t`Search tokens or paste an asset ID`
             }
             value={search}
-            onValueChange={setSearch}
+            onValueChange={(value) => {
+              setSearch(value);
+              setLimit(pageSize);
+            }}
           />
           <CommandList className='max-h-80'>
             <CommandEmpty>
@@ -203,11 +227,43 @@ export function TokenPicker({
                 })}
               </CommandGroup>
             )}
+            {matches.length > items.length && (
+              <div className='p-1'>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='sm'
+                  className='w-full'
+                  onClick={() => setLimit(limit + pageSize)}
+                >
+                  <Trans>Show more</Trans>
+                </Button>
+              </div>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
   );
+}
+
+/** How well a token matches the search, lower being better, or null if not. */
+function searchRank(token: TokenRecord, query: string): number | null {
+  if (!query) return 0;
+  const ticker = token.ticker?.toLowerCase() ?? '';
+  const name = token.name?.toLowerCase() ?? '';
+  if (ticker === query) return 0;
+  if (ticker.startsWith(query) || name.startsWith(query)) return 1;
+  if (ticker.includes(query) || name.includes(query)) return 2;
+  if (token.asset_id?.startsWith(query)) return 3;
+  return null;
+}
+
+/** XCH first, then tokens with a balance, when requesting. */
+function listOrder(token: TokenRecord, offering?: boolean) {
+  if (token.asset_id === null) return 0;
+  if (!offering && Number(token.balance) !== 0) return 1;
+  return 2;
 }
 
 export function TokenIcon({
