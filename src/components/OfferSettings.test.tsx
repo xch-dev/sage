@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { OfferChoice } from './OfferSettings';
+import { OfferChoice, OfferSettingCard } from './OfferSettings';
 
 afterEach(cleanup);
 
@@ -83,5 +83,53 @@ describe('OfferChoice', () => {
     expect(radio('Option A').disabled).toBe(true);
     expect(radio('Option B').disabled).toBe(true);
     expect(radio('Option A').checked).toBe(true);
+  });
+});
+
+describe('OfferSettingCard', () => {
+  it('shows its content only while the toggle is on', () => {
+    const onCheckedChange = vi.fn();
+    const { rerender } = render(
+      <OfferSettingCard
+        title='Setting'
+        description='About it'
+        toggle={{ checked: false, onCheckedChange }}
+      >
+        <span>content</span>
+      </OfferSettingCard>,
+    );
+
+    const toggle = screen.getByRole('switch', { name: 'Setting' });
+    expect(toggle.getAttribute('aria-describedby')).toBeTruthy();
+    expect(screen.queryByText('content')).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(onCheckedChange).toHaveBeenCalledWith(true);
+
+    rerender(
+      <OfferSettingCard
+        title='Setting'
+        toggle={{ checked: true, onCheckedChange }}
+      >
+        <span>content</span>
+      </OfferSettingCard>,
+    );
+    expect(screen.queryByText('content')).not.toBeNull();
+  });
+
+  it('disables the toggle', () => {
+    render(
+      <OfferSettingCard
+        title='Setting'
+        toggle={{ checked: false, onCheckedChange: vi.fn(), disabled: true }}
+      >
+        <span>content</span>
+      </OfferSettingCard>,
+    );
+
+    expect(
+      (screen.getByRole('switch', { name: 'Setting' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
   });
 });

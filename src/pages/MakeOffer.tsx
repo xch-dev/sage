@@ -203,12 +203,23 @@ export function MakeOffer() {
               </div>
             </OfferSettingCard>
 
-            <OfferSettingCard title={<Trans>Expiration</Trans>}>
-              <OfferChoice
-                label={t`Expiration`}
-                value={state.expiration !== null ? 'expires' : 'never'}
-                onValueChange={(value) => {
-                  if (value === 'expires') {
+            <OfferSettingCard
+              title={<Trans>Expiration</Trans>}
+              description={
+                state.expiration !== null ? (
+                  <Trans>
+                    The offer closes automatically once the time runs out.
+                  </Trans>
+                ) : (
+                  <Trans>
+                    The offer stays open until it&apos;s taken or you cancel it.
+                  </Trans>
+                )
+              }
+              toggle={{
+                checked: state.expiration !== null,
+                onCheckedChange: (checked) => {
+                  if (checked) {
                     setState({
                       expiration: {
                         days: expiry?.days?.toString() ?? '1',
@@ -219,34 +230,17 @@ export function MakeOffer() {
                   } else {
                     setState({ expiration: null });
                   }
-                }}
-                options={[
-                  {
-                    value: 'expires',
-                    label: <Trans>Expires</Trans>,
-                    description: (
-                      <Trans>
-                        Closes automatically once the time runs out.
-                      </Trans>
-                    ),
-                    children: state.expiration !== null && (
-                      <ExpirationInput
-                        value={state.expiration}
-                        onChange={(expiration) => setState({ expiration })}
-                      />
-                    ),
-                  },
-                  {
-                    value: 'never',
-                    label: <Trans>Never expires</Trans>,
-                    description: (
-                      <Trans>
-                        Stays open until it&apos;s taken or you cancel it.
-                      </Trans>
-                    ),
-                  },
-                ]}
-              />
+                },
+              }}
+            >
+              {state.expiration !== null && (
+                <div className='max-w-lg'>
+                  <ExpirationInput
+                    value={state.expiration}
+                    onChange={(expiration) => setState({ expiration })}
+                  />
+                </div>
+              )}
             </OfferSettingCard>
 
             {offeredNftCount > 1 && (
@@ -281,56 +275,41 @@ export function MakeOffer() {
             )}
 
             <OfferSettingCard
-              title={<Trans>Coin Splitting</Trans>}
+              title={<Trans>Split coins first</Trans>}
               description={
                 isSplittingNftOffers ? (
                   <Trans>Not available when each NFT gets its own offer.</Trans>
-                ) : undefined
+                ) : isPreSplitting ? (
+                  <Trans>
+                    Keeps the rest of your balance spendable. The offer is
+                    shared once the split is confirmed.
+                  </Trans>
+                ) : (
+                  <Trans>
+                    Without a split, the offer may lock up more of your balance
+                    than it needs.
+                  </Trans>
+                )
               }
+              toggle={{
+                checked: isPreSplitting,
+                onCheckedChange: setPreSplit,
+                disabled: isSplittingNftOffers,
+              }}
             >
-              <OfferChoice
-                label={t`Coin splitting`}
-                value={isPreSplitting ? 'split' : 'as-is'}
-                disabled={isSplittingNftOffers}
-                onValueChange={(value) => setPreSplit(value === 'split')}
-                options={[
-                  {
-                    value: 'split',
-                    label: <Trans>Split coins first</Trans>,
-                    description: (
-                      <Trans>
-                        Keeps the rest of your balance spendable. The offer is
-                        shared once the split is confirmed.
-                      </Trans>
-                    ),
-                    children: (
-                      <div className='flex max-w-xs flex-col gap-1.5'>
-                        <Label htmlFor='pre-split-fee'>
-                          <Trans>Split fee</Trans>
-                        </Label>
-                        <FeeAmountInput
-                          id='pre-split-fee'
-                          aria-label={t`Split fee`}
-                          value={preSplitFee}
-                          onValueChange={(values: { value: string }) => {
-                            setPreSplitFee(values.value);
-                          }}
-                        />
-                      </div>
-                    ),
-                  },
-                  {
-                    value: 'as-is',
-                    label: <Trans>Use coins as they are</Trans>,
-                    description: (
-                      <Trans>
-                        No extra transaction, but the offer may lock up more of
-                        your balance than it needs.
-                      </Trans>
-                    ),
-                  },
-                ]}
-              />
+              <div className='flex max-w-xs flex-col gap-1.5'>
+                <Label htmlFor='pre-split-fee'>
+                  <Trans>Split fee</Trans>
+                </Label>
+                <FeeAmountInput
+                  id='pre-split-fee'
+                  aria-label={t`Split fee`}
+                  value={preSplitFee}
+                  onValueChange={(values: { value: string }) => {
+                    setPreSplitFee(values.value);
+                  }}
+                />
+              </div>
             </OfferSettingCard>
           </div>
         </div>

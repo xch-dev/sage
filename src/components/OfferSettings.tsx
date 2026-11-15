@@ -5,28 +5,63 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { ArrowDownUp, ArrowLeftRight } from 'lucide-react';
 import { ReactNode, useId } from 'react';
 
+export interface OfferSettingToggle {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
+}
+
 export interface OfferSettingCardProps {
   title: ReactNode;
   description?: ReactNode;
+  /** Adds a switch to the header; the card's content shows while it's on. */
+  toggle?: OfferSettingToggle;
   children?: ReactNode;
 }
 
 export function OfferSettingCard({
   title,
   description,
+  toggle,
   children,
 }: OfferSettingCardProps) {
+  const id = useId();
+  const showContent = children && (!toggle || toggle.checked);
+
   return (
     <Card>
-      <CardHeader className='pb-4'>
-        <CardTitle className='text-base'>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
+      <CardHeader
+        className={cn(
+          'flex-row items-start justify-between gap-4 space-y-0',
+          showContent && 'pb-4',
+        )}
+      >
+        <div className='flex flex-col gap-1.5'>
+          <CardTitle id={`${id}-title`} className='text-base'>
+            {title}
+          </CardTitle>
+          {description && (
+            <CardDescription id={`${id}-description`}>
+              {description}
+            </CardDescription>
+          )}
+        </div>
+        {toggle && (
+          <Switch
+            checked={toggle.checked}
+            onCheckedChange={toggle.onCheckedChange}
+            disabled={toggle.disabled}
+            aria-labelledby={`${id}-title`}
+            aria-describedby={description ? `${id}-description` : undefined}
+          />
+        )}
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      {showContent && <CardContent>{children}</CardContent>}
     </Card>
   );
 }

@@ -30,7 +30,9 @@ vi.mock('@/components/ExpirationInput', () => ({
 vi.mock('@/components/Header', () => ({ default: () => null }));
 vi.mock('@/components/ReadOnlyButton', () => ({ ReadOnlyButton: () => null }));
 vi.mock('@/components/ui/masked-input', () => ({
-  FeeAmountInput: () => <input />,
+  FeeAmountInput: (props: { 'aria-label'?: string }) => (
+    <input aria-label={props['aria-label']} />
+  ),
 }));
 vi.mock('@/hooks/useErrors', () => ({
   useErrors: () => ({ addError: vi.fn() }),
@@ -86,6 +88,10 @@ function radio(name: string) {
   return screen.getByRole('radio', { name }) as HTMLInputElement;
 }
 
+function toggle(name: string) {
+  return screen.getByRole('switch', { name }) as HTMLButtonElement;
+}
+
 describe('MakeOffer settings', () => {
   it('only asks about separate NFT offers when offering several NFTs', () => {
     renderWithOfferedNfts(1);
@@ -102,14 +108,18 @@ describe('MakeOffer settings', () => {
     expect(dialog.props?.preSplitFee).toBeNull();
     expect(dialog.props?.splitNftOffers).toBe(false);
 
-    fireEvent.click(radio('Split coins first'));
+    expect(screen.queryByLabelText('Split fee')).toBeNull();
+    fireEvent.click(toggle('Split coins first'));
     expect(dialog.props?.preSplitFee).toBe('');
+    expect(screen.getByLabelText('Split fee')).toBeTruthy();
 
     fireEvent.click(radio('One offer per NFT'));
     expect(dialog.props?.splitNftOffers).toBe(true);
     expect(dialog.props?.preSplitFee).toBeNull();
-    expect(radio('Split coins first').disabled).toBe(true);
-    expect(radio('Use coins as they are').checked).toBe(true);
+    expect(toggle('Split coins first').disabled).toBe(true);
+    expect(toggle('Split coins first').getAttribute('aria-checked')).toBe(
+      'false',
+    );
 
     fireEvent.click(radio('One offer'));
     expect(dialog.props?.splitNftOffers).toBe(false);
@@ -118,16 +128,16 @@ describe('MakeOffer settings', () => {
 
   it('sets and clears the expiration', () => {
     renderWithOfferedNfts(0);
-    expect(radio('Never expires').checked).toBe(true);
+    expect(toggle('Expiration').getAttribute('aria-checked')).toBe('false');
 
-    fireEvent.click(radio('Expires'));
+    fireEvent.click(toggle('Expiration'));
     expect(useOfferState.getState()?.expiration).toEqual({
       days: '1',
       hours: '0',
       minutes: '0',
     });
 
-    fireEvent.click(radio('Never expires'));
+    fireEvent.click(toggle('Expiration'));
     expect(useOfferState.getState()?.expiration).toBeNull();
   });
 });
