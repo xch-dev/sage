@@ -22,31 +22,20 @@ export function OptionPicker({
   children,
 }: OptionPickerProps) {
   const load = useCallback(async (query: string, limit: number) => {
-    if (isValidAddress(query, 'option')) {
-      const { option } = await commands.getOption({ option_id: query });
-      return {
-        // The lookup also finds options the wallet once held, so check it
-        // still does, as the list below only has owned options.
-        items: option && option.is_owned && !isExpired(option) ? [option] : [],
-        hasMore: false,
-      };
-    }
-
-    // Options can't be searched by the backend, so filter them here.
+    // The backend searches names and tickers, and finds a pasted option ID,
+    // among the options the wallet holds. It doesn't leave out expired ones,
+    // so fetch generously and drop those here.
     const { options } = await commands.getOptions({
       offset: 0,
       limit: 1000,
-      find_value: null,
+      find_value: query || null,
+      sort_mode: 'name',
+      ascending: true,
       include_hidden: true,
     });
-    const matches = options
-      .filter((option) => !isExpired(option) && matchesSearch(option, query))
-      .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+    const live = options.filter((option) => !isExpired(option));
 
-    return {
-      items: matches.slice(0, limit),
-      hasMore: matches.length > limit,
-    };
+    return { items: live.slice(0, limit), hasMore: live.length > limit };
   }, []);
 
   return (
@@ -119,16 +108,4 @@ function assetAmount(asset: Asset, amount: Amount) {
 
 function isExpired(option: OptionRecord) {
   return option.expiration_seconds * 1000 < Date.now();
-}
-
-function matchesSearch(option: OptionRecord, query: string) {
-  if (!query) return true;
-  const q = query.toLowerCase();
-  return [
-    option.name,
-    option.underlying_asset.name,
-    option.underlying_asset.ticker,
-    option.strike_asset.name,
-    option.strike_asset.ticker,
-  ].some((value) => value?.toLowerCase().includes(q));
 }

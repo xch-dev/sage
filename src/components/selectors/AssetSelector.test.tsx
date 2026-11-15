@@ -8,6 +8,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from '@testing-library/react';
 import { bech32m } from 'bech32';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -313,26 +314,21 @@ describe('AssetSelector pickers', () => {
     expect(setAssets).toHaveBeenLastCalledWith(empty);
   });
 
-  it("won't add a pasted option the wallet no longer holds", async () => {
+  it('finds a pasted option ID among the options the wallet holds', async () => {
     const optionId = bech32m.encode(
       'option',
       bech32m.toWords(new Uint8Array(32).fill(5)),
     );
-    vi.mocked(commands.getOption).mockResolvedValueOnce({
-      option: {
-        launcher_id: optionId,
-        name: 'Sent option',
-        is_owned: false,
-        expiration_seconds: 4102444800,
-      },
-    } as unknown as Awaited<ReturnType<typeof commands.getOption>>);
     renderOffering(empty);
 
     fireEvent.click(screen.getByRole('button', { name: 'Option' }));
+    await screen.findByRole('option', { name: /Live option/ });
+    // The backend only returns options the wallet holds, and this isn't one.
+    vi.mocked(commands.getOptions).mockResolvedValueOnce({
+      options: [],
+    } as unknown as Awaited<ReturnType<typeof commands.getOptions>>);
     fireEvent.change(
-      await screen.findByPlaceholderText(
-        'Search options or paste an option ID',
-      ),
+      screen.getByPlaceholderText('Search options or paste an option ID'),
       { target: { value: optionId } },
     );
 
@@ -341,7 +337,66 @@ describe('AssetSelector pickers', () => {
         "This option isn't in your wallet, or has expired.",
       ),
     ).toBeTruthy();
-    expect(screen.queryByRole('option', { name: /Sent option/ })).toBeNull();
+    expect(commands.getOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ find_value: optionId }),
+    );
+  });
+
+  it('searches options by what was typed', async () => {
+    renderOffering(empty);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Option' }));
+    await screen.findByRole('option', { name: /Live option/ });
+    fireEvent.change(
+      screen.getByPlaceholderText('Search options or paste an option ID'),
+      { target: { value: 'Live' } },
+    );
+
+    await waitFor(() =>
+      expect(commands.getOptions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ find_value: 'Live' }),
+      ),
+    );
+  });
+
+  it('searches NFTs by name', async () => {
+    renderOffering(empty);
+
+    fireEvent.click(screen.getByRole('button', { name: 'NFT' }));
+    await screen.findByRole('option', { name: /First NFT/ });
+    fireEvent.change(
+      screen.getByPlaceholderText('Search by name or paste an NFT ID'),
+      { target: { value: 'First' } },
+    );
+
+    await waitFor(() =>
+      expect(commands.getNfts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ name: 'First', limit: 20 }),
+      ),
+    );
+  });
+
+  it('loads more NFTs when there are more than fit', async () => {
+    vi.mocked(commands.getNfts).mockResolvedValueOnce({
+      nfts: [
+        {
+          launcher_id: 'nft1first',
+          name: 'First NFT',
+          metadata_updater_kind: null,
+        },
+      ],
+      total: 25,
+    } as unknown as Awaited<ReturnType<typeof commands.getNfts>>);
+    renderOffering(empty);
+
+    fireEvent.click(screen.getByRole('button', { name: 'NFT' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Show more' }));
+
+    await waitFor(() =>
+      expect(commands.getNfts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ limit: 40 }),
+      ),
+    );
   });
 
   it('adds unexpired options from the picker', async () => {
