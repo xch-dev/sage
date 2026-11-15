@@ -398,6 +398,10 @@ mod tests {
 
     #[async_trait]
     impl AgentToolExecutor for NoopExecutor {
+        async fn current_fingerprint(&self) -> Option<u32> {
+            None
+        }
+
         async fn call(
             &self,
             _agent: &SageAgent,

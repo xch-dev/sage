@@ -2,10 +2,16 @@ use async_trait::async_trait;
 use serde_json::Value;
 use tauri::{AppHandle, Manager};
 
-use crate::{AgentTool, AppState, BridgeMethodHandleError, SageAgent, process_agent};
+use crate::{
+    AgentTool, AppState, BridgeMethodHandleError, SageAgent, current_wallet_fingerprint,
+    process_agent,
+};
 
 #[async_trait]
 pub(crate) trait AgentToolExecutor: Send + Sync + 'static {
+    /// The wallet logged in to Sage, which every tool acts on.
+    async fn current_fingerprint(&self) -> Option<u32>;
+
     async fn call(
         &self,
         agent: &SageAgent,
@@ -26,6 +32,10 @@ impl TauriAgentExecutor {
 
 #[async_trait]
 impl AgentToolExecutor for TauriAgentExecutor {
+    async fn current_fingerprint(&self) -> Option<u32> {
+        current_wallet_fingerprint(&self.app_handle.state::<AppState>()).await
+    }
+
     async fn call(
         &self,
         agent: &SageAgent,

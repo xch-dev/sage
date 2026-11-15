@@ -379,7 +379,8 @@ function AgentDialog({
 
   const capabilities =
     editedCapabilities ?? initialAgentCapabilities(agent, definitions);
-  const walletSelected = hasSelectableWallet(walletScope, wallets ?? []);
+  const loadedWallets = wallets ?? [];
+  const walletSelected = hasSelectableWallet(walletScope, loadedWallets);
 
   const submit = async () => {
     if (!(await promptIfEnabled())) return;
@@ -473,7 +474,7 @@ function AgentDialog({
               onCapabilitiesChange={setEditedCapabilities}
               walletScope={walletScope}
               onWalletScopeChange={setWalletScope}
-              wallets={wallets ?? []}
+              wallets={loadedWallets}
               disabled={pending}
             />
 

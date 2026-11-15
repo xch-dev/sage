@@ -29,8 +29,8 @@ use tokio::{net::TcpListener, sync::oneshot, task::JoinHandle, time::timeout};
 use tracing::{error, warn};
 
 use crate::{
-    AgentToken, AgentTool, AgentToolExecutor, AppsDb, SageAgent, find_agent_tool, tools_for_agent,
-    unix_timestamp_ms,
+    AgentToken, AgentTool, AgentToolExecutor, AppsDb, BridgeRegistry, BridgeRegistryKind,
+    SageAgent, authorize_agent_call, find_agent_tool, tools_for_agent, unix_timestamp_ms,
 };
 
 const INSTRUCTIONS: &str = "Tools act on the wallet that is currently open in Sage. \
@@ -255,6 +255,14 @@ impl ServerHandler for AgentMcpHandler {
             ));
         };
 
+        // Refused here, before the executor runs, so that a refusal never depends on what the
+        // executor does. The bridge checks again when it runs the method.
+        let registry = BridgeRegistry::new(BridgeRegistryKind::User);
+        let fingerprint = self.executor.current_fingerprint().await;
+        if let Err(err) = authorize_agent_call(&registry, &agent, tool, fingerprint) {
+            return Ok(tool_error(format!("{}: {}", err.code, err.message)).into());
+        }
+
         let arguments = Value::Object(request.arguments.unwrap_or_default());
 
         let result = match self.executor.call(&agent, tool, arguments).await {
@@ -286,28 +294,40 @@ mod tests {
     use tower::ServiceExt;
 
     use super::*;
-    use crate::{
-        BridgeMethodHandleError, BridgeRegistry, BridgeRegistryKind, SageAppWalletScope,
-        UserBridgeCapability, authorize_agent_call,
-    };
+    use crate::{BridgeMethodHandleError, SageAppWalletScope, UserBridgeCapability};
 
     const PROTOCOL_VERSION: &str = "2025-06-18";
     const VERSION: &str = "9.9.9-test";
 
-    struct FakeExecutor;
+    /// Runs no bridge methods, and reports a wallet that the tests can switch.
+    struct FakeExecutor {
+        fingerprint: std::sync::Mutex<Option<u32>>,
+    }
+
+    impl FakeExecutor {
+        fn new() -> Arc<Self> {
+            Arc::new(Self {
+                fingerprint: std::sync::Mutex::new(Some(1)),
+            })
+        }
+
+        fn switch_wallet(&self, fingerprint: Option<u32>) {
+            *self.fingerprint.lock().unwrap() = fingerprint;
+        }
+    }
 
     #[async_trait]
     impl AgentToolExecutor for FakeExecutor {
+        async fn current_fingerprint(&self) -> Option<u32> {
+            *self.fingerprint.lock().unwrap()
+        }
+
         async fn call(
             &self,
-            agent: &SageAgent,
+            _agent: &SageAgent,
             tool: &AgentTool,
             arguments: Value,
         ) -> Result<Value, BridgeMethodHandleError> {
-            // Authorized like a real call, with a wallet that every agent here can use.
-            let registry = BridgeRegistry::new(BridgeRegistryKind::User);
-            authorize_agent_call(&registry, agent, tool, Some(1))?;
-
             if tool.name == "get_sync_status" {
                 return Err(BridgeMethodHandleError::new(
                     "no_wallet",
@@ -325,6 +345,7 @@ mod tests {
         _dir: TempDir,
         db: AppsDb,
         router: Router,
+        executor: Arc<FakeExecutor>,
         agent: SageAgent,
         token: AgentToken,
     }
@@ -336,24 +357,33 @@ mod tests {
     }
 
     async fn fixture(capabilities: &[UserBridgeCapability]) -> Fixture {
+        scoped_fixture(capabilities, SageAppWalletScope::AllWallets).await
+    }
+
+    async fn scoped_fixture(
+        capabilities: &[UserBridgeCapability],
+        wallet_scope: SageAppWalletScope,
+    ) -> Fixture {
         let dir = tempdir().unwrap();
         let db = AppsDb::initialize(dir.path()).await.unwrap();
         let agent = SageAgent {
             id: uuid::Uuid::new_v4().to_string(),
             name: "agent".to_string(),
             capabilities: capabilities.iter().copied().collect(),
-            wallet_scope: SageAppWalletScope::AllWallets,
+            wallet_scope,
             created_at_ms: 1,
             updated_at_ms: 1,
             last_used_at_ms: None,
         };
         let token = AgentToken::generate();
         db.insert_agent(&agent, &token.hash()).await.unwrap();
-        let router = agent_router(db.clone(), Arc::new(FakeExecutor), VERSION.to_string());
+        let executor = FakeExecutor::new();
+        let router = agent_router(db.clone(), executor.clone(), VERSION.to_string());
         Fixture {
             _dir: dir,
             db,
             router,
+            executor,
             agent,
             token,
         }
@@ -573,6 +603,53 @@ mod tests {
         assert_eq!(message["result"]["isError"], true);
         let text = message["result"]["content"][0]["text"].as_str().unwrap();
         assert!(text.starts_with("permission_denied"), "{text}");
+    }
+
+    async fn call_text(f: &Fixture, auth: &str, session: &str, name: &str) -> (bool, String) {
+        let message = rpc_ok(
+            &f.router,
+            auth,
+            session,
+            "tools/call",
+            json!({ "name": name, "arguments": {} }),
+        )
+        .await;
+        let is_error = message["result"]["isError"] == true;
+        let text = message["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string();
+        (is_error, text)
+    }
+
+    #[tokio::test]
+    async fn switching_out_of_scope_refuses_calls() {
+        let f = scoped_fixture(
+            &[UserBridgeCapability::WalletGetWallet],
+            SageAppWalletScope::SelectedWallets {
+                fingerprints: vec![1],
+            },
+        )
+        .await;
+        let auth = f.bearer();
+        let session = initialize(&f.router, &auth).await;
+
+        let (is_error, _) = call_text(&f, &auth, &session, "get_wallet").await;
+        assert!(!is_error);
+
+        f.executor.switch_wallet(Some(2));
+        let (is_error, text) = call_text(&f, &auth, &session, "get_wallet").await;
+        assert!(is_error);
+        assert!(text.starts_with("wallet_not_in_scope"), "{text}");
+
+        f.executor.switch_wallet(None);
+        let (is_error, text) = call_text(&f, &auth, &session, "get_wallet").await;
+        assert!(is_error);
+        assert!(text.starts_with("no_wallet"), "{text}");
+
+        f.executor.switch_wallet(Some(1));
+        let (is_error, _) = call_text(&f, &auth, &session, "get_wallet").await;
+        assert!(!is_error);
     }
 
     #[tokio::test]
@@ -859,15 +936,14 @@ mod tests {
     #[tokio::test]
     async fn start_binds_loopback_and_stops() {
         let f = fixture(&[]).await;
-        let handle =
-            start_agent_server(f.db.clone(), Arc::new(FakeExecutor), VERSION.to_string(), 0)
-                .await
-                .unwrap();
+        let handle = start_agent_server(f.db.clone(), FakeExecutor::new(), VERSION.to_string(), 0)
+            .await
+            .unwrap();
         assert_ne!(handle.port(), 0);
 
         let occupied = start_agent_server(
             f.db.clone(),
-            Arc::new(FakeExecutor),
+            FakeExecutor::new(),
             VERSION.to_string(),
             handle.port(),
         )
@@ -885,23 +961,17 @@ mod tests {
         let listener = std::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
         let port = listener.local_addr().unwrap().port();
 
-        let result = start_agent_server(
-            f.db.clone(),
-            Arc::new(FakeExecutor),
-            VERSION.to_string(),
-            port,
-        )
-        .await;
+        let result =
+            start_agent_server(f.db.clone(), FakeExecutor::new(), VERSION.to_string(), port).await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn start_then_stop_frees_port() {
         let f = fixture(&[]).await;
-        let handle =
-            start_agent_server(f.db.clone(), Arc::new(FakeExecutor), VERSION.to_string(), 0)
-                .await
-                .unwrap();
+        let handle = start_agent_server(f.db.clone(), FakeExecutor::new(), VERSION.to_string(), 0)
+            .await
+            .unwrap();
         let port = handle.port();
 
         tokio::time::timeout(Duration::from_secs(5), handle.stop())
@@ -914,10 +984,9 @@ mod tests {
     #[tokio::test]
     async fn stop_with_open_sse_stream_is_bounded() {
         let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
-        let handle =
-            start_agent_server(f.db.clone(), Arc::new(FakeExecutor), VERSION.to_string(), 0)
-                .await
-                .unwrap();
+        let handle = start_agent_server(f.db.clone(), FakeExecutor::new(), VERSION.to_string(), 0)
+            .await
+            .unwrap();
         let port = handle.port();
         let url = format!("http://127.0.0.1:{port}/mcp");
         let auth = f.bearer();
@@ -973,10 +1042,9 @@ mod tests {
     #[tokio::test]
     async fn stop_with_stalled_request_is_bounded() {
         let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
-        let handle =
-            start_agent_server(f.db.clone(), Arc::new(FakeExecutor), VERSION.to_string(), 0)
-                .await
-                .unwrap();
+        let handle = start_agent_server(f.db.clone(), FakeExecutor::new(), VERSION.to_string(), 0)
+            .await
+            .unwrap();
         let port = handle.port();
 
         // An authenticated request whose body never finishes keeps the connection in flight.
