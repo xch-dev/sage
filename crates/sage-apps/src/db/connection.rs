@@ -6,6 +6,7 @@ use std::{
 use anyhow::{Context, Result};
 use sqlx::{
     SqlitePool,
+    migrate::MigrateError,
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
 };
 
@@ -65,6 +66,14 @@ impl AppsDb {
         Ok(())
     }
 
+    /// Whether opening the database failed because a newer version of Sage migrated it.
+    pub fn is_newer_version_error(err: &anyhow::Error) -> bool {
+        matches!(
+            err.downcast_ref::<MigrateError>(),
+            Some(MigrateError::VersionMissing(_))
+        )
+    }
+
     pub fn pool(&self) -> &SqlitePool {
         &self.pool
     }
@@ -96,6 +105,49 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn agents_migration_keeps_existing_settings() {
+        let dir = tempdir().unwrap();
+
+        // Open the database the way a build from before the agents migration did.
+        let migrations = tempdir().unwrap();
+        for migration in MIGRATOR.iter().filter(|migration| migration.version < 5) {
+            fs::write(
+                migrations.path().join(format!(
+                    "{:04}_{}.sql",
+                    migration.version, migration.description
+                )),
+                migration.sql.as_bytes(),
+            )
+            .unwrap();
+        }
+        let old_migrator = sqlx::migrate::Migrator::new(migrations.path())
+            .await
+            .unwrap();
+        let pool = SqlitePool::connect_with(
+            SqliteConnectOptions::new()
+                .filename(database_path(dir.path()))
+                .create_if_missing(true),
+        )
+        .await
+        .unwrap();
+        old_migrator.run(&pool).await.unwrap();
+        let old = AppsDb { pool };
+        old.write_setting("auto_update_enabled", &false)
+            .await
+            .unwrap();
+        old.pool().close().await;
+
+        let db = AppsDb::initialize(dir.path()).await.unwrap();
+        assert_eq!(
+            db.read_setting::<bool>("auto_update_enabled")
+                .await
+                .unwrap(),
+            Some(false)
+        );
+        assert!(db.list_agents().await.unwrap().is_empty());
+    }
+
+    #[tokio::test]
     async fn database_from_a_newer_build_fails_to_open() {
         let dir = tempdir().unwrap();
         let db = AppsDb::initialize(dir.path()).await.unwrap();
@@ -108,6 +160,16 @@ mod tests {
         .unwrap();
         db.pool().close().await;
 
-        assert!(AppsDb::initialize(dir.path()).await.is_err());
+        let err = AppsDb::initialize(dir.path()).await.unwrap_err();
+        assert!(AppsDb::is_newer_version_error(&err));
+    }
+
+    #[tokio::test]
+    async fn unreadable_database_is_not_from_a_newer_build() {
+        let dir = tempdir().unwrap();
+        fs::write(database_path(dir.path()), b"not a database").unwrap();
+
+        let err = AppsDb::initialize(dir.path()).await.unwrap_err();
+        assert!(!AppsDb::is_newer_version_error(&err));
     }
 }

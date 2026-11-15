@@ -385,6 +385,7 @@ pub fn run() {
                         tracing::error!("failed to initialize Sage apps database: {err:#}");
                         app.manage(app_state::AppsDbFailure {
                             root: path,
+                            newer_version: apps::AppsDb::is_newer_version_error(&err),
                             reason: format!("{err:#}"),
                         });
                         return Ok(());

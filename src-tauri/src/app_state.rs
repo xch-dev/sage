@@ -1,6 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use sage::{RefreshDebouncer, Result, Sage, api_sync_event};
+use sage_api::ErrorKind;
 #[cfg(not(mobile))]
 use sage_apps::{AppsHostState, emit_selected_wallet_changed, process_sage_network_change};
 use sage_wallet::SyncEvent;
@@ -18,6 +19,38 @@ pub struct Initialized(pub Mutex<Option<error::Result<()>>>);
 pub struct AppsDbFailure {
     pub root: PathBuf,
     pub reason: String,
+    /// The database was migrated by a newer version of Sage, which can still open it.
+    pub newer_version: bool,
+}
+
+impl AppsDbFailure {
+    /// Whether deleting the database is offered. It isn't when a newer version of Sage can still
+    /// open it, since installing that version again recovers the apps and agents.
+    pub fn resettable(&self) -> bool {
+        !self.newer_version
+    }
+
+    pub fn to_error(&self) -> error::Error {
+        if self.newer_version {
+            error::Error {
+                kind: ErrorKind::Internal,
+                reason: format!(
+                    "The apps database was created by a newer version of Sage. Install that \
+                     version again to keep your apps and agents.\n\n{}",
+                    self.reason
+                ),
+                handle_error_code: None,
+                recipients: None,
+            }
+        } else {
+            error::Error {
+                kind: ErrorKind::AppsDatabase,
+                reason: self.reason.clone(),
+                handle_error_code: None,
+                recipients: None,
+            }
+        }
+    }
 }
 
 pub struct RpcTask(pub Mutex<Option<JoinHandle<anyhow::Result<()>>>>);

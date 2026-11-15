@@ -100,11 +100,22 @@ impl Sage {
         result
     }
 
-    async fn try_initialize(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
-        fs::create_dir_all(&self.path)?;
+    /// Takes the exclusive lock on the data directory, failing if another process holds it.
+    ///
+    /// Anything that changes files in the data directory must hold it, even when initialization
+    /// can't go ahead, such as deleting a database that couldn't be opened.
+    pub fn lock_data_dir(&mut self) -> Result<()> {
+        if self.data_dir_lock.is_none() {
+            fs::create_dir_all(&self.path)?;
+            self.data_dir_lock = Some(DataDirLock::acquire(&self.path)?);
+        }
 
+        Ok(())
+    }
+
+    async fn try_initialize(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
         // This must happen before anything is read, so that the state can't be stale.
-        self.data_dir_lock = Some(DataDirLock::acquire(&self.path)?);
+        self.lock_data_dir()?;
 
         self.setup_keys()?;
         self.setup_config()?;
@@ -852,6 +863,25 @@ mod tests {
     use tempfile::TempDir;
 
     use super::*;
+
+    #[test]
+    fn lock_data_dir_refuses_a_directory_another_process_holds() -> Result<()> {
+        let dir = TempDir::new()?;
+        fs::write(dir.path().join("sage.lock"), [])?;
+
+        // A separate open file conflicts even within a process, as another process would.
+        let other = fs::File::open(dir.path().join("sage.lock"))?;
+        other.try_lock().expect("lock is free");
+
+        let mut sage = Sage::new(dir.path(), true);
+        assert!(matches!(sage.lock_data_dir(), Err(Error::AlreadyRunning)));
+
+        drop(other);
+        sage.lock_data_dir()?;
+        sage.lock_data_dir()?;
+
+        Ok(())
+    }
 
     fn load(path: &Path) -> Result<Sage> {
         let mut sage = Sage::new(path, true);

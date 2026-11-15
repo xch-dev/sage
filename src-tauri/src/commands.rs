@@ -35,12 +35,14 @@ pub async fn initialize(
 
     // The wallet isn't loaded without the apps database, since the app features rely on it.
     if let Some(failure) = app_handle.try_state::<AppsDbFailure>() {
-        return Err(Error {
-            kind: ErrorKind::AppsDatabase,
-            reason: failure.reason.clone(),
-            handle_error_code: None,
-            recipients: None,
-        });
+        // Another instance using the same data may be why it couldn't be opened, and must be
+        // reported first, since offering to delete the database would destroy that instance's data.
+        let result = match state.lock().await.lock_data_dir() {
+            Ok(()) => Err(failure.to_error()),
+            Err(err) => Err(err.into()),
+        };
+        *initialized = Some(result.clone());
+        return result;
     }
 
     let mut sage = state.lock().await;
@@ -84,8 +86,7 @@ pub async fn initialize(
 /// Deletes an apps database that couldn't be opened, then restarts Sage to recreate it.
 #[command]
 #[specta]
-#[allow(clippy::needless_pass_by_value)] // Tauri commands can't take the handle by reference
-pub fn reset_apps_database(app_handle: AppHandle) -> Result<()> {
+pub async fn reset_apps_database(app_handle: AppHandle, state: State<'_, AppState>) -> Result<()> {
     let Some(failure) = app_handle.try_state::<AppsDbFailure>() else {
         return Err(Error {
             kind: ErrorKind::Api,
@@ -95,7 +96,17 @@ pub fn reset_apps_database(app_handle: AppHandle) -> Result<()> {
         });
     };
 
+    if !failure.resettable() {
+        return Err(failure.to_error());
+    }
+
+    // Deleting the files under another running instance would corrupt its database.
+    let mut sage = state.lock().await;
+    sage.lock_data_dir()?;
+
     sage_apps::AppsDb::delete_files(&failure.root)?;
+    drop(sage);
+
     app_handle.restart()
 }
 
