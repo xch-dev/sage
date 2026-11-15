@@ -142,8 +142,8 @@ export default function Settings() {
   const insets = useInsets();
   const { section } = useParams<{ section?: string }>();
 
-  // Wallet pages only exist while a wallet is logged in.
   const isMobile = platform() === 'ios' || platform() === 'android';
+  // Wallet pages only exist while a wallet is logged in.
   const pages = settingsPages(isMobile).filter(
     (page) => page.group !== 'wallet' || wallet,
   );

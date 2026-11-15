@@ -60,7 +60,7 @@ export function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   const [wallet, setWallet] = useState<Wallet | null>(null);
   // Watch wallets only know their addresses, so they have no change address.
-  const isWatch = wallet?.type === 'watch';
+  const { isWatchOnly } = useWallet();
   const [localName, setLocalName] = useState<string>('');
   const [localChangeAddress, setLocalChangeAddress] = useState('');
   const [networks, setNetworks] = useState<Network[]>([]);
@@ -234,7 +234,7 @@ export function WalletSettings({ fingerprint }: { fingerprint: number }) {
         )}
       </SettingItem>
 
-      {!isWatch && (
+      {!isWatchOnly && (
         <SettingItem
           label={t`Change Address`}
           description={t`Set a specific address to send change to`}
@@ -265,7 +265,7 @@ export function WalletSyncSettings({ fingerprint }: { fingerprint: number }) {
 
   const [key, setKey] = useState<KeyInfo | null>(null);
   // Watch wallets only know their addresses, so they have no derivations.
-  const { isWatchOnly: isWatch } = useWallet();
+  const { isWatchOnly } = useWallet();
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [resyncOpen, setResyncOpen] = useState(false);
@@ -362,7 +362,7 @@ export function WalletSyncSettings({ fingerprint }: { fingerprint: number }) {
 
   return (
     <>
-      {!isWatch && (
+      {!isWatchOnly && (
         <SettingsSection title={t`Addresses`}>
           <SettingItem
             label={t`Derivation Index`}

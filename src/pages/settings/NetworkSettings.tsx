@@ -40,6 +40,9 @@ export function NetworkSettings() {
     targetPeers === null || !isValidU32(targetPeers, 1);
 
   const [config, setConfig] = useState<NetworkConfig | null>(null);
+  const [mempoolDiscovery, setMempoolDiscovery] = useState<boolean | null>(
+    null,
+  );
 
   useEffect(() => {
     commands.networkConfig().then(setConfig).catch(addError);
@@ -151,10 +154,8 @@ export function NetworkSettings() {
       </SettingsSection>
 
       <SyncSettings
-        mempoolDiscovery={config?.mempool_discovery ?? true}
-        setMempoolDiscovery={(mempool_discovery) => {
-          if (config) setConfig({ ...config, mempool_discovery });
-        }}
+        mempoolDiscovery={mempoolDiscovery ?? config?.mempool_discovery ?? true}
+        setMempoolDiscovery={setMempoolDiscovery}
       />
     </>
   );

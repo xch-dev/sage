@@ -231,7 +231,7 @@ describe('Settings', () => {
   it('replaces a page opened directly with the list', () => {
     renderSettings(['/', '/settings/general']);
 
-    fireEvent.click(screen.getAllByText('Settings')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     expect(path()).toBe('/settings');
 
     fireEvent.click(screen.getByText('Browser Back'));
