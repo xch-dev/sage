@@ -23,20 +23,16 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { HandCoins, Handshake } from 'lucide-react';
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();
-  const location = useLocation();
   const { expiry } = useDefaultOfferExpiry();
   const navigate = useNavigate();
   const { addError } = useErrors();
   const now = useNowSeconds();
-  const [splitNftOffers, setSplitNftOffers] = useState(
-    location.state?.splitNftOffers || false,
-  );
-  const [preSplit, setPreSplit] = useState(false);
-  const [preSplitFee, setPreSplitFee] = useState('');
+  // Kept in the offer state so they survive leaving the page, like the assets.
+  const { splitNftOffers, preSplit, preSplitFee } = state;
 
   // Each separate NFT offer would split coins of its own, and the change from
   // one split can't be spent on the next offer until it's confirmed.
@@ -194,6 +190,7 @@ export function MakeOffer() {
               <div className='max-w-xs'>
                 <FeeAmountInput
                   id='fee'
+                  value={state.fee}
                   onValueChange={(values: { value: string }) => {
                     setState({
                       fee: values.value,
@@ -249,7 +246,7 @@ export function MakeOffer() {
                   label={t`NFT offers`}
                   value={splitNftOffers ? 'split' : 'together'}
                   onValueChange={(value) =>
-                    setSplitNftOffers(value === 'split')
+                    setState({ splitNftOffers: value === 'split' })
                   }
                   options={[
                     {
@@ -293,7 +290,7 @@ export function MakeOffer() {
               }
               toggle={{
                 checked: isPreSplitting,
-                onCheckedChange: setPreSplit,
+                onCheckedChange: (checked) => setState({ preSplit: checked }),
                 disabled: isSplittingNftOffers,
               }}
             >
@@ -306,7 +303,7 @@ export function MakeOffer() {
                   aria-label={t`Split fee`}
                   value={preSplitFee}
                   onValueChange={(values: { value: string }) => {
-                    setPreSplitFee(values.value);
+                    setState({ preSplitFee: values.value });
                   }}
                 />
               </div>

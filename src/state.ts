@@ -29,6 +29,11 @@ export interface OfferState {
   requested: Assets;
   fee: string;
   expiration: OfferExpiration | null;
+  /** Make a separate offer for each offered NFT. */
+  splitNftOffers: boolean;
+  /** Split coins before making the offer, paying `preSplitFee`. */
+  preSplit: boolean;
+  preSplitFee: string;
 }
 
 export interface Assets {

@@ -22,6 +22,9 @@ export default function useOfferStateWithDefault() {
           options: [],
         },
         expiration: expiry.enabled ? expiry : null,
+        splitNftOffers: false,
+        preSplit: false,
+        preSplitFee: '',
       },
     [expiry, offerState],
   );

@@ -39,7 +39,7 @@ vi.mock('@/components/ui/masked-input', () => ({
   }) => (
     <input
       aria-label={props['aria-label'] ?? 'Network fee amount'}
-      value={props.value}
+      value={props.value ?? ''}
       onChange={(e) => props.onValueChange?.({ value: e.target.value })}
     />
   ),
@@ -88,8 +88,15 @@ function renderWithOfferedNfts(count: number | string[]) {
       options: [],
     },
     requested: { tokens: [], nfts: [], options: [] },
+    splitNftOffers: false,
+    preSplit: false,
+    preSplitFee: '',
   });
 
+  renderPage();
+}
+
+function renderPage() {
   render(
     <I18nProvider i18n={i18n}>
       <MemoryRouter>
@@ -167,6 +174,32 @@ describe('MakeOffer settings', () => {
     fireEvent.click(radio('One offer'));
     expect(dialog.props?.preSplitFee).toBe('0.0001');
     expect(dialog.props?.fee).toBe('0.25');
+  });
+
+  it('keeps the split choices after leaving the page and coming back', () => {
+    renderWithOfferedNfts(2);
+    fireEvent.click(radio('One offer per NFT'));
+    cleanup();
+
+    renderPage();
+    expect(radio('One offer per NFT').checked).toBe(true);
+    expect(dialog.props?.splitNftOffers).toBe(true);
+
+    fireEvent.click(radio('One offer'));
+    fireEvent.click(toggle('Split coins first'));
+    fireEvent.change(screen.getByLabelText('Split fee'), {
+      target: { value: '0.0002' },
+    });
+    cleanup();
+
+    renderPage();
+    expect(toggle('Split coins first').getAttribute('aria-checked')).toBe(
+      'true',
+    );
+    expect((screen.getByLabelText('Split fee') as HTMLInputElement).value).toBe(
+      '0.0002',
+    );
+    expect(dialog.props?.preSplitFee).toBe('0.0002');
   });
 
   it('sets and clears the expiration', () => {
