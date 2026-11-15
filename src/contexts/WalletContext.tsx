@@ -1,4 +1,4 @@
-import { KeyInfo, WalletInfo, commands } from '@/bindings';
+import { KeyInfo, WalletInfo, commands, events } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useAddressContactsLifecycle } from '@/hooks/useAddressContacts';
 import { useAddressHandlesLifecycle } from '@/hooks/useAddressHandles';
@@ -19,7 +19,8 @@ interface WalletContextType {
   /** True for watch wallets, which only know addresses, so they can't even build
    *  unsigned transactions. */
   isWatchOnly: boolean;
-  /** True for vault wallets, which can't build transactions yet. */
+  /** True for vault wallets. They can spend once one of their custody keys is
+   *  attached as a signer. */
   isVault: boolean;
   /** True when the user has opted in to building unsigned transactions on cold wallets. */
   allowUnsigned: boolean;
@@ -73,13 +74,66 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const isKeyLoaded =
     loadedKey !== null && loadedKey.fingerprint === fingerprint;
 
+  // A vault spends with its custody signers' keys, so it's read-only until one
+  // is attached. The wallet info changes when a signer is attached.
+  const vaultFingerprint = isVault ? (wallet?.fingerprint ?? null) : null;
+  const vaultSigners = JSON.stringify(vaultInfo(wallet)?.signers ?? []);
+  const [vaultCanSpend, setVaultCanSpend] = useState<{
+    fingerprint: number;
+    canSpend: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (vaultFingerprint === null) return;
+
+    let cancelled = false;
+
+    const check = () =>
+      commands
+        .getVault({})
+        .then((data) => {
+          if (cancelled) return;
+          setVaultCanSpend({
+            fingerprint: vaultFingerprint,
+            canSpend: data.vault.signers.some((signer) => signer.custody),
+          });
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setVaultCanSpend({
+              fingerprint: vaultFingerprint,
+              canSpend: false,
+            });
+          }
+        });
+
+    check();
+
+    // The vault's config, which says which signers are custody members, can
+    // arrive after the wallet opens, such as once a mint confirms.
+    const unlisten = events.syncEvent.listen((event) => {
+      const type = event.payload.type;
+      if (type === 'coin_state' || type === 'puzzle_batch_synced') check();
+    });
+
+    return () => {
+      cancelled = true;
+      unlisten.then((u) => u());
+    };
+  }, [vaultFingerprint, vaultSigners]);
+
+  const canVaultSpend =
+    vaultCanSpend !== null &&
+    vaultCanSpend.fingerprint === vaultFingerprint &&
+    vaultCanSpend.canSpend;
+
   // While the wallet's key is loading, it isn't treated as read-only, so that the
   // read-only banner doesn't flash for hot wallets.
   const isReadOnly =
     wallet !== null &&
     (isWatchOnly ||
-      isVault ||
-      (isKeyLoaded && loadedKey.key?.has_secrets !== true));
+      (isVault && !canVaultSpend) ||
+      (!isVault && isKeyLoaded && loadedKey.key?.has_secrets !== true));
   const isTransactionDisabled =
     isReadOnly && (isWatchOnly || isVault || !allowUnsigned);
 

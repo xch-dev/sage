@@ -1,4 +1,5 @@
 import { VaultRecoveryKeys } from '@/bindings';
+import { t } from '@lingui/core/macro';
 
 /** A recovery timelock as entered in days, hours, and minutes, as Chia Cloud
  *  Wallet sets it. Every part can be left empty. */
@@ -7,6 +8,14 @@ export interface TimelockInput {
   hours: string;
   minutes: string;
 }
+
+/** The recovery timelock a new vault is minted with by default, 12 hours, as in
+ *  Chia Cloud Wallet. */
+export const DEFAULT_MINT_TIMELOCK = 12 * 3600;
+
+/** The shortest recovery timelock Sage mints a vault with, so that a recovery
+ *  this wallet didn't start can be noticed and cancelled in time. */
+export const MIN_MINT_TIMELOCK = 3600;
 
 export const EMPTY_TIMELOCK: TimelockInput = {
   days: '',
@@ -109,4 +118,18 @@ export function vaultRecoveryKeys({
   if (seconds === undefined) return undefined;
 
   return { keys: parsed, threshold: parsedThreshold, timelock: seconds };
+}
+
+/** A timelock in the same units it's entered in, such as "12 hours 30 minutes". */
+export function formatDuration(timelock: number): string {
+  const { days, hours, minutes, seconds } = timelockParts(timelock);
+
+  return [
+    days === 1 ? t`1 day` : days > 0 ? t`${days} days` : null,
+    hours === 1 ? t`1 hour` : hours > 0 ? t`${hours} hours` : null,
+    minutes === 1 ? t`1 minute` : minutes > 0 ? t`${minutes} minutes` : null,
+    seconds === 1 ? t`1 second` : seconds > 0 ? t`${seconds} seconds` : null,
+  ]
+    .filter((part) => part !== null)
+    .join(' ');
 }

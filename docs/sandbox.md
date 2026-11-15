@@ -64,7 +64,10 @@ a second tab or by calling bob's bridge directly.
 
 ## Vaults
 
-Sage can't create vaults, so the sandbox mints a few at startup to import. `instance.json` lists
+Sage mints vaults from a BLS wallet's Mint Vault page, but only in its own layout, so the sandbox
+also mints a few at startup to import, including legacy vaults and vaults without memos. A vault
+minted from the UI is funded by the open wallet, and its wallet opens once it's submitted.
+`instance.json` lists
 them under `vaults`, each with its `launcher_id` (a `vault1` id), its first `address`, whether its
 config is in its `memo`, the `recovery_keys` and `recovery_threshold` to import it with if not, and
 a `config_file` in `data/vaults/` to import it from. Alice's key is the custody of every vault, so

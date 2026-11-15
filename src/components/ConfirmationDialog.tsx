@@ -51,6 +51,7 @@ import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { UndeclaredFeeAlert } from './UndeclaredFeeAlert';
+import { isVaultSpendSignable, VaultSpendAlert } from './VaultSpendAlert';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -210,6 +211,14 @@ export default function ConfirmationDialog({
                   <UndeclaredFeeAlert
                     fee={response.summary.fee}
                     declaredFee={response.summary.declared_fee}
+                    unit={walletState.sync.unit}
+                    className='mb-3'
+                  />
+                )}
+
+                {response && (
+                  <VaultSpendAlert
+                    vault={response.summary.vault}
                     unit={walletState.sync.unit}
                     className='mb-3'
                   />
@@ -638,6 +647,7 @@ export default function ConfirmationDialog({
             <LoadingButton
               loading={pending}
               loadingText={t`Submitting`}
+              disabled={!isVaultSpendSignable(response?.summary.vault)}
               onClick={() => {
                 setPending(true);
 

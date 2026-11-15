@@ -61,9 +61,9 @@ function WalletTransitionWrapper({
                 <Eye className='h-3 w-3 flex-shrink-0' aria-hidden='true' />
               }
             />
-          ) : isVault ? (
+          ) : isVault && isReadOnly ? (
             <Banner
-              message={t`Vault — spending from vaults isn't supported yet`}
+              message={t`Read-only vault — attach a custody key to spend from it`}
               aria-label={t`Vault`}
               icon={
                 <Landmark

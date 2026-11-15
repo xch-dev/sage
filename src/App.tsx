@@ -58,6 +58,7 @@ import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
+import MintVault from './pages/MintVault';
 import Vault from './pages/Vault';
 import { AppsProvider } from '@/contexts/AppsContext.tsx';
 import { HandleChangeDialog } from '@/components/HandleChangeDialog';
@@ -131,6 +132,7 @@ const router = createHashRouter(
       </Route>
       <Route path='/vault' element={<Wallet />}>
         <Route path='' element={<Vault />} />
+        <Route path='mint' element={<MintVault />} />
       </Route>
       <Route path='/options' element={<Wallet />}>
         <Route path='' element={<OptionList />} />
