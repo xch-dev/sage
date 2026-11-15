@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TokenAmountInput } from '@/components/ui/masked-input';
-import { Switch } from '@/components/ui/switch';
 import {
   Tooltip,
   TooltipContent,
@@ -26,7 +25,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { OptionSelector } from './OptionSelector';
 
 interface AssetSelectorProps {
@@ -34,8 +33,8 @@ interface AssetSelectorProps {
   prefix: string;
   assets: Assets;
   setAssets: (value: Assets) => void;
-  splitNftOffers?: boolean;
-  setSplitNftOffers?: (value: boolean) => void;
+  /** Shown in place of the asset rows while nothing has been added. */
+  emptyMessage?: ReactNode;
   fee?: string;
 }
 
@@ -44,8 +43,7 @@ export function AssetSelector({
   prefix,
   assets,
   setAssets,
-  splitNftOffers,
-  setSplitNftOffers,
+  emptyMessage,
   fee,
 }: AssetSelectorProps) {
   const [ownedTokens, setOwnedTokens] = useState<TokenRecord[]>([]);
@@ -200,28 +198,18 @@ export function AssetSelector({
   }, [assets.options.length, optionIds.length, generateId]);
 
   return (
-    <>
-      <div className='mt-4 flex gap-2 w-full items-center'>
-        <Button variant='outline' className='flex-grow' onClick={addToken}>
-          <PlusIcon className='mr-0.5 h-3 w-3' aria-hidden='true' />{' '}
-          <Trans>Token</Trans>
-        </Button>
-
-        <Button variant='outline' className='flex-grow' onClick={addNft}>
-          <PlusIcon className='mr-0.5 h-3 w-3' aria-hidden='true' />{' '}
-          <Trans>NFT</Trans>
-        </Button>
-
-        {optionsEnabled && (
-          <Button variant='outline' className='flex-grow' onClick={addOption}>
-            <PlusIcon className='mr-0.5 h-3 w-3' aria-hidden='true' />{' '}
-            <Trans>Option</Trans>
-          </Button>
+    <div className='flex flex-col gap-4'>
+      {assets.tokens.length === 0 &&
+        assets.nfts.length === 0 &&
+        assets.options.length === 0 &&
+        emptyMessage && (
+          <div className='flex min-h-14 items-center justify-center rounded-lg border border-dashed border-border px-4 text-center text-sm text-muted-foreground'>
+            {emptyMessage}
+          </div>
         )}
-      </div>
 
       {assets.tokens.length > 0 && (
-        <div className='flex flex-col mt-4'>
+        <div className='flex flex-col'>
           <Label className='flex items-center gap-1 mb-2'>
             <HandCoins className='h-4 w-4' aria-hidden='true' />
             <span>Tokens</span>
@@ -300,23 +288,11 @@ export function AssetSelector({
       )}
 
       {assets.nfts.length > 0 && (
-        <div className='flex flex-col mt-4'>
+        <div className='flex flex-col'>
           <Label className='flex items-center gap-1 mb-2'>
             <ImageIcon className='h-4 w-4' aria-hidden='true' />
             <span>NFTs</span>
           </Label>
-          {offering && assets.nfts.filter((n) => n).length > 1 && (
-            <div className='flex items-center gap-2 mt-1 mb-3'>
-              <Switch
-                id='split-offers'
-                checked={splitNftOffers}
-                onCheckedChange={setSplitNftOffers}
-              />
-              <Label htmlFor='split-offers' className='text-sm'>
-                <Trans>Create individual offers for each NFT</Trans>
-              </Label>
-            </div>
-          )}
           {assets.nfts.map((nft, i) => (
             <div
               key={nftIds[i] || `nft-${i}`}
@@ -373,7 +349,7 @@ export function AssetSelector({
       )}
 
       {assets.options.length > 0 && (
-        <div className='flex flex-col mt-4'>
+        <div className='flex flex-col'>
           <Label className='flex items-center gap-1 mb-2'>
             <FilePenLine className='h-4 w-4' aria-hidden='true' />
             <span>Options</span>
@@ -432,6 +408,24 @@ export function AssetSelector({
           ))}
         </div>
       )}
-    </>
+      <div className='flex flex-wrap gap-2'>
+        <Button variant='outline' size='sm' onClick={addToken}>
+          <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
+          <Trans>Token</Trans>
+        </Button>
+
+        <Button variant='outline' size='sm' onClick={addNft}>
+          <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
+          <Trans>NFT</Trans>
+        </Button>
+
+        {optionsEnabled && (
+          <Button variant='outline' size='sm' onClick={addOption}>
+            <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
+            <Trans>Option</Trans>
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
