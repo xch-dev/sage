@@ -33,6 +33,7 @@ macro_rules! sage_commands {
         collect_commands![
             commands::initialize,
             commands::quit,
+            commands::reset_apps_database,
             commands::login,
             commands::logout,
             commands::resync,
@@ -376,8 +377,19 @@ pub fn run() {
                     }
                 }
 
-                let apps_db = tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
-                    .expect("failed to initialize Sage apps database");
+                // Sage still opens without the apps database, to report the failure and offer a reset.
+                let apps_db = match tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
+                {
+                    Ok(apps_db) => apps_db,
+                    Err(err) => {
+                        tracing::error!("failed to initialize Sage apps database: {err:#}");
+                        app.manage(app_state::AppsDbFailure {
+                            root: path,
+                            reason: format!("{err:#}"),
+                        });
+                        return Ok(());
+                    }
+                };
 
                 app.manage(
                     AppsHostState::new(path.clone(), webview_root, apps_db)

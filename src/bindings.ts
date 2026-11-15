@@ -14,6 +14,12 @@ async initialize() : Promise<null> {
 async quit() : Promise<void> {
     await TAURI_INVOKE("quit");
 },
+/**
+ * Deletes an apps database that couldn't be opened, then restarts Sage to recreate it.
+ */
+async resetAppsDatabase() : Promise<null> {
+    return await TAURI_INVOKE("reset_apps_database");
+},
 async login(req: Login) : Promise<LoginResponse> {
     return await TAURI_INVOKE("login", { req });
 },
@@ -1272,7 +1278,11 @@ export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "inter
 /**
  * One or more recipients couldn't be used. See the attached recipient errors.
  */
-"recipient" | "already_running"
+"recipient" | "already_running" | 
+/**
+ * The apps database couldn't be opened. It holds app and agent state, not wallet data.
+ */
+"apps_database"
 /**
  * Exercise options
  */

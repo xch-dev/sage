@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use sage::{RefreshDebouncer, Result, Sage, api_sync_event};
 #[cfg(not(mobile))]
@@ -13,6 +13,12 @@ use crate::error;
 
 /// The outcome of initialization, once it has been attempted.
 pub struct Initialized(pub Mutex<Option<error::Result<()>>>);
+
+/// Set instead of the apps host state when the apps database couldn't be opened.
+pub struct AppsDbFailure {
+    pub root: PathBuf,
+    pub reason: String,
+}
 
 pub struct RpcTask(pub Mutex<Option<JoinHandle<anyhow::Result<()>>>>);
 

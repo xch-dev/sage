@@ -4,6 +4,7 @@ description = "Allows the main Sage webview to call Sage host commands."
 commands.allow = [
     "initialize",
     "quit",
+    "reset_apps_database",
     "login",
     "logout",
     "resync",

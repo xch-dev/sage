@@ -1,8 +1,8 @@
 use std::{fs, time::Duration};
 
 use crate::{
-    app_state::{self, AppState, Initialized, RpcTask},
-    error::Result,
+    app_state::{self, AppState, AppsDbFailure, Initialized, RpcTask},
+    error::{Error, Result},
 };
 use reqwest::StatusCode;
 use sage_api::{wallet_connect::*, *};
@@ -13,7 +13,7 @@ use sage_config::{NetworkConfig, Wallet, WalletDefaults};
 use sage_rpc::start_rpc;
 use serde::{Deserialize, Serialize};
 use specta::{Type, specta};
-use tauri::{AppHandle, State, command};
+use tauri::{AppHandle, Manager, State, command};
 use tokio::time::sleep;
 use tracing::error;
 
@@ -31,6 +31,16 @@ pub async fn initialize(
     // can't be used safely if it failed partway, so the original outcome is reported instead.
     if let Some(result) = initialized.as_ref() {
         return result.clone();
+    }
+
+    // The wallet isn't loaded without the apps database, since the app features rely on it.
+    if let Some(failure) = app_handle.try_state::<AppsDbFailure>() {
+        return Err(Error {
+            kind: ErrorKind::AppsDatabase,
+            reason: failure.reason.clone(),
+            handle_error_code: None,
+            recipients: None,
+        });
     }
 
     let mut sage = state.lock().await;
@@ -69,6 +79,24 @@ pub async fn initialize(
     sage_apps::start_agent_server_if_enabled(app_handle.clone()).await;
 
     Ok(())
+}
+
+/// Deletes an apps database that couldn't be opened, then restarts Sage to recreate it.
+#[command]
+#[specta]
+#[allow(clippy::needless_pass_by_value)] // Tauri commands can't take the handle by reference
+pub fn reset_apps_database(app_handle: AppHandle) -> Result<()> {
+    let Some(failure) = app_handle.try_state::<AppsDbFailure>() else {
+        return Err(Error {
+            kind: ErrorKind::Api,
+            reason: "The apps database is in use and can't be deleted".to_string(),
+            handle_error_code: None,
+            recipients: None,
+        });
+    };
+
+    sage_apps::AppsDb::delete_files(&failure.root)?;
+    app_handle.restart()
 }
 
 /// Exits the app. This is used when initialization fails, since Sage can't continue safely.

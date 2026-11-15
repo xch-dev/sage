@@ -62,6 +62,7 @@ where
                 ErrorKind::AlreadyRunning => StatusCode::CONFLICT,
                 ErrorKind::DatabaseMigration
                 | ErrorKind::SharedDatabaseMigration
+                | ErrorKind::AppsDatabase
                 | ErrorKind::Wallet
                 | ErrorKind::Internal
                 | ErrorKind::Nfc => StatusCode::INTERNAL_SERVER_ERROR,
