@@ -313,6 +313,37 @@ describe('AssetSelector pickers', () => {
     expect(setAssets).toHaveBeenLastCalledWith(empty);
   });
 
+  it("won't add a pasted option the wallet no longer holds", async () => {
+    const optionId = bech32m.encode(
+      'option',
+      bech32m.toWords(new Uint8Array(32).fill(5)),
+    );
+    vi.mocked(commands.getOption).mockResolvedValueOnce({
+      option: {
+        launcher_id: optionId,
+        name: 'Sent option',
+        is_owned: false,
+        expiration_seconds: 4102444800,
+      },
+    } as unknown as Awaited<ReturnType<typeof commands.getOption>>);
+    renderOffering(empty);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Option' }));
+    fireEvent.change(
+      await screen.findByPlaceholderText(
+        'Search options or paste an option ID',
+      ),
+      { target: { value: optionId } },
+    );
+
+    expect(
+      await screen.findByText(
+        "This option isn't in your wallet, or has expired.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('option', { name: /Sent option/ })).toBeNull();
+  });
+
   it('adds unexpired options from the picker', async () => {
     const setAssets = renderOffering(empty);
 

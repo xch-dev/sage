@@ -251,10 +251,13 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     const { fee: defaultFee } = useDefaultFee();
     const hasSetInitialValue = React.useRef(false);
 
-    // Set initial value when component mounts
+    // Start from the default fee if the input first appears empty. Only on
+    // mount: a value cleared later (by the user, or by its owner resetting
+    // it) shouldn't be replaced with the default.
     React.useEffect(() => {
-      if (!value && !hasSetInitialValue.current) {
-        hasSetInitialValue.current = true;
+      if (hasSetInitialValue.current) return;
+      hasSetInitialValue.current = true;
+      if (!value) {
         if (onChange) {
           onChange({
             target: { value: defaultFee },

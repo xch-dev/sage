@@ -20,6 +20,9 @@ interface DialogProps {
 }
 
 const dialog = vi.hoisted(() => ({ props: null as DialogProps | null }));
+const progress = vi.hoisted(() => ({
+  clearOfferState: null as ((offers: string[]) => void) | null,
+}));
 
 vi.mock('@/bindings', () => ({
   commands: {},
@@ -60,7 +63,12 @@ vi.mock('@/components/dialogs/MakeOfferConfirmationDialog', () => ({
   },
 }));
 vi.mock('@/components/dialogs/OfferCreationProgressDialog', () => ({
-  OfferCreationProgressDialog: () => null,
+  OfferCreationProgressDialog: (props: {
+    clearOfferState: (offers: string[]) => void;
+  }) => {
+    progress.clearOfferState = props.clearOfferState;
+    return null;
+  },
 }));
 
 import { useOfferState } from '@/state';
@@ -273,6 +281,20 @@ describe('MakeOffer settings', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(useOfferState.getState()).toBeNull();
+  });
+
+  it('clears the offer on Done after creating it', () => {
+    renderWithOfferedNfts(1);
+    act(() =>
+      useOfferState.setState({
+        fee: '0.5',
+        preSplit: true,
+        preSplitFee: '0.0002',
+      }),
+    );
+
+    act(() => progress.clearOfferState?.(['offer1']));
     expect(useOfferState.getState()).toBeNull();
   });
 

@@ -269,16 +269,16 @@ function listOrder(token: TokenRecord, offering?: boolean) {
 
 export function TokenIcon({
   token,
-  className,
+  size = 'md',
 }: {
   token: TokenRecord | undefined;
-  className?: string;
+  size?: 'sm' | 'md';
 }) {
   return (
     <span
       className={cn(
-        'flex h-8 w-8 shrink-0 items-center justify-center',
-        className,
+        'flex shrink-0 items-center justify-center',
+        size === 'sm' ? 'h-6 w-6' : 'h-8 w-8',
       )}
     >
       <AssetIcon
@@ -287,7 +287,7 @@ export function TokenIcon({
           kind: 'token',
           revocation_address: token?.revocation_address ?? null,
         }}
-        size='md'
+        size={size}
       />
     </span>
   );

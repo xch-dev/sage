@@ -25,7 +25,9 @@ export function OptionPicker({
     if (isValidAddress(query, 'option')) {
       const { option } = await commands.getOption({ option_id: query });
       return {
-        items: option && !isExpired(option) ? [option] : [],
+        // The lookup also finds options the wallet once held, so check it
+        // still does, as the list below only has owned options.
+        items: option && option.is_owned && !isExpired(option) ? [option] : [],
         hasMore: false,
       };
     }

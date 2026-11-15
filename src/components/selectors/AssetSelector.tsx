@@ -311,7 +311,7 @@ export function AssetSelector({
                 className='h-12 max-w-[45%] shrink-0 gap-2 rounded-none px-3 font-normal'
                 aria-label={t`Change token`}
               >
-                <TokenIcon token={token} className='h-6 w-6 [&>*]:max-h-6' />
+                <TokenIcon token={token} size='sm' />
                 <span className='truncate'>{tokenLabel(token, assetId)}</span>
                 <ChevronDown
                   className='h-4 w-4 shrink-0 opacity-50'
