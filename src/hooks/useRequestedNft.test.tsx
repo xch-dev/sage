@@ -5,33 +5,29 @@ import { bech32m } from 'bech32';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getNftMetadataUpdater = vi.fn();
-const getNftThumbnail = vi.fn();
 
 vi.mock('@/bindings', () => ({
   commands: {
     getNftMetadataUpdater: (...args: unknown[]) =>
       getNftMetadataUpdater(...args),
-    getNftThumbnail: (...args: unknown[]) => getNftThumbnail(...args),
   },
-  events: { syncEvent: { listen: vi.fn(() => Promise.resolve(vi.fn())) } },
 }));
 
 import { useRequestedNft } from './useRequestedNft';
 
-const nftId = bech32m.encode(
-  'nft',
-  bech32m.toWords(new Uint8Array(32).fill(7)),
-);
+const encodeNftId = (byte: number) =>
+  bech32m.encode('nft', bech32m.toWords(new Uint8Array(32).fill(byte)));
+const nftId = encodeNftId(7);
+const otherNftId = encodeNftId(8);
 
 function Probe({ id }: { id: string }) {
-  const { lookup, thumbnail } = useRequestedNft(id);
+  const lookup = useRequestedNft(id);
   return (
     <div>
       <span data-testid='status'>{lookup.status}</span>
       <span data-testid='name'>
         {lookup.status === 'found' ? (lookup.name ?? '') : ''}
       </span>
-      <span data-testid='thumbnail'>{thumbnail ?? ''}</span>
     </div>
   );
 }
@@ -44,7 +40,6 @@ async function settle() {
 
 beforeEach(() => {
   vi.useFakeTimers();
-  getNftThumbnail.mockResolvedValue({ thumbnail: null });
 });
 
 afterEach(() => {
@@ -93,7 +88,6 @@ describe('useRequestedNft', () => {
     await settle();
 
     expect(screen.getByTestId('status').textContent).toBe('missing');
-    expect(getNftThumbnail).not.toHaveBeenCalled();
   });
 
   it('treats a failed lookup as missing', async () => {
@@ -103,5 +97,50 @@ describe('useRequestedNft', () => {
     await settle();
 
     expect(screen.getByTestId('status').textContent).toBe('missing');
+  });
+
+  it('waits for typing to stop before looking up', async () => {
+    getNftMetadataUpdater.mockResolvedValue({
+      metadata_updater_kind: 'default',
+      name: 'Cool NFT',
+    });
+
+    // An ID already there when the row appears is looked up straight away,
+    // so start from an empty field and type.
+    const { rerender } = render(<Probe id='' />);
+    rerender(<Probe id={otherNftId} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(200);
+    });
+    rerender(<Probe id={nftId} />);
+    await settle();
+
+    expect(getNftMetadataUpdater).toHaveBeenCalledTimes(1);
+    expect(getNftMetadataUpdater).toHaveBeenCalledWith({ nft_id: nftId });
+  });
+
+  it('ignores a lookup that finishes after the ID changed', async () => {
+    let finishFirst: (value: unknown) => void = () => undefined;
+    getNftMetadataUpdater
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishFirst = resolve;
+        }),
+      )
+      .mockResolvedValueOnce({
+        metadata_updater_kind: 'default',
+        name: 'Second NFT',
+      });
+
+    const { rerender } = render(<Probe id={otherNftId} />);
+    await settle();
+    rerender(<Probe id={nftId} />);
+    await settle();
+    expect(screen.getByTestId('name').textContent).toBe('Second NFT');
+
+    await act(async () => {
+      finishFirst({ metadata_updater_kind: 'default', name: 'First NFT' });
+    });
+    expect(screen.getByTestId('name').textContent).toBe('Second NFT');
   });
 });

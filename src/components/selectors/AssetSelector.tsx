@@ -430,7 +430,7 @@ interface RequestedNftRowProps {
 }
 
 function RequestedNftRow({ value, onChange, onRemove }: RequestedNftRowProps) {
-  const { lookup, thumbnail } = useRequestedNft(value);
+  const lookup = useRequestedNft(value);
 
   return (
     <OfferAssetRow
@@ -443,7 +443,7 @@ function RequestedNftRow({ value, onChange, onRemove }: RequestedNftRowProps) {
             ? 'warning'
             : undefined
       }
-      footer={<RequestedNftPreview lookup={lookup} thumbnail={thumbnail} />}
+      footer={<RequestedNftPreview lookup={lookup} />}
     >
       <div className='min-w-0 flex-1'>
         <Input
@@ -453,7 +453,9 @@ function RequestedNftRow({ value, onChange, onRemove }: RequestedNftRowProps) {
           autoComplete='off'
           spellCheck={false}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          // Pasted IDs often bring a space or newline, which the offer
+          // wouldn't accept.
+          onChange={(e) => onChange(e.target.value.trim())}
         />
       </div>
     </OfferAssetRow>

@@ -119,3 +119,68 @@ describe('AssetSelector offered tokens', () => {
     expect(setAssets).toHaveBeenCalledWith(tokens(null, '9.5'));
   });
 });
+
+function renderSelector(props: {
+  assets: Assets;
+  offering?: boolean;
+  emptyMessage?: string;
+}) {
+  const setAssets = vi.fn();
+  render(
+    <I18nProvider i18n={i18n}>
+      <AssetSelector
+        offering={props.offering}
+        prefix='test'
+        assets={props.assets}
+        setAssets={setAssets}
+        emptyMessage={props.emptyMessage}
+        fee='0'
+      />
+    </I18nProvider>,
+  );
+  return setAssets;
+}
+
+const noAssets: Assets = { tokens: [], nfts: [], options: [] };
+
+describe('AssetSelector balance edges', () => {
+  it('accepts an amount equal to the spendable balance', async () => {
+    renderOffering(tokens('cat1', '500'));
+    await screen.findByText(/500 CAT spendable/);
+    expect(screen.queryByText(/More than your spendable balance/)).toBeNull();
+  });
+
+  it('only takes the network fee off XCH', async () => {
+    renderOffering(tokens('cat1', '500'), '0.5');
+    await screen.findByText(/500 CAT spendable/);
+    expect(screen.queryByText(/More than your spendable balance/)).toBeNull();
+  });
+});
+
+describe('AssetSelector layout', () => {
+  it('shows the empty message only while nothing has been added', () => {
+    renderSelector({ assets: noAssets, emptyMessage: 'Nothing yet' });
+    expect(screen.getByText('Nothing yet')).toBeTruthy();
+
+    cleanup();
+    renderSelector({
+      assets: { ...noAssets, nfts: [''] },
+      emptyMessage: 'Nothing yet',
+    });
+    expect(screen.queryByText('Nothing yet')).toBeNull();
+  });
+
+  it('stores a pasted NFT ID without surrounding whitespace', () => {
+    const setAssets = renderSelector({
+      assets: { ...noAssets, nfts: [''] },
+    });
+
+    fireEvent.change(screen.getByLabelText('NFT ID'), {
+      target: { value: '  nft1example\n' },
+    });
+    expect(setAssets).toHaveBeenCalledWith({
+      ...noAssets,
+      nfts: ['nft1example'],
+    });
+  });
+});

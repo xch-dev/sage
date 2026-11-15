@@ -1,11 +1,10 @@
 import { MutableNftBadge } from '@/components/MutableNftBadge';
 import { Button } from '@/components/ui/button';
 import { NftLookup } from '@/hooks/useRequestedNft';
-import { nftUri } from '@/lib/nftUri';
 import { cn } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { Loader2, TrashIcon } from 'lucide-react';
+import { ImageIcon, Loader2, TrashIcon } from 'lucide-react';
 import { ReactNode } from 'react';
 
 export interface OfferAssetRowProps {
@@ -54,12 +53,14 @@ export function OfferAssetRow({
 export interface OfferAssetRowFooterProps {
   children: ReactNode;
   tone?: 'error' | 'warning';
+  className?: string;
 }
 
 /** A thin strip along the bottom of an `OfferAssetRow`. */
 export function OfferAssetRowFooter({
   children,
   tone,
+  className,
 }: OfferAssetRowFooterProps) {
   return (
     <div
@@ -67,6 +68,7 @@ export function OfferAssetRowFooter({
         'flex min-h-7 items-center gap-2 border-t border-input bg-muted/50 px-3 py-1 text-xs text-muted-foreground',
         tone === 'error' && 'text-destructive',
         tone === 'warning' && 'text-amber-600 dark:text-amber-500',
+        className,
       )}
     >
       {children}
@@ -76,14 +78,10 @@ export function OfferAssetRowFooter({
 
 export interface RequestedNftPreviewProps {
   lookup: NftLookup;
-  thumbnail: string | null;
 }
 
 /** What the wallet found for a requested NFT ID, shown under its row. */
-export function RequestedNftPreview({
-  lookup,
-  thumbnail,
-}: RequestedNftPreviewProps) {
+export function RequestedNftPreview({ lookup }: RequestedNftPreviewProps) {
   switch (lookup.status) {
     case 'idle':
       return null;
@@ -111,19 +109,22 @@ export function RequestedNftPreview({
       );
     case 'found':
       return (
-        <div className='flex items-center gap-3 border-t border-input bg-muted/50 px-3 py-2'>
-          <img
-            src={thumbnail ?? nftUri(null, null)}
-            alt=''
-            className='h-10 w-10 shrink-0 rounded-md object-cover'
-          />
+        // There's no thumbnail: the wallet only keeps images for NFTs it
+        // holds, and a requested NFT usually belongs to someone else.
+        <OfferAssetRowFooter className='gap-3 py-2 text-foreground'>
+          <span className='flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted'>
+            <ImageIcon
+              className='h-5 w-5 text-muted-foreground'
+              aria-hidden='true'
+            />
+          </span>
           <div className='flex min-w-0 flex-col'>
             <span className='truncate text-sm font-medium'>
-              {lookup.name ?? t`Unnamed NFT`}
+              {lookup.name ?? t`NFT found`}
             </span>
             <MutableNftBadge kind={lookup.kind} className='w-fit' />
           </div>
-        </div>
+        </OfferAssetRowFooter>
       );
   }
 }
