@@ -1,7 +1,7 @@
 use std::{slice, time::Duration};
 
 use chia_wallet_sdk::{
-    chia::puzzle_types::nft::NftMetadata,
+    chia::puzzle_types::{LineageProof, nft::NftMetadata},
     clvm_utils::{tree_hash, tree_hash_atom, tree_hash_pair},
     driver::{
         InnerPuzzleSpend, MipsSpend, P2ConditionsOrSingleton, P2ConditionsOrSingletonVersion,
@@ -1015,11 +1015,30 @@ async fn test_vault_lock_is_checked_for_relevance() -> anyhow::Result<()> {
     )
     .tree_hash()
     .into();
-    let kind = ChildKind::ConditionsOrSingleton { fixed_conditions };
+    let kind = ChildKind::ConditionsOrSingleton {
+        fixed_conditions: fixed_conditions.clone(),
+    };
 
     let mut tx = test.wallet.db.tx().await?;
     assert!(is_relevant_child(&mut tx, locked, &kind).await?);
     assert!(!is_relevant_child(&mut tx, Bytes32::new([9; 32]), &kind).await?);
+
+    // Nor is the address in its memos shown as where it's going.
+    assert_eq!(kind.receiver_custody_p2_puzzle_hash(), None);
+
+    // The same goes for a CAT, whose inner puzzle hash must be the lock.
+    let cat = |p2_puzzle_hash| ChildKind::Cat {
+        info: CatInfo::new(Bytes32::new([8; 32]), None, p2_puzzle_hash),
+        lineage_proof: LineageProof {
+            parent_parent_coin_info: Bytes32::default(),
+            parent_inner_puzzle_hash: Bytes32::default(),
+            parent_amount: 1,
+        },
+        clawback: None,
+        fixed_conditions: Some(fixed_conditions.clone()),
+    };
+    assert!(is_relevant_child(&mut tx, Bytes32::new([7; 32]), &cat(locked)).await?);
+    assert!(!is_relevant_child(&mut tx, Bytes32::new([7; 32]), &cat(Bytes32::new([9; 32]))).await?);
 
     Ok(())
 }

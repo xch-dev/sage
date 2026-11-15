@@ -469,10 +469,12 @@ impl ChildKind {
 
     pub fn receiver_custody_p2_puzzle_hash(&self) -> Option<Bytes32> {
         match self {
-            Self::Launcher | Self::Unknown | Self::Vault { .. } => None,
-            Self::ConditionsOrSingleton { fixed_conditions } => {
-                Some(fixed_conditions.vault_p2_puzzle_hash)
-            }
+            // Anyone can write memos that name a vault address, and the lock isn't checked here, so
+            // the coin is shown at its own puzzle hash rather than the address its memos claim.
+            Self::Launcher
+            | Self::Unknown
+            | Self::Vault { .. }
+            | Self::ConditionsOrSingleton { .. } => None,
             Self::Clawback { info } => Some(info.receiver_puzzle_hash),
             Self::ClawbackV1 { info } => Some(info.receiver_puzzle_hash),
             Self::Cat { info, clawback, .. } => clawback
