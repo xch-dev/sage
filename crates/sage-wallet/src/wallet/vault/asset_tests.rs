@@ -402,26 +402,21 @@ async fn test_vault_receives_clawbacks() -> anyhow::Result<()> {
 
     let timestamp = alice.new_block_with_current_time().await?;
 
-    for amount in [300, 400] {
-        let coin_spends = alice
-            .wallet
-            .send_xch(
-                vec![(vault.puzzle_hash, amount)],
-                0,
-                vec![],
-                Some(timestamp + 5),
-            )
-            .await?;
-        alice.transact(coin_spends).await?;
-        vault
-            .wait_until(move |wallet| async move {
-                Ok(clawback_coins_of(&wallet)
-                    .await?
-                    .iter()
-                    .any(|coin| coin.amount == amount))
-            })
-            .await?;
-    }
+    // Both are sent in one transaction, since alice's change from a first send might not be
+    // synced in time for a second.
+    let coin_spends = alice
+        .wallet
+        .send_xch(
+            vec![(vault.puzzle_hash, 300), (vault.puzzle_hash, 400)],
+            0,
+            vec![],
+            Some(timestamp + 5),
+        )
+        .await?;
+    alice.transact(coin_spends).await?;
+    vault
+        .wait_until(|wallet| async move { Ok(clawback_coins_of(&wallet).await?.len() == 2) })
+        .await?;
 
     sleep(Duration::from_secs(6)).await;
     vault.new_block_with_current_time().await?;
