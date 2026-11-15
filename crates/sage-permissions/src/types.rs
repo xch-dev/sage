@@ -2,7 +2,7 @@ use crate::{SystemBridgeCapability, UserBridgeCapability, get_user_capability_de
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct CapabilityFlags {
+pub struct CapabilityFlags {
     externally_observable: bool,
     accesses_sensitive_secret: bool,
     requestable_by_app: bool,
@@ -36,6 +36,7 @@ impl CapabilityFlags {
         }
     }
 
+    #[must_use]
     pub fn union(self, other: Self) -> Self {
         Self {
             externally_observable: self.externally_observable || other.externally_observable,
@@ -72,7 +73,7 @@ impl CapabilityFlags {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct CapabilityDefinition<C> {
+pub struct CapabilityDefinition<C> {
     capability: C,
     label: &'static str,
     description: &'static str,

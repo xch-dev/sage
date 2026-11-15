@@ -6907,6 +6907,8 @@ dependencies = [
  "reqwest 0.12.24",
  "sage",
  "sage-api",
+ "sage-permissions",
+ "sage-rpc",
  "sage-wallet",
  "semver",
  "serde",
@@ -7030,6 +7032,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sage-permissions"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
+ "specta",
+]
+
+[[package]]
 name = "sage-rpc"
 version = "0.13.1"
 dependencies = [
@@ -7048,6 +7060,7 @@ dependencies = [
  "sage-api",
  "sage-api-macro",
  "sage-database",
+ "sage-permissions",
  "sage-wallet",
  "serde",
  "serde_json",

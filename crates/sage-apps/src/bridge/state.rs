@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use sage_permissions::ApprovalQueue;
 use std::time::Duration;
 
 use tauri::async_runtime::JoinHandle;
@@ -16,7 +16,7 @@ const BRIDGE_APPROVAL_TIMEOUT_MS: u64 = 3 * 60 * 1_000;
 
 #[derive(Debug, Default)]
 pub struct BridgeState {
-    pending_approvals: Mutex<BTreeMap<String, PendingBridgeApproval>>,
+    pending_approvals: Mutex<ApprovalQueue<PendingBridgeApproval>>,
     approval_expiry_task: Mutex<Option<JoinHandle<()>>>,
 }
 
@@ -34,6 +34,12 @@ pub(crate) async fn write_pending_approval(
     pending.insert(
         approval_id.clone(),
         PendingBridgeApproval {
+            binding: sage_permissions::ApprovalBinding::new(
+                sage_permissions::CallerId::App(app_id.clone()),
+                serde_json::to_string(request).expect("bridge request is serializable"),
+                approved_fingerprint,
+                now + BRIDGE_APPROVAL_TIMEOUT_MS,
+            ),
             approval_id: approval_id.clone(),
             app_id,
             registry_kind,
@@ -41,7 +47,6 @@ pub(crate) async fn write_pending_approval(
             request: request.clone(),
             created_at_ms: now,
             expires_at_ms: now + BRIDGE_APPROVAL_TIMEOUT_MS,
-            approved_fingerprint,
         },
     );
 

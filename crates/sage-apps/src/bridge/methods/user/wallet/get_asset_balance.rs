@@ -1,6 +1,4 @@
 use async_trait::async_trait;
-use sage_api::Amount;
-use sage_api::wallet_connect::GetAssetCoins;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -9,8 +7,6 @@ use crate::{
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
     UserBridgeCapability, WalletAssetCoinType, parse_required_params,
 };
-
-const BALANCE_PAGE_SIZE: u32 = 100;
 
 #[derive(Debug, Clone, Copy)]
 pub struct WalletGetAssetBalance;
@@ -44,18 +40,6 @@ fn validate_params(params: &WalletGetAssetBalanceParams) -> Result<(), BridgeMet
     Ok(())
 }
 
-fn amount_value(amount: &Amount) -> Result<u128, BridgeMethodHandleError> {
-    amount.to_u128().ok_or_else(|| {
-        BridgeMethodHandleError::internal_error(format!("wallet returned invalid amount: {amount}"))
-    })
-}
-
-fn checked_add(total: u128, value: u128) -> Result<u128, BridgeMethodHandleError> {
-    total.checked_add(value).ok_or_else(|| {
-        BridgeMethodHandleError::internal_error("asset balance exceeds supported range")
-    })
-}
-
 #[async_trait]
 impl BridgeMethod for WalletGetAssetBalance {
     fn name(&self) -> &'static str {
@@ -85,58 +69,18 @@ impl BridgeMethod for WalletGetAssetBalance {
         let params: WalletGetAssetBalanceParams = parse_required_params(self, request)?;
         validate_params(&params)?;
 
-        let mut confirmed = 0_u128;
-        let mut spendable = 0_u128;
-        let mut spendable_coin_count = 0_u32;
-        let mut offset = 0_u32;
-        let sage = tools.app_state.lock().await;
-
-        loop {
-            let coins = sage
-                .get_asset_coins(GetAssetCoins {
-                    kind: params.kind.map(Into::into),
-                    asset_id: params.asset_id.clone(),
-                    included_locked: Some(true),
-                    offset: Some(offset),
-                    limit: Some(BALANCE_PAGE_SIZE),
-                })
-                .await
-                .map_err(|err| {
-                    BridgeMethodHandleError::internal_error(format!(
-                        "{} failed: {err}",
-                        self.name()
-                    ))
-                })?;
-
-            let page_len = u32::try_from(coins.len()).map_err(|_| {
-                BridgeMethodHandleError::internal_error("asset coin page is too large")
+        let (confirmed, spendable, spendable_coin_count) = tools
+            .wallet()
+            .await?
+            .get_asset_balance(params.kind.map(Into::into), params.asset_id)
+            .await
+            .map_err(|err| {
+                BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
             })?;
-
-            for record in coins {
-                let amount = amount_value(&record.coin.amount)?;
-                confirmed = checked_add(confirmed, amount)?;
-
-                if !record.locked {
-                    spendable = checked_add(spendable, amount)?;
-                    spendable_coin_count =
-                        spendable_coin_count.checked_add(1).ok_or_else(|| {
-                            BridgeMethodHandleError::internal_error("spendable coin count overflow")
-                        })?;
-                }
-            }
-
-            if page_len < BALANCE_PAGE_SIZE {
-                break;
-            }
-
-            offset = offset.checked_add(page_len).ok_or_else(|| {
-                BridgeMethodHandleError::internal_error("asset coin pagination overflow")
-            })?;
-        }
 
         Ok(Box::new(WalletGetAssetBalanceResult {
-            confirmed: confirmed.to_string(),
-            spendable: spendable.to_string(),
+            confirmed,
+            spendable,
             spendable_coin_count,
         }))
     }

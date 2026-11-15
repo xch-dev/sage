@@ -192,9 +192,8 @@ impl BridgeMethod for WalletGetAssetCoins {
         validate_params(&params)?;
 
         let response = tools
-            .app_state
-            .lock()
-            .await
+            .wallet()
+            .await?
             .get_asset_coins(params.into())
             .await
             .map_err(|err| {

@@ -5,7 +5,7 @@ use crate::{
     UserBridgeCapability, UserCapabilityDefinition,
 };
 
-pub(crate) fn get_user_capability_definition(
+pub fn get_user_capability_definition(
     capability: UserBridgeCapability,
 ) -> UserCapabilityDefinition {
     match capability {
@@ -259,7 +259,7 @@ pub(crate) fn get_user_capability_definition(
     }
 }
 
-pub(crate) fn get_system_capability_definition(
+pub fn get_system_capability_definition(
     capability: SystemBridgeCapability,
 ) -> SystemCapabilityDefinition {
     match capability {
@@ -424,7 +424,7 @@ pub(crate) fn get_system_capability_definition(
     }
 }
 
-pub(crate) fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDefinition> {
+pub fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDefinition> {
     UserBridgeCapability::ALL
         .iter()
         .copied()

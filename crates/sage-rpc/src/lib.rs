@@ -1,6 +1,9 @@
 mod cert_verifier;
 mod openapi;
 mod rustls_config;
+mod session;
+
+pub use session::RpcSession;
 
 #[cfg(test)]
 mod tests;
@@ -11,7 +14,7 @@ use anyhow::Result;
 use axum::{
     Json, Router,
     extract::State,
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::post,
 };
@@ -31,11 +34,16 @@ pub use openapi::generate_openapi as generate_openapi_spec;
 #[derive(Debug, Clone)]
 struct AppState {
     sage: Arc<Mutex<Sage>>,
+    authenticator: Option<Arc<dyn RpcAuthenticator>>,
 }
 
 impl_endpoints! {
-    (repeat async fn endpoint(State(state): State<AppState>, Json(req): Json<sage_api::Endpoint>) -> Response {
-        handle(state.sage.lock().await.endpoint(req) maybe_await)
+    (repeat async fn endpoint(State(state): State<AppState>, headers: HeaderMap, Json(req): Json<sage_api::Endpoint>) -> Response {
+        let mut session = match state.session(&headers).await {
+            Ok(session) => session,
+            Err(error) => return handle::<()>(Err(error)),
+        };
+        handle(session.endpoint(req) maybe_await)
     })
 
     fn api_router() -> Router<AppState> {
@@ -132,5 +140,44 @@ pub async fn start_rpc(sage: Arc<Mutex<Sage>>) -> Result<()> {
 }
 
 pub fn make_router(sage: Arc<Mutex<Sage>>) -> Router {
-    api_router().with_state(AppState { sage })
+    api_router().with_state(AppState {
+        sage,
+        authenticator: None,
+    })
+}
+
+/// Trusted authentication/grant resolver for a scoped HTTP listener. It must validate the
+/// credentials and read current grants on each invocation. Client-provided identities or
+/// capability lists are never accepted by the router itself. This callback runs under the
+/// Sage lock, so it must not try to acquire that lock again.
+pub trait RpcAuthenticator: std::fmt::Debug + Send + Sync {
+    fn authenticate(&self, headers: &HeaderMap) -> Result<sage_permissions::Caller, String>;
+}
+
+/// Build a restricted RPC listener. Missing/invalid credentials fail closed; there is no
+/// fallback to owner access. GUI-required operations are denied on this transport until a
+/// host approval adapter is supplied. Existing mTLS owner RPC continues to use `make_router`.
+pub fn make_scoped_router(
+    sage: Arc<Mutex<Sage>>,
+    authenticator: Arc<dyn RpcAuthenticator>,
+) -> Router {
+    api_router().with_state(AppState {
+        sage,
+        authenticator: Some(authenticator),
+    })
+}
+
+impl AppState {
+    async fn session(&self, headers: &HeaderMap) -> sage::Result<RpcSession<'_>> {
+        let sage = self.sage.lock().await;
+        match &self.authenticator {
+            None => Ok(RpcSession::owner(sage)),
+            Some(authenticator) => {
+                let caller = authenticator
+                    .authenticate(headers)
+                    .map_err(sage::Error::PermissionDenied)?;
+                Ok(RpcSession::scoped(sage, caller, String::new(), None))
+            }
+        }
+    }
 }

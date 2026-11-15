@@ -15,3 +15,15 @@ impl Default for SageAppWalletScope {
         }
     }
 }
+
+impl SageAppWalletScope {
+    pub fn allows(&self, fingerprint: u32) -> bool {
+        match self {
+            Self::AllWallets => true,
+            Self::SelectedWallets { fingerprints } => fingerprints.contains(&fingerprint),
+        }
+    }
+}
+
+/// The shared scope keeps its original serialized representation and SDK type name.
+pub type WalletScope = SageAppWalletScope;

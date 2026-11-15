@@ -24,10 +24,7 @@ async fn app_is_enabled_for_scope(app_state: &State<'_, AppState>, app: &SharedS
 }
 
 fn wallet_scope_allows_fingerprint(scope: &SageAppWalletScope, fingerprint: u32) -> bool {
-    match scope {
-        SageAppWalletScope::AllWallets => true,
-        SageAppWalletScope::SelectedWallets { fingerprints } => fingerprints.contains(&fingerprint),
-    }
+    scope.allows(fingerprint)
 }
 
 async fn current_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u32> {

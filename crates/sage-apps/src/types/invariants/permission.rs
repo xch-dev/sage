@@ -1,9 +1,8 @@
 use std::collections::BTreeSet;
 
 use crate::{
-    CapabilityFlags, SageNetworkWhitelistEntry, SageRequestedCapabilities,
-    SageRequestedPermissions, UserBridgeCapability, UserSageAppSource,
-    get_user_capability_definition,
+    SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedPermissions,
+    UserBridgeCapability, UserSageAppSource, get_user_capability_definition,
 };
 
 pub fn validate_network_permissions_for_source(
@@ -33,19 +32,11 @@ pub fn validate_permissions_policy(
     network: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
     context: &str,
 ) -> anyhow::Result<()> {
-    let capability_flags = capabilities
-        .into_iter()
-        .fold(CapabilityFlags::EMPTY, |flags, cap| {
-            flags.union(get_user_capability_definition(cap).flags())
-        });
-
-    let has_secret_access = capability_flags.accesses_sensitive_secret();
-    let has_external_access =
-        capability_flags.externally_observable() || network.into_iter().next().is_some();
-
-    if has_secret_access && has_external_access {
-        anyhow::bail!("{context} cannot include both external access and sensitive secret access");
-    }
+    sage_permissions::validate_capability_policy(
+        capabilities,
+        network.into_iter().next().is_some(),
+    )
+    .map_err(|err| anyhow::anyhow!("{context}: {err}"))?;
 
     Ok(())
 }

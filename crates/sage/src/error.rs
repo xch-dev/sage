@@ -29,6 +29,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error)]
 pub enum Error {
+    #[error("Permission denied: {0}")]
+    PermissionDenied(String),
+
     #[error("Keychain error: {0}")]
     Keychain(#[from] KeychainError),
 
@@ -350,7 +353,7 @@ impl Error {
                 error if error.is_unavailable() => ErrorKind::Internal,
                 _ => ErrorKind::Api,
             },
-            Self::NotLoggedIn => ErrorKind::Unauthorized,
+            Self::NotLoggedIn | Self::PermissionDenied(_) => ErrorKind::Unauthorized,
             Self::Keychain(error) => match error {
                 KeychainError::Decrypt => ErrorKind::Unauthorized,
                 KeychainError::KeyExists

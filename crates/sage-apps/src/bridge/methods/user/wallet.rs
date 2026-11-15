@@ -28,31 +28,19 @@ pub(crate) use send_xch::*;
 pub(crate) use sign_coin_spends::*;
 pub(crate) use sign_message::*;
 
-use sage::Sage;
-use sage_api::{GetWallet, GetWalletResponse};
+use sage_api::GetWalletResponse;
+use sage_rpc::RpcSession;
 
 use crate::{BridgeContext, BridgeMethodHandleError};
 
 pub(crate) fn current_scoped_wallet(
     ctx: &BridgeContext<'_>,
-    sage: &Sage,
+    sage: &RpcSession<'_>,
 ) -> Result<(GetWalletResponse, u32), BridgeMethodHandleError> {
-    let response = sage
-        .get_wallet(GetWallet { fingerprint: None })
-        .map_err(|err| {
-            BridgeMethodHandleError::internal_error(format!("failed to get current wallet: {err}"))
-        })?;
-
-    let fingerprint = response
-        .wallet
-        .as_ref()
-        .map(|wallet| wallet.fingerprint)
-        .ok_or_else(|| {
-            BridgeMethodHandleError::invalid_request("no wallet is currently selected")
-        })?;
-
+    let (response, fingerprint) = sage
+        .current_wallet()
+        .map_err(|err| BridgeMethodHandleError::new("permission_denied", err.to_string()))?;
     require_scoped_fingerprint(ctx, Some(fingerprint))?;
-
     Ok((response, fingerprint))
 }
 

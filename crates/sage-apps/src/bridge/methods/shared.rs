@@ -86,6 +86,9 @@ pub(crate) struct BridgeContext<'a> {
 pub(crate) struct BridgeTools<'a> {
     pub app_handle: &'a tauri::AppHandle,
     pub app_state: &'a tauri::State<'a, AppState>,
+    pub caller: &'a SharedSageApp,
+    pub invocation: &'a RustBridgeRequest,
+    pub approval: Option<&'a sage_permissions::ApprovalBinding>,
     pub host_state: &'a tauri::State<'a, AppsHostState>,
 }
 
@@ -171,4 +174,49 @@ where
             format!("Failed to decode {} params: {err}", method.name()),
         )
     })
+}
+
+impl BridgeTools<'_> {
+    pub async fn approved_wallet(
+        &self,
+        method: &str,
+        request: &impl serde::Serialize,
+    ) -> Result<sage_rpc::RpcSession<'_>, BridgeMethodHandleError> {
+        let mut session = self.wallet().await?;
+        session
+            .bind_approved_request(method, request)
+            .map_err(|err| BridgeMethodHandleError::new("approval_invalid", err.to_string()))?;
+        Ok(session)
+    }
+
+    /// Resolve current grants only after acquiring the wallet lock, and keep that lock
+    /// through RPC authorization and execution.
+    pub async fn wallet(&self) -> Result<sage_rpc::RpcSession<'_>, BridgeMethodHandleError> {
+        let sage = self.app_state.lock().await;
+        let caller_id = self.caller.id();
+        let caller = self.caller.with(|app| sage_permissions::Caller {
+            id: sage_permissions::CallerId::App(caller_id),
+            capabilities: app
+                .common()
+                .requested_permissions()
+                .capabilities()
+                .resolve_effective_grants(
+                    app.common().granted_permissions().capabilities().copied(),
+                )
+                .into_iter()
+                .collect(),
+            wallet_scope: app.common().wallet_scope().clone(),
+        });
+        caller
+            .require_wallet(sage.config.global.fingerprint)
+            .map_err(|err| BridgeMethodHandleError::new("permission_denied", err.to_string()))?;
+        let invocation = serde_json::to_string(self.invocation)
+            .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
+        Ok(sage_rpc::RpcSession::scoped(
+            sage,
+            caller,
+            invocation,
+            self.approval.cloned(),
+        ))
+    }
 }

@@ -161,9 +161,8 @@ impl BridgeMethod for WalletSendTransaction {
         validate_params(&params)?;
 
         let response = tools
-            .app_state
-            .lock()
-            .await
+            .wallet()
+            .await?
             .send_transaction_immediately(params.into())
             .await
             .map_err(|err| {
