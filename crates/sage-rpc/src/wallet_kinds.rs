@@ -200,10 +200,10 @@ pub(crate) fn wallet_kind_notes(endpoint: &str) -> Option<&'static str> {
              can't sign, and return a wallet error."
         }
 
-        "issue_cat" | "issue_more_cat" | "create_did" | "bulk_mint_nfts" | "transfer_nfts" | "add_nft_uri"
-        | "assign_nfts_to_did" | "transfer_dids" | "normalize_dids" | "mint_option"
-        | "transfer_options" | "exercise_options" | "cancel_options" | "finalize_clawback"
-        | "claim_clawback" => ASSET_SPEND,
+        "issue_cat" | "issue_more_cat" | "create_did" | "bulk_mint_nfts" | "transfer_nfts"
+        | "add_nft_uri" | "assign_nfts_to_did" | "transfer_dids" | "normalize_dids"
+        | "mint_option" | "transfer_options" | "exercise_options" | "cancel_options"
+        | "finalize_clawback" | "claim_clawback" => ASSET_SPEND,
 
         "make_offer" | "take_offer" | "cancel_offer" | "cancel_offers" => OFFER_SPEND,
 
