@@ -183,6 +183,14 @@ pub enum Error {
     #[error("The recovery timelock must be at least one second")]
     InvalidRecoveryTimelock,
 
+    #[error("A new vault's recovery timelock must be at least {0} seconds")]
+    VaultRecoveryTimelockTooShort(u64),
+
+    #[error(
+        "A vault's recovery key must be either a mnemonic or a keychain key with its secret key, and different from its custody key"
+    )]
+    VaultRecoveryKeySource,
+
     #[error("The recovery threshold must be between 1 and the number of recovery keys")]
     InvalidRecoveryThreshold,
 
@@ -470,6 +478,8 @@ impl Error {
             | Self::NotWatchWallet(..)
             | Self::NotVaultWallet(..)
             | Self::VaultImportSource
+            | Self::VaultRecoveryTimelockTooShort(..)
+            | Self::VaultRecoveryKeySource
             | Self::VaultAddressNeverSpent
             | Self::NotVaultAddress
             | Self::VaultConfigMismatch

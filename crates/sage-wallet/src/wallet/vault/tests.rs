@@ -502,3 +502,39 @@ async fn test_vault_clear_signing() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+/// Coins sent to the vault while its wallet is closed are synced when it's opened again.
+#[test(tokio::test)]
+async fn test_vault_receives_while_closed() -> anyhow::Result<()> {
+    let mut alice = TestWallet::new(10_000).await?;
+    let mut vault = mint(
+        &mut alice,
+        &config(VaultVersion::ForceSingletonRecreation),
+        0,
+    )
+    .await?;
+
+    vault.stop_sync().await?;
+
+    // The simulator confirms transactions at the height of its last block, which the vault wallet
+    // may have already synced up to, so a new block is made first, as a real chain would.
+    alice.sim.lock().await.create_block();
+
+    let coin_spends = alice
+        .wallet
+        .send_xch(vec![(vault.puzzle_hash, 1000)], 0, vec![], None)
+        .await?;
+    alice.transact(coin_spends).await?;
+    alice.wait_for_coins().await;
+
+    vault.restart_sync().await?;
+
+    for _ in 0..50 {
+        if vault.wallet.db.xch_balance().await? == 1000 {
+            return Ok(());
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+
+    anyhow::bail!("the vault didn't sync the coin sent while it was closed");
+}

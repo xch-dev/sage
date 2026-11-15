@@ -48,6 +48,12 @@ impl Sage {
         self.config.global.fingerprint = Some(req.fingerprint);
         self.save_config()?;
         self.switch_wallet().await?;
+
+        // A vault mint that failed while Sage was closed is cleaned up when it's opened again.
+        if let Err(error) = self.resolve_vault_mints().await {
+            tracing::warn!("Failed to check pending vault mints: {error}");
+        }
+
         Ok(LoginResponse {})
     }
 

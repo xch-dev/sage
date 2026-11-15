@@ -71,6 +71,25 @@ pub struct Wallet {
     /// key, which is omitted for BLS wallets since every wallet was one before kinds existed.
     #[serde(flatten, skip_serializing_if = "is_default")]
     pub kind: WalletKind,
+    /// The transaction that mints a vault wallet's vault, until the vault is found on chain. If
+    /// the mint fails, the wallet is removed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vault_mint: Option<PendingVaultMint>,
+}
+
+/// A vault mint that hasn't been confirmed yet.
+#[serde_as]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+pub struct PendingVaultMint {
+    /// The BLS wallet that funded the mint, whose database has the pending transaction.
+    pub funding_fingerprint: u32,
+    /// The id of the mint transaction.
+    #[serde_as(as = "Hex")]
+    #[specta(type = String)]
+    pub transaction_id: Bytes32,
+    /// When the mint transaction expires, after which it can't be confirmed anymore, if it does.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
 }
 
 /// The kind of a wallet. A BLS wallet's key is stored in the keychain under the wallet's
@@ -170,6 +189,7 @@ impl Default for Wallet {
             emoji: None,
             change_address: None,
             kind: WalletKind::Bls,
+            vault_mint: None,
         }
     }
 }
@@ -191,6 +211,7 @@ mod tests {
                 "xch1dtfukqqka3ftqtdlhmc5spc5vd44h7ejrtnjcewxlueam5yrnnqqyczg8t".to_string(),
             ),
             kind: WalletKind::Bls,
+            vault_mint: None,
         }
     }
 

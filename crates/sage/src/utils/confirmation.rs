@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, prelude::*, puzzles::SETTLEMENT_PAYMENT_HASH};
 use sage_api::{
     Amount, CoinJson, CoinSpendJson, HandleRecord, SpendBundleJson, TransactionInput,
-    TransactionOutput, TransactionSummary,
+    TransactionOutput, TransactionSummary, VaultSpendRecord,
 };
 use sage_assets::{Data, base64_data_uri};
 use sage_database::{Asset, AssetKind, Database, ParsedNftMetadata};
-use sage_wallet::{CoinKind, Transaction, compute_nft_info};
+use sage_wallet::{CoinKind, Transaction, compute_nft_info, parse_vault_spend_bundle};
 
-use crate::{Error, HandleSend, Result, Sage};
+use crate::{Error, HandleSend, Result, Sage, encode_vault_id};
 
 use super::{parse_coin_id, parse_hash, parse_program, parse_signature};
 
@@ -31,6 +31,11 @@ impl Sage {
         mut cache: ConfirmationInfo,
     ) -> Result<TransactionSummary> {
         let wallet = self.wallet()?;
+
+        let vault = match wallet.vault_launcher_id() {
+            Some(launcher_id) => vault_spend_record(&coin_spends, launcher_id)?,
+            None => None,
+        };
 
         let transaction = Transaction::from_coin_spends(coin_spends)?;
         let declared_fee = transaction.fee;
@@ -157,8 +162,41 @@ impl Sage {
             declared_fee: Amount::u64(declared_fee),
             inputs,
             handles: cache.handles,
+            vault,
         })
     }
+}
+
+/// Checks what the vault's spend in the transaction does, if it's spent.
+fn vault_spend_record(
+    coin_spends: &[CoinSpend],
+    launcher_id: Bytes32,
+) -> Result<Option<VaultSpendRecord>> {
+    let launcher_id_string = encode_vault_id(launcher_id)?;
+
+    Ok(match parse_vault_spend_bundle(coin_spends, launcher_id) {
+        Ok(None) => None,
+        Ok(Some(summary)) => Some(VaultSpendRecord {
+            launcher_id: launcher_id_string,
+            verified: true,
+            error: None,
+            custody_changed: summary
+                .child_custody_hash
+                .is_some_and(|custody_hash| custody_hash != summary.custody_hash),
+            melted: summary.child_custody_hash.is_none(),
+            reserved_fee: Amount::u64(summary.reserved_fee),
+            unaccounted_xch: Amount::u128(summary.unaccounted_xch),
+        }),
+        Err(error) => Some(VaultSpendRecord {
+            launcher_id: launcher_id_string,
+            verified: false,
+            error: Some(error.to_string()),
+            custody_changed: false,
+            melted: false,
+            reserved_fee: Amount::u64(0),
+            unaccounted_xch: Amount::u64(0),
+        }),
+    })
 }
 
 /// Settlement coins don't have an owner, but ones we created are still our XCH. This is the
