@@ -2,7 +2,13 @@
 
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/bindings', () => ({
@@ -153,6 +159,20 @@ describe('AssetSelector balance edges', () => {
   it('only takes the network fee off XCH', async () => {
     renderOffering(tokens('cat1', '500'), '0.5');
     await screen.findByText(/500 CAT spendable/);
+    expect(screen.queryByText(/More than your spendable balance/)).toBeNull();
+  });
+});
+
+describe('AssetSelector requested tokens', () => {
+  it("doesn't show a balance, Max or a balance error", async () => {
+    renderSelector({ assets: tokens('cat1', '501') });
+    // Give any balance lookup the chance to finish.
+    await act(async () => undefined);
+
+    expect(screen.queryByText(/spendable/)).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Use maximum spendable balance' }),
+    ).toBeNull();
     expect(screen.queryByText(/More than your spendable balance/)).toBeNull();
   });
 });

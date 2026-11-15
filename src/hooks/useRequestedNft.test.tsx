@@ -135,6 +135,9 @@ describe('useRequestedNft', () => {
     const { rerender } = render(<Probe id={otherNftId} />);
     await settle();
     rerender(<Probe id={nftId} />);
+    // The new ID hasn't been checked yet, so nothing from the old one shows.
+    expect(screen.getByTestId('status').textContent).toBe('loading');
+    expect(screen.getByTestId('name').textContent).toBe('');
     await settle();
     expect(screen.getByTestId('name').textContent).toBe('Second NFT');
 
@@ -142,5 +145,22 @@ describe('useRequestedNft', () => {
       finishFirst({ metadata_updater_kind: 'default', name: 'First NFT' });
     });
     expect(screen.getByTestId('name').textContent).toBe('Second NFT');
+  });
+
+  it('clears a found NFT as soon as the field is emptied or broken', async () => {
+    getNftMetadataUpdater.mockResolvedValue({
+      metadata_updater_kind: 'default',
+      name: 'Cool NFT',
+    });
+
+    const { rerender } = render(<Probe id={nftId} />);
+    await settle();
+    expect(screen.getByTestId('status').textContent).toBe('found');
+
+    rerender(<Probe id='' />);
+    expect(screen.getByTestId('status').textContent).toBe('idle');
+
+    rerender(<Probe id='not an nft' />);
+    expect(screen.getByTestId('status').textContent).toBe('invalid');
   });
 });

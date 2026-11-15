@@ -58,8 +58,14 @@ export function useRequestedNft(nftId: string): NftLookup {
     };
   }, [debounced]);
 
-  // Until the debounce catches up, an edited ID hasn't been checked yet.
-  if (trimmed !== debounced && trimmed) return { status: 'loading' };
+  // An empty or malformed ID needs no lookup, so it's shown straight away
+  // rather than after the debounce. A valid ID that's still being typed
+  // hasn't been checked yet.
+  if (trimmed !== debounced) {
+    if (!trimmed) return { status: 'idle' };
+    if (!isValidAddress(trimmed, 'nft')) return { status: 'invalid' };
+    return { status: 'loading' };
+  }
 
   return lookup;
 }
