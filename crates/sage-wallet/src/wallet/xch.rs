@@ -268,7 +268,10 @@ mod tests {
             bls::{DerivableKey, master_to_wallet_unhardened_intermediate},
             puzzle_types::DeriveSynthetic,
         },
-        driver::{Clawback as ClawbackV1, SpendContext, StandardLayer},
+        driver::{
+            Clawback as ClawbackV1, P2ConditionsOrSingleton, P2Singleton, SpendContext,
+            StandardLayer,
+        },
         prelude::*,
     };
     use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, P2Puzzle};
@@ -390,6 +393,54 @@ mod tests {
             "timed out seeding created_timestamp on {}",
             hex::encode(coin_id)
         );
+    }
+
+    /// Spending from a vault isn't supported yet, so coins at its addresses are refused rather than
+    /// spent with the wrong puzzle.
+    #[test(tokio::test)]
+    async fn test_vault_coins_arent_spent() -> anyhow::Result<()> {
+        let test = TestWallet::new(0).await?;
+        let launcher_id = Bytes32::new([1; 32]);
+
+        let p2_singleton = P2Singleton::new(launcher_id, 0);
+        let p2_conditions = P2ConditionsOrSingleton::new(launcher_id, 0, Bytes32::new([2; 32]));
+
+        for locked in [false, true] {
+            let p2_puzzle_hash: Bytes32 = if locked {
+                p2_conditions.tree_hash().into()
+            } else {
+                p2_singleton.tree_hash().into()
+            };
+            let coin = Coin::new(Bytes32::new([3; 32]), p2_puzzle_hash, 1000);
+
+            let mut tx = test.wallet.db.tx().await?;
+            tx.insert_height(1).await?;
+            if locked {
+                tx.insert_p2_conditions_or_singleton_p2_puzzle(p2_conditions, None)
+                    .await?;
+            } else {
+                tx.insert_p2_singleton_p2_puzzle(p2_singleton).await?;
+            }
+            tx.insert_coin(CoinState::new(coin, None, Some(1))).await?;
+            tx.update_coin(coin.coin_id(), Bytes32::default(), p2_puzzle_hash)
+                .await?;
+            tx.commit().await?;
+
+            let result = test
+                .wallet
+                .send_xch(vec![(test.puzzle_hash, 500)], 0, vec![], None)
+                .await;
+            assert!(
+                matches!(result, Err(WalletError::VaultSpendNotSupported)),
+                "{result:?}"
+            );
+
+            let mut tx = test.wallet.db.tx().await?;
+            tx.delete_coin(coin.coin_id()).await?;
+            tx.commit().await?;
+        }
+
+        Ok(())
     }
 
     #[test(tokio::test)]

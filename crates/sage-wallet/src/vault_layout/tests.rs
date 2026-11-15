@@ -713,6 +713,62 @@ fn test_rejects_nested_recovery() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// A memo can be well formed, and its own hash right, without being Cloud Wallet's layout. Only
+/// rebuilding the config from what was decoded catches that.
+#[test]
+fn test_rejects_memos_that_dont_rebuild() -> anyhow::Result<()> {
+    let mut allocator = Allocator::new();
+    let config = fixture("mixedMofN", VaultVersion::ForceSingletonRecreation);
+    let recovery = config.recovery.as_ref().expect("the fixture has recovery");
+
+    // A recovery path without the prevented condition opcodes.
+    let custody = signers_memo(&mut allocator, &config.custody, vec![])?;
+    let timelock = RestrictionMemo::timelock(&mut allocator, recovery.timelock, true)?;
+    let wrappers = vec![
+        WrapperMemo::force_1_of_2_restricted_variable(
+            &mut allocator,
+            custody.inner_puzzle_hash(false).into(),
+            0,
+            vec![timelock],
+        )?,
+        WrapperMemo::prevent_multiple_create_coins(),
+        WrapperMemo::force_singleton_recreation(),
+    ];
+    let restriction =
+        RestrictionMemo::enforce_delegated_puzzle_wrappers(&mut allocator, &wrappers)?;
+    let recovery = signers_memo(&mut allocator, &recovery.signers, vec![restriction])?;
+    let memo = MipsMemo::new(top_level_memo(custody, recovery));
+    let custody_hash = memo.inner_puzzle_hash().into();
+    let memo_list = vec![memo].to_clvm(&mut allocator)?;
+
+    assert!(matches!(
+        decode_vault_memo_list(&mut allocator, memo_list, custody_hash),
+        Err(VaultLayoutError::HashMismatch)
+    ));
+
+    // A custody without recovery whose members aren't in the canonical order.
+    let custody = signers_memo(&mut allocator, &config.custody, vec![])?;
+    let MemoKind::MofN(m_of_n) = custody.kind else {
+        anyhow::bail!("the fixture's custody is an M of N");
+    };
+    let mut items = m_of_n.items;
+    items.reverse();
+    let memo = MipsMemo::new(InnerPuzzleMemo::new(
+        0,
+        vec![],
+        MemoKind::MofN(MofNMemo::new(m_of_n.required, items)),
+    ));
+    let custody_hash = memo.inner_puzzle_hash().into();
+    let memo_list = vec![memo].to_clvm(&mut allocator)?;
+
+    assert!(matches!(
+        decode_vault_memo_list(&mut allocator, memo_list, custody_hash),
+        Err(VaultLayoutError::HashMismatch)
+    ));
+
+    Ok(())
+}
+
 #[test]
 fn test_rejects_invalid_configs() {
     let mut config = fixture("mixedMofN", VaultVersion::Legacy);

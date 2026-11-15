@@ -521,6 +521,75 @@ async fn vault_state_follows_lineage() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+async fn vault_recovery_restarted_after_cancel() -> anyhow::Result<()> {
+    let db = migrated_db().await?;
+    let launcher_id = Bytes32::new([1; 32]);
+    let custody_hash = Bytes32::new([2; 32]);
+    let recovery_hash = Bytes32::new([3; 32]);
+    let config = VaultConfig::with_recovery(
+        VaultSigners::new(vec![VaultMember::bls(BlsPair::new(1).pk)], 1),
+        VaultSigners::new(vec![VaultMember::bls(BlsPair::new(2).pk)], 1),
+        60,
+        VaultVersion::ForceSingletonRecreation,
+    );
+
+    let mut tx = db.tx().await?;
+    tx.insert_vault(launcher_id).await?;
+    tx.insert_vault_config(&VaultConfigRow {
+        custody_hash,
+        layout: VaultLayout::Custody(config.clone()),
+        source: VaultConfigSource::Memo,
+    })
+    .await?;
+    tx.insert_vault_config(&VaultConfigRow {
+        custody_hash: recovery_hash,
+        layout: VaultLayout::Recovery(VaultRecoveryConfig {
+            custody: config.custody.clone(),
+            recovery_timelock: 60,
+            version: VaultVersion::ForceSingletonRecreation,
+            recovery_custody_hash: Bytes32::new([4; 32]),
+            amount: 1,
+        }),
+        source: VaultConfigSource::Memo,
+    })
+    .await?;
+    tx.commit().await?;
+
+    // Recovery is started, then cancelled back to the custody.
+    let eve = Coin::new(launcher_id, Bytes32::new([5; 32]), 1);
+    insert_vault_coin(&db, launcher_id, eve, Some(custody_hash), Some(10)).await?;
+    set_coin_state(&db, eve, Some(10), Some(11)).await?;
+    let started = Coin::new(eve.coin_id(), Bytes32::new([6; 32]), 1);
+    insert_vault_coin(&db, launcher_id, started, Some(recovery_hash), Some(11)).await?;
+    set_coin_state(&db, started, Some(11), Some(12)).await?;
+    let cancelled = Coin::new(started.coin_id(), Bytes32::new([5; 32]), 1);
+    insert_vault_coin(&db, launcher_id, cancelled, Some(custody_hash), Some(12)).await?;
+
+    let status = db.vault_status(launcher_id).await?.unwrap();
+    assert_eq!(status.state, VaultState::Active);
+    assert_eq!(
+        status.config.map(|row| row.layout),
+        Some(VaultLayout::Custody(config))
+    );
+
+    // When it's started again, it counts from the restart, not the cancelled recovery.
+    set_coin_state(&db, cancelled, Some(12), Some(13)).await?;
+    let restarted = Coin::new(cancelled.coin_id(), Bytes32::new([6; 32]), 1);
+    insert_vault_coin(&db, launcher_id, restarted, Some(recovery_hash), Some(13)).await?;
+
+    let status = db.vault_status(launcher_id).await?.unwrap();
+    assert_eq!(
+        status.state,
+        VaultState::RecoveryPending {
+            started_at: Some(1300),
+            timelock_from: Some(1300),
+        }
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn stores_p2_singletons() -> anyhow::Result<()> {
     let db = migrated_db().await?;
     let launcher_id = Bytes32::new([1; 32]);

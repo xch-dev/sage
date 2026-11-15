@@ -33,7 +33,8 @@ use chia_wallet_sdk::{
     driver::{
         InnerPuzzleMemo, MemberMemo, MemoKind, MipsMemo, MipsMemoContext, MofN, MofNMemo,
         P2Singleton, ParsedMember, ParsedRestriction, ParsedWrapper, Restriction, RestrictionKind,
-        RestrictionMemo, VaultVersion, WrapperMemo, mips_puzzle_hash,
+        RestrictionMemo, VAULT_FAST_FORWARD_MESSAGE_MODE, VaultVersion, WrapperMemo,
+        mips_puzzle_hash,
     },
     prelude::*,
     puzzles::PREVENT_MULTIPLE_CREATE_COINS_HASH,
@@ -53,9 +54,6 @@ use thiserror::Error;
 /// Cloud Wallet's memo lists are around a kilobyte, so this leaves plenty of room for large
 /// M of N vaults, without decoding arbitrarily large untrusted input.
 pub const MAX_VAULT_MEMO_LIST_SIZE: usize = 65_536;
-
-/// The mode of fast forwardable singleton members, as in [`MemberMemo::singleton`].
-const FAST_FORWARD_SINGLETON_MODE: u8 = 0b010_010;
 
 /// The condition opcodes that the recovery path is prevented from using, in order.
 const PREVENTED_RECOVERY_OPCODES: [u16; 4] = [
@@ -153,10 +151,6 @@ pub fn p2_singleton_puzzle_hash(launcher_id: Bytes32, nonce: usize) -> Bytes32 {
 pub fn vault_hashes(config: &VaultConfig) -> Result<VaultHashes, VaultLayoutError> {
     let custody_member_hash = signers_hash(&config.custody, vec![])?;
 
-    if let Some(recovery) = &config.recovery {
-        validate_timelock(recovery.timelock)?;
-    }
-
     let Some(recovery) = &config.recovery else {
         return Ok(VaultHashes {
             custody_hash: mips_puzzle_hash(0, vec![], signers_inner_hash(&config.custody), true),
@@ -164,6 +158,8 @@ pub fn vault_hashes(config: &VaultConfig) -> Result<VaultHashes, VaultLayoutErro
             recovery_member_hash: None,
         });
     };
+
+    validate_timelock(recovery.timelock)?;
 
     let recovery_member_hash = signers_hash(
         &recovery.signers,
@@ -471,9 +467,8 @@ fn member_puzzle_hash(member: VaultMember) -> TreeHash {
         VaultMember::Singleton {
             launcher_id,
             fast_forward: true,
-        } => {
-            SingletonMemberWithMode::new(launcher_id, FAST_FORWARD_SINGLETON_MODE).curry_tree_hash()
-        }
+        } => SingletonMemberWithMode::new(launcher_id, VAULT_FAST_FORWARD_MESSAGE_MODE)
+            .curry_tree_hash(),
         VaultMember::Singleton { launcher_id, .. } => {
             SingletonMember::new(launcher_id).curry_tree_hash()
         }
@@ -829,7 +824,7 @@ fn decode_member(
             fast_forward: false,
         },
         Some(ParsedMember::SingletonWithMode(member))
-            if member.mode == FAST_FORWARD_SINGLETON_MODE =>
+            if member.mode == VAULT_FAST_FORWARD_MESSAGE_MODE =>
         {
             VaultMember::Singleton {
                 launcher_id: member.singleton_struct.launcher_id,
