@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useWallet } from '@/contexts/WalletContext';
 import { useDids } from '@/hooks/useDids';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
@@ -49,9 +50,14 @@ import {
   withHandleConfirmation,
 } from '@/lib/handles';
 
+/** The profile option that mints the NFTs with the open vault as their minter,
+ *  rather than from a DID. */
+const VAULT_MINTER = 'vault';
+
 export default function MintNft() {
   const navigate = useNavigate();
   const walletState = useWalletState();
+  const { isVault } = useWallet();
   const { dids } = useDids();
   const { addError } = useErrors();
   const [pending, setPending] = useState(false);
@@ -84,6 +90,7 @@ export default function MintNft() {
   >({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      profile: isVault ? VAULT_MINTER : undefined,
       editionCount: 1,
       editionStart: 1,
       editionTotal: undefined,
@@ -155,7 +162,7 @@ export default function MintNft() {
           values.fee?.toString() || '0',
           walletState.sync.unit.precision,
         ),
-        did_id: values.profile,
+        did_id: values.profile === VAULT_MINTER ? null : values.profile,
         mints,
         confirmed_handles,
       }),
@@ -189,6 +196,11 @@ export default function MintNft() {
                         <SelectValue placeholder={t`Select profile`} />
                       </SelectTrigger>
                       <SelectContent>
+                        {isVault && (
+                          <SelectItem value={VAULT_MINTER}>
+                            <Trans>This vault</Trans>
+                          </SelectItem>
+                        )}
                         {dids
                           .filter((did) => did.visible)
                           .map((did) => (

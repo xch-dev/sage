@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
+import { useWallet } from '@/contexts/WalletContext';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import { useNowSeconds } from '@/hooks/useNowSeconds';
@@ -38,7 +39,9 @@ export function MakeOffer() {
   // one split can't be spent on the next offer until it's confirmed.
   const isSplittingNftOffers =
     splitNftOffers && state.offered.nfts.filter((n) => n).length > 1;
-  const isPreSplitting = preSplit && !isSplittingNftOffers;
+  // A vault's offers are always pre-split, so they don't lock the vault itself.
+  const { isVault } = useWallet();
+  const isPreSplitting = isVault || (preSplit && !isSplittingNftOffers);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
@@ -229,7 +232,7 @@ export function MakeOffer() {
                 <Switch
                   id='pre-split'
                   checked={isPreSplitting}
-                  disabled={isSplittingNftOffers}
+                  disabled={isVault || isSplittingNftOffers}
                   onCheckedChange={setPreSplit}
                 />
 
@@ -247,7 +250,13 @@ export function MakeOffer() {
                 )}
               </div>
               <p className='text-sm text-muted-foreground'>
-                {isSplittingNftOffers ? (
+                {isVault ? (
+                  <Trans>
+                    A vault&apos;s offers are always pre-split, so the vault
+                    stays usable while they&apos;re open. The offer is shared
+                    once the split is confirmed.
+                  </Trans>
+                ) : isSplittingNftOffers ? (
                   <Trans>Not available when each NFT gets its own offer.</Trans>
                 ) : isPreSplitting ? (
                   <Trans>
