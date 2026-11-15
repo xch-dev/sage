@@ -13,14 +13,21 @@ use chia_wallet_sdk::{
     clvm_traits::clvm_quote,
     clvm_utils::tree_hash,
     driver::{
-        ClawbackV2, ClearSigningAsset, DidInfo, Layer, OptionContract, P2ConditionsOrSingleton,
-        Puzzle, Reveals, SingletonLayer, VAULT_MESSAGE_MODE, parse_vault_transaction,
+        ClawbackV2, ClearSigningAsset, Did, DidInfo, Layer, OptionContract,
+        P2ConditionsOrSingleton, Puzzle, Reveals, SingletonLayer, VAULT_MESSAGE_MODE,
+        parse_vault_transaction,
     },
     prelude::*,
+    puzzles::SINGLETON_LAUNCHER_HASH,
     types::puzzles::DelegatedPuzzleFeederSolution,
 };
 
 use crate::{WalletError, parse_p2_singleton};
+
+/// The largest launcher amount that's counted as part of minting an NFT. The action system gives
+/// each launcher that a singleton creates a different even amount, so a transaction that mints
+/// many NFTs from a DID may have hidden a few mojos in them.
+const MAX_MINTED_LAUNCHER_AMOUNT: u64 = 2;
 
 /// What a vault spend in a transaction does, from the vault's point of view.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -160,12 +167,19 @@ pub fn parse_vault_spend_bundle_with(
 
     let transaction = parse_vault_transaction(reveals, &mut ctx, launcher_id, delegated_spend)?;
 
-    let unaccounted_xch = transaction
+    let unaccounted_xch: u128 = transaction
         .asset_flows
         .iter()
         .filter(|flow| flow.asset == ClearSigningAsset::Xch)
         .map(|flow| flow.unaccounted_amount)
         .sum();
+
+    // Minting an NFT from the vault or one of its DIDs takes a mojo of XCH for the NFT, which its
+    // launcher creates from less, so it's accounted for here.
+    let mut minters = vec![coin.coin_id()];
+    minters.extend(singletons.iter().map(|singleton| singleton.coin.coin_id()));
+    let launched = launcher_amount(&mut ctx, coin_spends, &minters)?;
+    let unaccounted_xch = unaccounted_xch.saturating_sub(launched);
 
     Ok(Some(VaultSpendSummary {
         launcher_id,
@@ -272,20 +286,104 @@ fn parse_singleton_spend(
         return Err(DriverError::InvalidLinkedCustody.into());
     }
 
-    let output = ctx.run(feeder.delegated_puzzle, feeder.delegated_solution)?;
-    let conditions = Vec::<Condition>::from_clvm(ctx, output)?;
+    // The child is parsed like sync parses it, so that its p2 puzzle hash is known rather than
+    // taken from what its spend claims.
+    let coin = coin_spend.coin;
 
-    let child_p2_puzzle_hash = conditions.iter().find_map(|condition| match condition {
-        Condition::CreateCoin(create_coin) if create_coin.amount % 2 == 1 => {
-            Some(create_coin.puzzle_hash)
+    let child_p2_puzzle_hash = match kind {
+        VaultSingletonKind::Did => {
+            let output = ctx.run(puzzle.ptr(), solution)?;
+
+            let child = ctx
+                .extract::<Vec<Condition>>(output)?
+                .into_iter()
+                .find_map(|condition| match condition {
+                    Condition::CreateCoin(create_coin) if create_coin.amount % 2 == 1 => Some(
+                        Coin::new(coin.coin_id(), create_coin.puzzle_hash, create_coin.amount),
+                    ),
+                    _ => None,
+                });
+
+            match child {
+                Some(child) => Some(
+                    Did::parse_child(ctx, coin, puzzle, solution, child)?
+                        .ok_or(DriverError::InvalidLinkedCustody)?
+                        .info
+                        .p2_puzzle_hash,
+                ),
+                None => None,
+            }
         }
-        _ => None,
-    });
+        VaultSingletonKind::Option => OptionContract::parse_child(ctx, coin, puzzle, solution)?
+            .map(|option| option.info.p2_puzzle_hash),
+    };
 
     Ok(Some(VaultSingletonSpend {
         kind,
         launcher_id: singleton_launcher_id,
-        coin: coin_spend.coin,
+        coin,
         child_p2_puzzle_hash,
     }))
+}
+
+/// The XCH that NFT launchers descended from the minters take from the transaction, which is how
+/// NFTs are minted from a singleton. A launcher is created by the minter, or by a coin of no value
+/// that the minter creates, and launches a singleton of a mojo. Its value, or the singleton's mojo
+/// if it has none, comes from the transaction's XCH. Launchers are distinguished by their amount
+/// when a singleton creates more than one, so only small amounts are counted.
+fn launcher_amount(
+    ctx: &mut SpendContext,
+    coin_spends: &[CoinSpend],
+    minters: &[Bytes32],
+) -> Result<u128, WalletError> {
+    let coins: HashMap<Bytes32, Coin> = coin_spends
+        .iter()
+        .map(|coin_spend| (coin_spend.coin.coin_id(), coin_spend.coin))
+        .collect();
+
+    // The coins between the minter and the launcher can't have any value, so the launcher's mojo
+    // can only have come from the transaction.
+    let is_minted = |launcher: &Coin| {
+        let mut parent_id = launcher.parent_coin_info;
+
+        for _ in 0..3 {
+            if minters.contains(&parent_id) {
+                return true;
+            }
+
+            match coins.get(&parent_id) {
+                Some(parent) if parent.amount == 0 => parent_id = parent.parent_coin_info,
+                _ => return false,
+            }
+        }
+
+        false
+    };
+
+    let mut amount = 0;
+
+    for coin_spend in coin_spends {
+        let launcher = coin_spend.coin;
+
+        if launcher.puzzle_hash != SINGLETON_LAUNCHER_HASH.into()
+            || launcher.amount > MAX_MINTED_LAUNCHER_AMOUNT
+            || !is_minted(&launcher)
+        {
+            continue;
+        }
+
+        let puzzle = coin_spend.puzzle_reveal.to_clvm(ctx)?;
+        let solution = coin_spend.solution.to_clvm(ctx)?;
+        let output = ctx.run(puzzle, solution)?;
+
+        let launches_mojo = ctx.extract::<Vec<Condition>>(output)?.iter().any(|condition| {
+            matches!(condition, Condition::CreateCoin(create_coin) if create_coin.amount == 1)
+        });
+
+        if launches_mojo {
+            amount += u128::from(launcher.amount.max(1));
+        }
+    }
+
+    Ok(amount)
 }

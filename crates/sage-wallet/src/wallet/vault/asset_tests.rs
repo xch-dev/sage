@@ -62,6 +62,20 @@ async fn test_vault_dids() -> anyhow::Result<()> {
         .wallet
         .transfer_dids(vec![did_id], alice.puzzle_hash, 0, None)
         .await?;
+
+    // The vault's approval of the DID's spend is checked, and shows where it goes.
+    let summary = vault
+        .wallet
+        .parse_vault_spend(&coin_spends)
+        .await?
+        .expect("the vault is spent");
+    assert_eq!(summary.singletons.len(), 1);
+    assert_eq!(summary.singletons[0].launcher_id, did_id);
+    assert_eq!(
+        summary.singletons[0].child_p2_puzzle_hash,
+        Some(alice.puzzle_hash)
+    );
+
     vault_transact(&mut vault, coin_spends).await?;
     assert!(vault.wallet.db.did(did_id).await?.is_none());
 
@@ -84,6 +98,21 @@ async fn test_vault_nfts_from_did() -> anyhow::Result<()> {
         .wallet
         .bulk_mint_nfts(0, did_id, vec![nft_mint(None), nft_mint(None)])
         .await?;
+
+    // The DID mints the NFTs and is recreated at the vault's address.
+    let summary = vault
+        .wallet
+        .parse_vault_spend(&coin_spends)
+        .await?
+        .expect("the vault is spent");
+    assert_eq!(summary.unaccounted_xch, 0);
+    assert_eq!(summary.singletons.len(), 1);
+    assert_eq!(summary.singletons[0].kind, VaultSingletonKind::Did);
+    assert_eq!(
+        summary.singletons[0].child_p2_puzzle_hash,
+        Some(vault.puzzle_hash)
+    );
+
     vault_transact(&mut vault, coin_spends).await?;
 
     let nft_id = nfts[0].info.launcher_id;
@@ -439,6 +468,17 @@ async fn test_vault_mints_nfts() -> anyhow::Result<()> {
         .wallet
         .mint_vault_nfts(10, vec![nft_mint(None), nft_mint(Some(alice.puzzle_hash))])
         .await?;
+
+    // The launchers' mojos are created by the vault, so none of its XCH is unaccounted for.
+    let summary = vault
+        .wallet
+        .parse_vault_spend(&coin_spends)
+        .await?
+        .expect("the vault is spent");
+    assert!(!summary.changes_custody());
+    assert_eq!(summary.reserved_fee, 10);
+    assert_eq!(summary.unaccounted_xch, 0);
+
     vault_transact(&mut vault, coin_spends).await?;
 
     let kept = nfts[0].info.launcher_id;
