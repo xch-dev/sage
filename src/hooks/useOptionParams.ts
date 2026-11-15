@@ -3,11 +3,11 @@ import { ViewMode } from '@/components/ViewToggle';
 import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 
-const OPTION_SORT_STORAGE_KEY = 'sage-wallet-option-sort';
-const OPTION_VIEW_MODE_STORAGE_KEY = 'sage-wallet-option-view-mode';
-const HIDDEN_OPTIONS_STORAGE_KEY = 'sage-wallet-show-hidden-options';
-const OPTION_ASCENDING_STORAGE_KEY = 'sage-wallet-option-ascending';
-const OPTION_FILTER_STORAGE_KEY = 'sage-wallet-option-filter';
+export const OPTION_SORT_STORAGE_KEY = 'sage-wallet-option-sort';
+export const OPTION_VIEW_MODE_STORAGE_KEY = 'sage-wallet-option-view-mode';
+export const HIDDEN_OPTIONS_STORAGE_KEY = 'sage-wallet-show-hidden-options';
+export const OPTION_ASCENDING_STORAGE_KEY = 'sage-wallet-option-ascending';
+export const OPTION_FILTER_STORAGE_KEY = 'sage-wallet-option-filter';
 
 export interface OptionParams {
   viewMode: ViewMode;

@@ -1,4 +1,5 @@
 import { ResyncDialog } from '@/components/dialogs/ResyncDialog';
+import { EmojiPicker } from '@/components/EmojiPicker';
 import { PasteInput } from '@/components/PasteInput';
 import { Button } from '@/components/ui/button';
 import {
@@ -57,6 +58,8 @@ import { SettingItem, SettingsSection } from './SettingsSection';
 
 export function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const { addError } = useErrors();
+  // The logged-in wallet, which the sidebar shows the name and emoji of.
+  const { wallet: activeWallet, setWallet: setActiveWallet } = useWallet();
 
   const [wallet, setWallet] = useState<Wallet | null>(null);
   // Watch wallets only know their addresses, so they have no change address.
@@ -180,6 +183,34 @@ export function WalletSettings({ fingerprint }: { fingerprint: number }) {
                   if (wallet) {
                     setWallet({ ...wallet, name: localName });
                   }
+                  if (activeWallet?.fingerprint === fingerprint) {
+                    setActiveWallet({ ...activeWallet, name: localName });
+                  }
+                })
+                .catch(addError);
+            }}
+          />
+        }
+      />
+
+      <SettingItem
+        label={t`Emoji`}
+        description={t`Shown next to the wallet's name`}
+        control={
+          <EmojiPicker
+            value={wallet?.emoji}
+            placeholder={t`Choose emoji`}
+            disabled={!wallet}
+            onChange={(emoji) => {
+              commands
+                .setWalletEmoji({ fingerprint, emoji })
+                .then(() => {
+                  if (wallet) {
+                    setWallet({ ...wallet, emoji });
+                  }
+                  if (activeWallet?.fingerprint === fingerprint) {
+                    setActiveWallet({ ...activeWallet, emoji });
+                  }
                 })
                 .catch(addError);
             }}
@@ -264,6 +295,8 @@ export function WalletSyncSettings({ fingerprint }: { fingerprint: number }) {
   const walletState = useWalletState();
 
   const [key, setKey] = useState<KeyInfo | null>(null);
+  // Holds the wallet's Delta Sync override.
+  const [wallet, setWallet] = useState<Wallet | null>(null);
   // Watch wallets only know their addresses, so they have no derivations.
   const { isWatchOnly } = useWallet();
   const [deriveOpen, setDeriveOpen] = useState(false);
@@ -277,6 +310,9 @@ export function WalletSyncSettings({ fingerprint }: { fingerprint: number }) {
   const [performingMaintenance, setPerformingMaintenance] = useState(false);
   const [unhardened, setUnhardened] = useState(true);
   const [hardened, setHardened] = useState(true);
+  const [defaultDeltaSync, setDefaultDeltaSync] = useState<boolean | null>(
+    null,
+  );
 
   const fetchDatabaseStats = useCallback(async () => {
     setLoadingStats(true);
@@ -315,8 +351,13 @@ export function WalletSyncSettings({ fingerprint }: { fingerprint: number }) {
   }, [addError, fingerprint]);
 
   useEffect(() => {
+    commands.walletConfig(fingerprint).then(setWallet).catch(addError);
+    commands
+      .defaultWalletConfig()
+      .then((defaults) => setDefaultDeltaSync(defaults.delta_sync))
+      .catch(addError);
     fetchDatabaseStats();
-  }, [fetchDatabaseStats]);
+  }, [addError, fingerprint, fetchDatabaseStats]);
 
   const derivationIndex = walletState.sync.unhardened_derivation_index;
 
@@ -360,8 +401,57 @@ export function WalletSyncSettings({ fingerprint }: { fingerprint: number }) {
       .finally(() => setPending(false));
   };
 
+  const setDeltaSyncOverride = (deltaSync: boolean | null) => {
+    commands
+      .setDeltaSyncOverride({ fingerprint, delta_sync: deltaSync })
+      .then(() => {
+        if (wallet) setWallet({ ...wallet, delta_sync: deltaSync });
+      })
+      .catch(addError);
+  };
+
+  const deltaSyncValue =
+    wallet?.delta_sync === true
+      ? 'on'
+      : wallet?.delta_sync === false
+        ? 'off'
+        : 'default';
+
   return (
     <>
+      <SettingsSection title={t`Syncing`}>
+        <SettingItem
+          label={t`Delta Sync`}
+          description={t`A more lightweight sync that only checks unseen blocks. Takes effect the next time you open the wallet.`}
+          control={
+            <Select
+              value={deltaSyncValue}
+              disabled={!wallet}
+              onValueChange={(value) =>
+                setDeltaSyncOverride(
+                  value === 'default' ? null : value === 'on',
+                )
+              }
+            >
+              <SelectTrigger className='w-[160px]' aria-label={t`Delta Sync`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='default'>
+                  {defaultDeltaSync === null
+                    ? t`Default`
+                    : defaultDeltaSync
+                      ? t`Default (On)`
+                      : t`Default (Off)`}
+                </SelectItem>
+                <SelectItem value='on'>{t`On`}</SelectItem>
+                <SelectItem value='off'>{t`Off`}</SelectItem>
+              </SelectContent>
+            </Select>
+          }
+        />
+      </SettingsSection>
+
       {!isWatchOnly && (
         <SettingsSection title={t`Addresses`}>
           <SettingItem

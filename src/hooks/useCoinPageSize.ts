@@ -1,6 +1,6 @@
 import { useLocalStorage } from 'usehooks-ts';
 
-const COIN_PAGE_SIZE_STORAGE_KEY = 'sage-wallet-coin-page-size';
+export const COIN_PAGE_SIZE_STORAGE_KEY = 'sage-wallet-coin-page-size';
 
 export const COIN_PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 

@@ -19,6 +19,63 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { commands, LogFile } from '../../bindings';
 import { SettingItem, SettingsSection } from './SettingsSection';
 
+const LOG_LEVELS = ['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'];
+
+function LogLevelSettings() {
+  const { addError } = useErrors();
+  const [level, setLevel] = useState<string | null>(null);
+  // The logger is set up when the app starts, so a change only applies after a restart.
+  const [changed, setChanged] = useState(false);
+
+  useEffect(() => {
+    commands
+      .getLogLevel()
+      .then((level) => setLevel(level.toUpperCase()))
+      .catch(addError);
+  }, [addError]);
+
+  return (
+    <SettingsSection title={t`Logging`}>
+      <SettingItem
+        label={t`Log Level`}
+        description={t`How much detail is written to the logs. More detail helps when reporting a problem.`}
+        control={
+          <Select
+            value={level ?? undefined}
+            disabled={level === null}
+            onValueChange={(value) => {
+              commands
+                .setLogLevel(value)
+                .then(() => {
+                  setLevel(value);
+                  setChanged(true);
+                })
+                .catch(addError);
+            }}
+          >
+            <SelectTrigger className='w-[140px]' aria-label={t`Log Level`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LOG_LEVELS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+      >
+        {changed && (
+          <p className='mt-2 text-sm text-muted-foreground'>
+            <Trans>Restart Sage for the new log level to apply.</Trans>
+          </p>
+        )}
+      </SettingItem>
+    </SettingsSection>
+  );
+}
+
 export function AboutSettings() {
   const [version, setVersion] = useState<string | null>(null);
 
@@ -36,6 +93,7 @@ export function AboutSettings() {
           }
         />
       </SettingsSection>
+      <LogLevelSettings />
       <LogViewer />
     </>
   );

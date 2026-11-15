@@ -133,6 +133,19 @@ async fn invoke_command(sage: &mut Sage, command: &str, args: Value) -> Result<V
         }
         // The RPC server would listen on the real RPC port, which could clash with a running Sage.
         "is_rpc_running" | "get_rpc_run_on_startup" => Ok(Value::Bool(false)),
+        // The port is saved, but the sandbox never starts the RPC server.
+        "get_rpc_port" => BridgeError::to_value(sage.config.rpc.port),
+        "set_rpc_port" => {
+            let PortArgs { port } = parse_args(args)?;
+            sage.set_rpc_port(port)?;
+            Ok(Value::Null)
+        }
+        "get_log_level" => BridgeError::to_value(&sage.config.global.log_level),
+        "set_log_level" => {
+            let LogLevelArgs { level } = parse_args(args)?;
+            sage.set_log_level(&level)?;
+            Ok(Value::Null)
+        }
         // Logs go to the sandbox's own log file instead.
         "get_logs" => Ok(json!([])),
         _ => {
@@ -158,6 +171,16 @@ struct AddressArgs {
 #[derive(Deserialize)]
 struct FingerprintArgs {
     fingerprint: u32,
+}
+
+#[derive(Deserialize)]
+struct PortArgs {
+    port: u16,
+}
+
+#[derive(Deserialize)]
+struct LogLevelArgs {
+    level: String,
 }
 
 #[derive(Deserialize)]

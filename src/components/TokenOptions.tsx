@@ -22,6 +22,7 @@ import {
 } from './ui/dropdown-menu';
 import { TokenSortMode } from '@/hooks/useTokenParams';
 import { useDebounce } from '@/hooks/useDebounce';
+import { usePrices } from '@/hooks/usePrices';
 import { useState, useEffect } from 'react';
 
 interface TokenOptionsProps {
@@ -55,6 +56,7 @@ export function TokenOptions({
   className,
   onExport,
 }: TokenOptionsProps) {
+  const { currency, pricesEnabled } = usePrices();
   const [searchValue, setSearchValue] = useState(query);
   const debouncedSearch = useDebounce(searchValue);
 
@@ -178,7 +180,9 @@ export function TokenOptions({
                   <ArrowUpAz className='mr-2 h-4 w-4' aria-hidden='true' />
                 )}
                 {sortMode === TokenSortMode.Name
-                  ? t`Sort by Balance (USD)`
+                  ? pricesEnabled
+                    ? t`Sort by Balance (${currency})`
+                    : t`Sort by Balance`
                   : t`Sort by Name`}
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -1,4 +1,5 @@
 import { useNetwork } from '@/hooks/useNetwork';
+import { FiatCurrency, usePriceSettings } from '@/hooks/usePriceSettings';
 import { dexieApiUrl } from '@/lib/urls';
 import {
   createContext,
@@ -28,9 +29,13 @@ interface DexieResponse {
 }
 
 export interface PriceContextType {
-  getBalanceInUsd: (assetId: string | null, balance: string) => string;
-  getPriceInUsd: (assetId: string | null) => number;
+  getBalanceInFiat: (assetId: string | null, balance: string) => string;
+  getPriceInFiat: (assetId: string | null) => number;
   getCatAskPriceInXch: (assetId: string) => number | null;
+  /** The currency that fiat values are in. */
+  currency: FiatCurrency;
+  /** Whether prices are looked up at all. When they aren't, fiat values are all zero. */
+  pricesEnabled: boolean;
   isLoading: boolean;
 }
 
@@ -39,22 +44,35 @@ export const PriceContext = createContext<PriceContextType | undefined>(
 );
 
 export function PriceProvider({ children }: { children: ReactNode }) {
-  const [xchUsdPrice, setXchUsdPrice] = useState<number>(0);
+  const { currency, pricesEnabled } = usePriceSettings();
+  const [xchFiatPrice, setXchFiatPrice] = useState<number>(0);
   const [catPrices, setCatPrices] = useState<Record<string, CatPriceData>>({});
   const { network, isTestnet } = useNetwork();
   const [isPriceLoading, setIsPriceLoading] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    // A price in another currency, or one from before lookups were turned off, is wrong now.
+    setXchFiatPrice(0);
+
+    if (!pricesEnabled) {
+      setCatPrices({});
+      return;
+    }
+
     // Don't fetch prices until network is loaded
     if (network === null) {
       return;
     }
 
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
+    const vsCurrency = currency.toLowerCase();
+    // A response that arrives after the currency changes is for the old one.
+    let cancelled = false;
 
     const fetchCatPrices = async () => {
       try {
@@ -77,17 +95,17 @@ export function PriceProvider({ children }: { children: ReactNode }) {
           },
           {},
         );
-        setCatPrices(tickers);
+        if (!cancelled) setCatPrices(tickers);
       } catch (error) {
         console.error('Failed to fetch CAT prices:', error);
-        setCatPrices({});
+        if (!cancelled) setCatPrices({});
       }
     };
 
     const fetchChiaPrice = async () => {
       try {
         const response = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=chia&vs_currencies=usd',
+          `https://api.coingecko.com/api/v3/simple/price?ids=chia&vs_currencies=${vsCurrency}`,
         );
 
         if (!response.ok) {
@@ -95,10 +113,12 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         }
 
         const data = await response.json();
-        const newPrice = data.chia?.usd;
+        const newPrice = data.chia?.[vsCurrency];
+
+        if (cancelled) return;
 
         if (newPrice && newPrice >= 0) {
-          setXchUsdPrice(newPrice);
+          setXchFiatPrice(newPrice);
         } else {
           console.warn('Invalid XCH price received:', newPrice);
           // Don't update the price if it's invalid, keep the previous value
@@ -122,16 +142,17 @@ export function PriceProvider({ children }: { children: ReactNode }) {
     intervalRef.current = setInterval(fetchPrices, 60000);
 
     return () => {
+      cancelled = true;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [network, isTestnet]);
+  }, [network, isTestnet, currency, pricesEnabled]);
 
-  const getPriceInUsd = useCallback(
+  const getPriceInFiat = useCallback(
     (assetId: string | null) => {
-      if (!assetId) return xchUsdPrice;
+      if (!assetId) return xchFiatPrice;
 
       const priceData = catPrices[assetId.toLowerCase()];
       const xchPrice = priceData?.lastPrice;
@@ -140,12 +161,12 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         return 0;
       }
 
-      return xchPrice * xchUsdPrice;
+      return xchPrice * xchFiatPrice;
     },
-    [xchUsdPrice, catPrices],
+    [xchFiatPrice, catPrices],
   );
 
-  const getBalanceInUsd = useCallback(
+  const getBalanceInFiat = useCallback(
     (assetId: string | null, balance: string) => {
       // Validate balance input
       const balanceNum = Number(balance);
@@ -153,7 +174,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         return '0.00';
       }
 
-      if (!assetId) return (balanceNum * xchUsdPrice).toFixed(2);
+      if (!assetId) return (balanceNum * xchFiatPrice).toFixed(2);
 
       const priceData = catPrices[assetId.toLowerCase()];
       const xchPrice = priceData?.lastPrice;
@@ -162,9 +183,9 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         return '0.00';
       }
 
-      return (balanceNum * xchPrice * xchUsdPrice).toFixed(2);
+      return (balanceNum * xchPrice * xchFiatPrice).toFixed(2);
     },
-    [xchUsdPrice, catPrices],
+    [xchFiatPrice, catPrices],
   );
 
   const getCatAskPriceInXch = useCallback(
@@ -178,10 +199,12 @@ export function PriceProvider({ children }: { children: ReactNode }) {
   return (
     <PriceContext.Provider
       value={{
-        getBalanceInUsd,
-        getPriceInUsd,
+        getBalanceInFiat,
+        getPriceInFiat,
         getCatAskPriceInXch,
-        isLoading: network === null || isPriceLoading,
+        currency,
+        pricesEnabled,
+        isLoading: pricesEnabled && (network === null || isPriceLoading),
       }}
     >
       {children}

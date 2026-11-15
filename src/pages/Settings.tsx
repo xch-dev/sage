@@ -58,7 +58,7 @@ function settingsPages(isMobile: boolean): SettingsPage[] {
       id: 'general',
       group: 'app',
       label: t`General`,
-      description: t`Language`,
+      description: t`Language, currency and price lookups`,
       icon: SlidersHorizontalIcon,
       render: () => <GeneralSettings />,
     },
@@ -66,7 +66,7 @@ function settingsPages(isMobile: boolean): SettingsPage[] {
       id: 'appearance',
       group: 'app',
       label: t`Appearance`,
-      description: t`Theme`,
+      description: t`Theme and list views`,
       icon: PaletteIcon,
       render: () => <AppearanceSettings />,
     },
@@ -74,7 +74,9 @@ function settingsPages(isMobile: boolean): SettingsPage[] {
       id: 'security',
       group: 'app',
       label: t`Security`,
-      description: t`Biometrics and keychain`,
+      description: isMobile
+        ? t`Biometrics, auto-lock and keychain`
+        : t`Auto-lock and keychain`,
       icon: ShieldCheckIcon,
       render: () => <SecuritySettings />,
     },
@@ -108,7 +110,7 @@ function settingsPages(isMobile: boolean): SettingsPage[] {
       id: 'wallet',
       group: 'wallet',
       label: t`Wallet`,
-      description: t`Name, network override and change address`,
+      description: t`Name, emoji, network override and change address`,
       icon: WalletIcon,
       render: (fingerprint) =>
         fingerprint !== null && <WalletSettings fingerprint={fingerprint} />,
@@ -117,7 +119,7 @@ function settingsPages(isMobile: boolean): SettingsPage[] {
       id: 'storage',
       group: 'wallet',
       label: t`Sync & Storage`,
-      description: t`Derivation index, database and resync`,
+      description: t`Delta sync, derivation index, database and resync`,
       icon: DatabaseIcon,
       render: (fingerprint) =>
         fingerprint !== null && (
@@ -128,7 +130,7 @@ function settingsPages(isMobile: boolean): SettingsPage[] {
       id: 'about',
       group: 'about',
       label: t`About`,
-      description: t`Version and logs`,
+      description: t`Version, log level and logs`,
       icon: InfoIcon,
       render: () => <AboutSettings />,
     },

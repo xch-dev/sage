@@ -293,6 +293,9 @@ pub enum Error {
     #[error("The transaction expiration must be at least {0} seconds, or 0 for none")]
     TransactionExpirationTooShort(u64),
 
+    #[error("The RPC server port can't be 0")]
+    InvalidRpcPort,
+
     #[error("Contact {0} not found")]
     MissingContact(u32),
 
@@ -436,6 +439,7 @@ impl Error {
             | Self::MissingThemeData
             | Self::TooManyAddresses(..)
             | Self::TransactionExpirationTooShort(..)
+            | Self::InvalidRpcPort
             | Self::InvalidContact(..)
             | Self::DuplicateContactRecipient { .. }
             | Self::DuplicateContactName { .. }

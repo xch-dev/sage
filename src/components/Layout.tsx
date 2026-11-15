@@ -17,6 +17,7 @@ import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
 import { Banner } from './Banner';
 import { WalletSwitcher } from './WalletSwitcher';
+import { AutoLock } from './AutoLock';
 
 function WalletTransitionWrapper({
   children,
@@ -75,7 +76,7 @@ function WalletTransitionWrapper({
   );
 }
 
-const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
+export const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
 type LayoutProps = PropsWithChildren<object> & {
   transparentBackground?: boolean;
@@ -94,6 +95,7 @@ export function FullLayout(props: LayoutProps) {
 
   return (
     <TooltipProvider>
+      {wallet && <AutoLock />}
       <div className='grid h-screen w-screen md:grid-cols-[auto_1fr]'>
         <div
           className={`hidden md:flex flex-col transition-all duration-300 ${

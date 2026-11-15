@@ -431,6 +431,18 @@ async getRpcRunOnStartup() : Promise<boolean> {
 async setRpcRunOnStartup(runOnStartup: boolean) : Promise<null> {
     return await TAURI_INVOKE("set_rpc_run_on_startup", { runOnStartup });
 },
+async getRpcPort() : Promise<number> {
+    return await TAURI_INVOKE("get_rpc_port");
+},
+async setRpcPort(port: number) : Promise<null> {
+    return await TAURI_INVOKE("set_rpc_port", { port });
+},
+async getLogLevel() : Promise<string> {
+    return await TAURI_INVOKE("get_log_level");
+},
+async setLogLevel(level: string) : Promise<null> {
+    return await TAURI_INVOKE("set_log_level", { level });
+},
 async switchWallet() : Promise<null> {
     return await TAURI_INVOKE("switch_wallet");
 },

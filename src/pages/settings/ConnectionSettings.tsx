@@ -1,4 +1,5 @@
 import { PasteInput } from '@/components/PasteInput';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useBiometric } from '@/hooks/useBiometric';
@@ -185,6 +186,68 @@ function RpcSettings() {
           <Switch checked={runOnStartup} onCheckedChange={toggleRunOnStartup} />
         }
       />
+
+      <RpcPortSetting />
     </SettingsSection>
+  );
+}
+
+function RpcPortSetting() {
+  const { addError } = useErrors();
+
+  const [savedPort, setSavedPort] = useState<number | null>(null);
+  const [portText, setPortText] = useState('');
+
+  useEffect(() => {
+    commands
+      .getRpcPort()
+      .then((port) => {
+        setSavedPort(port);
+        setPortText(port.toString());
+      })
+      .catch(addError);
+  }, [addError]);
+
+  const port = Number(portText);
+  const invalid = !/^\d+$/.test(portText) || port < 1 || port > 65535;
+
+  const save = () => {
+    if (invalid) {
+      // An invalid port isn't saved, so the field goes back to the saved one.
+      if (savedPort !== null) setPortText(savedPort.toString());
+      return;
+    }
+
+    if (port === savedPort) return;
+
+    commands
+      .setRpcPort(port)
+      .then(() => setSavedPort(port))
+      .catch(addError);
+  };
+
+  return (
+    <SettingItem
+      label={t`Port`}
+      description={t`The port the RPC server listens on. A change applies the next time the server starts.`}
+      control={
+        <Input
+          type='number'
+          className='w-[120px]'
+          min={1}
+          max={65535}
+          value={portText}
+          disabled={savedPort === null}
+          onChange={(event) => setPortText(event.target.value)}
+          onBlur={save}
+        />
+      }
+    >
+      {invalid && portText !== '' && (
+        <p className='mt-2 text-sm text-destructive'>
+          <Trans>The port must be between 1 and 65535</Trans>
+        </p>
+      )}
+    </SettingItem>
   );
 }

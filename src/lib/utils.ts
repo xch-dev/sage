@@ -109,13 +109,26 @@ export function formatAddress(
   return `${cleanAddress.slice(0, chars)}...${cleanAddress.slice(-trailingChars)}`;
 }
 
-export function formatUsdPrice(price: number): string {
-  if (price < 0.01) {
-    return '< 0.01¢';
+/** A unit price in a fiat currency, with more precision for prices below 1. */
+export function formatFiatPrice(price: number, currency: string): string {
+  const format = (value: number, options: Intl.NumberFormatOptions) =>
+    value.toLocaleString(navigator.language, {
+      style: 'currency',
+      currency,
+      ...options,
+    });
+
+  if (price === 0) {
+    return format(0, { maximumFractionDigits: 2 });
+  } else if (price < 0.0001) {
+    return `< ${format(0.0001, { maximumFractionDigits: 4 })}`;
   } else if (price < 1) {
-    return `${(price * 100).toFixed(2)}¢`;
+    return format(price, { maximumSignificantDigits: 3 });
   } else {
-    return `$${price.toFixed(2)}`;
+    return format(price, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   }
 }
 

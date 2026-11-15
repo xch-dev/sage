@@ -3,7 +3,11 @@ import { PricedTokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
 
-export async function exportTokens(tokens: PricedTokenRecord[]) {
+/** Exports the tokens as CSV, with their value and price in `currency`, or without them if it's null. */
+export async function exportTokens(
+  tokens: PricedTokenRecord[],
+  currency: string | null,
+) {
   try {
     if (tokens.length === 0) {
       toast.error(t`No tokens to export`);
@@ -16,8 +20,7 @@ export async function exportTokens(tokens: PricedTokenRecord[]) {
       'Ticker',
       'Asset ID',
       'Balance',
-      'Balance (USD)',
-      'Price (USD)',
+      ...(currency ? [`Balance (${currency})`, `Price (${currency})`] : []),
       'Icon URL',
       'Type',
     ];
@@ -27,8 +30,12 @@ export async function exportTokens(tokens: PricedTokenRecord[]) {
       (token.ticker || '').replace(/,/g, ''),
       token.asset_id || '',
       token.balance || '',
-      token.balanceInUsd?.toString() || '',
-      token.priceInUsd?.toString() || '',
+      ...(currency
+        ? [
+            token.balanceInFiat?.toString() || '',
+            token.priceInFiat?.toString() || '',
+          ]
+        : []),
       (token.icon_url || '').replace(/,/g, ''),
       !token.asset_id ? 'XCH' : 'CAT',
     ]);

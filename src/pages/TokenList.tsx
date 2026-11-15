@@ -31,7 +31,8 @@ import { useWalletState } from '../state';
 export function TokenList() {
   const navigate = useNavigate();
   const walletState = useWalletState();
-  const { getBalanceInUsd, getPriceInUsd } = usePrices();
+  const { getBalanceInFiat, getPriceInFiat, currency, pricesEnabled } =
+    usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
@@ -42,17 +43,17 @@ export function TokenList() {
       tokens.map((token): PricedTokenRecord & { sortValue: number } => {
         const balance = Number(toDecimal(token.balance, token.precision));
         const usdValue = parseFloat(
-          getBalanceInUsd(token.asset_id, balance.toString()),
+          getBalanceInFiat(token.asset_id, balance.toString()),
         );
 
         return {
           ...token,
-          balanceInUsd: usdValue,
+          balanceInFiat: usdValue,
           sortValue: usdValue,
-          priceInUsd: getPriceInUsd(token.asset_id),
+          priceInFiat: getPriceInFiat(token.asset_id),
         };
       }),
-    [tokens, getBalanceInUsd, getPriceInUsd],
+    [tokens, getBalanceInFiat, getPriceInFiat],
   )
     .sort((a, b) => {
       if (!a.asset_id && b.asset_id) return -1;
@@ -62,8 +63,8 @@ export function TokenList() {
       if (!a.visible && b.visible) return 1;
 
       if (sortMode === TokenSortMode.Balance) {
-        if (a.balanceInUsd !== b.balanceInUsd) {
-          return b.balanceInUsd - a.balanceInUsd;
+        if (a.balanceInFiat !== b.balanceInFiat) {
+          return b.balanceInFiat - a.balanceInFiat;
         }
         return (
           Number(toDecimal(b.balance, 3)) - Number(toDecimal(a.balance, 3))
@@ -103,10 +104,10 @@ export function TokenList() {
       return true;
     });
 
-  const totalUsdBalance = useMemo(() => {
+  const totalFiatBalance = useMemo(() => {
     // Use the filtered pricedTokens array which already respects all filters including search
     return pricedTokens.reduce((total, token) => {
-      return total + (token.balanceInUsd || 0);
+      return total + (token.balanceInFiat || 0);
     }, 0);
   }, [pricedTokens]);
 
@@ -203,7 +204,9 @@ export function TokenList() {
             setParams({ search: value });
           }}
           className='mb-4'
-          onExport={() => exportTokens(pricedTokens)}
+          onExport={() =>
+            exportTokens(pricedTokens, pricesEnabled ? currency : null)
+          }
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
@@ -235,7 +238,7 @@ export function TokenList() {
           </div>
         )}
 
-        {pricedTokens.length > 0 && (
+        {pricesEnabled && pricedTokens.length > 0 && (
           <div className='mt-6 pt-4 border-t border-border'>
             <div className='flex justify-between items-center font-semibold text-lg'>
               <div className='flex items-center gap-2'>
@@ -260,9 +263,9 @@ export function TokenList() {
               </div>
               <span className='foreground'>
                 <NumberFormat
-                  value={totalUsdBalance}
+                  value={totalFiatBalance}
                   style='currency'
-                  currency='USD'
+                  currency={currency}
                   maximumFractionDigits={2}
                 />
               </span>
