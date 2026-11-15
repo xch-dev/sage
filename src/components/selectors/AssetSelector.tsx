@@ -1,25 +1,28 @@
 import { TokenRecord, commands } from '@/bindings';
-import { NftSelector } from '@/components/selectors/NftSelector';
-import { TokenSelector } from '@/components/selectors/TokenSelector';
+import { MutableNftBadge } from '@/components/MutableNftBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TokenAmountInput } from '@/components/ui/masked-input';
+import { useOwnedNft } from '@/hooks/useOwnedNft';
 import { useRequestedNft } from '@/hooks/useRequestedNft';
 import { optionsEnabled } from '@/lib/features';
-import { fromMojos, toDecimal } from '@/lib/utils';
+import { nftUri } from '@/lib/nftUri';
+import { formatAddress, fromMojos, toDecimal } from '@/lib/utils';
 import { Assets } from '@/state';
 import BigNumber from 'bignumber.js';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { AlertTriangle, PlusIcon } from 'lucide-react';
+import { AlertTriangle, ChevronDown, PlusIcon } from 'lucide-react';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { NumberFormat } from '../NumberFormat';
+import { NftPicker } from './NftPicker';
 import {
   OfferAssetRow,
   OfferAssetRowFooter,
   RequestedNftPreview,
 } from './OfferAssetRow';
 import { OptionSelector } from './OptionSelector';
+import { TokenIcon, TokenPicker } from './TokenPicker';
 
 interface AssetSelectorProps {
   offering?: boolean;
@@ -39,20 +42,33 @@ export function AssetSelector({
   emptyMessage,
   fee,
 }: AssetSelectorProps) {
-  const [ownedTokens, setOwnedTokens] = useState<TokenRecord[]>([]);
+  const [tokens, setTokens] = useState<TokenRecord[]>([]);
   const [tokenIds, setTokenIds] = useState<number[]>([]);
   const [nftIds, setNftIds] = useState<number[]>([]);
   const [optionIds, setOptionIds] = useState<number[]>([]);
   const [assetsInOffers, setAssetsInOffers] = useState<Set<string>>(new Set());
+  // The row that was just added, whose input should take focus.
+  const [focusId, setFocusId] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!offering) return;
-    Promise.all([commands.getCats({}), commands.getToken({ asset_id: null })])
-      .then(([data, xch]) =>
-        setOwnedTokens([...(xch.token ? [xch.token] : []), ...data.cats]),
-      )
+  // What you offer comes from your own tokens; you can request any known CAT.
+  const loadTokens = useCallback(() => {
+    Promise.all([
+      offering ? commands.getCats({}) : commands.getAllCats({}),
+      commands.getToken({ asset_id: null }),
+    ])
+      .then(([data, xch]) => {
+        const cats = [...data.cats].sort((a, b) => {
+          if (!a.name && !b.name) return 0;
+          if (!a.name) return 1;
+          if (!b.name) return -1;
+          return a.name.localeCompare(b.name);
+        });
+        setTokens([...(xch.token ? [xch.token] : []), ...cats]);
+      })
       .catch(console.error);
   }, [offering]);
+
+  useEffect(loadTokens, [loadTokens]);
 
   // Check which assets are part of open offers
   useEffect(() => {
@@ -92,18 +108,30 @@ export function AssetSelector({
 
   const generateId = useCallback(() => Date.now() + Math.random(), []);
 
-  const addToken = () => {
+  const addToken = (assetId: string | null) => {
     const newId = generateId();
     setTokenIds([...tokenIds, newId]);
+    setFocusId(newId);
     setAssets({
       ...assets,
-      tokens: [...assets.tokens, { asset_id: '', amount: '' }],
+      tokens: [...assets.tokens, { asset_id: assetId, amount: '' }],
     });
+  };
+
+  const toggleOfferedNft = (nftId: string) => {
+    const index = assets.nfts.indexOf(nftId);
+    if (index !== -1) {
+      removeNft(index);
+      return;
+    }
+    setNftIds([...nftIds, generateId()]);
+    setAssets({ ...assets, nfts: [...assets.nfts, nftId] });
   };
 
   const addNft = () => {
     const newId = generateId();
     setNftIds([...nftIds, newId]);
+    setFocusId(newId);
     setAssets({
       ...assets,
       nfts: [...assets.nfts, ''],
@@ -202,9 +230,8 @@ export function AssetSelector({
         )}
 
       {assets.tokens.map(({ asset_id: assetId, amount }, i) => {
-        const ownedToken = offering
-          ? ownedTokens.find((t) => t.asset_id === assetId)
-          : undefined;
+        const token = tokens.find((t) => t.asset_id === assetId);
+        const ownedToken = offering ? token : undefined;
         const maxValue = ownedToken
           ? BigNumber.max(
               0,
@@ -256,6 +283,7 @@ export function AssetSelector({
                 }
                 precision={assetId === null ? 12 : 3}
                 hideMaxButton
+                autoFocus={tokenIds[i] === focusId}
               />
             </div>
             {offering && (
@@ -273,65 +301,56 @@ export function AssetSelector({
                 <Trans>Max</Trans>
               </Button>
             )}
-            <div className='min-w-0 flex-1'>
-              <TokenSelector
-                value={assetId}
-                onChange={(newAssetId) => {
-                  const newTokens = [...assets.tokens];
-                  newTokens[i] = {
-                    ...newTokens[i],
-                    asset_id: newAssetId,
-                    amount: '',
-                  };
-                  setAssets({ ...assets, tokens: newTokens });
-                }}
-                disabled={assets.tokens
-                  .filter((t, idx) => t.asset_id !== '' && idx !== i)
-                  .map((t) => t.asset_id)}
-                className={rowSelectClassName}
-                hideZeroBalance={offering === true}
-                showAllCats={offering !== true}
-                includeXch={true}
-              />
-            </div>
+            <TokenPicker
+              tokens={tokens}
+              offering={offering}
+              value={assetId}
+              taken={assets.tokens.map((t) => t.asset_id)}
+              onOpen={loadTokens}
+              align='end'
+              onSelect={(newAssetId) => {
+                if (newAssetId === assetId) return;
+                const newTokens = [...assets.tokens];
+                newTokens[i] = { asset_id: newAssetId, amount: '' };
+                setAssets({ ...assets, tokens: newTokens });
+              }}
+            >
+              <Button
+                type='button'
+                variant='ghost'
+                className='h-12 max-w-[45%] shrink-0 gap-2 rounded-none px-3 font-normal'
+                aria-label={t`Change token`}
+              >
+                <TokenIcon token={token} className='h-6 w-6 [&>*]:max-h-6' />
+                <span className='truncate'>{tokenLabel(token, assetId)}</span>
+                <ChevronDown
+                  className='h-4 w-4 shrink-0 opacity-50'
+                  aria-hidden='true'
+                />
+              </Button>
+            </TokenPicker>
           </OfferAssetRow>
         );
       })}
 
       {assets.nfts.map((nft, i) =>
         offering ? (
-          <OfferAssetRow
-            key={nftIds[i] || `nft-${i}`}
-            onRemove={() => removeNft(i)}
-            removeLabel={t`Remove NFT`}
-            tone={nft && assetsInOffers.has(nft) ? 'warning' : undefined}
-            footer={
-              nft &&
-              assetsInOffers.has(nft) && (
-                <OfferAssetRowFooter tone='warning'>
-                  <AlertTriangle className='h-3 w-3' aria-hidden='true' />
-                  <Trans>This NFT is part of an open offer</Trans>
-                </OfferAssetRowFooter>
-              )
-            }
-          >
-            <div className='min-w-0 flex-1'>
-              <NftSelector
-                value={nft || null}
-                onChange={(nftId) => updateNft(i, nftId || '')}
-                disabled={assets.nfts.filter(
-                  (id, idx) => id !== '' && idx !== i,
-                )}
-                className={rowSelectClassName}
-              />
-            </div>
-          </OfferAssetRow>
+          // Offered NFTs are only added from the picker, so are never blank.
+          nft && (
+            <OfferedNftRow
+              key={nftIds[i] || `nft-${i}`}
+              nftId={nft}
+              inOpenOffer={assetsInOffers.has(nft)}
+              onRemove={() => removeNft(i)}
+            />
+          )
         ) : (
           <RequestedNftRow
             key={nftIds[i] || `nft-${i}`}
             value={nft}
             onChange={(value) => updateNft(i, value)}
             onRemove={() => removeNft(i)}
+            autoFocus={nftIds[i] === focusId}
           />
         ),
       )}
@@ -381,15 +400,35 @@ export function AssetSelector({
       ))}
 
       <div className='flex flex-wrap gap-2'>
-        <Button variant='outline' size='sm' onClick={addToken}>
-          <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
-          <Trans>Token</Trans>
-        </Button>
+        <TokenPicker
+          tokens={tokens}
+          offering={offering}
+          taken={assets.tokens.map((t) => t.asset_id)}
+          onOpen={loadTokens}
+          onSelect={addToken}
+        >
+          <Button variant='outline' size='sm'>
+            <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
+            <Trans>Token</Trans>
+          </Button>
+        </TokenPicker>
 
-        <Button variant='outline' size='sm' onClick={addNft}>
-          <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
-          <Trans>NFT</Trans>
-        </Button>
+        {offering ? (
+          <NftPicker
+            selected={assets.nfts.filter((n) => n)}
+            onToggle={toggleOfferedNft}
+          >
+            <Button variant='outline' size='sm'>
+              <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
+              <Trans>NFT</Trans>
+            </Button>
+          </NftPicker>
+        ) : (
+          <Button variant='outline' size='sm' onClick={addNft}>
+            <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
+            <Trans>NFT</Trans>
+          </Button>
+        )}
 
         {optionsEnabled && (
           <Button variant='outline' size='sm' onClick={addOption}>
@@ -407,6 +446,60 @@ const rowSelectClassName =
   'h-12 rounded-none border-0 bg-transparent shadow-none';
 const rowInputClassName =
   'h-12 rounded-none border-0 bg-transparent font-mono text-sm shadow-none focus-visible:ring-0';
+
+function tokenLabel(token: TokenRecord | undefined, assetId: string | null) {
+  if (token) return token.ticker ?? token.name ?? t`Unknown token`;
+  if (assetId) return formatAddress(assetId, 4);
+  return t`Choose token`;
+}
+
+interface OfferedNftRowProps {
+  nftId: string;
+  inOpenOffer: boolean;
+  onRemove: () => void;
+}
+
+function OfferedNftRow({ nftId, inOpenOffer, onRemove }: OfferedNftRowProps) {
+  const { nft, thumbnail } = useOwnedNft(nftId);
+
+  return (
+    <OfferAssetRow
+      onRemove={onRemove}
+      removeLabel={t`Remove NFT`}
+      tone={inOpenOffer ? 'warning' : undefined}
+      footer={
+        inOpenOffer && (
+          <OfferAssetRowFooter tone='warning'>
+            <AlertTriangle className='h-3 w-3' aria-hidden='true' />
+            <Trans>This NFT is part of an open offer</Trans>
+          </OfferAssetRowFooter>
+        )
+      }
+    >
+      <div className='flex h-12 min-w-0 flex-1 items-center gap-3 px-3'>
+        <img
+          src={thumbnail ?? nftUri(null, null)}
+          alt=''
+          className='h-8 w-8 shrink-0 rounded object-cover'
+        />
+        <div className='flex min-w-0 flex-col'>
+          <span className='flex min-w-0 items-center gap-1.5 text-sm'>
+            <span className='truncate'>{nft?.name ?? t`Unnamed NFT`}</span>
+            {nft && (
+              <MutableNftBadge
+                kind={nft.metadata_updater_kind}
+                className='shrink-0'
+              />
+            )}
+          </span>
+          <span className='truncate font-mono text-xs text-muted-foreground'>
+            {formatAddress(nftId, 10, 6)}
+          </span>
+        </div>
+      </div>
+    </OfferAssetRow>
+  );
+}
 
 function SpendableBalance({ token }: { token: TokenRecord }) {
   const ticker = token.ticker ?? '';
@@ -427,9 +520,15 @@ interface RequestedNftRowProps {
   value: string;
   onChange: (value: string) => void;
   onRemove: () => void;
+  autoFocus?: boolean;
 }
 
-function RequestedNftRow({ value, onChange, onRemove }: RequestedNftRowProps) {
+function RequestedNftRow({
+  value,
+  onChange,
+  onRemove,
+  autoFocus,
+}: RequestedNftRowProps) {
   const lookup = useRequestedNft(value);
 
   return (
@@ -456,6 +555,7 @@ function RequestedNftRow({ value, onChange, onRemove }: RequestedNftRowProps) {
           // Pasted IDs often bring a space or newline, which the offer
           // wouldn't accept.
           onChange={(e) => onChange(e.target.value.trim())}
+          autoFocus={autoFocus}
         />
       </div>
     </OfferAssetRow>

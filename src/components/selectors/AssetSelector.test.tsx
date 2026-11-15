@@ -41,12 +41,29 @@ vi.mock('@/bindings', () => ({
         },
       }),
     ),
+    getAllCats: vi.fn(() => Promise.resolve({ cats: [] })),
     getOffersForAsset: vi.fn(() => Promise.resolve({ offers: [] })),
+    getNfts: vi.fn(() =>
+      Promise.resolve({
+        nfts: [
+          {
+            launcher_id: 'nft1first',
+            name: 'First NFT',
+            metadata_updater_kind: null,
+          },
+          {
+            launcher_id: 'nft1second',
+            name: 'Second NFT',
+            metadata_updater_kind: null,
+          },
+        ],
+      }),
+    ),
+    getNft: vi.fn(() => Promise.resolve({ nft: null })),
+    getNftThumbnail: vi.fn(() => Promise.resolve({ thumbnail: null })),
   },
   events: { syncEvent: { listen: vi.fn(() => Promise.resolve(vi.fn())) } },
 }));
-vi.mock('./TokenSelector', () => ({ TokenSelector: () => null }));
-vi.mock('./NftSelector', () => ({ NftSelector: () => null }));
 vi.mock('./OptionSelector', () => ({ OptionSelector: () => null }));
 vi.mock('@/components/ui/masked-input', () => ({
   TokenAmountInput: (props: {
@@ -66,16 +83,29 @@ import { AssetSelector } from './AssetSelector';
 
 beforeAll(() => {
   i18n.loadAndActivate({ locale: 'en', messages: {} });
+  // cmdk and Radix use these, and jsdom doesn't have them.
+  globalThis.ResizeObserver ??= class {
+    observe() {
+      return undefined;
+    }
+    unobserve() {
+      return undefined;
+    }
+    disconnect() {
+      return undefined;
+    }
+  };
+  Element.prototype.scrollIntoView ??= vi.fn();
 });
 
 afterEach(cleanup);
 
-function renderOffering(assets: Assets, fee = '0') {
+function renderOffering(assets: Assets, fee = '0', offering = true) {
   const setAssets = vi.fn();
   render(
     <I18nProvider i18n={i18n}>
       <AssetSelector
-        offering
+        offering={offering}
         prefix='offer'
         assets={assets}
         setAssets={setAssets}
@@ -202,5 +232,57 @@ describe('AssetSelector layout', () => {
       ...noAssets,
       nfts: ['nft1example'],
     });
+  });
+});
+
+const empty: Assets = { tokens: [], nfts: [], options: [] };
+
+describe('AssetSelector pickers', () => {
+  it('adds a token row only once a token is picked', async () => {
+    const setAssets = renderOffering(empty);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Cat/ }));
+
+    expect(setAssets).toHaveBeenCalledTimes(1);
+    expect(setAssets).toHaveBeenCalledWith(tokens('cat1', ''));
+  });
+
+  it("won't offer a token twice", async () => {
+    renderOffering(tokens('cat1', '1'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+    const option = await screen.findByRole('option', { name: /Cat/ });
+    expect(option.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('requests a CAT by a pasted asset ID', async () => {
+    const assetId = 'ab'.repeat(32);
+    const setAssets = renderOffering(empty, '0', false);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Token' }));
+    fireEvent.change(
+      await screen.findByPlaceholderText('Search tokens or paste an asset ID'),
+      { target: { value: assetId } },
+    );
+    fireEvent.click(
+      await screen.findByRole('option', { name: /Request this asset ID/ }),
+    );
+
+    expect(setAssets).toHaveBeenCalledWith(tokens(assetId, ''));
+  });
+
+  it('toggles offered NFTs from the picker', async () => {
+    const setAssets = renderOffering({ ...empty, nfts: ['nft1first'] });
+
+    fireEvent.click(screen.getByRole('button', { name: 'NFT' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Second NFT/ }));
+    expect(setAssets).toHaveBeenLastCalledWith({
+      ...empty,
+      nfts: ['nft1first', 'nft1second'],
+    });
+
+    fireEvent.click(screen.getByRole('option', { name: /First NFT/ }));
+    expect(setAssets).toHaveBeenLastCalledWith(empty);
   });
 });
