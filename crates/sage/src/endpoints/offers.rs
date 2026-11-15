@@ -182,7 +182,11 @@ impl Sage {
         let PreSplitOffer {
             offer: unsigned,
             split_coin_spends,
-        } = if let Some(split_fee) = req.pre_split_fee {
+        } = if let Some(split_fee) = req.pre_split_fee.or_else(|| {
+            // A vault's offers are always pre-split, so that the vault isn't locked until they're
+            // taken, even for callers that don't ask for it, like WalletConnect dApps.
+            wallet.vault_launcher_id().map(|_| Amount::u64(0))
+        }) {
             wallet
                 .make_pre_split_offer(
                     offered,

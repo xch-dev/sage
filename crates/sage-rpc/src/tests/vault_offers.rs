@@ -219,12 +219,11 @@ async fn test_vault_offers() -> Result<()> {
         pre_split_fee: Some(Amount::u64(0)),
     };
 
-    // A vault offer that isn't pre-split would lock the vault.
-    let mut direct = make(xch(1000), cat(&asset_id, 500));
-    direct.pre_split_fee = None;
-    assert!(app.make_offer(direct).await.is_err());
-
-    let taken = app.make_offer(make(xch(1000), cat(&asset_id, 500))).await?;
+    // A vault offer is pre-split even when it isn't asked for, as by a WalletConnect dApp, since
+    // one that isn't would lock the vault.
+    let mut taken = make(xch(1000), cat(&asset_id, 500));
+    taken.pre_split_fee = None;
+    let taken = app.make_offer(taken).await?;
     assert!(taken.pre_split_transaction_id.is_some());
 
     wait_for_offer_status(&mut app, &taken.offer_id, |status| {
