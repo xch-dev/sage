@@ -1,5 +1,6 @@
-use indexmap::IndexMap;
 use std::collections::BTreeSet;
+
+use indexmap::IndexMap;
 use utoipa::openapi::{
     ComponentsBuilder, ContentBuilder, InfoBuilder, OpenApi, PathsBuilder, RefOr, ResponsesBuilder,
     path::{HttpMethod, OperationBuilder, PathItemBuilder},
@@ -8,6 +9,8 @@ use utoipa::openapi::{
     schema::{ObjectBuilder, Schema, SchemaType, Type},
     tag::TagBuilder,
 };
+
+use crate::wallet_kind_notes;
 
 /// Generates the `OpenAPI` specification for all RPC endpoints
 /// Dynamically reads from endpoints.json at compile time
@@ -37,7 +40,9 @@ pub fn generate_openapi() -> OpenApi {
             .version(env!("CARGO_PKG_VERSION"))
             .description(Some(
                 "RPC API for Sage wallet. All endpoints accept JSON request bodies and return JSON responses.\n\n\
-                 **Authentication**: Sage RPC uses Mutual TLS for authentication.",
+                 **Authentication**: Sage RPC uses Mutual TLS for authentication.\n\n\
+                 **Wallet kinds**: The open wallet is a BLS wallet, a vault or a watch wallet. Each \
+                 endpoint's description says how it behaves for each kind.",
             ))
             .build(),
         paths_builder.build(),
@@ -166,7 +171,13 @@ pub fn generate_openapi() -> OpenApi {
 }
 
 fn create_endpoint_path(endpoint: &str) -> utoipa::openapi::path::PathItem {
-    let (tag, description) = get_endpoint_metadata(endpoint);
+    let (tag, mut description) = get_endpoint_metadata(endpoint);
+
+    if let Some(notes) = wallet_kind_notes(endpoint) {
+        description.push_str("\n\n**Wallet kinds**: ");
+        description.push_str(notes);
+    }
+
     let request_schema = get_request_schema_ref(endpoint);
     let response_schema = get_response_schema_ref(endpoint);
 

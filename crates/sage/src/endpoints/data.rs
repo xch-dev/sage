@@ -105,6 +105,33 @@ impl Sage {
             .and_then(|path| path.metadata().ok())
             .map_or(0, |metadata| metadata.len());
 
+        // A vault's addresses are numbered by their P2 singleton nonce, and it has no hardened
+        // ones. A watch wallet has no derivations, so both are 0.
+        let (unhardened_derivation_index, hardened_derivation_index) = match wallet.kind {
+            WalletKind::Vault { launcher_id } => (
+                u32::try_from(
+                    wallet
+                        .db
+                        .p2_singleton_puzzle_hashes(launcher_id)
+                        .await?
+                        .len(),
+                )?,
+                0,
+            ),
+            WalletKind::Bls { .. } | WalletKind::Watch => (
+                wallet
+                    .db
+                    .max_derivation_index(false)
+                    .await?
+                    .map_or(0, |idx| idx + 1),
+                wallet
+                    .db
+                    .max_derivation_index(true)
+                    .await?
+                    .map_or(0, |idx| idx + 1),
+            ),
+        };
+
         Ok(GetSyncStatusResponse {
             selectable_balance: Amount::u128(selectable_balance),
             unit: self.unit.clone(),
@@ -112,16 +139,8 @@ impl Sage {
             synced_coins,
             receive_address,
             burn_address: Address::new(BURN_PUZZLE_HASH, self.network().prefix()).encode()?,
-            unhardened_derivation_index: wallet
-                .db
-                .max_derivation_index(false)
-                .await?
-                .map_or(0, |idx| idx + 1),
-            hardened_derivation_index: wallet
-                .db
-                .max_derivation_index(true)
-                .await?
-                .map_or(0, |idx| idx + 1),
+            unhardened_derivation_index,
+            hardened_derivation_index,
             checked_files: wallet.db.checked_files().await?.try_into().unwrap_or(0),
             total_files: wallet.db.total_files().await?.try_into().unwrap_or(0),
             database_size,
@@ -143,8 +162,40 @@ impl Sage {
         Ok(CheckAddressResponse { valid: is_valid })
     }
 
+    /// A BLS wallet's derived addresses, or a vault's P2 singleton addresses by nonce. A vault has
+    /// no hardened addresses, and a watch wallet has no derived addresses at all.
     pub async fn get_derivations(&self, req: GetDerivations) -> Result<GetDerivationsResponse> {
         let wallet = self.wallet()?;
+
+        if let WalletKind::Vault { launcher_id } = wallet.kind {
+            if req.hardened {
+                return Ok(GetDerivationsResponse {
+                    derivations: Vec::new(),
+                    total: 0,
+                });
+            }
+
+            let p2_puzzle_hashes = wallet.db.p2_singleton_puzzle_hashes(launcher_id).await?;
+            let total = u32::try_from(p2_puzzle_hashes.len())?;
+
+            // The addresses are inserted in order from nonce 0, so each one's position is its
+            // nonce.
+            let derivations = p2_puzzle_hashes
+                .into_iter()
+                .enumerate()
+                .skip(req.offset as usize)
+                .take(req.limit as usize)
+                .map(|(nonce, p2_puzzle_hash)| {
+                    Ok(DerivationRecord {
+                        index: u32::try_from(nonce)?,
+                        public_key: None,
+                        address: Address::new(p2_puzzle_hash, self.network().prefix()).encode()?,
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?;
+
+            return Ok(GetDerivationsResponse { derivations, total });
+        }
 
         let (derivations, total) = wallet
             .db
@@ -156,7 +207,7 @@ impl Sage {
             .map(|row| {
                 Ok(DerivationRecord {
                     index: row.index,
-                    public_key: hex::encode(row.synthetic_key.to_bytes()),
+                    public_key: Some(hex::encode(row.synthetic_key.to_bytes())),
                     address: Address::new(row.p2_puzzle_hash, self.network().prefix()).encode()?,
                 })
             })

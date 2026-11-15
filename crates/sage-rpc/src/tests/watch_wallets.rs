@@ -7,7 +7,8 @@ use sage_api::{
     GetNfts, GetOptions, GetSyncStatus, GetWallet, GetWalletAddress, ImportWatchWallet,
     IncreaseDerivationIndex, IssueCat, Login, MintOption, NftSortMode, OptionAsset, OptionFilter,
     OptionSortMode, RemoveWatchAddresses, SendXch, SetChangeAddress, SignCoinSpends, TransferNfts,
-    WalletKind, wallet_connect::SignMessageByAddress,
+    WalletKind,
+    wallet_connect::{SignMessageByAddress, SignMessageWithPublicKey},
 };
 use sage_wallet::SyncEvent;
 use tokio::time::sleep;
@@ -325,12 +326,15 @@ async fn watch_wallets_are_read_only() -> Result<()> {
         alice_address
     );
 
-    // A change address doesn't replace it, since watch wallets don't make change.
-    app.set_change_address(SetChangeAddress {
-        fingerprint: watch,
-        change_address: Some(Address::new(Bytes32::new([3; 32]), "txch".to_string()).encode()?),
-    })
-    .await?;
+    // Watch wallets don't make change, so they can't have a change address.
+    let error = app
+        .set_change_address(SetChangeAddress {
+            fingerprint: watch,
+            change_address: Some(Address::new(Bytes32::new([3; 32]), "txch".to_string()).encode()?),
+        })
+        .await
+        .expect_err("watch wallets don't make change");
+    assert!(error.to_string().contains("change address"), "{error}");
     assert_eq!(
         app.get_wallet_address(GetWalletAddress {
             fingerprint: watch,
@@ -387,6 +391,18 @@ async fn watch_wallets_are_read_only() -> Result<()> {
         })
         .await
         .expect_err("watch wallets can't sign messages");
+    assert!(error.to_string().contains("Watch-only"), "{error}");
+
+    let error = app
+        .sage
+        .lock()
+        .await
+        .sign_message_with_public_key(SignMessageWithPublicKey {
+            message: hex::encode("hello"),
+            public_key: hex::encode([1; 48]),
+        })
+        .await
+        .expect_err("watch wallets can't sign messages by public key");
     assert!(error.to_string().contains("Watch-only"), "{error}");
 
     let error = app

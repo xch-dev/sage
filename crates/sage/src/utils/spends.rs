@@ -1,7 +1,7 @@
 use chia_wallet_sdk::prelude::*;
 use sage_wallet::{
     SyncCommand, Transaction, Wallet, WalletError, insert_transaction, is_fully_signed,
-    sign_with_secret_keys,
+    is_placeholder_spend, sign_with_secret_keys,
 };
 
 use crate::{Error, Result, Sage};
@@ -44,7 +44,9 @@ impl Sage {
                 .await?);
         }
 
-        if let Some(summary) = wallet.parse_vault_spend(&spend_bundle.coin_spends).await?
+        let summary = wallet.parse_vault_spend(&spend_bundle.coin_spends).await?;
+
+        if let Some(summary) = &summary
             && summary.changes_custody()
         {
             return Err(WalletError::VaultCustodyChange.into());
@@ -55,6 +57,16 @@ impl Sage {
         if secret_keys.is_empty() && !partial {
             return Err(Error::NoVaultSigners);
         }
+
+        check_vault_signatures(
+            &spend_bundle.coin_spends,
+            summary.map(|summary| summary.coin.coin_id()),
+            &secret_keys
+                .iter()
+                .map(SecretKey::public_key)
+                .collect::<Vec<_>>(),
+            &agg_sig_constants,
+        )?;
 
         Ok(sign_with_secret_keys(
             spend_bundle,
@@ -125,4 +137,61 @@ impl Sage {
 
         Ok(())
     }
+}
+
+/// Checks that a vault's keys are only asked to sign for the vault's own custody spend, which clear
+/// signing parsed as `vault_coin_id`.
+///
+/// A vault's signers only ever sign `AGG_SIG_ME` for the vault coin, over the delegated puzzle that
+/// clear signing checked. A spend from a dApp could otherwise ask them to sign for another coin, or
+/// include a second spend of the vault coin with a different delegated puzzle than the one that was
+/// checked, and the signature would authorize that one instead.
+fn check_vault_signatures(
+    coin_spends: &[CoinSpend],
+    vault_coin_id: Option<Bytes32>,
+    signer_keys: &[PublicKey],
+    agg_sig_constants: &AggSigConstants,
+) -> Result<()> {
+    let mut allocator = Allocator::new();
+    let mut vault_spends = 0;
+
+    for coin_spend in coin_spends {
+        if is_placeholder_spend(coin_spend) {
+            continue;
+        }
+
+        let coin_id = coin_spend.coin.coin_id();
+
+        if Some(coin_id) == vault_coin_id {
+            vault_spends += 1;
+        }
+
+        let required =
+            RequiredSignature::from_coin_spend(&mut allocator, coin_spend, agg_sig_constants)
+                .map_err(WalletError::from)?;
+
+        for required in required {
+            let RequiredSignature::Bls(required) = required else {
+                continue;
+            };
+
+            if !signer_keys.contains(&required.public_key) {
+                continue;
+            }
+
+            let is_vault_spend = Some(coin_id) == vault_coin_id
+                && required.domain_string == Some(agg_sig_constants.me())
+                && required.appended_info == coin_id.to_vec();
+
+            if !is_vault_spend {
+                return Err(Error::VaultSignatureNotAllowed);
+            }
+        }
+    }
+
+    if vault_spends > 1 {
+        return Err(Error::VaultSignatureNotAllowed);
+    }
+
+    Ok(())
 }

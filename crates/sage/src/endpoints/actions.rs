@@ -3,6 +3,7 @@ use chia_wallet_sdk::{
         bls::master_to_wallet_hardened_intermediate,
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
+    driver::P2Singleton,
     prelude::*,
 };
 use sage_api::{
@@ -14,11 +15,11 @@ use sage_api::{
 };
 use sage_assets::{DexieCat, XchUsdPrice};
 use sage_database::{Asset, AssetKind, Derivation};
-use sage_wallet::{SyncCommand, WalletError, WalletKind};
+use sage_wallet::{SyncCommand, Wallet, WalletError, WalletKind};
 
 use crate::{
-    Error, Result, Sage, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
-    parse_option_id,
+    Error, Result, Sage, WalletKindName, parse_asset_id, parse_collection_id, parse_did_id,
+    parse_nft_id, parse_option_id,
 };
 
 impl Sage {
@@ -186,8 +187,14 @@ impl Sage {
     ) -> Result<IncreaseDerivationIndexResponse> {
         let wallet = self.wallet()?;
 
-        if !matches!(wallet.kind, WalletKind::Bls { .. }) {
-            return Err(WalletError::DerivationsNotSupported.into());
+        match wallet.kind {
+            WalletKind::Bls { .. } => {}
+            WalletKind::Watch => return Err(WalletError::DerivationsNotSupported.into()),
+            WalletKind::Vault { launcher_id } => {
+                return self
+                    .increase_vault_address_index(&wallet, launcher_id, req)
+                    .await;
+            }
         }
 
         let hardened = req.hardened.is_none_or(|hardened| hardened);
@@ -249,6 +256,47 @@ impl Sage {
             .send(SyncCommand::SubscribePuzzles {
                 puzzle_hashes: derivations,
             })
+            .await?;
+
+        Ok(IncreaseDerivationIndexResponse {})
+    }
+
+    /// Adds a vault's P2 singleton addresses up to the nonce `req.index`, which sync then watches.
+    /// A vault has no hardened addresses, so asking for them is an error.
+    async fn increase_vault_address_index(
+        &self,
+        wallet: &Wallet,
+        launcher_id: Bytes32,
+        req: IncreaseDerivationIndex,
+    ) -> Result<IncreaseDerivationIndexResponse> {
+        if req.hardened == Some(true) {
+            return Err(Error::WalletKindNotSupported {
+                kind: WalletKindName::Vault,
+                action: "derive hardened addresses",
+            });
+        }
+
+        if req.unhardened == Some(false) {
+            return Ok(IncreaseDerivationIndexResponse {});
+        }
+
+        let mut tx = wallet.db.tx().await?;
+
+        let (max_nonce, _max_used_nonce) = tx.p2_singleton_nonces(launcher_id).await?;
+        let start = max_nonce.map_or(0, |nonce| nonce + 1);
+
+        let mut puzzle_hashes = Vec::new();
+
+        for nonce in start..req.index {
+            let p2_singleton = P2Singleton::new(launcher_id, nonce.try_into()?);
+            tx.insert_p2_singleton_p2_puzzle(p2_singleton).await?;
+            puzzle_hashes.push(p2_singleton.tree_hash().into());
+        }
+
+        tx.commit().await?;
+
+        self.command_sender
+            .send(SyncCommand::SubscribePuzzles { puzzle_hashes })
             .await?;
 
         Ok(IncreaseDerivationIndexResponse {})

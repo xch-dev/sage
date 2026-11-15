@@ -11,11 +11,11 @@ use sage_api::{
     SetSelectedTheme, SetSelectedThemeResponse, SetTargetPeers, SetTargetPeersResponse,
     SetTransactionExpiration, SetTransactionExpirationResponse,
 };
-use sage_config::{MAINNET, MIN_TRANSACTION_EXPIRATION, TESTNET11};
+use sage_config::{MAINNET, MIN_TRANSACTION_EXPIRATION, TESTNET11, WalletKind as ConfigWalletKind};
 use sage_wallet::SyncCommand;
 use tracing::Level;
 
-use crate::{Error, Result, Sage};
+use crate::{Error, Result, Sage, WalletKindName};
 
 impl Sage {
     pub async fn get_peers(&self, _req: GetPeers) -> Result<GetPeersResponse> {
@@ -209,6 +209,27 @@ impl Sage {
         else {
             return Err(Error::UnknownFingerprint);
         };
+
+        // A vault's change always goes back to the vault, and watch wallets never make change.
+        // Clearing the address is still allowed, so that one set before can be removed.
+        if req.change_address.is_some() {
+            match &wallet_config.kind {
+                ConfigWalletKind::Bls => {}
+                ConfigWalletKind::Watch { .. } => {
+                    return Err(Error::WalletKindNotSupported {
+                        kind: WalletKindName::Watch,
+                        action: "use a change address",
+                    });
+                }
+                ConfigWalletKind::Vault { .. } => {
+                    return Err(Error::WalletKindNotSupported {
+                        kind: WalletKindName::Vault,
+                        action: "use a change address",
+                    });
+                }
+            }
+        }
+
         wallet_config.change_address = req.change_address;
         self.save_config()?;
         self.switch_wallet().await?;
