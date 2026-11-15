@@ -159,7 +159,9 @@ impl PuzzleQueue {
                         };
 
                         // We don't want to insert child coins that we don't own.
-                        if !is_relevant_child(&mut tx, &kind).await? {
+                        if !is_relevant_child(&mut tx, item.coin_state.coin.puzzle_hash, &kind)
+                            .await?
+                        {
                             if is_root {
                                 warn!(
                                     "Deleting unexpected coin {coin_id} because it is not relevant to this wallet"
@@ -196,15 +198,16 @@ impl PuzzleQueue {
 
                         tx.insert_coin(item.coin_state).await?;
 
-                        let is_inserted = validate_wallet_coin(&mut tx, coin_id, &kind).await?
-                            && insert_puzzle(
-                                &mut tx,
-                                item.coin_state,
-                                kind.clone(),
-                                item.context.clone(),
-                                None,
-                            )
-                            .await?;
+                        let is_inserted =
+                            validate_wallet_coin(&mut tx, item.coin_state.coin, &kind).await?
+                                && insert_puzzle(
+                                    &mut tx,
+                                    item.coin_state,
+                                    kind.clone(),
+                                    item.context.clone(),
+                                    None,
+                                )
+                                .await?;
 
                         if is_inserted {
                             if kind.subscribe() {

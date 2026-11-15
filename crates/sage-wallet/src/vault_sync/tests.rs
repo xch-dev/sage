@@ -2,6 +2,7 @@ use std::{slice, time::Duration};
 
 use chia_wallet_sdk::{
     chia::puzzle_types::nft::NftMetadata,
+    clvm_utils::{tree_hash, tree_hash_atom, tree_hash_pair},
     driver::{
         InnerPuzzleSpend, MipsSpend, P2ConditionsOrSingleton, P2ConditionsOrSingletonVersion,
         Restriction, RestrictionKind, Vault, VaultVersion,
@@ -25,9 +26,9 @@ use test_log::test;
 use tokio::time::sleep;
 
 use crate::{
-    SyncCommand, SyncEvent, TestWallet, VAULT_ADDRESS_GAP, VaultHashes, WalletNftMint, build_vault,
-    build_vault_recovery, p2_singleton_puzzle_hash, recovery_restrictions, track_vault,
-    vault_hashes,
+    ChildKind, FixedConditionsMemo, SyncCommand, SyncEvent, TestWallet, VAULT_ADDRESS_GAP,
+    VaultHashes, WalletNftMint, build_vault, build_vault_recovery, is_relevant_child,
+    p2_singleton_puzzle_hash, recovery_restrictions, track_vault, vault_hashes,
 };
 
 const TIMELOCK: u64 = 60;
@@ -867,6 +868,158 @@ async fn test_vault_offer_coins() -> anyhow::Result<()> {
         test.history_custody(locked_coin.coin_id()).await?,
         Some(address)
     );
+
+    Ok(())
+}
+
+/// Cloud Wallet's pre-split coins use either puzzle version, and lock to the vault's first address
+/// whichever address their memos name.
+#[test(tokio::test)]
+async fn test_vault_offer_coin_versions() -> anyhow::Result<()> {
+    let test = TestWallet::new(0).await?;
+
+    let config = vault_config(
+        &BlsPair::new(1),
+        &BlsPair::new(2),
+        VaultVersion::ForceSingletonRecreation,
+    );
+    let vault = mint(&test, &config, true).await?;
+    let launcher_id = vault.launcher_id();
+    track(&test, launcher_id).await?;
+    wait_for_coin(&test, &vault, is_active).await?;
+
+    let funder = BlsPair::new(1000);
+    let funding = test
+        .sim
+        .lock()
+        .await
+        .new_coin(StandardLayer::new(funder.pk).tree_hash().into(), 500);
+
+    let mut ctx = SpendContext::new();
+    let mut conditions = Conditions::new();
+    let mut expected = Vec::new();
+
+    for (version, memo_nonce, amount) in [
+        (P2ConditionsOrSingletonVersion::Legacy, 0, 300),
+        (P2ConditionsOrSingletonVersion::FixedPuzzleMember, 7, 200),
+    ] {
+        let fixed = Conditions::new().reserve_fee(amount);
+        let fixed_spend = ctx.delegated_spend(fixed.clone())?;
+        let quoted_hash = ctx.tree_hash(fixed_spend.puzzle).into();
+        let locked = P2ConditionsOrSingleton::from_quoted_conditions_hash(
+            launcher_id,
+            0,
+            quoted_hash,
+            version,
+        );
+        let locked_hash: Bytes32 = locked.tree_hash().into();
+        let address = p2_singleton_puzzle_hash(launcher_id, memo_nonce);
+        let memos = ctx.memos(&(address, (fixed, ())))?;
+
+        conditions = conditions.create_coin(locked_hash, amount, memos);
+        expected.push((Coin::new(funding.coin_id(), locked_hash, amount), version));
+    }
+
+    StandardLayer::new(funder.pk).spend(&mut ctx, funding, conditions)?;
+    push(&test, ctx.take(), &[funder.sk]).await?;
+
+    for (coin, _) in &expected {
+        wait_for_xch_coin(&test, coin.coin_id()).await?;
+    }
+
+    assert_eq!(test.wallet.db.xch_balance().await?, 500);
+
+    for (coin, version) in expected {
+        assert!(matches!(
+            test.wallet.db.p2_puzzle(coin.puzzle_hash).await?,
+            P2Puzzle::P2ConditionsOrSingleton(p2) if p2.version == Some(version)
+        ));
+    }
+
+    Ok(())
+}
+
+/// The custody hash a launcher claims for its eve coin is only trusted with a memo that rebuilds
+/// it, and only if it rebuilds the eve coin's puzzle hash.
+#[test(tokio::test)]
+async fn test_vault_launcher_memo_mismatch() -> anyhow::Result<()> {
+    let test = TestWallet::new(0).await?;
+
+    let config = vault_config(
+        &BlsPair::new(1),
+        &BlsPair::new(2),
+        VaultVersion::ForceSingletonRecreation,
+    );
+    let other = vault_config(
+        &BlsPair::new(3),
+        &BlsPair::new(4),
+        VaultVersion::ForceSingletonRecreation,
+    );
+
+    let funder = BlsPair::new(1000);
+    let coin = test
+        .sim
+        .lock()
+        .await
+        .new_coin(StandardLayer::new(funder.pk).tree_hash().into(), 1);
+
+    // The vault is minted with one config's custody hash, but another config's memo.
+    let mut ctx = SpendContext::new();
+    let custody_hash = build_vault(&mut ctx, &config)?.hashes.custody_hash;
+    let memos = build_vault(&mut ctx, &other)?.memo_list;
+    let (conditions, vault) =
+        Launcher::new(coin.coin_id(), 1).mint_vault(&mut ctx, custody_hash, memos)?;
+    StandardLayer::new(funder.pk).spend(&mut ctx, coin, conditions)?;
+    push(&test, ctx.take(), &[funder.sk]).await?;
+
+    let launcher_id = vault.info.launcher_id;
+    track(&test, launcher_id).await?;
+
+    let status = wait_for_vault(&test, launcher_id, |status| status.coin.is_some()).await?;
+    assert_eq!(status.coin.and_then(|coin| coin.custody_hash), None);
+    assert_eq!(status.config, None);
+
+    Ok(())
+}
+
+/// A coin whose memos name one of our vault addresses isn't ours unless it's really locked to the
+/// vault, so a stranger's transaction can't be taken for ours by its memos alone.
+#[test(tokio::test)]
+async fn test_vault_lock_is_checked_for_relevance() -> anyhow::Result<()> {
+    let test = TestWallet::new(0).await?;
+
+    let config = vault_config(
+        &BlsPair::new(1),
+        &BlsPair::new(2),
+        VaultVersion::ForceSingletonRecreation,
+    );
+    let vault = mint(&test, &config, true).await?;
+    let launcher_id = vault.launcher_id();
+    track(&test, launcher_id).await?;
+    wait_for_coin(&test, &vault, is_active).await?;
+
+    let mut allocator = Allocator::new();
+    let conditions = Conditions::new().reserve_fee(1).to_clvm(&mut allocator)?;
+    let quoted_conditions_hash: Bytes32 =
+        tree_hash_pair(tree_hash_atom(&[1]), tree_hash(&allocator, conditions)).into();
+    let fixed_conditions = FixedConditionsMemo {
+        vault_p2_puzzle_hash: p2_singleton_puzzle_hash(launcher_id, 0),
+        conditions: Program::from_clvm(&allocator, conditions)?,
+        quoted_conditions_hash,
+    };
+    let locked: Bytes32 = P2ConditionsOrSingleton::from_quoted_conditions_hash(
+        launcher_id,
+        0,
+        quoted_conditions_hash,
+        P2ConditionsOrSingletonVersion::FixedPuzzleMember,
+    )
+    .tree_hash()
+    .into();
+    let kind = ChildKind::ConditionsOrSingleton { fixed_conditions };
+
+    let mut tx = test.wallet.db.tx().await?;
+    assert!(is_relevant_child(&mut tx, locked, &kind).await?);
+    assert!(!is_relevant_child(&mut tx, Bytes32::new([9; 32]), &kind).await?);
 
     Ok(())
 }

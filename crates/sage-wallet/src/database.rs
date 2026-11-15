@@ -17,14 +17,40 @@ use crate::{
     WalletError, WalletPeer, compute_nft_info, decode_vault_memo_list,
 };
 
-/// Whether a child coin belongs to the wallet: its custody is one of the wallet's puzzle hashes, or
-/// it's a coin of a tracked vault.
+/// Whether a child coin with this puzzle hash belongs to the wallet: its custody is one of the
+/// wallet's puzzle hashes, it's locked to one of the wallet's vaults, or it's a coin of a tracked
+/// vault.
 pub async fn is_relevant_child(
     tx: &mut DatabaseTx<'_>,
+    puzzle_hash: Bytes32,
     info: &ChildKind,
 ) -> Result<bool, WalletError> {
     if let Some(launcher_id) = info.vault_launcher_id() {
         return Ok(tx.is_vault(launcher_id).await?);
+    }
+
+    // Anyone can write memos that name one of our vault addresses, so a coin locked to fixed
+    // conditions or a vault is only ours if its puzzle hash is rebuilt from that vault.
+    match info {
+        ChildKind::ConditionsOrSingleton { fixed_conditions } => {
+            return Ok(
+                find_conditions_or_singleton(tx, fixed_conditions, puzzle_hash)
+                    .await?
+                    .is_some(),
+            );
+        }
+        ChildKind::Cat {
+            info,
+            fixed_conditions: Some(fixed_conditions),
+            ..
+        } if !tx.is_custody_p2_puzzle_hash(info.p2_puzzle_hash).await? => {
+            return Ok(
+                find_conditions_or_singleton(tx, fixed_conditions, info.p2_puzzle_hash)
+                    .await?
+                    .is_some(),
+            );
+        }
+        _ => {}
     }
 
     let custody_p2_puzzle_hashes = info.custody_p2_puzzle_hashes();
@@ -40,10 +66,12 @@ pub async fn is_relevant_child(
 
 pub async fn validate_wallet_coin(
     tx: &mut DatabaseTx<'_>,
-    coin_id: Bytes32,
+    coin: Coin,
     info: &ChildKind,
 ) -> Result<bool, WalletError> {
-    if !is_relevant_child(tx, info).await? {
+    let coin_id = coin.coin_id();
+
+    if !is_relevant_child(tx, coin.puzzle_hash, info).await? {
         warn!(
             "Deleting coin {} because it isn't relevant to this wallet",
             coin_id
@@ -394,16 +422,40 @@ async fn insert_vault_memo(
 
 /// Stores the P2 conditions or singleton puzzle that a coin's memos claim to be locked to, if it
 /// belongs to one of our vaults and rebuilds the coin's p2 puzzle hash.
+/// Stores the p2 puzzle of a coin locked to fixed conditions or one of our vaults, if its puzzle
+/// hash is rebuilt from the vault address in its memos.
 async fn insert_conditions_or_singleton(
     tx: &mut DatabaseTx<'_>,
     fixed_conditions: &FixedConditionsMemo,
     p2_puzzle_hash: Bytes32,
 ) -> Result<bool, WalletError> {
+    let Some((p2, version)) =
+        find_conditions_or_singleton(tx, fixed_conditions, p2_puzzle_hash).await?
+    else {
+        return Ok(false);
+    };
+
+    tx.insert_p2_conditions_or_singleton_p2_puzzle(
+        p2,
+        Some((version, fixed_conditions.conditions.clone())),
+    )
+    .await?;
+
+    Ok(true)
+}
+
+/// The p2 puzzle that locks a coin to fixed conditions or one of our vaults, if its puzzle hash is
+/// rebuilt from the vault address in its memos.
+async fn find_conditions_or_singleton(
+    tx: &mut DatabaseTx<'_>,
+    fixed_conditions: &FixedConditionsMemo,
+    p2_puzzle_hash: Bytes32,
+) -> Result<Option<(P2ConditionsOrSingleton, P2ConditionsOrSingletonVersion)>, WalletError> {
     let Some(p2_singleton) = tx
         .p2_singleton(fixed_conditions.vault_p2_puzzle_hash)
         .await?
     else {
-        return Ok(false);
+        return Ok(None);
     };
 
     // Cloud Wallet always uses the vault's first address for the singleton path, whichever address
@@ -414,7 +466,7 @@ async fn insert_conditions_or_singleton(
         vec![p2_singleton.nonce, 0]
     };
 
-    let candidate = nonces
+    Ok(nonces
         .into_iter()
         .flat_map(|nonce| {
             [
@@ -431,19 +483,7 @@ async fn insert_conditions_or_singleton(
                 (p2, version)
             })
         })
-        .find(|(p2, _)| p2.tree_hash() == p2_puzzle_hash.into());
-
-    if let Some((p2, version)) = candidate {
-        tx.insert_p2_conditions_or_singleton_p2_puzzle(
-            p2,
-            Some((version, fixed_conditions.conditions.clone())),
-        )
-        .await?;
-
-        return Ok(true);
-    }
-
-    Ok(false)
+        .find(|(p2, _)| p2.tree_hash() == p2_puzzle_hash.into()))
 }
 
 pub async fn insert_nft(
@@ -779,7 +819,7 @@ pub async fn is_wallet_transaction(
             if tx
                 .is_custody_p2_puzzle_hash(output.coin.puzzle_hash)
                 .await?
-                || is_relevant_child(&mut tx, &output.kind).await?
+                || is_relevant_child(&mut tx, output.coin.puzzle_hash, &output.kind).await?
             {
                 return Ok(true);
             }
@@ -996,7 +1036,7 @@ async fn write_transaction(
             }
 
             // We don't want to insert output coins that we won't own in the future.
-            if !is_relevant_child(tx, &output.kind).await? {
+            if !is_relevant_child(tx, output.coin.puzzle_hash, &output.kind).await? {
                 continue;
             }
 
@@ -1013,7 +1053,7 @@ async fn write_transaction(
 
             // Do the busy work of inserting the asset information into the database now that the coin exists.
 
-            let is_inserted = validate_wallet_coin(tx, coin_id, &output.kind).await?
+            let is_inserted = validate_wallet_coin(tx, output.coin, &output.kind).await?
                 && insert_puzzle(
                     tx,
                     coin_state,
