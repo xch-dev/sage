@@ -76,6 +76,12 @@ pub struct UnsyncedCoin {
 }
 
 impl Database {
+    /// A coin the wallet knows about, whether or not it belongs to the wallet's balance, such as a
+    /// vault's launcher.
+    pub async fn coin_by_id(&self, coin_id: Bytes32) -> Result<Option<Coin>> {
+        coin_by_id(&self.pool, coin_id).await
+    }
+
     pub async fn coins_by_ids(&self, coin_ids: &[Bytes32]) -> Result<Vec<CoinRow>> {
         coins_by_ids(&self.pool, coin_ids).await
     }
@@ -640,6 +646,25 @@ async fn selectable_token_balance(
         Ok(amount as u128)
     })
     .sum()
+}
+
+async fn coin_by_id(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Coin>> {
+    let coin_id = coin_id.as_ref();
+
+    query!(
+        "SELECT parent_coin_hash, puzzle_hash, amount FROM coins WHERE hash = ?",
+        coin_id
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| {
+        Ok(Coin::new(
+            row.parent_coin_hash.convert()?,
+            row.puzzle_hash.convert()?,
+            row.amount.convert()?,
+        ))
+    })
+    .transpose()
 }
 
 async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[Bytes32]) -> Result<Vec<CoinRow>> {

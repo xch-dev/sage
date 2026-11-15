@@ -88,6 +88,49 @@ impl Wallet {
     }
 }
 
+/// Signs a transaction with the given secret keys, such as a vault's custody members. Unlike
+/// [`Wallet::sign_transaction`], no keys are derived from them, so each required signature's public
+/// key must be one of the keys itself.
+pub fn sign_with_secret_keys(
+    spend_bundle: SpendBundle,
+    agg_sig_constants: &AggSigConstants,
+    secret_keys: &[SecretKey],
+    partial: bool,
+) -> Result<SpendBundle, WalletError> {
+    let required_signatures = required_signatures(&spend_bundle.coin_spends, agg_sig_constants)?;
+
+    let secret_keys: HashMap<PublicKey, &SecretKey> = secret_keys
+        .iter()
+        .map(|secret_key| (secret_key.public_key(), secret_key))
+        .collect();
+
+    let mut aggregated_signature = spend_bundle.aggregated_signature;
+
+    for required in required_signatures {
+        let RequiredSignature::Bls(required) = required else {
+            continue;
+        };
+
+        let Some(secret_key) = secret_keys.get(&required.public_key) else {
+            if partial {
+                continue;
+            }
+            return Err(WalletError::UnknownPublicKey);
+        };
+
+        if is_agg_sig_unsafe(&required) {
+            return Err(WalletError::AggSigUnsafe);
+        }
+
+        aggregated_signature += &sign(secret_key, required.message());
+    }
+
+    Ok(SpendBundle::new(
+        spend_bundle.coin_spends,
+        aggregated_signature,
+    ))
+}
+
 /// Whether this is an `AGG_SIG_UNSAFE` signature, which Sage refuses to produce with its keys.
 ///
 /// `AGG_SIG_UNSAFE` signs its message as is, without the coin or network data the other

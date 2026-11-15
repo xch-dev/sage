@@ -60,8 +60,9 @@ impl Wallet {
         let max_individual_amount = remaining_amount.div_ceil(output_count as u128);
         let derivations_needed = output_count.div_ceil(selected_coin_ids.len()) as u32;
 
-        let puzzle_hashes = if let Some(change_p2_puzzle_hash) = self.change_p2_puzzle_hash {
-            [change_p2_puzzle_hash].repeat(derivations_needed as usize)
+        // A vault's coins all go to its first address, since it doesn't derive addresses.
+        let puzzle_hashes = if self.change_p2_puzzle_hash.is_some() || !self.derives_addresses() {
+            [self.change_p2_puzzle_hash().await?].repeat(derivations_needed as usize)
         } else {
             self.p2_puzzle_hashes(derivations_needed, false, true)
                 .await?

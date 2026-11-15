@@ -13,6 +13,8 @@ use sage_database::{CoinKind, DatabaseError};
 use thiserror::Error;
 use tokio::{task::JoinError, time::error::Elapsed};
 
+use crate::VaultLayoutError;
+
 #[derive(Debug, Error)]
 pub enum WalletError {
     #[error("Database error: {0}")]
@@ -89,6 +91,35 @@ pub enum WalletError {
 
     #[error("Spending from a vault isn't supported yet")]
     VaultSpendNotSupported,
+
+    #[error("Only BLS wallets can mint vaults")]
+    VaultMintNotSupported,
+
+    #[error("The vault hasn't been synced yet")]
+    VaultNotSynced,
+
+    #[error("The vault has been melted")]
+    VaultMelted,
+
+    #[error("The vault's config is unknown, so it can't be spent until it's imported or rebuilt")]
+    VaultConfigUnknown,
+
+    #[error(
+        "The vault has a transaction that hasn't confirmed yet. Wait for it to confirm before making another."
+    )]
+    VaultSpendPending,
+
+    #[error("A recovery of the vault is pending, so it can't be spent until it's cancelled")]
+    VaultRecoveryPending,
+
+    #[error("The vault's custody has a member that Sage can't sign for yet")]
+    VaultMemberNotSupported,
+
+    #[error("Refusing to sign a vault transaction that changes the vault's custody")]
+    VaultCustodyChange,
+
+    #[error("Vault layout error: {0}")]
+    VaultLayout(#[from] VaultLayoutError),
 
     #[error("Missing secret key")]
     UnknownPublicKey,

@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     net::Ipv4Addr,
+    slice,
     sync::{Arc, Mutex as StdMutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -35,7 +36,8 @@ use tracing::debug;
 
 use crate::{
     MempoolSource, PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts,
-    Transaction, Wallet, WalletError, WalletKind, WalletPeer, insert_transaction, run_conditions,
+    Transaction, Wallet, WalletError, WalletKind, WalletPeer, insert_transaction,
+    p2_singleton_puzzle_hash, run_conditions, sign_with_secret_keys, track_vault,
 };
 
 /// A spend of a coin whose puzzle outputs the given conditions, for transactions that a
@@ -123,24 +125,7 @@ impl TestWallet {
         key_index: u32,
         options: SyncOptions,
     ) -> anyhow::Result<Self> {
-        let db_index = {
-            let mut lock = INDEX.lock().await;
-            let index = *lock;
-            *lock += 1;
-            index
-        };
-        let pool =
-            SqlitePool::connect(&format!("file:testdb{db_index}?mode=memory&cache=shared")).await?;
-        migrate!("../../migrations").run(&pool).await?;
-        let db = Database::new(pool.clone());
-        db.run_rust_migrations("TXCH".to_string()).await?;
-
-        let shared_pool = SqlitePool::connect(&format!(
-            "file:testshareddb{db_index}?mode=memory&cache=shared"
-        ))
-        .await?;
-        migrate!("../../migrations").run(&shared_pool).await?;
-        let shared_db = SharedDatabase::new(shared_pool);
+        let (pool, db, shared_db) = test_databases().await?;
 
         let sk = BlsPair::default().sk.derive_unhardened(key_index);
         let pk = sk.public_key();
@@ -263,16 +248,81 @@ impl TestWallet {
         Ok(())
     }
 
-    pub async fn transact(&self, coin_spends: Vec<CoinSpend>) -> anyhow::Result<()> {
-        let spend_bundle = self
-            .wallet
-            .sign_transaction(
-                SpendBundle::new(coin_spends, Signature::default()),
+    /// Opens a wallet for the vault on the same simulator, signed for by `signer`, as importing it
+    /// and attaching the signer does. The vault's coins are synced from its launcher.
+    pub async fn vault_wallet(
+        &self,
+        launcher_id: Bytes32,
+        signer: SecretKey,
+    ) -> anyhow::Result<Self> {
+        let (pool, db, shared_db) = test_databases().await?;
+
+        let mut tx = db.tx().await?;
+        track_vault(&mut tx, launcher_id).await?;
+        tx.commit().await?;
+
+        let wallet = Arc::new(Wallet::new(
+            db,
+            shared_db,
+            launcher_id.as_ref()[0].into(),
+            WalletKind::Vault { launcher_id },
+            TESTNET11_CONSTANTS.genesis_challenge,
+            AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
+            None,
+        ));
+        wallet.set_vault_signer_keys(vec![signer.public_key()]);
+
+        let state = Arc::new(Mutex::new(PeerState::default()));
+        let mempool = Arc::new(FakeMempool::default());
+        let (peer, sender, events) =
+            start_sync(&self.sim, &wallet, &state, self.options, &mempool).await?;
+
+        let puzzle_hash = p2_singleton_puzzle_hash(launcher_id, 0);
+
+        let mut test = TestWallet {
+            sim: self.sim.clone(),
+            agg_sig: AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
+            peer,
+            pool,
+            wallet,
+            master_sk: signer,
+            puzzle_hash,
+            hardened_puzzle_hash: puzzle_hash,
+            sender,
+            events,
+            index: self.index + 1,
+            state,
+            options: self.options,
+            mempool,
+        };
+
+        test.consume_until(|event| matches!(event, SyncEvent::Subscribed))
+            .await;
+
+        Ok(test)
+    }
+
+    /// Signs the coin spends with the wallet's key, or a vault wallet's signer.
+    pub async fn sign(&self, coin_spends: Vec<CoinSpend>) -> anyhow::Result<SpendBundle> {
+        let spend_bundle = SpendBundle::new(coin_spends, Signature::default());
+
+        Ok(match self.wallet.kind {
+            WalletKind::Vault { .. } => sign_with_secret_keys(
+                spend_bundle,
                 &self.agg_sig,
-                self.master_sk.clone(),
+                slice::from_ref(&self.master_sk),
                 false,
-            )
-            .await?;
+            )?,
+            _ => {
+                self.wallet
+                    .sign_transaction(spend_bundle, &self.agg_sig, self.master_sk.clone(), false)
+                    .await?
+            }
+        })
+    }
+
+    pub async fn transact(&self, coin_spends: Vec<CoinSpend>) -> anyhow::Result<()> {
+        let spend_bundle = self.sign(coin_spends).await?;
 
         self.push_bundle(spend_bundle).await?;
 
@@ -346,6 +396,30 @@ impl TestWallet {
         sim.create_block();
         Ok(timestamp)
     }
+}
+
+/// A wallet database and shared database, in memory.
+async fn test_databases() -> anyhow::Result<(SqlitePool, Database, SharedDatabase)> {
+    let db_index = {
+        let mut lock = INDEX.lock().await;
+        let index = *lock;
+        *lock += 1;
+        index
+    };
+    let pool =
+        SqlitePool::connect(&format!("file:testdb{db_index}?mode=memory&cache=shared")).await?;
+    migrate!("../../migrations").run(&pool).await?;
+    let db = Database::new(pool.clone());
+    db.run_rust_migrations("TXCH".to_string()).await?;
+
+    let shared_pool = SqlitePool::connect(&format!(
+        "file:testshareddb{db_index}?mode=memory&cache=shared"
+    ))
+    .await?;
+    migrate!("../../migrations").run(&shared_pool).await?;
+    let shared_db = SharedDatabase::new(shared_pool);
+
+    Ok((pool, db, shared_db))
 }
 
 /// Starts a sync manager for the wallet, connected only to the simulator.

@@ -46,6 +46,12 @@ impl Database {
     pub async fn mempool_items_with_coins(&self) -> Result<Vec<MempoolItemWithCoins>> {
         mempool_items_with_coins(&self.pool).await
     }
+
+    /// Whether a transaction that the wallet submitted and that hasn't confirmed yet spends the
+    /// coin.
+    pub async fn is_coin_spend_pending(&self, coin_id: Bytes32) -> Result<bool> {
+        is_coin_spend_pending(&self.pool, coin_id).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -440,4 +446,17 @@ async fn mempool_items_with_coins(
             }
         })
         .collect())
+}
+
+async fn is_coin_spend_pending(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<bool> {
+    let coin_id = coin_id.as_ref();
+
+    Ok(query!(
+        "SELECT COUNT(*) AS count FROM mempool_spends WHERE coin_hash = ?",
+        coin_id
+    )
+    .fetch_one(conn)
+    .await?
+    .count
+        > 0)
 }
