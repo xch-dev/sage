@@ -3,29 +3,22 @@ import { NftSelector } from '@/components/selectors/NftSelector';
 import { TokenSelector } from '@/components/selectors/TokenSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { TokenAmountInput } from '@/components/ui/masked-input';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { useRequestedNft } from '@/hooks/useRequestedNft';
 import { optionsEnabled } from '@/lib/features';
-import { toDecimal } from '@/lib/utils';
+import { fromMojos, toDecimal } from '@/lib/utils';
 import { Assets } from '@/state';
 import BigNumber from 'bignumber.js';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import {
-  AlertTriangle,
-  FilePenLine,
-  HandCoins,
-  ImageIcon,
-  PlusIcon,
-  TrashIcon,
-} from 'lucide-react';
+import { AlertTriangle, PlusIcon } from 'lucide-react';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { NumberFormat } from '../NumberFormat';
+import {
+  OfferAssetRow,
+  OfferAssetRowFooter,
+  RequestedNftPreview,
+} from './OfferAssetRow';
 import { OptionSelector } from './OptionSelector';
 
 interface AssetSelectorProps {
@@ -208,206 +201,185 @@ export function AssetSelector({
           </div>
         )}
 
-      {assets.tokens.length > 0 && (
-        <div className='flex flex-col'>
-          <Label className='flex items-center gap-1 mb-2'>
-            <HandCoins className='h-4 w-4' aria-hidden='true' />
-            <span>Tokens</span>
-          </Label>
-          {assets.tokens.map(({ asset_id: assetId, amount }, i) => {
-            const ownedToken = ownedTokens.find((t) => t.asset_id === assetId);
-            return (
-              <div
-                key={tokenIds[i] || `token-${i}`}
-                style={{
-                  zIndex:
-                    assets.tokens.length -
-                    i +
-                    assets.nfts.length +
-                    assets.options.length,
+      {assets.tokens.map(({ asset_id: assetId, amount }, i) => {
+        const ownedToken = offering
+          ? ownedTokens.find((t) => t.asset_id === assetId)
+          : undefined;
+        const maxValue = ownedToken
+          ? BigNumber.max(
+              0,
+              BigNumber(
+                toDecimal(ownedToken.selectable_balance, ownedToken.precision),
+              ).minus(assetId === null ? fee || 0 : 0),
+            )
+          : undefined;
+        const overBalance =
+          maxValue !== undefined &&
+          amount !== '' &&
+          BigNumber(amount.toString()).gt(maxValue);
+
+        return (
+          <OfferAssetRow
+            key={tokenIds[i] || `token-${i}`}
+            onRemove={() => removeToken(i)}
+            removeLabel={t`Remove token`}
+            tone={overBalance ? 'error' : undefined}
+            footer={
+              ownedToken && (
+                <OfferAssetRowFooter tone={overBalance ? 'error' : undefined}>
+                  {overBalance ? (
+                    assetId === null ? (
+                      <Trans>
+                        More than your spendable balance after the network fee
+                      </Trans>
+                    ) : (
+                      <Trans>More than your spendable balance</Trans>
+                    )
+                  ) : (
+                    <span className='truncate'>
+                      <SpendableBalance token={ownedToken} />
+                    </span>
+                  )}
+                </OfferAssetRowFooter>
+              )
+            }
+          >
+            <div className='min-w-0 flex-1'>
+              <TokenAmountInput
+                id={`${prefix}-cat-${i}-amount`}
+                aria-label={t`Amount`}
+                className='h-12 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0'
+                placeholder={t`Amount`}
+                value={amount}
+                onValueChange={(values) =>
+                  updateToken(i, 'amount', values.value)
+                }
+                precision={assetId === null ? 12 : 3}
+                hideMaxButton
+              />
+            </div>
+            {offering && (
+              <Button
+                type='button'
+                variant='ghost'
+                className='h-12 shrink-0 rounded-none px-3 text-xs'
+                disabled={!maxValue || maxValue.isZero()}
+                onClick={() =>
+                  maxValue && updateToken(i, 'amount', maxValue.toFixed())
+                }
+                aria-label={t`Use maximum spendable balance`}
+                title={t`Use maximum spendable balance`}
+              >
+                <Trans>Max</Trans>
+              </Button>
+            )}
+            <div className='min-w-0 flex-1'>
+              <TokenSelector
+                value={assetId}
+                onChange={(newAssetId) => {
+                  const newTokens = [...assets.tokens];
+                  newTokens[i] = {
+                    ...newTokens[i],
+                    asset_id: newAssetId,
+                    amount: '',
+                  };
+                  setAssets({ ...assets, tokens: newTokens });
                 }}
-                className='flex h-14 mb-1 relative'
-              >
-                <TokenSelector
-                  value={assetId}
-                  onChange={(newAssetId) => {
-                    const newTokens = [...assets.tokens];
-                    newTokens[i] = {
-                      ...newTokens[i],
-                      asset_id: newAssetId,
-                      amount: '',
-                    };
-                    setAssets({ ...assets, tokens: newTokens });
-                  }}
-                  disabled={assets.tokens
-                    .filter((t, idx) => t.asset_id !== '' && idx !== i)
-                    .map((t) => t.asset_id)}
-                  className='!rounded-r-none'
-                  hideZeroBalance={offering === true}
-                  showAllCats={offering !== true}
-                  includeXch={true}
-                />
-                <div className='flex flex-grow-0'>
-                  <TokenAmountInput
-                    id={`${prefix}-cat-${i}-amount`}
-                    className='!border-l-0 z-10 !rounded-l-none !rounded-r-none w-[150px] h-12'
-                    placeholder={t`Amount`}
-                    value={amount}
-                    onValueChange={(values) =>
-                      updateToken(i, 'amount', values.value)
-                    }
-                    precision={assetId === null ? 12 : 3}
-                    maxValue={
-                      ownedToken
-                        ? BigNumber.max(
-                            0,
-                            BigNumber(
-                              toDecimal(
-                                ownedToken.selectable_balance,
-                                ownedToken.precision,
-                              ),
-                            ).minus(assetId === null ? fee || 0 : 0),
-                          ).toString()
-                        : undefined
-                    }
-                    maxButtonClassName='!rounded-r-none'
-                    hideMaxButton={!offering}
-                  />
-                  <Button
-                    variant='outline'
-                    className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
-                    onClick={() => removeToken(i)}
-                  >
-                    <TrashIcon className='h-4 w-4' aria-hidden='true' />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {assets.nfts.length > 0 && (
-        <div className='flex flex-col'>
-          <Label className='flex items-center gap-1 mb-2'>
-            <ImageIcon className='h-4 w-4' aria-hidden='true' />
-            <span>NFTs</span>
-          </Label>
-          {assets.nfts.map((nft, i) => (
-            <div
-              key={nftIds[i] || `nft-${i}`}
-              style={{ zIndex: assets.nfts.length - i + assets.options.length }}
-              className='flex h-14 mb-1 relative'
-            >
-              {offering === true ? (
-                <NftSelector
-                  value={nft || null}
-                  onChange={(nftId) => updateNft(i, nftId || '')}
-                  disabled={assets.nfts.filter(
-                    (id, idx) => id !== '' && idx !== i,
-                  )}
-                  className='!rounded-r-none'
-                />
-              ) : (
-                <Input
-                  className='flex-grow !rounded-r-none h-12 z-10'
-                  placeholder='Enter NFT id'
-                  value={nft}
-                  onChange={(e) => updateNft(i, e.target.value)}
-                />
-              )}
-
-              {/* Warning icon for assets in offers */}
-              {offering && nft && assetsInOffers.has(nft) && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className='flex items-center px-2 bg-accent text-accent-foreground flex-shrink-0 flex-grow-0 h-12'>
-                        <AlertTriangle
-                          className='h-4 w-4'
-                          aria-label={t`This NFT is part of an open offer`}
-                        />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <Trans>This NFT is part of an open offer</Trans>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-
-              <Button
-                variant='outline'
-                className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
-                onClick={() => removeNft(i)}
-              >
-                <TrashIcon className='h-4 w-4' aria-hidden='true' />
-              </Button>
+                disabled={assets.tokens
+                  .filter((t, idx) => t.asset_id !== '' && idx !== i)
+                  .map((t) => t.asset_id)}
+                className={rowSelectClassName}
+                hideZeroBalance={offering === true}
+                showAllCats={offering !== true}
+                includeXch={true}
+              />
             </div>
-          ))}
-        </div>
-      )}
+          </OfferAssetRow>
+        );
+      })}
 
-      {assets.options.length > 0 && (
-        <div className='flex flex-col'>
-          <Label className='flex items-center gap-1 mb-2'>
-            <FilePenLine className='h-4 w-4' aria-hidden='true' />
-            <span>Options</span>
-          </Label>
-          {assets.options.map((option, i) => (
-            <div
-              key={optionIds[i] || `option-${i}`}
-              style={{ zIndex: assets.options.length - i }}
-              className='flex h-14 mb-1 relative'
-            >
-              {offering === true ? (
-                <OptionSelector
-                  value={option || null}
-                  onChange={(optionId) => updateOption(i, optionId || '')}
-                  disabled={assets.options.filter(
-                    (id, idx) => id !== '' && idx !== i,
-                  )}
-                  className='!rounded-r-none'
-                />
-              ) : (
-                <Input
-                  className='flex-grow !rounded-r-none h-12 z-10'
-                  placeholder='Enter option id'
-                  value={option}
-                  onChange={(e) => updateOption(i, e.target.value)}
-                />
-              )}
-
-              {/* Warning icon for assets in offers */}
-              {offering && option && assetsInOffers.has(option) && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className='flex items-center px-2 bg-accent text-accent-foreground flex-shrink-0 flex-grow-0 h-12'>
-                        <AlertTriangle
-                          className='h-4 w-4'
-                          aria-label={t`This option is part of an open offer`}
-                        />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <Trans>This option is part of an open offer</Trans>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-
-              <Button
-                variant='outline'
-                className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
-                onClick={() => removeOption(i)}
-              >
-                <TrashIcon className='h-4 w-4' aria-hidden='true' />
-              </Button>
+      {assets.nfts.map((nft, i) =>
+        offering ? (
+          <OfferAssetRow
+            key={nftIds[i] || `nft-${i}`}
+            onRemove={() => removeNft(i)}
+            removeLabel={t`Remove NFT`}
+            tone={nft && assetsInOffers.has(nft) ? 'warning' : undefined}
+            footer={
+              nft &&
+              assetsInOffers.has(nft) && (
+                <OfferAssetRowFooter tone='warning'>
+                  <AlertTriangle className='h-3 w-3' aria-hidden='true' />
+                  <Trans>This NFT is part of an open offer</Trans>
+                </OfferAssetRowFooter>
+              )
+            }
+          >
+            <div className='min-w-0 flex-1'>
+              <NftSelector
+                value={nft || null}
+                onChange={(nftId) => updateNft(i, nftId || '')}
+                disabled={assets.nfts.filter(
+                  (id, idx) => id !== '' && idx !== i,
+                )}
+                className={rowSelectClassName}
+              />
             </div>
-          ))}
-        </div>
+          </OfferAssetRow>
+        ) : (
+          <RequestedNftRow
+            key={nftIds[i] || `nft-${i}`}
+            value={nft}
+            onChange={(value) => updateNft(i, value)}
+            onRemove={() => removeNft(i)}
+          />
+        ),
       )}
+
+      {assets.options.map((option, i) => (
+        <OfferAssetRow
+          key={optionIds[i] || `option-${i}`}
+          onRemove={() => removeOption(i)}
+          removeLabel={t`Remove option`}
+          tone={
+            offering && option && assetsInOffers.has(option)
+              ? 'warning'
+              : undefined
+          }
+          footer={
+            offering &&
+            option &&
+            assetsInOffers.has(option) && (
+              <OfferAssetRowFooter tone='warning'>
+                <AlertTriangle className='h-3 w-3' aria-hidden='true' />
+                <Trans>This option is part of an open offer</Trans>
+              </OfferAssetRowFooter>
+            )
+          }
+        >
+          <div className='min-w-0 flex-1'>
+            {offering ? (
+              <OptionSelector
+                value={option || null}
+                onChange={(optionId) => updateOption(i, optionId || '')}
+                disabled={assets.options.filter(
+                  (id, idx) => id !== '' && idx !== i,
+                )}
+                className={rowSelectClassName}
+              />
+            ) : (
+              <Input
+                aria-label={t`Option ID`}
+                className={rowInputClassName}
+                placeholder={t`Option ID`}
+                value={option}
+                onChange={(e) => updateOption(i, e.target.value)}
+              />
+            )}
+          </div>
+        </OfferAssetRow>
+      ))}
+
       <div className='flex flex-wrap gap-2'>
         <Button variant='outline' size='sm' onClick={addToken}>
           <PlusIcon className='mr-1 h-3 w-3' aria-hidden='true' />
@@ -427,5 +399,63 @@ export function AssetSelector({
         )}
       </div>
     </div>
+  );
+}
+
+// The selectors and inputs sit inside an OfferAssetRow, which draws the border.
+const rowSelectClassName =
+  'h-12 rounded-none border-0 bg-transparent shadow-none';
+const rowInputClassName =
+  'h-12 rounded-none border-0 bg-transparent font-mono text-sm shadow-none focus-visible:ring-0';
+
+function SpendableBalance({ token }: { token: TokenRecord }) {
+  const ticker = token.ticker ?? '';
+
+  return (
+    <Trans>
+      <NumberFormat
+        value={fromMojos(token.selectable_balance, token.precision)}
+        minimumFractionDigits={0}
+        maximumFractionDigits={token.precision}
+      />{' '}
+      {ticker} spendable
+    </Trans>
+  );
+}
+
+interface RequestedNftRowProps {
+  value: string;
+  onChange: (value: string) => void;
+  onRemove: () => void;
+}
+
+function RequestedNftRow({ value, onChange, onRemove }: RequestedNftRowProps) {
+  const { lookup, thumbnail } = useRequestedNft(value);
+
+  return (
+    <OfferAssetRow
+      onRemove={onRemove}
+      removeLabel={t`Remove NFT`}
+      tone={
+        lookup.status === 'invalid'
+          ? 'error'
+          : lookup.status === 'missing'
+            ? 'warning'
+            : undefined
+      }
+      footer={<RequestedNftPreview lookup={lookup} thumbnail={thumbnail} />}
+    >
+      <div className='min-w-0 flex-1'>
+        <Input
+          aria-label={t`NFT ID`}
+          className={rowInputClassName}
+          placeholder={t`NFT ID (nft1…)`}
+          autoComplete='off'
+          spellCheck={false}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </div>
+    </OfferAssetRow>
   );
 }
