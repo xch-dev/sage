@@ -41,7 +41,7 @@ function LogLevelSettings() {
         description={t`How much detail is written to the logs. More detail helps when reporting a problem.`}
         control={
           <Select
-            value={level ?? undefined}
+            value={level ?? ''}
             disabled={level === null}
             onValueChange={(value) => {
               commands
