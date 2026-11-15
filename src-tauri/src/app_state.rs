@@ -16,6 +16,7 @@ use crate::error;
 pub struct Initialized(pub Mutex<Option<error::Result<()>>>);
 
 /// Set instead of the apps host state when the apps database couldn't be opened.
+#[cfg_attr(mobile, allow(dead_code))] // Mobile builds have no apps database
 pub struct AppsDbFailure {
     pub root: PathBuf,
     pub reason: String,
@@ -109,4 +110,35 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
     });
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn failure(newer_version: bool) -> AppsDbFailure {
+        AppsDbFailure {
+            root: PathBuf::new(),
+            reason: "migration failed".to_string(),
+            newer_version,
+        }
+    }
+
+    #[test]
+    fn unopenable_database_offers_the_reset() {
+        let failure = failure(false);
+        assert!(failure.resettable());
+        let error = failure.to_error();
+        assert!(matches!(error.kind, ErrorKind::AppsDatabase));
+        assert_eq!(error.reason, "migration failed");
+    }
+
+    #[test]
+    fn database_from_a_newer_version_offers_no_reset() {
+        let failure = failure(true);
+        assert!(!failure.resettable());
+        let error = failure.to_error();
+        assert!(!matches!(error.kind, ErrorKind::AppsDatabase));
+        assert!(error.reason.contains("newer version"), "{}", error.reason);
+    }
 }

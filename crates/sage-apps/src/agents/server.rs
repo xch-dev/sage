@@ -255,14 +255,6 @@ impl ServerHandler for AgentMcpHandler {
             ));
         };
 
-        if !agent.capabilities.contains(&tool.capability) {
-            return Ok(tool_error(format!(
-                "permission_denied: agent is not granted access to {}",
-                tool.name
-            ))
-            .into());
-        }
-
         let arguments = Value::Object(request.arguments.unwrap_or_default());
 
         let result = match self.executor.call(&agent, tool, arguments).await {
@@ -294,7 +286,10 @@ mod tests {
     use tower::ServiceExt;
 
     use super::*;
-    use crate::{BridgeMethodHandleError, SageAppWalletScope, UserBridgeCapability};
+    use crate::{
+        BridgeMethodHandleError, BridgeRegistry, BridgeRegistryKind, SageAppWalletScope,
+        UserBridgeCapability, authorize_agent_call,
+    };
 
     const PROTOCOL_VERSION: &str = "2025-06-18";
     const VERSION: &str = "9.9.9-test";
@@ -305,10 +300,14 @@ mod tests {
     impl AgentToolExecutor for FakeExecutor {
         async fn call(
             &self,
-            _agent: &SageAgent,
+            agent: &SageAgent,
             tool: &AgentTool,
             arguments: Value,
         ) -> Result<Value, BridgeMethodHandleError> {
+            // Authorized like a real call, with a wallet that every agent here can use.
+            let registry = BridgeRegistry::new(BridgeRegistryKind::User);
+            authorize_agent_call(&registry, agent, tool, Some(1))?;
+
             if tool.name == "get_sync_status" {
                 return Err(BridgeMethodHandleError::new(
                     "no_wallet",

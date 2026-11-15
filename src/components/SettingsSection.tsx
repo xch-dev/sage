@@ -1,4 +1,5 @@
 import { Label } from '@/components/ui/label';
+import { Trans } from '@lingui/react/macro';
 
 interface SettingsSectionProps {
   title: string;
@@ -41,6 +42,21 @@ export function SettingItem({
         <div className='flex sm:justify-end'>{control}</div>
       </div>
       {children}
+    </div>
+  );
+}
+
+export function ServerStatusIndicator({ running }: { running: boolean }) {
+  return (
+    <div className='flex items-center gap-3'>
+      <div
+        className={`h-3 w-3 rounded-full ${
+          running ? 'bg-green-500' : 'bg-red-500'
+        }`}
+      />
+      <span className='font-medium'>
+        {running ? <Trans>Running</Trans> : <Trans>Stopped</Trans>}
+      </span>
     </div>
   );
 }

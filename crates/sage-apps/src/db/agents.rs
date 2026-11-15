@@ -126,9 +126,12 @@ impl AppsDb {
         Ok(result.rows_affected() > 0)
     }
 
-    /// Drops wallets that no longer exist from every agent's scope.
-    pub async fn retain_agent_wallets(&self, existing: &[u32]) -> Result<()> {
-        for agent in self.list_agents().await? {
+    /// Drops wallets that no longer exist from every agent's scope, and returns the agents.
+    pub async fn retain_agent_wallets(&self, existing: &[u32]) -> Result<Vec<SageAgent>> {
+        let mut agents = self.list_agents().await?;
+        let mut edited_meanwhile = false;
+
+        for agent in &mut agents {
             let SageAppWalletScope::SelectedWallets { fingerprints } = &agent.wallet_scope else {
                 continue;
             };
@@ -141,12 +144,24 @@ impl AppsDb {
 
             if kept.len() != fingerprints.len() {
                 let scope = SageAppWalletScope::SelectedWallets { fingerprints: kept };
-                self.replace_agent_wallet_scope(&agent.id, &agent.wallet_scope, &scope)
-                    .await?;
+                let now = unix_timestamp_ms();
+                if self
+                    .replace_agent_wallet_scope(&agent.id, &agent.wallet_scope, &scope, now)
+                    .await?
+                {
+                    agent.wallet_scope = scope;
+                    agent.updated_at_ms = now;
+                } else {
+                    edited_meanwhile = true;
+                }
             }
         }
 
-        Ok(())
+        if edited_meanwhile {
+            return self.list_agents().await;
+        }
+
+        Ok(agents)
     }
 
     /// Changes only the wallet scope, and only if it is still `expected`, so that an edit saved
@@ -156,6 +171,7 @@ impl AppsDb {
         id: &str,
         expected: &SageAppWalletScope,
         wallet_scope: &SageAppWalletScope,
+        updated_at_ms: i64,
     ) -> Result<bool> {
         let result = sqlx::query(
             r"
@@ -166,7 +182,7 @@ impl AppsDb {
             ",
         )
         .bind(serde_json::to_string(wallet_scope)?)
-        .bind(unix_timestamp_ms())
+        .bind(updated_at_ms)
         .bind(id)
         .bind(serde_json::to_string(expected)?)
         .execute(&self.pool)
@@ -302,7 +318,8 @@ mod tests {
         db.insert_agent(&all, "h1").await.unwrap();
         db.insert_agent(&selected, "h2").await.unwrap();
 
-        db.retain_agent_wallets(&[8, 9]).await.unwrap();
+        let returned = db.retain_agent_wallets(&[8, 9]).await.unwrap();
+        assert_eq!(returned, db.list_agents().await.unwrap());
 
         let scope = |id: &str| {
             let db = db.clone();
@@ -319,7 +336,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn pruning_a_stale_scope_keeps_a_newer_edit() {
+    async fn scope_replacement_keeps_a_newer_edit() {
         let base = tempdir().unwrap();
         let db = AppsDb::initialize(base.path()).await.unwrap();
         let mut agent = sample("a");
@@ -338,7 +355,7 @@ mod tests {
             fingerprints: vec![8],
         };
         assert!(
-            db.replace_agent_wallet_scope(&agent.id, &stale, &pruned)
+            db.replace_agent_wallet_scope(&agent.id, &stale, &pruned, 2)
                 .await
                 .unwrap()
         );
@@ -348,7 +365,7 @@ mod tests {
 
         // A scope the user changed since it was read is left alone.
         assert!(
-            !db.replace_agent_wallet_scope(&agent.id, &stale, &SageAppWalletScope::AllWallets)
+            !db.replace_agent_wallet_scope(&agent.id, &stale, &SageAppWalletScope::AllWallets, 3)
                 .await
                 .unwrap()
         );

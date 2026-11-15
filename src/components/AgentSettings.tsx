@@ -5,10 +5,14 @@ import {
   SageAppCapabilityDefinitionView,
   SageAppWalletScope,
   UserBridgeCapability,
+  WalletInfo,
 } from '@/bindings';
 import { AgentPermissionsPanel } from '@/components/AgentPermissionsPanel';
 import { CopyBox } from '@/components/CopyBox';
-import { SettingsSection } from '@/components/SettingsSection';
+import {
+  ServerStatusIndicator,
+  SettingsSection,
+} from '@/components/SettingsSection';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,7 +45,6 @@ import { formatTimestamp } from '@/lib/utils';
 import { plural, t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useCallback, useEffect, useState } from 'react';
-import type { WalletScopeEditorWallet } from 'sage-app-ui';
 
 const REFRESH_INTERVAL_MS = 5000;
 
@@ -157,20 +160,7 @@ export function AgentSettings() {
     <SettingsSection title={t`Agents`}>
       <div className='p-3 space-y-3'>
         <div className='flex items-center justify-between gap-4'>
-          <div className='flex items-center gap-3'>
-            <div
-              className={`h-3 w-3 rounded-full ${
-                status?.running ? 'bg-green-500' : 'bg-red-500'
-              }`}
-            />
-            <span className='font-medium'>
-              {status?.running ? (
-                <Trans>Running</Trans>
-              ) : (
-                <Trans>Stopped</Trans>
-              )}
-            </span>
-          </div>
+          <ServerStatusIndicator running={status?.running ?? false} />
           <Switch
             checked={status?.enabled ?? false}
             disabled={status === null || (!status.enabled && !portValid)}
@@ -364,8 +354,8 @@ function AgentDialog({
   const [walletScope, setWalletScope] = useState<SageAppWalletScope>(
     defaultAgentWalletScope(),
   );
-  const [wallets, setWallets] = useState<WalletScopeEditorWallet[]>([]);
-  const [walletsLoaded, setWalletsLoaded] = useState(false);
+  // Null until the wallets load, so that no wallet is reported missing before then.
+  const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
   const [pending, setPending] = useState(false);
   const [token, setToken] = useState<string | null>(null);
 
@@ -379,26 +369,17 @@ function AgentDialog({
     setWalletScope(
       agent ? agent.walletScope : defaultAgentWalletScope(currentFingerprint),
     );
-    setWalletsLoaded(false);
+    setWallets(null);
     commands
       .getWallets({})
-      .then(({ wallets }) => {
-        setWallets(
-          wallets.map(({ fingerprint, name, emoji }) => ({
-            fingerprint,
-            name,
-            emoji,
-          })),
-        );
-        setWalletsLoaded(true);
-      })
+      .then((data) => setWallets(data.wallets))
       .catch(addError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, agent]);
 
   const capabilities =
     editedCapabilities ?? initialAgentCapabilities(agent, definitions);
-  const walletSelected = hasSelectableWallet(walletScope, wallets);
+  const walletSelected = hasSelectableWallet(walletScope, wallets ?? []);
 
   const submit = async () => {
     if (!(await promptIfEnabled())) return;
@@ -492,11 +473,11 @@ function AgentDialog({
               onCapabilitiesChange={setEditedCapabilities}
               walletScope={walletScope}
               onWalletScopeChange={setWalletScope}
-              wallets={wallets}
+              wallets={wallets ?? []}
               disabled={pending}
             />
 
-            {walletsLoaded && !walletSelected && (
+            {wallets !== null && !walletSelected && (
               <div className='text-sm text-destructive'>
                 <Trans>
                   Select at least one wallet, or choose All wallets.

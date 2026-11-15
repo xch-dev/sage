@@ -6,7 +6,11 @@ import { ResyncDialog } from '@/components/dialogs/ResyncDialog';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
 import { PasteInput } from '@/components/PasteInput';
-import { SettingItem, SettingsSection } from '@/components/SettingsSection';
+import {
+  ServerStatusIndicator,
+  SettingItem,
+  SettingsSection,
+} from '@/components/SettingsSection';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -1207,16 +1211,7 @@ function RpcSettings() {
     <SettingsSection title={t`RPC Server`}>
       <div className='p-3'>
         <div className='flex items-center justify-between'>
-          <div className='flex items-center gap-3'>
-            <div
-              className={`h-3 w-3 rounded-full ${
-                isRunning ? 'bg-green-500' : 'bg-red-500'
-              }`}
-            />
-            <span className='font-medium'>
-              {isRunning ? <Trans>Running</Trans> : <Trans>Stopped</Trans>}
-            </span>
-          </div>
+          <ServerStatusIndicator running={isRunning} />
           <Button
             variant={isRunning ? 'destructive' : 'default'}
             size='sm'

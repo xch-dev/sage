@@ -280,8 +280,7 @@ pub async fn apps_list_agents(
     apps_state: State<'_, AppsHostState>,
 ) -> Result<Vec<SageAgent>> {
     let wallets = wallet_fingerprints(&app_state).await;
-    apps_state.db.retain_agent_wallets(&wallets).await?;
-    Ok(apps_state.db.list_agents().await?)
+    Ok(apps_state.db.retain_agent_wallets(&wallets).await?)
 }
 
 #[command]

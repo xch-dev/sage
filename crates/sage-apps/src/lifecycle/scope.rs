@@ -18,7 +18,7 @@ async fn app_is_enabled_for_scope(app_state: &State<'_, AppState>, app: &SharedS
         return false;
     };
 
-    app.with(|sage_app| sage_app.common().wallet_scope().allows(fingerprint))
+    app.is_wallet_in_scope(fingerprint)
 }
 
 pub(crate) async fn current_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u32> {

@@ -147,12 +147,7 @@ pub(crate) async fn process_agent(
     let fingerprint = current_wallet_fingerprint(app_state).await;
     let method = authorize_agent_call(&registry, agent, tool, fingerprint)?;
 
-    if method.requires_signing() && app_state.lock().await.is_watch_only() {
-        return Err(BridgeMethodHandleError::new(
-            "watch_only",
-            "Watch-only wallets can't create or sign transactions",
-        ));
-    }
+    ensure_can_sign(app_state, method).await?;
 
     let request = RustBridgeRequest {
         bridge_version: Some("v1".to_string()),
@@ -214,11 +209,11 @@ async fn process_shared(
         }
     }
 
-    if method.requires_signing() && app_state.lock().await.is_watch_only() {
+    if let Err(err) = ensure_can_sign(app_state, method).await {
         return Ok(RustBridgeInvokeResult::error(
             &request.id,
-            "watch_only",
-            "Watch-only wallets can't create or sign transactions",
+            err.code,
+            err.message,
         ));
     }
 
@@ -338,6 +333,21 @@ fn bridge_handle_result_to_response(
         Ok(value) => RustBridgeResponse::success(request_id, &value),
         Err(err) => RustBridgeResponse::error(request_id, err.code, err.message),
     }
+}
+
+/// Refuses methods that sign while a watch-only wallet is loaded.
+async fn ensure_can_sign(
+    app_state: &State<'_, AppState>,
+    method: &dyn BridgeMethod,
+) -> Result<(), BridgeMethodHandleError> {
+    if method.requires_signing() && app_state.lock().await.is_watch_only() {
+        return Err(BridgeMethodHandleError::new(
+            "watch_only",
+            "Watch-only wallets can't create or sign transactions",
+        ));
+    }
+
+    Ok(())
 }
 
 fn serialize_bridge_result(

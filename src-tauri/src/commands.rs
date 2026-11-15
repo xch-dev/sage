@@ -104,6 +104,8 @@ pub async fn reset_apps_database(app_handle: AppHandle, state: State<'_, AppStat
     let mut sage = state.lock().await;
     sage.lock_data_dir()?;
 
+    // Mobile builds have no apps database, so the failure is never set there.
+    #[cfg(not(mobile))]
     sage_apps::AppsDb::delete_files(&failure.root)?;
     drop(sage);
 
