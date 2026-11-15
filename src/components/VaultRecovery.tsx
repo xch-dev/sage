@@ -719,7 +719,11 @@ export function VaultRecoveryAlert() {
   const timeLeft = secondsLeft === null ? null : formatDuration(secondsLeft);
 
   return (
-    <Alert variant='destructive' className='mb-4'>
+    // A banner across the top of the page, like the read-only wallet banners.
+    <Alert
+      variant='destructive'
+      className='rounded-none border-x-0 border-t-0 px-6 shrink-0'
+    >
       <ShieldAlert className='h-4 w-4' aria-hidden='true' />
       <AlertTitle>
         <Trans>A recovery of this vault was started</Trans>
