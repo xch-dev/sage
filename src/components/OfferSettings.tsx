@@ -1,4 +1,10 @@
-import { Card, CardContent } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { ArrowDownUp, ArrowLeftRight } from 'lucide-react';
 import { ReactNode, useId } from 'react';
@@ -16,17 +22,11 @@ export function OfferSettingCard({
 }: OfferSettingCardProps) {
   return (
     <Card>
-      <CardContent className='flex flex-col gap-4 pt-6'>
-        <div className='flex flex-col gap-1'>
-          <h3 className='font-heading text-base font-semibold leading-none'>
-            {title}
-          </h3>
-          {description && (
-            <p className='text-sm text-muted-foreground'>{description}</p>
-          )}
-        </div>
-        {children}
-      </CardContent>
+      <CardHeader className='pb-4'>
+        <CardTitle className='text-base'>{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
+      <CardContent>{children}</CardContent>
     </Card>
   );
 }
@@ -62,7 +62,10 @@ export interface OfferChoiceProps {
   disabled?: boolean;
 }
 
-/** A pair of radio options laid out side by side, each with its own details. */
+/**
+ * A pair of radio options, side by side on wide screens, each with its own
+ * details shown below it while it is selected.
+ */
 export function OfferChoice({
   label,
   value,
@@ -70,43 +73,50 @@ export function OfferChoice({
   options,
   disabled,
 }: OfferChoiceProps) {
-  const name = useId();
+  const id = useId();
 
   return (
-    <div
-      role='radiogroup'
-      aria-label={label}
-      aria-disabled={disabled}
-      className='grid divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0'
-    >
-      {options.map((option) => {
+    <fieldset className='grid min-w-0 lg:grid-cols-2'>
+      <legend className='sr-only'>{label}</legend>
+      {options.map((option, index) => {
         const checked = option.value === value;
+        const inputId = `${id}-${index}`;
 
         return (
           <div
             key={option.value}
             className={cn(
-              'flex min-w-0 flex-col gap-3 py-4 transition-opacity first:pt-0 last:pb-0 sm:py-0 sm:first:pr-6 sm:last:pl-6',
+              'flex min-w-0 flex-col gap-3 transition-opacity',
+              index === 0
+                ? 'pb-4 lg:pb-0 lg:pr-6'
+                : 'border-t border-border pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0',
               !checked && !disabled && 'opacity-60 hover:opacity-90',
               disabled && 'opacity-50',
             )}
           >
             <label
+              htmlFor={inputId}
               className={cn(
                 'relative flex items-start gap-3 text-sm',
                 disabled ? 'cursor-not-allowed' : 'cursor-pointer',
               )}
             >
               <input
+                id={inputId}
                 type='radio'
-                name={name}
+                name={id}
                 value={option.value}
                 checked={checked}
                 disabled={disabled}
                 onChange={() => onValueChange(option.value)}
+                aria-labelledby={`${inputId}-label`}
+                aria-describedby={
+                  option.description ? `${inputId}-description` : undefined
+                }
                 className='peer sr-only'
               />
               <span
+                aria-hidden
                 className={cn(
                   'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background',
                   checked ? 'border-primary' : 'border-muted-foreground',
@@ -117,20 +127,25 @@ export function OfferChoice({
                 )}
               </span>
               <span className='flex flex-col gap-1'>
-                <span className='font-medium leading-5'>{option.label}</span>
+                <span id={`${inputId}-label`} className='font-medium leading-5'>
+                  {option.label}
+                </span>
                 {option.description && (
-                  <span className='text-muted-foreground'>
+                  <span
+                    id={`${inputId}-description`}
+                    className='text-muted-foreground'
+                  >
                     {option.description}
                   </span>
                 )}
               </span>
             </label>
             {checked && option.children && (
-              <div className='sm:pl-7'>{option.children}</div>
+              <div className='lg:pl-7'>{option.children}</div>
             )}
           </div>
         );
       })}
-    </div>
+    </fieldset>
   );
 }
