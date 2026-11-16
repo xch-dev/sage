@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Textarea } from '@/components/ui/textarea';
+import { VaultRecoveryCard } from '@/components/VaultRecovery';
 import { VaultRecoveryFields } from '@/components/VaultRecoveryFields';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
@@ -365,6 +366,8 @@ export default function Vault() {
             )}
           </CardContent>
         </Card>
+
+        {vault && <VaultRecoveryCard vault={vault} onChanged={refresh} />}
 
         <Card>
           <CardHeader>

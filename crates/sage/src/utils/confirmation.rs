@@ -3,11 +3,15 @@ use std::collections::HashMap;
 use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, prelude::*, puzzles::SETTLEMENT_PAYMENT_HASH};
 use sage_api::{
     Amount, CoinJson, CoinSpendJson, HandleRecord, SpendBundleJson, TransactionInput,
-    TransactionOutput, TransactionSummary, VaultSpendRecord,
+    TransactionOutput, TransactionSummary, VaultRecoverySpendKind as ApiVaultRecoverySpendKind,
+    VaultSpendRecord,
 };
 use sage_assets::{Data, base64_data_uri};
 use sage_database::{Asset, AssetKind, Database, ParsedNftMetadata};
-use sage_wallet::{CoinKind, Transaction, compute_nft_info, parse_vault_spend_bundle};
+use sage_wallet::{
+    CoinKind, Transaction, VaultRecoverySpendKind, compute_nft_info, parse_vault_recovery_spend,
+    parse_vault_spend_bundle,
+};
 
 use crate::{Error, HandleSend, Result, Sage, encode_vault_id};
 
@@ -174,6 +178,27 @@ fn vault_spend_record(
 ) -> Result<Option<VaultSpendRecord>> {
     let launcher_id_string = encode_vault_id(launcher_id)?;
 
+    // A spend through the recovery side can't be parsed by clear signing, but running it shows the
+    // custody it moves the vault to. It can't output anything else, other than its fixed
+    // conditions, since the recovery side's restrictions prevent it.
+    if let Ok(Some(recovery)) = parse_vault_recovery_spend(coin_spends, launcher_id) {
+        return Ok(Some(VaultSpendRecord {
+            launcher_id: launcher_id_string,
+            verified: true,
+            error: None,
+            custody_changed: recovery
+                .child_custody_hash
+                .is_some_and(|custody_hash| custody_hash != recovery.custody_hash),
+            melted: recovery.child_custody_hash.is_none(),
+            reserved_fee: Amount::u64(0),
+            unaccounted_xch: Amount::u64(0),
+            recovery: Some(match recovery.kind {
+                VaultRecoverySpendKind::Start => ApiVaultRecoverySpendKind::Start,
+                VaultRecoverySpendKind::Finish => ApiVaultRecoverySpendKind::Finish,
+            }),
+        }));
+    }
+
     Ok(match parse_vault_spend_bundle(coin_spends, launcher_id) {
         Ok(None) => None,
         Ok(Some(summary)) => Some(VaultSpendRecord {
@@ -186,6 +211,7 @@ fn vault_spend_record(
             melted: summary.child_custody_hash.is_none(),
             reserved_fee: Amount::u64(summary.reserved_fee),
             unaccounted_xch: Amount::u128(summary.unaccounted_xch),
+            recovery: None,
         }),
         Err(error) => Some(VaultSpendRecord {
             launcher_id: launcher_id_string,
@@ -195,6 +221,7 @@ fn vault_spend_record(
             melted: false,
             reserved_fee: Amount::u64(0),
             unaccounted_xch: Amount::u64(0),
+            recovery: None,
         }),
     })
 }

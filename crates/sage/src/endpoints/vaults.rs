@@ -150,9 +150,14 @@ impl Sage {
                     started_at,
                     timelock_from,
                 }) => {
+                    // A recovery whose memo was left out is only known from the spend that
+                    // started it.
                     let timelock = match config.as_ref().map(|row| &row.layout) {
                         Some(VaultLayout::Recovery(config)) => Some(config.recovery_timelock),
-                        _ => None,
+                        _ => status
+                            .as_ref()
+                            .and_then(|status| status.recovery)
+                            .map(|recovery| recovery.recovery_timelock),
                     };
 
                     (
@@ -180,6 +185,14 @@ impl Sage {
             })
             .collect();
 
+        let chain_timestamp = self.chain_timestamp(&wallet).await?;
+        let recovery = if state == ApiVaultState::RecoveryPending {
+            self.vault_recovery_record(&wallet, chain_timestamp, &signers)
+                .await?
+        } else {
+            None
+        };
+
         Ok(GetVaultResponse {
             vault: VaultRecord {
                 launcher_id: encode_vault_id(launcher_id)?,
@@ -193,6 +206,8 @@ impl Sage {
                     .transpose()?,
                 signers: signer_records,
                 minting,
+                recovery,
+                chain_timestamp,
             },
         })
     }
@@ -353,7 +368,7 @@ impl Sage {
     }
 
     /// The launcher id of a vault wallet.
-    fn vault_launcher_id(&self, fingerprint: u32) -> Result<Bytes32> {
+    pub(crate) fn vault_launcher_id(&self, fingerprint: u32) -> Result<Bytes32> {
         match self.wallet_kind(fingerprint)? {
             WalletKind::Vault { launcher_id } => Ok(launcher_id),
             WalletKind::Bls { .. } | WalletKind::Watch => Err(Error::NotVaultWallet(fingerprint)),
@@ -361,7 +376,7 @@ impl Sage {
     }
 
     /// The fingerprints and public keys of the keychain keys which sign for a vault wallet.
-    fn vault_signer_keys(&self, fingerprint: u32) -> Result<Vec<(u32, PublicKey)>> {
+    pub(crate) fn vault_signer_keys(&self, fingerprint: u32) -> Result<Vec<(u32, PublicKey)>> {
         let Some(ConfigWalletKind::Vault { signers, .. }) =
             self.wallet_entry(fingerprint).map(|wallet| &wallet.kind)
         else {
@@ -543,14 +558,19 @@ fn parse_recovery_key(key: &str) -> Result<RecoveryKey> {
 /// started, whose custody can cancel it, and whose recovery members started it. If the current
 /// coin's config isn't known, neither is this, since an older config may no longer apply, for
 /// example after a rekey.
-async fn latest_custody_config(db: &Database, launcher_id: Bytes32) -> Result<Option<VaultConfig>> {
+pub(crate) async fn latest_custody_config(
+    db: &Database,
+    launcher_id: Bytes32,
+) -> Result<Option<VaultConfig>> {
     let Some(status) = db.vault_status(launcher_id).await? else {
         return Ok(None);
     };
 
+    // A recovery whose memo was left out is still known from the spend that started it.
     match status.config.map(|row| row.layout) {
         Some(VaultLayout::Custody(config)) => return Ok(Some(config)),
         Some(VaultLayout::Recovery(_)) => {}
+        None if status.recovery.is_some() => {}
         None => return Ok(None),
     }
 
@@ -650,7 +670,7 @@ fn config_record(
     })
 }
 
-fn signers_record(
+pub(crate) fn signers_record(
     vault_signers: &VaultSigners,
     signers: &[(u32, PublicKey)],
 ) -> Result<VaultSignersRecord> {

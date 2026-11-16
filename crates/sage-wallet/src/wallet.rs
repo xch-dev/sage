@@ -575,10 +575,22 @@ impl Wallet {
         &self,
         ctx: &mut SpendContext,
         deltas: &Deltas,
-        mut spends: Spends,
+        spends: Spends,
     ) -> Result<Outputs, WalletError> {
         let vault = self.spendable_vault().await?;
+        self.complete_vault_spends_with(ctx, deltas, spends, &vault)
+            .await
+    }
 
+    /// Finishes the spends of a vault wallet with the given vault spend, which may recreate the
+    /// vault with another custody.
+    pub(crate) async fn complete_vault_spends_with(
+        &self,
+        ctx: &mut SpendContext,
+        deltas: &Deltas,
+        mut spends: Spends,
+        vault: &SpendableVault,
+    ) -> Result<Outputs, WalletError> {
         let mut p2_puzzles = HashMap::new();
 
         for p2_puzzle_hash in spends.p2_puzzle_hashes() {
@@ -596,6 +608,6 @@ impl Wallet {
 
         let spends = spends.prepare(ctx, deltas, Relation::None)?;
 
-        self.spend_vault_coins(ctx, spends, &p2_puzzles, &vault)
+        self.spend_vault_coins(ctx, spends, &p2_puzzles, vault)
     }
 }

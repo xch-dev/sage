@@ -13,8 +13,9 @@ use sage_database::{
 use tracing::{debug, error, warn};
 
 use crate::{
-    ChildKind, DecodedVault, FixedConditionsMemo, OptionContext, PuzzleContext, Transaction,
-    WalletError, WalletPeer, compute_nft_info, decode_vault_memo_list,
+    ChildKind, DecodedVault, FixedConditionsMemo, OptionContext, PuzzleContext, RecoveryStart,
+    Transaction, WalletError, WalletPeer, compute_nft_info, decode_vault_memo_list,
+    observed_recovery,
 };
 
 /// Whether a child coin with this puzzle hash belongs to the wallet: its custody is one of the
@@ -315,6 +316,7 @@ pub async fn insert_puzzle(
             custody_hash,
             lineage_proof,
             memo_list,
+            recovery_start,
         } => {
             if underlying_p2_puzzle_hash.is_some() {
                 warn!("Deleting underlying coin {coin_id} because vaults are unsupported");
@@ -343,6 +345,18 @@ pub async fn insert_puzzle(
             if let (Some(custody_hash), Some(memo_list)) = (custody_hash, memo_list) {
                 insert_vault_memo(tx, custody_hash, &memo_list).await?;
             }
+
+            if let (Some(custody_hash), Some(lineage_proof), Some(start)) =
+                (custody_hash, lineage_proof, recovery_start)
+            {
+                insert_observed_recovery(
+                    tx,
+                    lineage_proof.parent_inner_puzzle_hash,
+                    custody_hash,
+                    &start,
+                )
+                .await?;
+            }
         }
         ChildKind::ConditionsOrSingleton { fixed_conditions } => {
             if underlying_p2_puzzle_hash.is_some() {
@@ -365,6 +379,37 @@ pub async fn insert_puzzle(
     }
 
     Ok(true)
+}
+
+/// Records the recovery that a vault coin is in, if its parent's spend started it. The recovery is
+/// recognized from the spend rather than the coin's memo, which a recovery that the user didn't
+/// start may leave out. It's only recorded if the config the parent was spent with is known, since
+/// that's the custody that can cancel it.
+async fn insert_observed_recovery(
+    tx: &mut DatabaseTx<'_>,
+    parent_custody_hash: Bytes32,
+    custody_hash: Bytes32,
+    start: &RecoveryStart,
+) -> Result<(), WalletError> {
+    let Some(VaultConfigRow {
+        layout: VaultLayout::Custody(pre_recovery),
+        ..
+    }) = tx.vault_config(parent_custody_hash).await?
+    else {
+        warn!(
+            "A vault recovery was started from custody {parent_custody_hash}, whose config isn't known"
+        );
+        return Ok(());
+    };
+
+    let Some(recovery) = observed_recovery(start, &pre_recovery, custody_hash) else {
+        warn!("Ignoring a vault recovery start that doesn't rebuild custody {custody_hash}");
+        return Ok(());
+    };
+
+    tx.insert_vault_recovery(recovery).await?;
+
+    Ok(())
 }
 
 /// Stores the config that a vault coin's memo reveals, if it rebuilds the coin's custody hash.

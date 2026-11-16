@@ -1,7 +1,10 @@
 use chia_wallet_sdk::{chia::puzzle_types::singleton::SingletonArgs, prelude::*};
 use sqlx::{SqliteExecutor, query};
 
-use crate::{Asset, AssetKind, Convert, Database, DatabaseTx, Result, VaultConfigRow, VaultLayout};
+use crate::{
+    Asset, AssetKind, Convert, Database, DatabaseTx, Result, VaultConfigRow, VaultLayout,
+    VaultRecoveryRow, vault_recovery,
+};
 
 /// A vault's state, which is derived from its lineage and the config of its current coin.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -45,6 +48,9 @@ pub struct VaultStatus {
     pub coin: Option<VaultCoinRow>,
     /// The config which rebuilds the current coin's custody hash, if one is known.
     pub config: Option<VaultConfigRow>,
+    /// The recovery that the current coin is in, if the spend that started it was recorded. A
+    /// recovery whose memo was left out is only known from this.
+    pub recovery: Option<VaultRecoveryRow>,
     pub state: VaultState,
 }
 
@@ -277,6 +283,7 @@ async fn vault_status(
             launcher_id,
             coin: None,
             config: None,
+            recovery: None,
             state: VaultState::Unsynced,
         }));
     };
@@ -300,15 +307,25 @@ async fn vault_status(
         None => None,
     };
 
+    let recovery = match coin.custody_hash {
+        Some(custody_hash) => vault_recovery(&mut *tx.tx, custody_hash).await?,
+        None => None,
+    };
+
+    let is_recovery = recovery.is_some()
+        || matches!(
+            config,
+            Some(VaultConfigRow {
+                layout: VaultLayout::Recovery(_),
+                ..
+            })
+        );
+
     // A spent coin whose children have been synced, without a singleton child to replace it, was
     // melted. Until its children are synced, it's still treated as the current coin.
     let state = if current.is_none() && coin.spent_height.is_some() && coin.is_children_synced {
         VaultState::Melted
-    } else if let Some(VaultConfigRow {
-        layout: VaultLayout::Recovery(_),
-        ..
-    }) = config
-    {
+    } else if is_recovery {
         // Recovery started when the first coin of the trailing run with the recovery custody
         // hash was created, since the custody can recreate the vault while recovery is pending.
         let start = coins[..=index]
@@ -330,6 +347,7 @@ async fn vault_status(
         launcher_id,
         coin: Some(coin),
         config,
+        recovery,
         state,
     }))
 }

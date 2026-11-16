@@ -208,6 +208,20 @@ pub enum Error {
     #[error("Key {0} isn't a custody or recovery member of this vault")]
     NotVaultMember(u32),
 
+    #[error("Sage doesn't have enough of the vault's {0} keys to sign")]
+    VaultKeysMissing(&'static str),
+
+    #[error("A fee for a vault recovery must be paid by a BLS wallet, which wasn't chosen")]
+    VaultFeeWalletRequired,
+
+    #[error(
+        "The recovery moves the vault to a custody that Sage has no key for, so it won't finish it. If you didn't start this recovery, cancel it."
+    )]
+    VaultRecoveryNotOurs,
+
+    #[error("A vault's custody and recovery keys must be different")]
+    VaultKeysNotDistinct,
+
     #[error("{0}")]
     VaultConfigFile(#[from] VaultConfigFileError),
 
@@ -496,6 +510,10 @@ impl Error {
             | Self::InvalidRecoveryThreshold
             | Self::VaultCustodyUnrevealed
             | Self::NotVaultMember(..)
+            | Self::VaultKeysMissing(..)
+            | Self::VaultFeeWalletRequired
+            | Self::VaultRecoveryNotOurs
+            | Self::VaultKeysNotDistinct
             | Self::VaultConfigFile(..)
             | Self::VaultHistory(..)
             | Self::InvalidMnemonic(..)

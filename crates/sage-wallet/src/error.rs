@@ -118,6 +118,29 @@ pub enum WalletError {
     #[error("Refusing to sign a vault transaction that changes the vault's custody")]
     VaultCustodyChange,
 
+    #[error("The vault has no recovery")]
+    VaultHasNoRecovery,
+
+    #[error("The vault has no pending recovery")]
+    VaultNoRecoveryPending,
+
+    #[error(
+        "The recovery can't be finished here, since its memo didn't reveal the vault's custody once it finishes. It can still be cancelled."
+    )]
+    VaultRecoveryUnfinishable,
+
+    #[error("{}", match .0 {
+        Some(finishes_at) => format!("The recovery can't be finished until its timelock expires at {finishes_at} (unix seconds, from block timestamps)"),
+        None => "The recovery can't be finished until its timelock expires".to_string(),
+    })]
+    VaultRecoveryTimelock(Option<u64>),
+
+    #[error("The new config is the vault's current config")]
+    VaultRekeyUnchanged,
+
+    #[error("A vault recovery's fee must be paid by a BLS wallet")]
+    VaultFeeWalletNotBls,
+
     #[error("Vault layout error: {0}")]
     VaultLayout(#[from] VaultLayoutError),
 

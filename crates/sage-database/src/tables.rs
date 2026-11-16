@@ -9,6 +9,7 @@ mod offers;
 mod p2_puzzles;
 mod transactions;
 mod vault_configs;
+mod vault_recoveries;
 mod xchandles;
 
 pub use assets::*;
@@ -21,4 +22,5 @@ pub use offers::*;
 pub use p2_puzzles::*;
 pub use transactions::*;
 pub use vault_configs::*;
+pub use vault_recoveries::*;
 pub use xchandles::*;

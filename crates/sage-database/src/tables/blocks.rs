@@ -20,6 +20,12 @@ impl Database {
     pub async fn latest_peak(&self) -> Result<Option<(u32, Bytes32)>> {
         latest_peak(&self.pool).await
     }
+
+    /// The latest block timestamp that's been synced, which is the best known time on chain. It
+    /// can lag behind the chain, but unlike the local clock, it can't run ahead of it.
+    pub async fn latest_timestamp(&self) -> Result<Option<u64>> {
+        latest_timestamp(&self.pool).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -106,4 +112,12 @@ async fn latest_peak(conn: impl SqliteExecutor<'_>) -> Result<Option<(u32, Bytes
             .map(|hash| Ok((row.height.convert()?, hash.convert()?)))
     })
     .transpose()
+}
+
+async fn latest_timestamp(conn: impl SqliteExecutor<'_>) -> Result<Option<u64>> {
+    sqlx::query!("SELECT MAX(timestamp) AS timestamp FROM blocks")
+        .fetch_one(conn)
+        .await?
+        .timestamp
+        .convert()
 }

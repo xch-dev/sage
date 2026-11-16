@@ -6,6 +6,7 @@ mod keys;
 mod offers;
 mod settings;
 mod transactions;
+mod vault_recovery;
 mod vaults;
 mod xchandles;
 
@@ -17,6 +18,7 @@ pub use keys::*;
 pub use offers::*;
 pub use settings::*;
 pub use transactions::*;
+pub use vault_recovery::*;
 pub use vaults::*;
 pub use xchandles::*;
 

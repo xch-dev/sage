@@ -27,13 +27,13 @@ const MAX_CUSTODY_KEY_INDEX: u32 = 1000;
 const MINT_EXPIRATION_GRACE: u64 = 10 * 60;
 
 /// A key that signs for a vault, along with its mnemonic if it has one.
-struct SignerKey {
-    secret_key: SecretKey,
-    mnemonic: Option<Mnemonic>,
+pub(crate) struct SignerKey {
+    pub(crate) secret_key: SecretKey,
+    pub(crate) mnemonic: Option<Mnemonic>,
 }
 
 impl SignerKey {
-    fn public_key(&self) -> PublicKey {
+    pub(crate) fn public_key(&self) -> PublicKey {
         self.secret_key.public_key()
     }
 }
@@ -322,7 +322,7 @@ impl Sage {
     }
 
     /// A keychain key with a secret key, to use as a vault signer.
-    fn keychain_signer(&self, fingerprint: u32) -> Result<SignerKey> {
+    pub(crate) fn keychain_signer(&self, fingerprint: u32) -> Result<SignerKey> {
         let (mnemonic, Some(secret_key)) = self.keychain.extract_secrets(fingerprint, b"")? else {
             return Err(Error::NoSigningKey);
         };
@@ -334,7 +334,7 @@ impl Sage {
     }
 
     /// Stores a signer's key in the keychain, and returns whether it was added.
-    fn store_signer(&mut self, signer: &SignerKey) -> Result<bool> {
+    pub(crate) fn store_signer(&mut self, signer: &SignerKey) -> Result<bool> {
         let public_key = signer.public_key();
         let existed = self.keychain.contains(public_key.get_fingerprint());
 
@@ -350,7 +350,7 @@ impl Sage {
 
     /// The first custody key derived from the wallet's master key that no vault wallet uses, so
     /// each vault minted from a wallet gets its own key.
-    fn unused_custody_key(&self, master_sk: &SecretKey) -> Result<SecretKey> {
+    pub(crate) fn unused_custody_key(&self, master_sk: &SecretKey) -> Result<SecretKey> {
         (0..MAX_CUSTODY_KEY_INDEX)
             .map(|index| vault_custody_key(master_sk, index))
             .find(|secret_key| !self.is_key_used(secret_key.public_key().get_fingerprint()))

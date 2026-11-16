@@ -23,6 +23,7 @@ import { useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
 import { Banner } from './Banner';
+import { VaultRecoveryAlert } from './VaultRecovery';
 import { WalletSwitcher } from './WalletSwitcher';
 
 function WalletTransitionWrapper({
@@ -86,6 +87,7 @@ function WalletTransitionWrapper({
               />
             )
           )}
+          {isVault && <VaultRecoveryAlert />}
           {children}
         </>
       ) : null}

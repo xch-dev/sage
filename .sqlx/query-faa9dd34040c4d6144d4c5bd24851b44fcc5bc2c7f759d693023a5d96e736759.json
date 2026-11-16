@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            custody_member_hash, recovery_member_hash, finish_puzzle_hash, recovery_timelock,\n            is_started_locally\n        FROM vault_recoveries\n        WHERE custody_hash = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "custody_member_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "recovery_member_hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "finish_puzzle_hash",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "recovery_timelock",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_started_locally",
+        "ordinal": 4,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "faa9dd34040c4d6144d4c5bd24851b44fcc5bc2c7f759d693023a5d96e736759"
+}

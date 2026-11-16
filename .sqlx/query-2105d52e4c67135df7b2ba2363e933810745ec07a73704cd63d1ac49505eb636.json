@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO vault_recoveries (\n                custody_hash, custody_member_hash, recovery_member_hash, finish_puzzle_hash,\n                recovery_timelock, is_started_locally\n            )\n            VALUES (?, ?, ?, ?, ?, ?)\n            ON CONFLICT(custody_hash) DO UPDATE SET\n                is_started_locally = is_started_locally OR excluded.is_started_locally\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "2105d52e4c67135df7b2ba2363e933810745ec07a73704cd63d1ac49505eb636"
+}

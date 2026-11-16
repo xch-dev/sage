@@ -56,7 +56,7 @@ use thiserror::Error;
 pub const MAX_VAULT_MEMO_LIST_SIZE: usize = 65_536;
 
 /// The condition opcodes that the recovery path is prevented from using, in order.
-const PREVENTED_RECOVERY_OPCODES: [u16; 4] = [
+pub(crate) const PREVENTED_RECOVERY_OPCODES: [u16; 4] = [
     CREATE_COIN_ANNOUNCEMENT,
     CREATE_PUZZLE_ANNOUNCEMENT,
     SEND_MESSAGE,
@@ -228,17 +228,11 @@ pub fn build_vault_recovery(
     let finish_puzzle = recovery_finish_puzzle(allocator, config, post_recovery.memo_list)?;
     let finish_puzzle_hash = tree_hash(allocator, finish_puzzle);
 
-    let custody_member_hash = signers_hash(&config.custody, vec![])?;
-    let recovery_member_hash = mips_puzzle_hash(
-        0,
-        vec![Restriction {
-            kind: RestrictionKind::MemberCondition,
-            puzzle_hash: Timelock::new(config.recovery_timelock).curry_tree_hash(),
-        }],
-        finish_puzzle_hash,
-        false,
+    let hashes = recovery_state_hashes(
+        signers_hash(&config.custody, vec![])?,
+        config.recovery_timelock,
+        finish_puzzle_hash.into(),
     );
-    let hashes = top_level_hashes(custody_member_hash, recovery_member_hash);
 
     let custody = signers_memo(allocator, &config.custody, vec![])?;
     let recovery = InnerPuzzleMemo::new(
@@ -297,6 +291,32 @@ pub fn vault_memo_list_custody_hash(allocator: &Allocator, memo_list: NodePtr) -
     let (memo, _rest) = <(NodePtr, NodePtr)>::from_clvm(allocator, memo_list).ok()?;
     let memo = MipsMemo::from_clvm_bounded(allocator, memo).ok()?;
     memo.try_inner_puzzle_hash().ok().map(Into::into)
+}
+
+/// The hashes of a vault in the recovery state, whose right side is the timelocked member that
+/// finishes recovery. The custody member hash is the left side, from before recovery started.
+pub fn recovery_state_hashes(
+    custody_member_hash: TreeHash,
+    recovery_timelock: u64,
+    finish_puzzle_hash: Bytes32,
+) -> VaultHashes {
+    let recovery_member_hash = mips_puzzle_hash(
+        0,
+        vec![recovery_finish_restriction(recovery_timelock)],
+        finish_puzzle_hash.into(),
+        false,
+    );
+
+    top_level_hashes(custody_member_hash, recovery_member_hash)
+}
+
+/// The timelock on the member that finishes recovery, which is relative to when the vault coin in
+/// the recovery state was created.
+pub fn recovery_finish_restriction(recovery_timelock: u64) -> Restriction {
+    Restriction {
+        kind: RestrictionKind::MemberCondition,
+        puzzle_hash: Timelock::new(recovery_timelock).curry_tree_hash(),
+    }
 }
 
 fn top_level_hashes(custody_member_hash: TreeHash, recovery_member_hash: TreeHash) -> VaultHashes {

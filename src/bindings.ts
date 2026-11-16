@@ -62,6 +62,18 @@ async findVault(req: FindVault) : Promise<FindVaultResponse> {
 async mintVault(req: MintVault) : Promise<MintVaultResponse> {
     return await TAURI_INVOKE("mint_vault", { req });
 },
+async startVaultRecovery(req: StartVaultRecovery) : Promise<StartVaultRecoveryResponse> {
+    return await TAURI_INVOKE("start_vault_recovery", { req });
+},
+async cancelVaultRecovery(req: CancelVaultRecovery) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("cancel_vault_recovery", { req });
+},
+async finishVaultRecovery(req: FinishVaultRecovery) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("finish_vault_recovery", { req });
+},
+async rekeyVault(req: RekeyVault) : Promise<RekeyVaultResponse> {
+    return await TAURI_INVOKE("rekey_vault", { req });
+},
 async deleteWallet(req: DeleteWallet) : Promise<DeleteWalletResponse> {
     return await TAURI_INVOKE("delete_wallet", { req });
 },
@@ -985,6 +997,18 @@ fee: Amount;
  */
 auto_submit?: boolean }
 /**
+ * Cancel the open vault wallet's pending recovery
+ */
+export type CancelVaultRecovery = { 
+/**
+ * Transaction fee
+ */
+fee?: Amount; 
+/**
+ * Whether to sign and submit the transaction
+ */
+auto_submit?: boolean }
+/**
  * Validate and check an address
  */
 export type CheckAddress = { 
@@ -1403,6 +1427,22 @@ export type FindVaultResponse = {
  * The vault's launcher id, as a `vault1` id
  */
 launcher_id: string | null }
+/**
+ * Finish the open vault wallet's pending recovery
+ */
+export type FinishVaultRecovery = { 
+/**
+ * Transaction fee, paid by `fee_fingerprint`
+ */
+fee?: Amount; 
+/**
+ * The fingerprint of a BLS wallet that pays the fee
+ */
+fee_fingerprint?: number | null; 
+/**
+ * Whether to submit the transaction
+ */
+auto_submit?: boolean }
 /**
  * Generate a new mnemonic phrase for wallet creation
  */
@@ -3588,6 +3628,50 @@ nft_id: string }
  */
 export type RedownloadNftResponse = Record<string, never>
 /**
+ * Rekey the open vault wallet's vault
+ */
+export type RekeyVault = { 
+/**
+ * The new custody key, if it changes
+ */
+custody?: VaultKeySource | null; 
+/**
+ * The new recovery key, if it changes
+ */
+recovery?: VaultKeySource | null; 
+/**
+ * The new recovery timelock in seconds, if it changes. It must be at least an hour
+ */
+recovery_timelock?: number | null; 
+/**
+ * Transaction fee
+ */
+fee?: Amount; 
+/**
+ * Whether to sign and submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Response with a rekey transaction
+ */
+export type RekeyVaultResponse = { 
+/**
+ * The fingerprint of the new custody key, if it changed
+ */
+custody_fingerprint: number | null; 
+/**
+ * The fingerprint of the new recovery key, if it changed
+ */
+recovery_fingerprint: number | null; 
+/**
+ * Transaction summary
+ */
+summary: TransactionSummary; 
+/**
+ * Coin spends in the transaction
+ */
+coin_spends: CoinSpendJson[] }
+/**
  * Remove a peer from the connection list
  */
 export type RemovePeer = { 
@@ -4141,6 +4225,50 @@ export type StartAppUpdateMode = "reviewUpdate" | "reviewPermissions"
 export type StartDonationArgs = { appId: string }
 export type StartSystemAppArgs = ({ kind: "appInstall" } & StartAppInstallArgs) | ({ kind: "appUpdate" } & StartAppUpdateArgs) | ({ kind: "donation" } & StartDonationArgs) | { kind: "sandboxTests" }
 /**
+ * Start a recovery of the open vault wallet's vault with its recovery key
+ */
+export type StartVaultRecovery = { 
+/**
+ * The recovery key's mnemonic, if it isn't attached to the vault wallet already
+ */
+recovery_mnemonic?: string | null; 
+/**
+ * The new custody key
+ */
+custody: VaultKeySource; 
+/**
+ * Transaction fee, paid by `fee_fingerprint`
+ */
+fee?: Amount; 
+/**
+ * The fingerprint of a BLS wallet that pays the fee
+ */
+fee_fingerprint?: number | null; 
+/**
+ * Whether to sign and submit the recovery
+ */
+auto_submit?: boolean }
+/**
+ * Response with a recovery transaction
+ */
+export type StartVaultRecoveryResponse = { 
+/**
+ * The fingerprint of the new custody key
+ */
+custody_fingerprint: number; 
+/**
+ * How long the recovery takes before it can be finished, in seconds
+ */
+recovery_timelock: number; 
+/**
+ * Transaction summary
+ */
+summary: TransactionSummary; 
+/**
+ * Coin spends in the transaction
+ */
+coin_spends: CoinSpendJson[] }
+/**
  * Submit a transaction to the network
  */
 export type SubmitTransaction = { 
@@ -4469,6 +4597,22 @@ export type VaultConfigSource =
  * Rebuilt from the vault's spends and its recovery key
  */
 "reconstructed" | "unknown"
+/**
+ * Where a new vault key comes from
+ */
+export type VaultKeySource = 
+/**
+ * A keychain key with its secret key
+ */
+{ type: "keychain"; fingerprint: number } | 
+/**
+ * A mnemonic, such as one from `generate_mnemonic`, which is stored in the keychain
+ */
+{ type: "mnemonic"; mnemonic: string } | 
+/**
+ * A vault key derived from a BLS wallet's key, so that the wallet's mnemonic also backs it up
+ */
+{ type: "derived"; fingerprint: number }
 export type VaultMemberKind = "bls" | "secp256r1" | "secp256k1" | "passkey" | 
 /**
  * Another vault
@@ -4528,7 +4672,34 @@ signers: VaultSignerRecord[];
  * Whether the vault was minted by this wallet, and the mint hasn't been found on chain yet.
  * If the mint fails, the vault wallet is removed
  */
-minting?: boolean }
+minting?: boolean; 
+/**
+ * The pending recovery, while recovery is pending and the custody that can cancel it is known
+ */
+recovery?: VaultRecoveryRecord | null; 
+/**
+ * The latest block timestamp that's been synced, in unix seconds. A recovery's countdown is
+ * measured against it rather than the local clock, which can run ahead of the chain
+ */
+chain_timestamp?: number | null }
+/**
+ * Why a vault's recovery can't be finished
+ */
+export type VaultRecoveryFinishBlocker = 
+/**
+ * The recovery's memo didn't reveal the vault's custody once it finishes, so it can only be
+ * cancelled
+ */
+"unknown_custody" | 
+/**
+ * The vault's custody once it finishes has no key in the keychain, so Sage won't hand the
+ * vault to it
+ */
+"not_ours" | 
+/**
+ * The recovery timelock hasn't expired yet
+ */
+"timelock"
 /**
  * A vault's recovery keys, which identify the recovery side of a vault without memos
  */
@@ -4547,6 +4718,31 @@ threshold?: number | null;
  * The recovery timelock in seconds. Common timelocks are tried if it isn't given
  */
 timelock?: number | null }
+/**
+ * A vault's pending recovery
+ */
+export type VaultRecoveryRecord = { 
+/**
+ * Whether this wallet started the recovery. A recovery that it didn't start should be
+ * cancelled, unless it was started from another device
+ */
+started_locally: boolean; 
+/**
+ * Whether a custody key that can cancel the recovery is attached
+ */
+can_cancel: boolean; 
+/**
+ * Why the recovery can't be finished now, or none if it can
+ */
+finish_blocker: VaultRecoveryFinishBlocker | null; 
+/**
+ * The custody that the vault moves to once the recovery finishes, if its memo revealed it
+ */
+post_recovery: VaultSignersRecord | null }
+/**
+ * What a spend through a vault's recovery side does
+ */
+export type VaultRecoverySpendKind = "start" | "finish"
 /**
  * A keychain key which signs for a vault
  */
@@ -4592,7 +4788,12 @@ reserved_fee: Amount;
  * XCH that leaves the vault's spends without being accounted for, which would be left as
  * an extra fee
  */
-unaccounted_xch: Amount }
+unaccounted_xch: Amount; 
+/**
+ * Whether the spend starts or finishes a recovery, through the vault's recovery side, rather
+ * than spending it through its custody. Its new custody is found by running its puzzle
+ */
+recovery?: VaultRecoverySpendKind | null }
 export type VaultState = 
 /**
  * None of the vault's coins have been synced yet
