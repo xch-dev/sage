@@ -7,7 +7,7 @@ use crate::TokenRecord;
     feature = "openapi",
     crate::openapi_attr(
         tag = "Tokens",
-        description = "Fetch a CAT's name, ticker, description and icon from Dexie again, replacing what the wallet has stored."
+        description = "Fetch a CAT's name, ticker, description and icon from Dexie again, replacing what the wallet has stored. It also makes the CAT visible again."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -212,7 +212,7 @@ pub struct RedownloadNftResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Addresses",
-        description = "Derive the active wallet's addresses up to the given index, and start syncing them. Hardened addresses need the wallet's secret key. Not supported by watch wallets."
+        description = "Derive the active wallet's addresses until there are the given number of each kind, and start syncing them. Hardened addresses need the wallet's secret key, so pass hardened as false for a wallet without one. Not supported by watch wallets."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

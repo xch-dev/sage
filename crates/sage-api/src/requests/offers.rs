@@ -12,7 +12,7 @@ use super::TransactionResponse;
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Create an offer of assets from the active wallet in exchange for requested assets, optionally with an expiration. Its coins are locked while the offer is active."
+        description = "Create and sign an offer of assets from the active wallet in exchange for requested assets, optionally with an expiration. Unless auto_import is false, the offer is saved and its coins are locked while it's active."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,7 +95,7 @@ pub struct MakeOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Take an offer, signing the wallet's side and combining it with the offer. Offers of a handle NFT with a pending transfer, or one that can't be checked, are refused."
+        description = "Take an offer, signing the wallet's side and combining it with the offer. Returns the signed spend bundle, which is submitted if auto_submit is set, or can be passed to submit_transaction. Offers of a handle NFT with a pending transfer, or one that can't be checked, are refused."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -190,7 +190,7 @@ pub struct ViewOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Save an offer to the wallet's offer list, so its status is tracked. Returns its offer ID."
+        description = "Save an offer made by this wallet to its offer list, so its status is tracked and its coins are locked. Offers made by other wallets can't be imported. Returns its offer ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -216,7 +216,7 @@ pub struct ImportOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "List the offers saved in the wallet, made or imported, with filtering, searching, sorting and pagination."
+        description = "List the offers made by this wallet, with filtering, searching, sorting and pagination."
     )
 )]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

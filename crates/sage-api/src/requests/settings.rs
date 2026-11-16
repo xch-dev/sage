@@ -40,7 +40,7 @@ pub struct GetPeersResponse {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct RemovePeer {
     /// IP address of the peer
-    #[cfg_attr(feature = "openapi", schema(example = "127.0.0.1:8444"))]
+    #[cfg_attr(feature = "openapi", schema(example = "127.0.0.1"))]
     pub ip: String,
     /// Whether to ban the peer from reconnecting
     #[cfg_attr(feature = "openapi", schema(example = false))]
@@ -61,7 +61,7 @@ pub struct RemovePeer {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AddPeer {
     /// IP address of the peer, which is connected to on the network's default port
-    #[cfg_attr(feature = "openapi", schema(example = "node.example.com:8444"))]
+    #[cfg_attr(feature = "openapi", schema(example = "203.0.113.5"))]
     pub ip: String,
 }
 
@@ -212,7 +212,7 @@ pub enum NetworkKind {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Network",
-        description = "Set whether wallets sync only the coin changes since they were last synced by default, instead of all their coins.",
+        description = "Set whether wallets, by default, sync only the coin changes since they were last synced, instead of all their coins. This applies the next time a wallet is opened.",
         response_type = "EmptyResponse"
     )
 )]
@@ -250,7 +250,7 @@ pub struct SetDeltaSyncOverride {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Addresses",
-        description = "Set an address that a wallet's change is sent to, instead of one of its own derived addresses, or clear it. It's also returned as the wallet's receive address.",
+        description = "Set an address that a wallet's change is sent to, instead of one of its own derived addresses, or clear it. For a BLS wallet, it's also returned as the receive address.",
         response_type = "EmptyResponse"
     )
 )]

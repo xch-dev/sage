@@ -21,8 +21,8 @@ pub fn impl_endpoints_tauri(input: TokenStream) -> TokenStream {
 /// Usage:
 /// ```ignore
 /// #[openapi(
-///     tag = "Authentication & Keys",
-///     description = "Authenticate and log into a wallet..."
+///     tag = "Wallets",
+///     description = "Make the wallet with this fingerprint the active wallet..."
 /// )]
 /// pub struct Login { ... }
 /// ```

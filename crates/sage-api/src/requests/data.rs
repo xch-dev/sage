@@ -146,7 +146,7 @@ pub struct GetDatabaseStatsResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "System",
-        description = "Get the active wallet's sync progress, along with its XCH balance, receive address, derivation indexes, NFT file download progress and database size."
+        description = "Get the active wallet's sync progress, along with its spendable XCH balance, receive address, derivation indexes, NFT file download progress and database size."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -210,7 +210,7 @@ pub struct GetVersionResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Coins",
-        description = "Check whether all of the given coins can be spent: confirmed, unspent, and not pending or locked in an offer."
+        description = "Check whether all of the given coins can still be spent: they belong to the active wallet, are unspent, aren't in a pending transaction, and aren't a clawback or option that can't be spent yet. Coins locked in an open offer still count as spendable. Returns false for an empty list."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -363,7 +363,7 @@ pub struct GetCoinsByIdsResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Tokens",
-        description = "List every CAT the active wallet knows about, including ones it no longer holds, with their balances."
+        description = "List every CAT the active wallet knows about, including ones it has never held coins of, with their balances."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -386,7 +386,7 @@ pub struct GetAllCatsResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Tokens",
-        description = "List the CATs the active wallet holds coins of, with their balances."
+        description = "List the CATs the active wallet has received coins of, including ones it has since spent, with their balances."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

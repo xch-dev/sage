@@ -71,7 +71,7 @@ pub struct GetHandleResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "XCHandles",
-        description = "List handle mappings Sage has already verified, from the local store. Nothing is fetched from the network unless refresh is set, in which case handle NFTs owned by this wallet are verified first, using their display names only as hints."
+        description = "List the handle mappings in the local store, verified ones only unless include_unverified is set, with filtering, searching and pagination. Nothing is fetched from the network unless refresh is set, in which case handle NFTs owned by this wallet are verified first, using their display names only as hints."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]

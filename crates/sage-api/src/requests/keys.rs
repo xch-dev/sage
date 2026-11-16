@@ -452,7 +452,7 @@ pub struct DeleteKeyResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Keys",
-        description = "Get the secret key of a key in the keychain, along with its mnemonic if one was saved. Returns null if only the public key is stored."
+        description = "Get the secret key of a key in the keychain, along with its mnemonic if one was saved. Returns null if the key isn't in the keychain or only its public key is stored."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -480,7 +480,7 @@ pub struct GetSecretKeyResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Wallets",
-        description = "Get the receive address of any wallet on the given network, without logging into it. A configured change address is returned if the wallet has one, and a watch wallet's first address otherwise."
+        description = "Get the receive address of any wallet on the given network, without logging into it. For a BLS wallet, this is its change address if one is set, and otherwise its first unused address. For a watch wallet, it's the first watched address."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -556,7 +556,7 @@ pub struct GetUserThemeResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Themes",
-        description = "Save the theme in an NFT's off-chain metadata, so it can be selected. The NFT's data must already be downloaded."
+        description = "Save the theme in the off-chain metadata of an NFT in the active wallet, so it can be selected. The NFT's metadata must already be downloaded; otherwise nothing is saved, though no error is returned."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]

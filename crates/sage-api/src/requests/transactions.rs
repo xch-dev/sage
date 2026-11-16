@@ -210,7 +210,7 @@ pub struct AutoCombineCatResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Tokens",
-        description = "Issue a new CAT with the given name, ticker and supply, optionally revocable by the issuer.",
+        description = "Issue a new CAT with the given supply, optionally revocable by the issuer. The name and ticker are only saved in this wallet, with 3 decimal places.",
         response_type = "TransactionResponse"
     )
 )]
@@ -378,7 +378,7 @@ pub struct Payment {
     feature = "openapi",
     crate::openapi_attr(
         tag = "DIDs",
-        description = "Create a new DID with the given name.",
+        description = "Create a new DID. The name is only saved in this wallet.",
         response_type = "TransactionResponse"
     )
 )]
@@ -401,7 +401,7 @@ pub struct CreateDid {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Mint NFTs with the given metadata and royalties from a DID the wallet owns, in one transaction. Returns the new NFT IDs."
+        description = "Mint NFTs from a DID the wallet owns in one transaction, each sent to an address or handle, or kept by the wallet, with the given metadata and royalties. Hashes that aren't given are computed by downloading the URIs. Returns the new NFT IDs."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -492,7 +492,7 @@ pub struct NftMint {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Send NFTs to an address or handle, optionally with a clawback.",
+        description = "Send NFTs to an address or handle, optionally with a clawback. NFTs sent outside the wallet have their DID removed.",
         response_type = "TransactionResponse"
     )
 )]
@@ -892,7 +892,7 @@ pub struct ViewCoinSpendsResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Transactions",
-        description = "Submit a signed spend bundle to the network, and track it as a pending transaction."
+        description = "Submit a signed spend bundle to the network, and track it as a pending transaction. If Sage created the transaction with handle recipients, they're resolved again first, and it isn't submitted if any of them changed."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
