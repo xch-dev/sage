@@ -488,6 +488,9 @@ async appsRerunSandboxTests() : Promise<SandboxStateView> {
 async appsListInstalledApps() : Promise<ListedSageAppView[]> {
     return await TAURI_INVOKE("apps_list_installed_apps");
 },
+async appsReviewPermissions() : Promise<AppPermissionReviews> {
+    return await TAURI_INVOKE("apps_review_permissions");
+},
 async appsUninstallApp(appId: string) : Promise<null> {
     return await TAURI_INVOKE("apps_uninstall_app", { appId });
 },
@@ -663,6 +666,8 @@ export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "
 export type Amount = string | number
 export type AppLaunchGateResult = { allowed: boolean; kind: string; capability: SandboxCapability | null; message: string | null }
 export type AppModalPresentation = { visibleOverAppIds: string[]; visibleOverLaunchpad: boolean; priority: number }
+export type AppPermissionReview = { id: string; name: string; walletScope: SageAppWalletScope; capabilities: ReviewedAppCapability[]; network: SageGrantedNetworkPermissionsView }
+export type AppPermissionReviews = { apps: AppPermissionReview[]; unavailableAppIds: string[] }
 export type AppPresentation = { kind: "Taskbar" } | ({ kind: "Modal" } & AppModalPresentation)
 export type Asset = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; icon_url: string | null; description: string | null; is_sensitive_content: boolean; is_visible: boolean; revocation_address: string | null; kind: AssetKind }
 /**
@@ -3453,6 +3458,7 @@ export type ResyncCatResponse = Record<string, never>
  * Response from resynchronizing the wallet
  */
 export type ResyncResponse = Record<string, never>
+export type ReviewedAppCapability = { key: string; label: string; description: string; wallet: boolean; automatic: boolean }
 export type RuntimeTargetParams = { appId: string }
 export type RustBridgeErrorPayload = { code: string; message: string }
 export type RustBridgeErrorResponse = { bridgeVersion: string; id: string; ok: boolean; error: RustBridgeErrorPayload }

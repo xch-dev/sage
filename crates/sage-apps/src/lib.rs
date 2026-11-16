@@ -5,6 +5,7 @@ mod db;
 mod environment;
 mod host;
 mod lifecycle;
+mod permission_review;
 mod runtime;
 mod sandbox;
 mod security;
@@ -17,6 +18,8 @@ mod utils;
 // State
 pub use db::AppsDb;
 pub use host::AppsHostState;
+
+pub use permission_review::apps_review_permissions;
 
 // Commands
 pub use bridge::{apps_invoke_bridge, apps_invoke_system_bridge};

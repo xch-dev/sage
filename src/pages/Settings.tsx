@@ -33,6 +33,7 @@ import { AppearanceSettings } from './settings/AppearanceSettings';
 import { ConnectionSettings } from './settings/ConnectionSettings';
 import { GeneralSettings } from './settings/GeneralSettings';
 import { NetworkSettings } from './settings/NetworkSettings';
+import { PermissionsSettings } from './settings/PermissionsSettings';
 import { SecuritySettings } from './settings/SecuritySettings';
 import { TransactionSettings } from './settings/TransactionSettings';
 import { WalletSettings, WalletSyncSettings } from './settings/WalletSettings';
@@ -77,6 +78,14 @@ function settingsPages(isMobile: boolean): SettingsPage[] {
       description: isMobile ? t`Biometrics and keychain` : t`Keychain`,
       icon: ShieldCheckIcon,
       render: () => <SecuritySettings />,
+    },
+    {
+      id: 'permissions',
+      group: 'app',
+      label: t`Permissions`,
+      description: t`Access granted to apps and services`,
+      icon: ShieldCheckIcon,
+      render: () => <PermissionsSettings />,
     },
     {
       id: 'transactions',

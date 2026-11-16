@@ -201,6 +201,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             apps::apps_get_app_launch_gate,
             apps::apps_rerun_sandbox_tests,
             apps::apps_list_installed_apps,
+            apps::apps_review_permissions,
             apps::apps_uninstall_app,
             apps::apps_check_app_update,
             apps::apps_apply_app_update,

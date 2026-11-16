@@ -163,6 +163,7 @@ commands.allow = [
     "apps_get_app_launch_gate",
     "apps_rerun_sandbox_tests",
     "apps_list_installed_apps",
+    "apps_review_permissions",
     "apps_uninstall_app",
     "apps_check_app_update",
     "apps_apply_app_update",
