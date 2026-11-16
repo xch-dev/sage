@@ -10,7 +10,7 @@ use crate::{
     feature = "openapi",
     crate::openapi_attr(
         tag = "Addresses",
-        description = "Validate a Chia address and check if it belongs to this wallet."
+        description = "Check whether an address belongs to the active wallet. Returns false for addresses that can't be decoded, rather than an error. The address's prefix isn't checked against the network."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,7 +38,7 @@ pub struct CheckAddressResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Addresses",
-        description = "Get address derivation information including public keys and puzzle hashes."
+        description = "List the active wallet's derived addresses and their public keys, either hardened or unhardened, with pagination."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -73,8 +73,8 @@ pub struct GetDerivationsResponse {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "System & Sync",
-        description = "Perform maintenance operations on the database to optimize performance and reclaim space."
+        tag = "System",
+        description = "Optimize the active wallet's database and reclaim free space, optionally forcing a full vacuum, which takes longer."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -87,7 +87,7 @@ pub struct PerformDatabaseMaintenance {
 }
 
 /// Response with maintenance operation statistics
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System & Sync"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System"))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -110,8 +110,8 @@ pub struct PerformDatabaseMaintenanceResponse {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "System & Sync",
-        description = "Retrieve statistics about the wallet database (size, table counts, etc.)."
+        tag = "System",
+        description = "Get the size and free space of the active wallet's database."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -120,7 +120,7 @@ pub struct PerformDatabaseMaintenanceResponse {
 pub struct GetDatabaseStats {}
 
 /// Response with database statistics
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System & Sync"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System"))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -145,8 +145,8 @@ pub struct GetDatabaseStatsResponse {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "System & Sync",
-        description = "Get the current synchronization status including peak height and synced state."
+        tag = "System",
+        description = "Get the active wallet's sync progress, along with its spendable XCH balance, receive address, derivation indexes, NFT file download progress and database size."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -155,7 +155,7 @@ pub struct GetDatabaseStatsResponse {
 pub struct GetSyncStatus {}
 
 /// Response with detailed sync status
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System & Sync"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -187,10 +187,7 @@ pub struct GetSyncStatusResponse {
 /// Get the wallet version
 #[cfg_attr(
     feature = "openapi",
-    crate::openapi_attr(
-        tag = "System & Sync",
-        description = "Get the wallet software version information."
-    )
+    crate::openapi_attr(tag = "System", description = "Get the version of Sage.")
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -198,7 +195,7 @@ pub struct GetSyncStatusResponse {
 pub struct GetVersion {}
 
 /// Response with version information
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System & Sync"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -213,7 +210,7 @@ pub struct GetVersionResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Coins",
-        description = "Check whether specific coins are currently spendable (not locked or pending)."
+        description = "Check whether all of the given coins can still be spent: they belong to the active wallet, are unspent, aren't in a pending transaction, and aren't a clawback or option that can't be spent yet. Coins locked in an open offer still count as spendable. Returns false for an empty list, or one with a repeated coin ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -240,7 +237,7 @@ pub struct GetAreCoinsSpendableResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Coins",
-        description = "Get the total count of spendable coins in the wallet."
+        description = "Count the active wallet's spendable coins of an asset (XCH if none is given)."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -294,7 +291,7 @@ pub enum CoinFilterMode {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Coins",
-        description = "List all coins in the wallet with optional filtering and pagination."
+        description = "List the active wallet's coins of an asset (XCH if none is given), with filtering, sorting and pagination."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -340,7 +337,7 @@ pub struct GetCoinsResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Coins",
-        description = "Retrieve specific coins by their coin IDs."
+        description = "Get the active wallet's coins with the given IDs. Coins it doesn't know about are left out."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -365,8 +362,8 @@ pub struct GetCoinsByIdsResponse {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "CAT Tokens",
-        description = "Get all known CAT tokens including those not in the wallet."
+        tag = "Tokens",
+        description = "List every CAT the active wallet knows about, including ones it has never held coins of, with their balances."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -375,7 +372,7 @@ pub struct GetCoinsByIdsResponse {
 pub struct GetAllCats {}
 
 /// Response with all known CAT tokens
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "CAT Tokens"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Tokens"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -388,8 +385,8 @@ pub struct GetAllCatsResponse {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "CAT Tokens",
-        description = "List all CAT (Chia Asset Token) tokens in the wallet."
+        tag = "Tokens",
+        description = "List the CATs the active wallet has received coins of, including ones it has since spent, with their balances."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -398,7 +395,7 @@ pub struct GetAllCatsResponse {
 pub struct GetCats {}
 
 /// Response with CAT tokens
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "CAT Tokens"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Tokens"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -410,8 +407,8 @@ pub struct GetCatsResponse {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "CAT Tokens",
-        description = "Get detailed information about a specific token by its asset ID."
+        tag = "Tokens",
+        description = "Get a token and the active wallet's balance of it, by CAT asset ID, or XCH if none is given."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -424,7 +421,7 @@ pub struct GetToken {
 }
 
 /// Response with token details
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "CAT Tokens"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Tokens"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -437,10 +434,7 @@ pub struct GetTokenResponse {
 /// List all DIDs in the wallet
 #[cfg_attr(
     feature = "openapi",
-    crate::openapi_attr(
-        tag = "DIDs",
-        description = "List all DIDs (Decentralized Identifiers) controlled by this wallet."
-    )
+    crate::openapi_attr(tag = "DIDs", description = "List the DIDs the active wallet owns.")
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -462,7 +456,7 @@ pub struct GetDidsResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "DIDs",
-        description = "Get DIDs that have minting capabilities for NFTs or tokens."
+        description = "List the DIDs that minted the active wallet's NFTs, with pagination."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -519,7 +513,7 @@ pub enum OptionFilter {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Options",
-        description = "List all options (Chia options protocol) in the wallet."
+        description = "List the options the active wallet holds or minted, with searching, sorting and pagination."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -568,7 +562,7 @@ pub struct GetOptionsResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Options",
-        description = "Get detailed information about a specific option."
+        description = "Get one of the active wallet's options by its option ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -595,7 +589,7 @@ pub struct GetOptionResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Transactions",
-        description = "List all transactions that are pending confirmation on the blockchain."
+        description = "List the active wallet's transactions that have been submitted but not yet confirmed."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -608,7 +602,7 @@ pub struct GetPendingTransactions {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Transactions",
-        description = "Get detailed information about a specific transaction by ID."
+        description = "Get the active wallet's transaction record for a block height, which includes every coin it saw created or spent in that block."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -645,7 +639,7 @@ pub struct GetPendingTransactionsResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Transactions",
-        description = "List all transactions with optional filtering, sorting, and pagination."
+        description = "List the active wallet's confirmed transactions, one per block height, with searching and pagination."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -681,7 +675,10 @@ pub struct GetTransactionsResponse {
 /// List NFT collections
 #[cfg_attr(
     feature = "openapi",
-    crate::openapi_attr(tag = "NFTs", description = "List all NFT collections in the wallet.")
+    crate::openapi_attr(
+        tag = "NFTs",
+        description = "List the collections of the active wallet's NFTs, with pagination."
+    )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -715,7 +712,7 @@ pub struct GetNftCollectionsResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Get detailed information about a specific NFT collection."
+        description = "Get a collection by ID, or the placeholder for NFTs without a collection if no ID is given."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -743,7 +740,7 @@ pub struct GetNftCollectionResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "List all NFTs in the wallet with optional filtering and pagination."
+        description = "List the active wallet's NFTs, optionally limited to a collection, a minter DID or an owner DID, with searching, sorting and pagination."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -805,7 +802,7 @@ pub enum NftSortMode {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Get detailed information about a specific NFT by its coin ID."
+        description = "Get one of the active wallet's NFTs by its NFT ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -832,7 +829,7 @@ pub struct GetNftResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Retrieve the icon/avatar image for an NFT."
+        description = "Get the small icon generated from an NFT's data, as base64, if it has been downloaded."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -859,7 +856,7 @@ pub struct GetNftIconResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Retrieve the thumbnail preview image for an NFT."
+        description = "Get the thumbnail generated from an NFT's data, as base64, if it has been downloaded."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -916,7 +913,7 @@ pub struct GetNftMetadataUpdaterResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Get the raw data file associated with an NFT."
+        description = "Get an NFT's downloaded data and off-chain metadata, and whether each matches the hash in its on-chain metadata."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -942,8 +939,8 @@ pub struct GetNftDataResponse {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "Assets",
-        description = "Check if a specific asset (by ID) is owned by this wallet."
+        tag = "Coins",
+        description = "Check whether the active wallet holds an asset, given a CAT asset ID or an NFT, DID or option ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -955,7 +952,7 @@ pub struct IsAssetOwned {
 }
 
 /// Response with asset ownership status
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Assets"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Coins"))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]

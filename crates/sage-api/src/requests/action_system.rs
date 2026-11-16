@@ -6,7 +6,7 @@ use crate::{Amount, HandleConfirmation, NftUriKind, TransactionResponse};
     feature = "openapi",
     crate::openapi_attr(
         tag = "Transactions",
-        description = "Create a new transaction using the action system.",
+        description = "Build a transaction from a list of actions: sends to an address or handle, NFT mints, NFT updates and fees. Actions can refer to assets created earlier in the list.",
         response_type = "TransactionResponse"
     )
 )]
