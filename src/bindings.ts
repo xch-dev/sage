@@ -532,6 +532,30 @@ async appsGetAutoUpdateEnabled() : Promise<boolean> {
 },
 async appsSetAutoUpdateEnabled(enabled: boolean) : Promise<boolean> {
     return await TAURI_INVOKE("apps_set_auto_update_enabled", { enabled });
+},
+async agentsGetServerStatus() : Promise<AgentServerStatus> {
+    return await TAURI_INVOKE("agents_get_server_status");
+},
+async agentsSetServerSettings(enabled: boolean, port: number) : Promise<AgentServerStatus> {
+    return await TAURI_INVOKE("agents_set_server_settings", { enabled, port });
+},
+async agentsListAgents() : Promise<Agent[]> {
+    return await TAURI_INVOKE("agents_list_agents");
+},
+async agentsListCapabilities() : Promise<AgentCapabilityView[]> {
+    return await TAURI_INVOKE("agents_list_capabilities");
+},
+async agentsCreateAgent(name: string, capabilities: Capability[], walletScope: WalletScope) : Promise<CreatedAgent> {
+    return await TAURI_INVOKE("agents_create_agent", { name, capabilities, walletScope });
+},
+async agentsUpdateAgent(id: string, name: string, capabilities: Capability[], walletScope: WalletScope) : Promise<Agent> {
+    return await TAURI_INVOKE("agents_update_agent", { id, name, capabilities, walletScope });
+},
+async agentsRotateAgentToken(id: string) : Promise<string> {
+    return await TAURI_INVOKE("agents_rotate_agent_token", { id });
+},
+async agentsRevokeAgent(id: string) : Promise<null> {
+    return await TAURI_INVOKE("agents_revoke_agent", { id });
 }
 }
 
@@ -660,6 +684,16 @@ address: string;
  */
 handles: HandleRecord[] }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
+/**
+ * A registered agent and its grant.
+ */
+export type Agent = { id: string; name: string; capabilities: Capability[]; walletScope: WalletScope; createdAtMs: number; updatedAtMs: number; lastUsedAtMs: number | null }
+export type AgentCapabilityView = { key: string; label: string; description: string }
+export type AgentServerStatus = { running: boolean; enabled: boolean; port: number; 
+/**
+ * Why the server failed to start with Sage, while it is still stopped.
+ */
+startError: string | null }
 export type Amount = string | number
 export type AppLaunchGateResult = { allowed: boolean; kind: string; capability: SandboxCapability | null; message: string | null }
 export type AppModalPresentation = { visibleOverAppIds: string[]; visibleOverLaunchpad: boolean; priority: number }
@@ -933,6 +967,10 @@ fee: Amount;
  */
 auto_submit?: boolean }
 /**
+ * A permission a caller can be granted over the wallet.
+ */
+export type Capability = "wallet.get_wallet" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_token" | "wallet.get_coins" | "wallet.get_coins_by_ids" | "wallet.get_spendable_coin_count" | "wallet.get_transactions" | "wallet.get_transaction" | "wallet.get_pending_transactions" | "wallet.get_xch_usd_price" | "wallet.check_address"
+/**
  * Validate and check an address
  */
 export type CheckAddress = { 
@@ -1156,6 +1194,7 @@ auto_submit?: boolean;
  * confirmed here before it can be used.
  */
 confirmed_handles?: HandleConfirmation[] }
+export type CreatedAgent = { agent: Agent; token: string }
 /**
  * Delete a contact from the address book
  */
@@ -4259,6 +4298,10 @@ export type WalletKind =
  * The addresses being watched. The first one is the receive address
  */
 addresses: string[] } }
+/**
+ * Which wallets a grantee may act on.
+ */
+export type WalletScope = { kind: "allWallets" } | { kind: "selectedWallets"; fingerprints: number[] }
 export type WindowTargetParams = { windowLabel: string }
 /**
  * The XCHandles deployment used to resolve handles on a network.

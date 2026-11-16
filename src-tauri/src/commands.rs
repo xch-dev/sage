@@ -63,6 +63,10 @@ pub async fn initialize(
     if app_state.config.rpc.enabled {
         *rpc_task.0.lock().await = Some(tokio::spawn(start_rpc((*state).clone())));
     }
+    drop(app_state);
+
+    #[cfg(not(mobile))]
+    crate::agents::start_agent_server_if_enabled(app_handle.clone()).await;
 
     Ok(())
 }

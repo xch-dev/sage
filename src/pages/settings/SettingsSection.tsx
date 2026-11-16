@@ -2,6 +2,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput, IntegerInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
+import { Trans } from '@lingui/react/macro';
 import { cloneElement, isValidElement, useId } from 'react';
 
 interface SettingsSectionProps {
@@ -35,6 +36,21 @@ export function SettingsSection({
       </div>
       <div className='divide-y'>{children}</div>
     </section>
+  );
+}
+
+export function ServerStatusIndicator({ running }: { running: boolean }) {
+  return (
+    <div className='flex items-center gap-3'>
+      <div
+        className={`h-3 w-3 rounded-full ${
+          running ? 'bg-green-500' : 'bg-red-500'
+        }`}
+      />
+      <span className='font-medium'>
+        {running ? <Trans>Running</Trans> : <Trans>Stopped</Trans>}
+      </span>
+    </div>
   );
 }
 

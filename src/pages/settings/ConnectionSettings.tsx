@@ -12,7 +12,12 @@ import { platform } from '@tauri-apps/plugin-os';
 import { TrashIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { commands } from '../../bindings';
-import { SettingItem, SettingsSection } from './SettingsSection';
+import { AgentSettings } from './AgentSettings';
+import {
+  ServerStatusIndicator,
+  SettingItem,
+  SettingsSection,
+} from './SettingsSection';
 
 export function ConnectionSettings() {
   const isMobile = platform() === 'ios' || platform() === 'android';
@@ -21,6 +26,7 @@ export function ConnectionSettings() {
     <>
       <WalletConnectSettings />
       {!isMobile && <RpcSettings />}
+      {!isMobile && <AgentSettings />}
     </>
   );
 }
@@ -159,16 +165,7 @@ function RpcSettings() {
     <SettingsSection title={t`RPC Server`}>
       <div className='p-3'>
         <div className='flex items-center justify-between'>
-          <div className='flex items-center gap-3'>
-            <div
-              className={`h-3 w-3 rounded-full ${
-                isRunning ? 'bg-green-500' : 'bg-red-500'
-              }`}
-            />
-            <span className='font-medium'>
-              {isRunning ? <Trans>Running</Trans> : <Trans>Stopped</Trans>}
-            </span>
-          </div>
+          <ServerStatusIndicator running={isRunning} />
           <Button
             variant={isRunning ? 'destructive' : 'default'}
             size='sm'

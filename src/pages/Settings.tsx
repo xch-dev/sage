@@ -100,7 +100,7 @@ function settingsPages(isMobile: boolean): SettingsPage[] {
       label: t`Connected Apps`,
       description: isMobile
         ? t`WalletConnect`
-        : t`WalletConnect and RPC server`,
+        : t`WalletConnect, RPC server and agents`,
       icon: PlugIcon,
       render: () => <ConnectionSettings />,
     },

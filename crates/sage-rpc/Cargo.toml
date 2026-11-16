@@ -15,6 +15,7 @@ workspace = true
 
 [dependencies]
 sage = { workspace = true }
+sage-auth = { workspace = true }
 sage-api = { workspace = true, features = ["openapi"] }
 sage-api-macro = { workspace = true }
 axum = { workspace = true }

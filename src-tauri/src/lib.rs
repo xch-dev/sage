@@ -13,6 +13,8 @@ use tauri::path::BaseDirectory;
 use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
 use tokio::sync::Mutex;
 
+#[cfg(not(mobile))]
+mod agents;
 mod app_state;
 mod commands;
 mod error;
@@ -216,6 +218,14 @@ fn specta_builder() -> Builder<tauri::Wry> {
             apps::apps_dev_reload_runtime,
             apps::apps_get_auto_update_enabled,
             apps::apps_set_auto_update_enabled,
+            agents::agents_get_server_status,
+            agents::agents_set_server_settings,
+            agents::agents_list_agents,
+            agents::agents_list_capabilities,
+            agents::agents_create_agent,
+            agents::agents_update_agent,
+            agents::agents_rotate_agent_token,
+            agents::agents_revoke_agent,
         ])
         .events(collect_events![SyncEvent])
 }
@@ -372,6 +382,9 @@ pub fn run() {
                         );
                     }
                 }
+
+                // Sage still opens without the agents database, and reports why in agent settings.
+                app.manage(tauri::async_runtime::block_on(agents::AgentsState::open(&path)));
 
                 let apps_db = tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
                     .expect("failed to initialize Sage apps database");
@@ -604,6 +617,7 @@ mod tests {
             .filter_map(|line| {
                 line.strip_prefix("commands::")
                     .or_else(|| line.strip_prefix("apps::"))
+                    .or_else(|| line.strip_prefix("agents::"))
             })
             .filter_map(|line| line.strip_suffix(','))
             .collect();

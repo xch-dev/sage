@@ -106,6 +106,12 @@ function appsCommand(cmd: string): unknown {
       return [];
     case 'apps_get_auto_update_enabled':
       return false;
+    // The agent server binds a real port, so Settings shows it as stopped with no agents.
+    case 'agents_get_server_status':
+      return { running: false, enabled: false, port: 9258, startError: null };
+    case 'agents_list_agents':
+    case 'agents_list_capabilities':
+      return [];
     default:
       return unsupported(cmd);
   }
@@ -198,7 +204,9 @@ mockIPC((cmd, args) => {
 
   if (cmd.startsWith('plugin:event|')) return eventCommand(cmd, payload);
   if (cmd.startsWith('plugin:')) return pluginCommand(cmd, payload);
-  if (cmd.startsWith('apps_')) return appsCommand(cmd);
+  if (cmd.startsWith('apps_') || cmd.startsWith('agents_')) {
+    return appsCommand(cmd);
+  }
 
   return callBridge(cmd, payload);
 });
