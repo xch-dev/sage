@@ -82,97 +82,35 @@ impl Wallet {
         expires_at: Option<u64>,
         split_fee: Option<u64>,
     ) -> Result<PreSplitOffer, WalletError> {
+        // A vault's offers are always pre-split, so that they don't lock up the vault itself.
+        if self.vault_launcher_id().is_some() {
+            let Some(split_fee) = split_fee else {
+                return Err(WalletError::VaultDirectOfferNotSupported);
+            };
+
+            return self
+                .make_vault_offer(offered, requested, expires_at, split_fee)
+                .await;
+        }
+
         let mut ctx = SpendContext::new();
         let mut asset_info = AssetInfo::new();
 
         let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
-
-        let offer_amounts = OfferAmounts {
-            xch: offered.xch.into(),
-            cats: offered
-                .cats
-                .iter()
-                .map(|(&asset_id, &amount)| (asset_id, amount.into()))
-                .collect(),
-        };
 
         let requested_amounts = OfferAmounts {
             xch: requested.xch.into(),
             cats: requested
                 .cats
                 .iter()
-                .map(|(asset_id, cat)| {
-                    asset_info.insert_cat(*asset_id, CatAssetInfo::new(cat.hidden_puzzle_hash))?;
-                    Ok((*asset_id, cat.amount.into()))
-                })
-                .collect::<Result<_, WalletError>>()?,
+                .map(|(&asset_id, cat)| (asset_id, cat.amount.into()))
+                .collect(),
         };
 
-        let offer_royalties = requested
-            .nfts
-            .iter()
-            .map(|(&launcher_id, nft)| {
-                RoyaltyInfo::new(
-                    launcher_id,
-                    nft.royalty_puzzle_hash,
-                    nft.royalty_basis_points,
-                )
-            })
-            .filter(|info| info.basis_points > 0)
-            .collect_vec();
+        let mut actions = offer_actions(&mut ctx, &offered, &requested)?;
 
-        let offer_trade_price_amounts =
-            calculate_trade_price_amounts(&offer_amounts, offer_royalties.len());
-
-        // Make payments
-        let mut actions = vec![Action::fee(offered.fee)];
-
-        if offered.xch > 0 {
-            actions.push(Action::send(
-                Id::Xch,
-                SETTLEMENT_PAYMENT_HASH.into(),
-                offered.xch,
-                Memos::None,
-            ));
-        }
-
-        for (asset_id, amount) in offered.cats {
-            actions.push(Action::send(
-                Id::Existing(asset_id),
-                SETTLEMENT_PAYMENT_HASH.into(),
-                amount,
-                Memos::None,
-            ));
-        }
-
-        for launcher_id in offered.nfts {
-            actions.push(Action::send(
-                Id::Existing(launcher_id),
-                SETTLEMENT_PAYMENT_HASH.into(),
-                1,
-                Memos::None,
-            ));
-        }
-
-        for launcher_id in offered.options {
-            actions.push(Action::send(
-                Id::Existing(launcher_id),
-                SETTLEMENT_PAYMENT_HASH.into(),
-                1,
-                Memos::None,
-            ));
-        }
-
-        // Pay royalties
-        let royalty_payments =
-            calculate_royalty_payments(&mut ctx, &offer_trade_price_amounts, &offer_royalties)?;
-        actions.extend(royalty_payments.actions());
-
-        // Pay requested payments
         let p2_puzzle_hash = offered.p2_puzzle_hash.unwrap_or(change_puzzle_hash);
-        let hint = ctx.hint(p2_puzzle_hash)?;
 
-        // Add requested payments
         let mut spends = self
             .prepare_spends_for_selection(&mut ctx, &offered.selected_coin_ids)
             .await?;
@@ -193,67 +131,8 @@ impl Wallet {
 
         let nonce = Offer::nonce(spends.non_settlement_coin_ids());
 
-        let mut requested_payments = RequestedPayments::new();
-
-        if requested.xch > 0 {
-            requested_payments.xch.push(NotarizedPayment::new(
-                nonce,
-                vec![Payment::new(p2_puzzle_hash, requested.xch, hint)],
-            ));
-        }
-
-        for (asset_id, cat) in requested.cats {
-            requested_payments
-                .cats
-                .entry(asset_id)
-                .or_default()
-                .push(NotarizedPayment::new(
-                    nonce,
-                    vec![Payment::new(p2_puzzle_hash, cat.amount, hint)],
-                ));
-        }
-
-        for (launcher_id, nft) in requested.nfts {
-            let metadata = ctx.alloc_hashed(&nft.metadata)?;
-
-            requested_payments
-                .nfts
-                .entry(launcher_id)
-                .or_default()
-                .push(NotarizedPayment::new(
-                    nonce,
-                    vec![Payment::new(p2_puzzle_hash, 1, hint)],
-                ));
-
-            asset_info.insert_nft(
-                launcher_id,
-                NftAssetInfo::new(
-                    metadata,
-                    nft.metadata_updater_puzzle_hash,
-                    nft.royalty_puzzle_hash,
-                    nft.royalty_basis_points,
-                ),
-            )?;
-        }
-
-        for (launcher_id, option) in requested.options {
-            requested_payments
-                .options
-                .entry(launcher_id)
-                .or_default()
-                .push(NotarizedPayment::new(
-                    nonce,
-                    vec![Payment::new(p2_puzzle_hash, 1, hint)],
-                ));
-
-            asset_info.insert_option(
-                launcher_id,
-                OptionAssetInfo::new(
-                    option.underlying_coin_hash,
-                    option.underlying_delegated_puzzle_hash,
-                ),
-            )?;
-        }
+        let requested_payments =
+            offer_requested_payments(&mut ctx, requested, nonce, p2_puzzle_hash, &mut asset_info)?;
 
         // Reset DIDs and reveal trade prices
         let mut royalty_nft_count = 0;
@@ -430,6 +309,152 @@ impl Wallet {
 
         Ok((split_coin_spends, spends))
     }
+}
+
+/// The actions which pay what's offered into settlement, along with the fee and the royalties of
+/// the NFTs that are requested.
+pub(super) fn offer_actions(
+    ctx: &mut SpendContext,
+    offered: &Offered,
+    requested: &Requested,
+) -> Result<Vec<Action>, WalletError> {
+    let offer_amounts = OfferAmounts {
+        xch: offered.xch.into(),
+        cats: offered
+            .cats
+            .iter()
+            .map(|(&asset_id, &amount)| (asset_id, amount.into()))
+            .collect(),
+    };
+
+    let offer_royalties = requested
+        .nfts
+        .iter()
+        .map(|(&launcher_id, nft)| {
+            RoyaltyInfo::new(
+                launcher_id,
+                nft.royalty_puzzle_hash,
+                nft.royalty_basis_points,
+            )
+        })
+        .filter(|info| info.basis_points > 0)
+        .collect_vec();
+
+    let offer_trade_price_amounts =
+        calculate_trade_price_amounts(&offer_amounts, offer_royalties.len());
+
+    let mut actions = vec![Action::fee(offered.fee)];
+
+    if offered.xch > 0 {
+        actions.push(Action::send(
+            Id::Xch,
+            SETTLEMENT_PAYMENT_HASH.into(),
+            offered.xch,
+            Memos::None,
+        ));
+    }
+
+    for (&asset_id, &amount) in &offered.cats {
+        actions.push(Action::send(
+            Id::Existing(asset_id),
+            SETTLEMENT_PAYMENT_HASH.into(),
+            amount,
+            Memos::None,
+        ));
+    }
+
+    for &launcher_id in offered.nfts.iter().chain(&offered.options) {
+        actions.push(Action::send(
+            Id::Existing(launcher_id),
+            SETTLEMENT_PAYMENT_HASH.into(),
+            1,
+            Memos::None,
+        ));
+    }
+
+    let royalty_payments =
+        calculate_royalty_payments(ctx, &offer_trade_price_amounts, &offer_royalties)?;
+    actions.extend(royalty_payments.actions());
+
+    Ok(actions)
+}
+
+/// The payments the taker has to make to `p2_puzzle_hash`, notarized with the nonce, along with
+/// what's needed to know about the requested assets.
+pub(super) fn offer_requested_payments(
+    ctx: &mut SpendContext,
+    requested: Requested,
+    nonce: Bytes32,
+    p2_puzzle_hash: Bytes32,
+    asset_info: &mut AssetInfo,
+) -> Result<RequestedPayments, WalletError> {
+    let hint = ctx.hint(p2_puzzle_hash)?;
+
+    let mut requested_payments = RequestedPayments::new();
+
+    if requested.xch > 0 {
+        requested_payments.xch.push(NotarizedPayment::new(
+            nonce,
+            vec![Payment::new(p2_puzzle_hash, requested.xch, hint)],
+        ));
+    }
+
+    for (asset_id, cat) in requested.cats {
+        asset_info.insert_cat(asset_id, CatAssetInfo::new(cat.hidden_puzzle_hash))?;
+
+        requested_payments
+            .cats
+            .entry(asset_id)
+            .or_default()
+            .push(NotarizedPayment::new(
+                nonce,
+                vec![Payment::new(p2_puzzle_hash, cat.amount, hint)],
+            ));
+    }
+
+    for (launcher_id, nft) in requested.nfts {
+        let metadata = ctx.alloc_hashed(&nft.metadata)?;
+
+        requested_payments
+            .nfts
+            .entry(launcher_id)
+            .or_default()
+            .push(NotarizedPayment::new(
+                nonce,
+                vec![Payment::new(p2_puzzle_hash, 1, hint)],
+            ));
+
+        asset_info.insert_nft(
+            launcher_id,
+            NftAssetInfo::new(
+                metadata,
+                nft.metadata_updater_puzzle_hash,
+                nft.royalty_puzzle_hash,
+                nft.royalty_basis_points,
+            ),
+        )?;
+    }
+
+    for (launcher_id, option) in requested.options {
+        requested_payments
+            .options
+            .entry(launcher_id)
+            .or_default()
+            .push(NotarizedPayment::new(
+                nonce,
+                vec![Payment::new(p2_puzzle_hash, 1, hint)],
+            ));
+
+        asset_info.insert_option(
+            launcher_id,
+            OptionAssetInfo::new(
+                option.underlying_coin_hash,
+                option.underlying_delegated_puzzle_hash,
+            ),
+        )?;
+    }
+
+    Ok(requested_payments)
 }
 
 /// Whether the XCH or CAT coins selected add up to more than the actions need, leaving change.

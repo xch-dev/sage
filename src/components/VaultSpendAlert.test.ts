@@ -11,6 +11,7 @@ function record(overrides: Partial<VaultSpendRecord>): VaultSpendRecord {
     melted: false,
     reserved_fee: 0,
     unaccounted_xch: 0,
+    singletons: [],
     ...overrides,
   };
 }

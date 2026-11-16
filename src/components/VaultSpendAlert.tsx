@@ -1,4 +1,4 @@
-import { Unit, VaultSpendRecord } from '@/bindings';
+import { Unit, VaultSingletonSpendRecord, VaultSpendRecord } from '@/bindings';
 import { formatNumber } from '@/i18n';
 import { fromMojos } from '@/lib/utils';
 import { Trans } from '@lingui/react/macro';
@@ -78,6 +78,7 @@ export function VaultSpendAlert({
     maximumFractionDigits: unit.precision,
   });
   const ticker = unit.ticker;
+  const singletons = vault.singletons ?? [];
 
   return (
     <Alert
@@ -101,7 +102,31 @@ export function VaultSpendAlert({
             fee.
           </Trans>
         )}
+        {singletons.length > 0 && (
+          <ul className='mt-1 list-disc pl-4 break-all'>
+            {singletons.map((singleton) => (
+              <SingletonSpend key={singleton.launcher_id} {...singleton} />
+            ))}
+          </ul>
+        )}
       </AlertDescription>
     </Alert>
+  );
+}
+
+/** A DID or option that the vault's spend sends somewhere, or melts. */
+function SingletonSpend({ launcher_id, address }: VaultSingletonSpendRecord) {
+  const id = launcher_id;
+
+  return (
+    <li>
+      {address === null ? (
+        <Trans>{id} is melted</Trans>
+      ) : (
+        <Trans>
+          {id} is sent to {address}
+        </Trans>
+      )}
+    </li>
   );
 }

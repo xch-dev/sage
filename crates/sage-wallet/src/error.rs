@@ -141,6 +141,20 @@ pub enum WalletError {
     #[error("A vault recovery's fee must be paid by a BLS wallet")]
     VaultFeeWalletNotBls,
 
+    #[error(
+        "A vault's offers have to be pre-split, so that the vault isn't locked until it's taken"
+    )]
+    VaultDirectOfferNotSupported,
+
+    #[error("Only XCH and CATs can be offered from a vault")]
+    VaultOfferAssetNotSupported,
+
+    #[error("Every TAIL nonce of the vault has been used")]
+    VaultTailNoncesExhausted,
+
+    #[error("The CAT {0} can't be issued by this vault")]
+    NotVaultTail(Bytes32),
+
     #[error("Vault layout error: {0}")]
     VaultLayout(#[from] VaultLayoutError),
 

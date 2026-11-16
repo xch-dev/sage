@@ -328,6 +328,57 @@ function ActionDialog({
   );
 }
 
+/**
+ * How many of the wallet's offers are still open, since rekeying or recovering
+ * the vault doesn't cancel them: their pre-split coins can still be taken.
+ */
+function useOpenOfferCount(enabled: boolean): number {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    let cancelled = false;
+
+    Promise.all(
+      (['pending', 'active'] as const).map((status) =>
+        commands.getOffers({
+          offset: 0,
+          limit: 1,
+          status,
+        }),
+      ),
+    )
+      .then((responses) => {
+        if (cancelled) return;
+        setCount(responses.reduce((total, data) => total + data.total, 0));
+      })
+      .catch(() => {
+        if (!cancelled) setCount(0);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+
+  return count;
+}
+
+function OpenOffersWarning() {
+  return (
+    <Alert variant='warning'>
+      <ShieldAlert className='h-4 w-4' aria-hidden='true' />
+      <AlertTitle>
+        <Trans>This vault has open offers</Trans>
+      </AlertTitle>
+      <AlertDescription>
+        {t`Open offers can still be taken after this, since they don't depend on the vault's keys. Cancel them first if they shouldn't be.`}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 /** The recovery and rekey actions of the vault page. */
 export function VaultRecoveryCard({
   vault,
@@ -350,6 +401,9 @@ export function VaultRecoveryCard({
   const [timelockHours, setTimelockHours] = useState('');
   const [fee, setFee] = useState('0');
   const [feeWallet, setFeeWallet] = useState<number | null>(null);
+  const openOffers = useOpenOfferCount(
+    dialog === 'start' || dialog === 'rekey',
+  );
 
   const close = (open: boolean) => {
     if (open) return;
@@ -487,6 +541,7 @@ export function VaultRecoveryCard({
           onChanged();
         }}
       >
+        {openOffers > 0 && <OpenOffersWarning />}
         {!holdsRecoveryKey && (
           <div className='space-y-2'>
             <Label>
@@ -595,6 +650,7 @@ export function VaultRecoveryCard({
           onChanged();
         }}
       >
+        {openOffers > 0 && <OpenOffersWarning />}
         <div className='space-y-2'>
           <Label>
             <Trans>Custody key</Trans>

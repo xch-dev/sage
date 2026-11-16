@@ -50,7 +50,8 @@ pub struct MakeOffer {
     /// exact amounts it offers, in a transaction paying this fee, so the rest of the balance
     /// isn't locked up by the offer. The offer is always imported, and stays pending until
     /// that transaction is confirmed, so it shouldn't be shared before then. If the coins are
-    /// already the exact amounts, nothing is split.
+    /// already the exact amounts, nothing is split. A vault's offers are always pre-split, with
+    /// no fee if this isn't set.
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub pre_split_fee: Option<Amount>,

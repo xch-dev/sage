@@ -10,10 +10,10 @@ use sage_api::{
     AddNftUri, AssignNftsToDid, AutoCombineCat, AutoCombineCatResponse, AutoCombineXch,
     AutoCombineXchResponse, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch,
     CancelOptions, ClaimClawback, Combine, CreateDid, ExerciseOptions, FinalizeClawback, IssueCat,
-    MintOption, MintOptionResponse, MultiSend, NftUriKind, NormalizeDids, OptionAsset, SendCat,
-    SendXch, SignCoinSpends, SignCoinSpendsResponse, Split, SubmitTransaction,
-    SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts, TransferOptions,
-    ViewCoinSpends, ViewCoinSpendsResponse,
+    IssueMoreCat, MintOption, MintOptionResponse, MultiSend, NftUriKind, NormalizeDids,
+    OptionAsset, SendCat, SendXch, SignCoinSpends, SignCoinSpendsResponse, Split,
+    SubmitTransaction, SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts,
+    TransferOptions, ViewCoinSpends, ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
 use sage_database::{Asset, AssetKind};
@@ -176,9 +176,19 @@ impl Sage {
             None
         };
 
-        let (coin_spends, asset_id) = wallet
-            .issue_cat_with_hidden_puzzle_hash(amount, fee, None, hidden_puzzle_hash)
-            .await?;
+        let (coin_spends, asset_id) = if req.multi_issuance {
+            if hidden_puzzle_hash.is_some() {
+                return Err(Error::InvalidAmount(
+                    "A revocable CAT can't be issued with multiple issuance".to_string(),
+                ));
+            }
+
+            wallet.issue_vault_cat(amount, fee).await?
+        } else {
+            wallet
+                .issue_cat_with_hidden_puzzle_hash(amount, fee, None, hidden_puzzle_hash)
+                .await?
+        };
         let mut tx = wallet.db.tx().await?;
 
         tx.insert_asset(Asset {
@@ -195,6 +205,17 @@ impl Sage {
         })
         .await?;
         tx.commit().await?;
+
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
+    pub async fn issue_more_cat(&self, req: IssueMoreCat) -> Result<TransactionResponse> {
+        let wallet = self.wallet()?;
+        let asset_id = parse_asset_id(req.asset_id)?;
+        let amount = parse_amount(req.amount)?;
+        let fee = parse_amount(req.fee)?;
+
+        let coin_spends = wallet.issue_more_vault_cat(asset_id, amount, fee).await?;
 
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -316,7 +337,7 @@ impl Sage {
     pub async fn bulk_mint_nfts(&self, req: BulkMintNfts) -> Result<BulkMintNftsResponse> {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
-        let did_id = parse_did_id(req.did_id)?;
+        let did_id = req.did_id.map(parse_did_id).transpose()?;
 
         let mut mints = Vec::with_capacity(req.mints.len());
         let mut info = ConfirmationInfo::default();
@@ -335,7 +356,14 @@ impl Sage {
             mints.push(self.convert_nft_mint(item, &recipients, &mut info).await?);
         }
 
-        let (coin_spends, nfts) = wallet.bulk_mint_nfts(fee, did_id, mints).await?;
+        // A vault can mint as itself, rather than from a DID.
+        let (coin_spends, nfts) = match did_id {
+            Some(did_id) => wallet.bulk_mint_nfts(fee, did_id, mints).await?,
+            None if wallet.vault_launcher_id().is_some() => {
+                wallet.mint_vault_nfts(fee, mints).await?
+            }
+            None => return Err(Error::MissingDidId),
+        };
 
         let mut nft_ids = Vec::with_capacity(nfts.len());
 

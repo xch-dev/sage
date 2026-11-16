@@ -7,17 +7,17 @@ use crate::{
     parse_vault_spend_bundle, vault_hashes,
 };
 
-const TIMELOCK: u64 = 60 * 60;
+pub(super) const TIMELOCK: u64 = 60 * 60;
 
-fn custody_key() -> SecretKey {
+pub(super) fn custody_key() -> SecretKey {
     SecretKey::from_seed(&[7; 32])
 }
 
-fn recovery_key() -> SecretKey {
+pub(super) fn recovery_key() -> SecretKey {
     SecretKey::from_seed(&[8; 32])
 }
 
-fn config(version: VaultVersion) -> VaultConfig {
+pub(super) fn config(version: VaultVersion) -> VaultConfig {
     VaultConfig::with_recovery(
         VaultSigners::new(vec![VaultMember::bls(custody_key().public_key())], 1),
         VaultSigners::new(vec![VaultMember::bls(recovery_key().public_key())], 1),
@@ -27,7 +27,7 @@ fn config(version: VaultVersion) -> VaultConfig {
 }
 
 /// Waits until the vault wallet has synced the vault's current coin, and it's active.
-async fn wait_for_vault(vault: &mut TestWallet) -> anyhow::Result<()> {
+pub(super) async fn wait_for_vault(vault: &mut TestWallet) -> anyhow::Result<()> {
     let launcher_id = vault.wallet.vault_launcher_id().expect("a vault wallet");
 
     loop {
@@ -52,7 +52,7 @@ async fn wait_for_vault(vault: &mut TestWallet) -> anyhow::Result<()> {
 
 /// Mints a vault from alice's wallet, and opens a vault wallet for it with `balance` at its first
 /// address.
-async fn mint(
+pub(super) async fn mint(
     alice: &mut TestWallet,
     config: &VaultConfig,
     balance: u64,
@@ -78,7 +78,10 @@ async fn mint(
 }
 
 /// Pushes a vault spend and waits for it, and the recreated vault, to sync.
-async fn vault_transact(vault: &mut TestWallet, coin_spends: Vec<CoinSpend>) -> anyhow::Result<()> {
+pub(super) async fn vault_transact(
+    vault: &mut TestWallet,
+    coin_spends: Vec<CoinSpend>,
+) -> anyhow::Result<()> {
     vault.transact(coin_spends).await?;
     vault.wait_for_coins().await;
     wait_for_vault(vault).await

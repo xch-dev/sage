@@ -93,7 +93,7 @@ async fn invoke(
     let sage = wallet.sage.clone();
     let result = tokio::spawn(async move {
         let mut sage = sage.lock().await;
-        invoke_command(&mut sage, &command, args).await
+        Box::pin(invoke_command(&mut sage, &command, args)).await
     })
     .await;
 
@@ -154,11 +154,13 @@ async fn invoke_command(sage: &mut Sage, command: &str, args: Value) -> Result<V
                 _ => Value::Null,
             };
 
-            call_endpoint(sage, command, req).await.unwrap_or_else(|| {
-                Err(BridgeError::api(format!(
-                    "`{command}` isn't available in the sandbox"
-                )))
-            })
+            Box::pin(call_endpoint(sage, command, req))
+                .await
+                .unwrap_or_else(|| {
+                    Err(BridgeError::api(format!(
+                        "`{command}` isn't available in the sandbox"
+                    )))
+                })
         }
     }
 }

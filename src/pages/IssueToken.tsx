@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
@@ -33,6 +34,7 @@ import { useWalletState } from '../state';
 export default function IssueToken() {
   const navigate = useNavigate();
   const walletState = useWalletState();
+  const { isVault } = useWallet();
   const { addError } = useErrors();
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
@@ -42,12 +44,14 @@ export default function IssueToken() {
     amount: positiveAmount(3),
     fee: amount(walletState.sync.unit.precision).optional(),
     revocable: z.boolean(),
+    multiIssuance: z.boolean(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       revocable: false,
+      multiIssuance: false,
     },
   });
 
@@ -58,6 +62,7 @@ export default function IssueToken() {
         ticker: values.ticker,
         amount: toMojos(values.amount.toString(), 3),
         revocable: values.revocable,
+        multi_issuance: isVault && !values.revocable && values.multiIssuance,
         fee: toMojos(
           values.fee?.toString() || '0',
           walletState.sync.unit.precision,
@@ -182,6 +187,35 @@ export default function IssueToken() {
                 </FormItem>
               )}
             />
+
+            {isVault && !form.watch('revocable') && (
+              <FormField
+                control={form.control}
+                name='multiIssuance'
+                render={({ field }) => (
+                  <FormItem className='flex items-center justify-between gap-4 rounded-lg border p-4'>
+                    <div className='space-y-1'>
+                      <Label htmlFor='multi-issuance'>
+                        <Trans>Multiple issuance</Trans>
+                      </Label>
+                      <p className='text-sm text-muted-foreground'>
+                        <Trans>
+                          Let this vault issue more of the token later. Only
+                          this vault can.
+                        </Trans>
+                      </p>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        id='multi-issuance'
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            )}
 
             {form.watch('revocable') && (
               <Alert variant='warning'>

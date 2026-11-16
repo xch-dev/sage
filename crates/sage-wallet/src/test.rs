@@ -307,18 +307,47 @@ impl TestWallet {
         let spend_bundle = SpendBundle::new(coin_spends, Signature::default());
 
         Ok(match self.wallet.kind {
-            WalletKind::Vault { .. } => sign_with_secret_keys(
-                spend_bundle,
-                &self.agg_sig,
-                slice::from_ref(&self.master_sk),
-                false,
-            )?,
+            WalletKind::Vault { .. } => {
+                // Like Sage, the vault's spend is checked with clear signing before it's signed,
+                // so every vault transaction in the tests has to parse.
+                if let Some(summary) = self
+                    .wallet
+                    .parse_vault_spend(&spend_bundle.coin_spends)
+                    .await?
+                    && summary.changes_custody()
+                {
+                    return Err(WalletError::VaultCustodyChange.into());
+                }
+
+                sign_with_secret_keys(
+                    spend_bundle,
+                    &self.agg_sig,
+                    slice::from_ref(&self.master_sk),
+                    false,
+                )?
+            }
             _ => {
                 self.wallet
                     .sign_transaction(spend_bundle, &self.agg_sig, self.master_sk.clone(), false)
                     .await?
             }
         })
+    }
+
+    /// Signs and submits a vault transaction that changes the vault's custody on purpose, such as
+    /// cancelling a recovery or rekeying. Like Sage's recovery endpoints, which sign these
+    /// themselves, it skips the clear signing check that refuses custody changes.
+    pub async fn transact_custody_change(&self, coin_spends: Vec<CoinSpend>) -> anyhow::Result<()> {
+        let spend_bundle = sign_with_secret_keys(
+            SpendBundle::new(coin_spends, Signature::default()),
+            &self.agg_sig,
+            slice::from_ref(&self.master_sk),
+            false,
+        )?;
+
+        self.push_bundle(spend_bundle).await?;
+
+        Ok(())
     }
 
     pub async fn transact(&self, coin_spends: Vec<CoinSpend>) -> anyhow::Result<()> {
@@ -363,6 +392,24 @@ impl TestWallet {
             if f(next) {
                 return;
             }
+        }
+    }
+
+    /// Waits until the check passes, consuming sync events in between.
+    pub async fn wait_until<F, Fut>(&mut self, check: F) -> anyhow::Result<()>
+    where
+        F: Fn(Arc<Wallet>) -> Fut,
+        Fut: Future<Output = anyhow::Result<bool>>,
+    {
+        loop {
+            if check(self.wallet.clone()).await? {
+                return Ok(());
+            }
+
+            timeout(Duration::from_secs(10), self.events.recv())
+                .await
+                .unwrap_or_else(|_| panic!("timed out waiting for the check to pass"))
+                .unwrap_or_else(|| panic!("missing next event"));
         }
     }
 

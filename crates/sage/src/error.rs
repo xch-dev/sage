@@ -297,6 +297,9 @@ pub enum Error {
     #[error("Missing DID: {0}")]
     MissingDid(Bytes32),
 
+    #[error("A DID is needed to mint NFTs from this wallet")]
+    MissingDidId,
+
     #[error("Missing NFT: {0}")]
     MissingNft(Bytes32),
 
@@ -482,6 +485,7 @@ impl Error {
             | Self::MissingNftCoin(..)
             | Self::MissingCat(..)
             | Self::MissingDid(..)
+            | Self::MissingDidId
             | Self::MissingNft(..)
             | Self::MissingOption(..)
             | Self::MissingOffer(..)

@@ -1,30 +1,40 @@
+mod assets;
 mod recovery;
 
 #[cfg(test)]
+mod asset_tests;
+#[cfg(test)]
+mod offer_tests;
+#[cfg(test)]
 mod tests;
 
+pub use assets::*;
 pub use recovery::*;
 
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use chia_wallet_sdk::{
     chia::puzzle_types::{EveProof, LineageProof, Memos, Proof, offer::SettlementPaymentsSolution},
     clvm_utils::TreeHash,
     driver::{
-        Delta, Finished, InnerPuzzleSpend, MipsSpend, MofN, Restriction, SpendKind, VAULT_AMOUNT,
-        VAULT_MESSAGE_MODE, Vault, VaultInfo, mips_puzzle_hash,
+        ClawbackV2, Delta, Finished, InnerPuzzleSpend, MipsSpend, MofN, P2Singleton, Restriction,
+        SpendKind, SpendableAsset, VAULT_AMOUNT, VAULT_MESSAGE_MODE, Vault, VaultInfo,
+        mips_puzzle_hash,
     },
     prelude::*,
     types::puzzles::BlsMember,
 };
 use sage_database::{
-    ConditionsOrSingleton, P2Puzzle, VaultConfig, VaultLayout, VaultMember, VaultSigners,
+    CoinKind, ConditionsOrSingleton, P2Puzzle, VaultConfig, VaultLayout, VaultMember, VaultSigners,
     VaultState, VaultStatus,
 };
 
 use crate::{
-    WalletError, WalletKind, build_vault, member_puzzle_hash, signers_hash, signers_inner_hash,
-    vault_hashes,
+    VaultReveals, VaultSpendSummary, WalletError, WalletKind, build_vault, member_puzzle_hash,
+    parse_vault_spend_bundle_with, signers_hash, signers_inner_hash, vault_hashes,
 };
 
 use super::Wallet;
@@ -153,6 +163,59 @@ impl Wallet {
             launcher_id: vault.info.launcher_id,
             coin_spends: ctx.take(),
         })
+    }
+
+    /// What the wallet knows about the coins a transaction spends, which clear signing needs to
+    /// parse the vault's spend: the clawbacks and P2 conditions or singleton puzzles they're
+    /// locked to, and the nonces of the vault's addresses.
+    pub async fn vault_reveals(
+        &self,
+        coin_spends: &[CoinSpend],
+    ) -> Result<VaultReveals, WalletError> {
+        let mut reveals = VaultReveals::default();
+
+        let Some(launcher_id) = self.vault_launcher_id() else {
+            return Ok(reveals);
+        };
+
+        let coin_ids: Vec<Bytes32> = coin_spends.iter().map(|cs| cs.coin.coin_id()).collect();
+
+        for row in self.db.coins_by_ids(&coin_ids).await? {
+            match self.db.p2_puzzle(row.p2_puzzle_hash).await {
+                Ok(P2Puzzle::Clawback(clawback)) if clawback.version == 2 => {
+                    reveals.clawbacks.push(ClawbackV2::new(
+                        clawback.sender_puzzle_hash,
+                        clawback.receiver_puzzle_hash,
+                        clawback.seconds,
+                        row.coin.amount,
+                        row.kind != CoinKind::Xch,
+                    ));
+                }
+                Ok(P2Puzzle::P2ConditionsOrSingleton(p2)) => {
+                    reveals.p2_conditions_or_singletons.push(p2.p2);
+                }
+                _ => {}
+            }
+        }
+
+        let address_count = self.db.p2_singleton_puzzle_hashes(launcher_id).await?.len();
+        reveals.nonces = (0..address_count.max(1)).collect();
+
+        Ok(reveals)
+    }
+
+    /// Parses what the vault's spend in a transaction does with clear signing, if it's spent.
+    pub async fn parse_vault_spend(
+        &self,
+        coin_spends: &[CoinSpend],
+    ) -> Result<Option<VaultSpendSummary>, WalletError> {
+        let Some(launcher_id) = self.vault_launcher_id() else {
+            return Ok(None);
+        };
+
+        let reveals = self.vault_reveals(coin_spends).await?;
+
+        parse_vault_spend_bundle_with(coin_spends, launcher_id, &reveals)
     }
 
     /// The vault's current coin and config, if it can be spent now.
@@ -284,21 +347,80 @@ impl Wallet {
     /// outputs its conditions through a delegated spend, which the vault approves by sending it a
     /// message, and the vault is recreated with the same custody. Conditions that no coin could
     /// output, such as the fee of a transaction that only spends the vault, are output by the
-    /// vault itself.
+    /// vault itself, along with the extra conditions.
     pub(super) fn spend_vault_coins(
         &self,
         ctx: &mut SpendContext,
         spends: Spends<Finished>,
         p2_puzzles: &HashMap<Bytes32, P2Puzzle>,
         vault: &SpendableVault,
+        extra_conditions: Conditions,
     ) -> Result<Outputs, WalletError> {
         let mut vault_conditions = spends.unplaced_conditions.clone();
         let mut coin_spends = HashMap::new();
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        let launcher_id = vault.vault.info.launcher_id;
+        let custody_hash: Bytes32 = vault.vault.info.custody_hash.into();
+        let amount = vault.vault.coin.amount;
 
         for (asset, kind) in spends.unspent() {
             let spend = match kind {
                 SpendKind::Conditions(spend) => {
-                    let delegated_spend = ctx.delegated_spend(spend.finish())?;
+                    let mut conditions = spend.finish();
+
+                    let p2_puzzle = p2_puzzles.get(&asset.p2_puzzle_hash());
+
+                    // A coin locked to fixed conditions or the vault, such as an offer's pre-split
+                    // coin, asserts its own id when the vault spends it. Otherwise its delegated
+                    // spend could be swapped onto the fixed path of another coin.
+                    if matches!(p2_puzzle, Some(P2Puzzle::P2ConditionsOrSingleton(_))) {
+                        conditions = conditions.assert_my_coin_id(asset.coin().coin_id());
+                    }
+
+                    // A clawback is spent by whichever side the vault is, through its address.
+                    // The vault asserts that the path is open, so clear signing can tell which
+                    // path the clawback takes. Only the vault's own conditions are trusted for
+                    // that, rather than the clawback's.
+                    let clawback = match p2_puzzle {
+                        Some(P2Puzzle::Clawback(clawback)) if clawback.version == 2 => {
+                            let sender =
+                                vault_address(p2_puzzles, clawback.sender_puzzle_hash, launcher_id);
+                            let receiver = vault_address(
+                                p2_puzzles,
+                                clawback.receiver_puzzle_hash,
+                                launcher_id,
+                            );
+
+                            let v2 = ClawbackV2::new(
+                                clawback.sender_puzzle_hash,
+                                clawback.receiver_puzzle_hash,
+                                clawback.seconds,
+                                asset.coin().amount,
+                                !matches!(asset, SpendableAsset::Xch(..)),
+                            );
+
+                            if let Some(p2) = sender
+                                && timestamp < clawback.seconds
+                            {
+                                vault_conditions = vault_conditions
+                                    .assert_before_seconds_absolute(clawback.seconds);
+                                Some((v2, p2, true))
+                            } else if let Some(p2) = receiver
+                                && timestamp >= clawback.seconds
+                            {
+                                vault_conditions =
+                                    vault_conditions.assert_seconds_absolute(clawback.seconds);
+                                Some((v2, p2, false))
+                            } else if sender.is_some() || receiver.is_some() {
+                                return Err(WalletError::ClawbackSpendNotAllowed);
+                            } else {
+                                return Err(DriverError::MissingKey.into());
+                            }
+                        }
+                        _ => None,
+                    };
+
+                    let delegated_spend = ctx.delegated_spend(conditions)?;
                     let delegated_puzzle_hash = ctx.tree_hash(delegated_spend.puzzle);
                     let coin_id = ctx.alloc(&asset.coin().coin_id())?;
 
@@ -308,23 +430,28 @@ impl Wallet {
                         vec![coin_id],
                     );
 
-                    let custody_hash = vault.vault.info.custody_hash.into();
-                    let amount = vault.vault.coin.amount;
+                    if let Some((clawback, p2, is_sender)) = clawback {
+                        let inner = p2.spend(ctx, custody_hash, amount, delegated_spend)?;
 
-                    match p2_puzzles.get(&asset.p2_puzzle_hash()) {
-                        Some(P2Puzzle::P2Singleton(p2))
-                            if p2.launcher_id == vault.vault.info.launcher_id =>
-                        {
-                            p2.spend(ctx, custody_hash, amount, delegated_spend)?
+                        if is_sender {
+                            clawback.sender_spend(ctx, inner)?
+                        } else {
+                            clawback.receiver_spend(ctx, inner)?
                         }
-                        Some(P2Puzzle::P2ConditionsOrSingleton(ConditionsOrSingleton {
-                            p2,
-                            ..
-                        })) if p2.launcher_id == vault.vault.info.launcher_id => {
-                            p2.p2_singleton_spend(ctx, custody_hash, amount, delegated_spend)?
+                    } else {
+                        match p2_puzzle {
+                            Some(P2Puzzle::P2Singleton(p2)) if p2.launcher_id == launcher_id => {
+                                p2.spend(ctx, custody_hash, amount, delegated_spend)?
+                            }
+                            Some(P2Puzzle::P2ConditionsOrSingleton(ConditionsOrSingleton {
+                                p2,
+                                ..
+                            })) if p2.launcher_id == launcher_id => {
+                                p2.p2_singleton_spend(ctx, custody_hash, amount, delegated_spend)?
+                            }
+                            Some(P2Puzzle::External) => return Err(WalletError::WatchOnly),
+                            _ => return Err(DriverError::MissingKey.into()),
                         }
-                        Some(P2Puzzle::External) => return Err(WalletError::WatchOnly),
-                        _ => return Err(DriverError::MissingKey.into()),
                     }
                 }
                 SpendKind::Settlement(spend) => SettlementLayer
@@ -336,7 +463,19 @@ impl Wallet {
 
         let outputs = spends.spend(ctx, coin_spends)?;
 
-        self.spend_vault(ctx, vault, vault_conditions)?;
+        // A CAT whose TAIL the vault controls is only issued or melted with the vault's message.
+        let pending = ctx.take();
+        let tail_messages = vault_tail_messages(ctx, launcher_id, &pending)?;
+
+        for coin_spend in pending {
+            ctx.insert(coin_spend);
+        }
+
+        for message in tail_messages {
+            vault_conditions.push(message);
+        }
+
+        self.spend_vault(ctx, vault, vault_conditions.extend(extra_conditions))?;
 
         Ok(outputs)
     }
@@ -385,6 +524,18 @@ pub fn spend_vault_custody(
     vault.vault.spend(ctx, &mips_spend)?;
 
     Ok(())
+}
+
+/// The vault address with the puzzle hash, if it's one of this vault's.
+fn vault_address(
+    p2_puzzles: &HashMap<Bytes32, P2Puzzle>,
+    puzzle_hash: Bytes32,
+    launcher_id: Bytes32,
+) -> Option<P2Singleton> {
+    match p2_puzzles.get(&puzzle_hash) {
+        Some(P2Puzzle::P2Singleton(p2)) if p2.launcher_id == launcher_id => Some(*p2),
+        _ => None,
+    }
 }
 
 /// The spend of a vault's custody puzzle down its custody side, with the delegated spend.

@@ -54,6 +54,10 @@ pub struct VaultSpendRecord {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub recovery: Option<VaultRecoverySpendKind>,
+    /// The DIDs and options that the vault spends, which Sage checks itself, since clear signing
+    /// doesn't cover them
+    #[serde(default)]
+    pub singletons: Vec<VaultSingletonSpendRecord>,
 }
 
 /// What a spend through a vault's recovery side does
@@ -64,6 +68,19 @@ pub struct VaultSpendRecord {
 pub enum VaultRecoverySpendKind {
     Start,
     Finish,
+}
+
+/// The spend of a DID or option owned by a vault
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct VaultSingletonSpendRecord {
+    /// The DID or option id
+    pub launcher_id: String,
+    /// The address the singleton is sent to, or `null` if it's melted, such as when an option is
+    /// exercised
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub address: Option<String>,
 }
 
 fn zero_amount() -> Amount {

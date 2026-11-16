@@ -1,7 +1,7 @@
 use chia_wallet_sdk::prelude::*;
 use sage_wallet::{
     SyncCommand, Transaction, Wallet, WalletError, insert_transaction, is_fully_signed,
-    parse_vault_spend_bundle, sign_with_secret_keys,
+    sign_with_secret_keys,
 };
 
 use crate::{Error, Result, Sage};
@@ -36,15 +36,15 @@ impl Sage {
     ) -> Result<SpendBundle> {
         let agg_sig_constants = AggSigConstants::new(self.network().agg_sig_me());
 
-        let Some(launcher_id) = wallet.vault_launcher_id() else {
+        if wallet.vault_launcher_id().is_none() {
             let master_sk = self.master_secret_key(wallet)?;
 
             return Ok(wallet
                 .sign_transaction(spend_bundle, &agg_sig_constants, master_sk, partial)
                 .await?);
-        };
+        }
 
-        if let Some(summary) = parse_vault_spend_bundle(&spend_bundle.coin_spends, launcher_id)?
+        if let Some(summary) = wallet.parse_vault_spend(&spend_bundle.coin_spends).await?
             && summary.changes_custody()
         {
             return Err(WalletError::VaultCustodyChange.into());

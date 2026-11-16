@@ -78,6 +78,7 @@
   "auto_combine_xch": true,
   "auto_combine_cat": true,
   "issue_cat": true,
+  "issue_more_cat": true,
   "send_cat": true,
   "bulk_send_cat": true,
   "multi_send": true,
