@@ -46,6 +46,7 @@ afterEach(() => {
   fetchMock.mockReset();
   vi.mocked(showUpdateToast).mockReset();
   vi.mocked(hideUpdateToast).mockReset();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -173,5 +174,63 @@ describe('UpdateProvider', () => {
 
     expect(hideUpdateToast).toHaveBeenCalledWith('0.14.0');
     expect(window.localStorage.getItem(UPDATE_NOTIFIED_STORAGE_KEY)).toBeNull();
+  });
+
+  it('ignores a check still running when checks are turned off', async () => {
+    let respond: (response: Response) => void = () => undefined;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          respond = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() => useUpdates(), { wrapper });
+
+    await waitFor(() => expect(result.current.status).toBe('checking'));
+
+    act(() => result.current.setEnabled(false));
+    await act(async () => {
+      respond(new Response(JSON.stringify({ tag_name: 'v0.14.0' })));
+    });
+
+    expect(result.current.status).toBe('idle');
+    expect(result.current.update).toBeNull();
+    expect(showUpdateToast).not.toHaveBeenCalled();
+  });
+
+  it('checks again every 6 hours, and stops when checks are turned off', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    respondWithTag('v0.13.1');
+
+    const { result } = renderHook(() => useUpdates(), { wrapper });
+
+    await waitFor(() => expect(result.current.status).toBe('up-to-date'));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(() => vi.advanceTimersByTimeAsync(15 * 60 * 1000));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(() => vi.advanceTimersByTimeAsync(6 * 60 * 60 * 1000));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    act(() => result.current.setEnabled(false));
+    await act(() => vi.advanceTimersByTimeAsync(12 * 60 * 60 * 1000));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('tries again sooner after a check fails', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    respondWithTag('v0.14.0');
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    const { result } = renderHook(() => useUpdates(), { wrapper });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+
+    await act(() => vi.advanceTimersByTimeAsync(15 * 60 * 1000));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.current.status).toBe('available');
   });
 });

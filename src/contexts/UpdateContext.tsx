@@ -22,6 +22,8 @@ export const UPDATE_CHECKS_STORAGE_KEY = 'sage-update-checks';
 export const UPDATE_NOTIFIED_STORAGE_KEY = 'sage-update-notified-version';
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+/** How soon to try again after a check fails, such as when Sage starts before the network is up. */
+const RETRY_INTERVAL_MS = 15 * 60 * 1000;
 
 export type UpdateStatus =
   | 'idle'
@@ -70,13 +72,14 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       .catch((error) => console.warn('Failed to read the app version', error));
   }, []);
 
-  const check = useCallback(async (version: string) => {
+  /** Returns whether the check failed. */
+  const check = useCallback(async (version: string): Promise<boolean> => {
     const id = ++checkId.current;
     setStatus('checking');
 
     try {
       const latest = await fetchLatestRelease();
-      if (id !== checkId.current) return;
+      if (id !== checkId.current) return false;
 
       if (isNewerVersion(latest.version, version)) {
         // Keep the same object while the version is unchanged, so later checks don't re-show the
@@ -89,10 +92,12 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         setUpdate(null);
         setStatus('up-to-date');
       }
+      return false;
     } catch (error) {
-      if (id !== checkId.current) return;
+      if (id !== checkId.current) return false;
       console.warn('Failed to check for updates', error);
       setStatus('error');
+      return true;
     }
   }, []);
 
@@ -106,13 +111,24 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    void check(currentVersion);
-    const interval = setInterval(
-      () => void check(currentVersion),
-      CHECK_INTERVAL_MS,
-    );
+    let cancelled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
-    return () => clearInterval(interval);
+    const run = async () => {
+      const failed = await check(currentVersion);
+      if (cancelled) return;
+      timeout = setTimeout(
+        () => void run(),
+        failed ? RETRY_INTERVAL_MS : CHECK_INTERVAL_MS,
+      );
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [enabled, currentVersion, check]);
 
   // Pop up a toast the first time each release is found. It stays until it's dismissed, and comes

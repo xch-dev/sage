@@ -1,8 +1,4 @@
-/** GitHub's latest release for Sage. It leaves out drafts and prereleases. */
-export const LATEST_RELEASE_URL =
-  'https://api.github.com/repos/xch-dev/sage/releases/latest';
-
-const RELEASE_PAGE_BASE = 'https://github.com/xch-dev/sage/releases/tag/';
+import { sageLatestReleaseApiUrl, sageReleasePageUrl } from '@/lib/urls';
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -53,7 +49,7 @@ export async function fetchLatestRelease(): Promise<LatestRelease> {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(LATEST_RELEASE_URL, {
+    const response = await fetch(sageLatestReleaseApiUrl, {
       headers: { Accept: 'application/vnd.github+json' },
       signal: controller.signal,
     });
@@ -76,7 +72,7 @@ export async function fetchLatestRelease(): Promise<LatestRelease> {
     // opens Sage's own releases page.
     return {
       version: tag.replace(/^v/, ''),
-      url: `${RELEASE_PAGE_BASE}${encodeURIComponent(tag)}`,
+      url: sageReleasePageUrl(tag),
     };
   } finally {
     clearTimeout(timeout);

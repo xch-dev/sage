@@ -78,12 +78,13 @@ function LogLevelSettings() {
   );
 }
 
-function UpdateSettings() {
+export function UpdateSettings() {
   const { enabled, setEnabled, status, update, checkNow } = useUpdates();
   const updateVersion = update?.version ?? '';
 
   const statusText = {
-    idle: t`Automatic checks are off.`,
+    // Checks start once Sage has read its own version, which is only a moment when they're on.
+    idle: enabled ? t`Checking for updates...` : t`Automatic checks are off.`,
     checking: t`Checking for updates...`,
     'up-to-date': t`Sage is up to date.`,
     available: t`Sage ${updateVersion} is available.`,

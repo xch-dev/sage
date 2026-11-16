@@ -1,12 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  fetchLatestRelease,
-  isNewerVersion,
-  LATEST_RELEASE_URL,
-  parseVersion,
-} from './updates';
+import { sageLatestReleaseApiUrl } from './urls';
+import { fetchLatestRelease, isNewerVersion, parseVersion } from './updates';
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -67,7 +64,7 @@ describe('fetchLatestRelease', () => {
       url: 'https://github.com/xch-dev/sage/releases/tag/v0.14.0',
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      LATEST_RELEASE_URL,
+      sageLatestReleaseApiUrl,
       expect.anything(),
     );
   });
@@ -88,5 +85,24 @@ describe('fetchLatestRelease', () => {
         ),
     );
     await expect(fetchLatestRelease()).rejects.toThrow('unexpected tag');
+  });
+
+  it('gives up on a request that hangs', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () =>
+              reject(new DOMException('Aborted', 'AbortError')),
+            );
+          }),
+      ),
+    );
+
+    const result = expect(fetchLatestRelease()).rejects.toThrow('Aborted');
+    await vi.advanceTimersByTimeAsync(15_000);
+    await result;
   });
 });
