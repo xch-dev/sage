@@ -128,7 +128,7 @@ function settingsPages(isMobile: boolean): SettingsPage[] {
       id: 'about',
       group: 'about',
       label: t`About`,
-      description: t`Version, log level and logs`,
+      description: t`Version, updates, log level and logs`,
       icon: InfoIcon,
       render: () => <AboutSettings />,
     },

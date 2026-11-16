@@ -3,6 +3,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useUpdates } from '@/contexts/UpdateContext';
 import { usePeers } from '@/hooks/usePeers';
 import { offersEnabled, optionsEnabled } from '@/lib/features';
 import { logoutAndUpdateState, useWalletState } from '@/state';
@@ -11,6 +12,7 @@ import { Plural, Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   ArrowDownUp,
+  CircleArrowUp,
   Blocks,
   BookUser,
   Cog,
@@ -119,6 +121,8 @@ export function TopNav({ isCollapsed }: NavProps) {
 
 export function BottomNav({ isCollapsed }: NavProps) {
   const navigate = useNavigate();
+  const { update, openRelease } = useUpdates();
+  const updateVersion = update?.version ?? '';
 
   const { peers } = usePeers();
   const peerCount = peers?.length || 0;
@@ -209,6 +213,25 @@ export function BottomNav({ isCollapsed }: NavProps) {
           />
         )}
       </NavLink>
+
+      {update && (
+        <NavLink
+          url={openRelease}
+          isCollapsed={isCollapsed}
+          message={t`Update Available`}
+          customTooltip={
+            <Trans>
+              Sage {updateVersion} is available. Open its release page to
+              download it.
+            </Trans>
+          }
+        >
+          <CircleArrowUp
+            className={`${className} text-primary`}
+            aria-hidden='true'
+          />
+        </NavLink>
+      )}
 
       <NavLink
         url={'/settings'}

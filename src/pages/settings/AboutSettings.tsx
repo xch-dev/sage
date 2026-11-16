@@ -7,13 +7,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { useUpdates } from '@/contexts/UpdateContext';
 import { useErrors } from '@/hooks/useErrors';
 import { getConsoleLogs } from '@/lib/consoleCapture';
 import { exportText, ExportType } from '@/lib/exportText';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { getVersion } from '@tauri-apps/api/app';
 import { DownloadIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { commands, LogFile } from '../../bindings';
@@ -76,12 +77,52 @@ function LogLevelSettings() {
   );
 }
 
-export function AboutSettings() {
-  const [version, setVersion] = useState<string | null>(null);
+export function UpdateSettings() {
+  const { enabled, setEnabled, status, update, checkNow, openRelease } =
+    useUpdates();
+  const updateVersion = update?.version ?? '';
 
-  useEffect(() => {
-    getVersion().then(setVersion);
-  }, []);
+  const statusText = {
+    // Checks start once Sage has read its own version, which is only a moment when they're on.
+    idle: enabled ? t`Checking for updates...` : t`Automatic checks are off.`,
+    checking: t`Checking for updates...`,
+    'up-to-date': t`Sage is up to date.`,
+    available: t`Sage ${updateVersion} is available.`,
+    error: t`Couldn't reach GitHub to check for updates.`,
+  }[status];
+
+  return (
+    <SettingsSection title={t`Updates`}>
+      <SettingItem
+        label={t`Check for Updates`}
+        description={t`Ask GitHub for the latest release when Sage starts and every few hours.`}
+        control={<Switch checked={enabled} onCheckedChange={setEnabled} />}
+      />
+      <SettingItem
+        label={t`Latest Version`}
+        description={statusText}
+        control={
+          update ? (
+            <Button onClick={openRelease}>
+              <Trans>View Release</Trans>
+            </Button>
+          ) : (
+            <Button
+              variant='outline'
+              disabled={status === 'checking'}
+              onClick={checkNow}
+            >
+              <Trans>Check Now</Trans>
+            </Button>
+          )
+        }
+      />
+    </SettingsSection>
+  );
+}
+
+export function AboutSettings() {
+  const { supported, currentVersion } = useUpdates();
 
   return (
     <>
@@ -89,10 +130,13 @@ export function AboutSettings() {
         <SettingItem
           label={t`Version`}
           control={
-            <span className='text-sm text-muted-foreground'>{version}</span>
+            <span className='text-sm text-muted-foreground'>
+              {currentVersion}
+            </span>
           }
         />
       </SettingsSection>
+      {supported && <UpdateSettings />}
       <LogLevelSettings />
       <LogViewer />
     </>

@@ -24,6 +24,7 @@ import {
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
+import { UpdateProvider } from './contexts/UpdateContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import { WalletProvider } from './contexts/WalletContext';
 import { StartupError } from './components/StartupError';
@@ -221,7 +222,9 @@ function AppInner() {
             <AppsProvider>
               <WalletConnectProvider>
                 <PriceProvider>
-                  <RouterProvider router={router} />
+                  <UpdateProvider>
+                    <RouterProvider router={router} />
+                  </UpdateProvider>
                 </PriceProvider>
               </WalletConnectProvider>
             </AppsProvider>

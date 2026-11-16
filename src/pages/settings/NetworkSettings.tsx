@@ -196,7 +196,7 @@ function SyncSettings({
       />
       <SettingItem
         label={t`Mempool Discovery`}
-        description={t`Look up pending transactions with Coinset, so they show before they're confirmed, even after a resync. Coinset can see which pending transactions are yours.`}
+        description={t`Look up pending transactions with Coinset, so they show before they're confirmed, even after a resync.`}
         control={
           <Switch
             checked={mempoolDiscovery}

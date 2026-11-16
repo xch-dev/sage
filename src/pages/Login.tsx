@@ -2,6 +2,7 @@ import SafeAreaView from '@/components/SafeAreaView';
 import { WalletCard } from '@/components/WalletCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUpdates } from '@/contexts/UpdateContext';
 import { useErrors } from '@/hooks/useErrors';
 import { useKeys } from '@/hooks/useKeys';
 import {
@@ -21,9 +22,10 @@ import {
   rectSortingStrategy,
   SortableContext,
 } from '@dnd-kit/sortable';
+import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
-import { CogIcon } from 'lucide-react';
+import { CircleArrowUp, CogIcon } from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
 import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +36,8 @@ const isMobile = platform() === 'ios' || platform() === 'android';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { update, openRelease } = useUpdates();
+  const updateVersion = update?.version ?? '';
   const { addError } = useErrors();
   const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
   const keychain = useKeys();
@@ -122,6 +126,19 @@ export default function Login() {
                 <Trans>Wallets</Trans>
               </h2>
               <div className='flex items-center space-x-2'>
+                {update && (
+                  <Button
+                    variant='outline'
+                    onClick={openRelease}
+                    title={t`Sage ${updateVersion} is available. Open its release page to download it.`}
+                  >
+                    <CircleArrowUp
+                      className='h-4 w-4 mr-2 text-primary'
+                      aria-hidden='true'
+                    />
+                    <Trans>Update Available</Trans>
+                  </Button>
+                )}
                 <Button
                   variant='ghost'
                   size='icon'
