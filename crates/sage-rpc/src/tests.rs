@@ -39,14 +39,14 @@ use sage_api::{
     Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CoinFilterMode, CoinJson,
     CoinSortMode, CoinSpendJson, CreateDid, CreateTransaction, GetAreCoinsSpendable, GetCats,
     GetCoins, GetCoinsByIds, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater,
-    GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode,
-    HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet, IssueCat, Login,
-    LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind, OfferAmount,
-    OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, TakeOffer,
+    GetOffer, GetOffers, GetPeers, GetRequestedNftThumbnail, GetSyncStatus, GetVersion, GetWallet,
+    HandleFilterMode, HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet,
+    IssueCat, Login, LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind,
+    OfferAmount, OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, TakeOffer,
     UpdateNftAction, ViewCoinSpends, ViewOffer, wallet_connect::FilterUnlockedCoins,
 };
 use sage_api_macro::impl_endpoints;
-use sage_database::{OfferStatus, XchandleRow, XchandleStatus};
+use sage_database::{OfferStatus, ResizedImageKind, XchandleRow, XchandleStatus};
 use sage_wallet::{SyncCommand, SyncEvent};
 use serde::{Serialize, de::DeserializeOwned};
 use tempfile::TempDir;
@@ -1904,6 +1904,61 @@ async fn test_requested_mutable_nft() -> Result<()> {
     );
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_requested_nft_thumbnail() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(1000).await?;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let nft_id = mint_mutable_nft(&mut app).await?;
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
+
+    // Bob hasn't looked the NFT up yet, so its data hash isn't known.
+    assert_eq!(requested_thumbnail(&mut app, &nft_id).await?, None);
+
+    app.get_nft_metadata_updater(GetNftMetadataUpdater {
+        nft_id: nft_id.clone(),
+    })
+    .await?;
+
+    // The simulator isn't mainnet or testnet11, so MintGarden isn't asked.
+    assert_eq!(requested_thumbnail(&mut app, &nft_id).await?, None);
+
+    // A thumbnail the wallet already has for the NFT's data is used.
+    let data_hash = Bytes32::new([1; 32]);
+    let png = vec![1, 2, 3];
+    {
+        let wallet = app.sage.lock().await.wallet()?;
+        let mut tx = wallet.db.tx().await?;
+        tx.insert_file(data_hash).await?;
+        tx.insert_resized_image(data_hash, ResizedImageKind::Thumbnail, png)
+            .await?;
+        tx.commit().await?;
+    }
+
+    assert_eq!(
+        requested_thumbnail(&mut app, &nft_id).await?.as_deref(),
+        Some("AQID")
+    );
+
+    Ok(())
+}
+
+async fn requested_thumbnail(app: &mut TestApp, nft_id: &str) -> Result<Option<String>> {
+    Ok(app
+        .get_requested_nft_thumbnail(GetRequestedNftThumbnail {
+            nft_id: nft_id.to_string(),
+        })
+        .await?
+        .thumbnail)
 }
 
 #[tokio::test]

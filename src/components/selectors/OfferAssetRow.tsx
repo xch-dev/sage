@@ -109,15 +109,21 @@ export function RequestedNftPreview({ lookup }: RequestedNftPreviewProps) {
       );
     case 'found':
       return (
-        // There's no thumbnail: the wallet only keeps images for NFTs it
-        // holds, and a requested NFT usually belongs to someone else.
         <OfferAssetRowFooter className='gap-3 py-2 text-foreground'>
-          <span className='flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted'>
-            <ImageIcon
-              className='h-5 w-5 text-muted-foreground'
-              aria-hidden='true'
+          {lookup.thumbnail ? (
+            <img
+              src={lookup.thumbnail}
+              alt=''
+              className='h-10 w-10 shrink-0 rounded-md object-cover'
             />
-          </span>
+          ) : (
+            <span className='flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted'>
+              <ImageIcon
+                className='h-5 w-5 text-muted-foreground'
+                aria-hidden='true'
+              />
+            </span>
+          )}
           <div className='flex min-w-0 flex-col'>
             <span className='truncate text-sm font-medium'>
               {lookup.name ?? t`NFT found`}

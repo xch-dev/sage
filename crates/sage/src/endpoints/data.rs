@@ -15,20 +15,22 @@ use sage_api::{
     GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
     GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
     GetNftsResponse, GetOption, GetOptionResponse, GetOptions, GetOptionsResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
-    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetToken,
-    GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
-    GetTransactionsResponse, GetVersion, GetVersionResponse, IsAssetOwned, IsAssetOwnedResponse,
-    NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType,
-    OptionRecord, OptionSortMode as ApiOptionSortMode, PendingTransactionRecord,
-    PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse, TokenRecord,
-    TransactionCoinRecord, TransactionRecord,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetRequestedNftThumbnail,
+    GetRequestedNftThumbnailResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse,
+    GetSyncStatus, GetSyncStatusResponse, GetToken, GetTokenResponse, GetTransaction,
+    GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
+    GetVersionResponse, IsAssetOwned, IsAssetOwnedResponse, NftCollectionRecord, NftData,
+    NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType, OptionRecord,
+    OptionSortMode as ApiOptionSortMode, PendingTransactionRecord, PerformDatabaseMaintenance,
+    PerformDatabaseMaintenanceResponse, TokenRecord, TransactionCoinRecord, TransactionRecord,
 };
+use sage_assets::mintgarden_thumbnail;
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
     ParsedNftMetadata, Transaction, TransactionCoin,
 };
 use sage_wallet::WalletKind;
+use tracing::debug;
 
 impl Sage {
     pub fn get_version(&self, _req: GetVersion) -> Result<GetVersionResponse> {
@@ -820,6 +822,53 @@ impl Sage {
                 .thumbnail(data_hash)
                 .await?
                 .map(|thumbnail| BASE64_STANDARD.encode(thumbnail.data)),
+        })
+    }
+
+    /// The thumbnail of an NFT the wallet doesn't hold, once it has been looked up with
+    /// `get_nft_metadata_updater`. Unlike `get_nft_thumbnail`, this asks MintGarden when the
+    /// wallet hasn't made a thumbnail of the NFT's data itself.
+    pub async fn get_requested_nft_thumbnail(
+        &self,
+        req: GetRequestedNftThumbnail,
+    ) -> Result<GetRequestedNftThumbnailResponse> {
+        let wallet = self.wallet()?;
+
+        let nft_id = parse_nft_id(req.nft_id)?;
+
+        let data_hash = wallet.db.offer_nft_info(nft_id).await?.and_then(|info| {
+            ParsedNftMetadata::parse_program(&info.metadata, info.metadata_updater_kind())
+                .and_then(|metadata| metadata.data_hash)
+        });
+
+        let Some(data_hash) = data_hash else {
+            return Ok(GetRequestedNftThumbnailResponse { thumbnail: None });
+        };
+
+        if let Some(thumbnail) = wallet.db.thumbnail(data_hash).await? {
+            return Ok(GetRequestedNftThumbnailResponse {
+                thumbnail: Some(BASE64_STANDARD.encode(thumbnail.data)),
+            });
+        }
+
+        // MintGarden only has thumbnails for mainnet and testnet11.
+        let genesis_challenge = self.network().genesis_challenge;
+        let testnet = genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
+
+        if !testnet && genesis_challenge != MAINNET_CONSTANTS.genesis_challenge {
+            return Ok(GetRequestedNftThumbnailResponse { thumbnail: None });
+        }
+
+        let thumbnail = match mintgarden_thumbnail(data_hash, testnet).await {
+            Ok(thumbnail) => thumbnail,
+            Err(error) => {
+                debug!("Failed to fetch MintGarden thumbnail for {data_hash}: {error}");
+                None
+            }
+        };
+
+        Ok(GetRequestedNftThumbnailResponse {
+            thumbnail: thumbnail.map(|thumbnail| BASE64_STANDARD.encode(thumbnail.thumbnail)),
         })
     }
 

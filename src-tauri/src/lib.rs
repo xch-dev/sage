@@ -116,6 +116,7 @@ macro_rules! sage_commands {
             commands::get_nft_icon,
             commands::get_nft_thumbnail,
             commands::get_nft_metadata_updater,
+            commands::get_requested_nft_thumbnail,
             commands::get_pending_transactions,
             commands::get_transaction,
             commands::get_transactions,

@@ -58,6 +58,7 @@
   "get_nft_icon": true,
   "get_nft_thumbnail": true,
   "get_nft_metadata_updater": true,
+  "get_requested_nft_thumbnail": true,
   "get_nft_data": true,
   "send_xch": true,
   "bulk_send_xch": true,

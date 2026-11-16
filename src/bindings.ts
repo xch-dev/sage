@@ -263,6 +263,9 @@ async getNftThumbnail(req: GetNftThumbnail) : Promise<GetNftThumbnailResponse> {
 async getNftMetadataUpdater(req: GetNftMetadataUpdater) : Promise<GetNftMetadataUpdaterResponse> {
     return await TAURI_INVOKE("get_nft_metadata_updater", { req });
 },
+async getRequestedNftThumbnail(req: GetRequestedNftThumbnail) : Promise<GetRequestedNftThumbnailResponse> {
+    return await TAURI_INVOKE("get_requested_nft_thumbnail", { req });
+},
 async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTransactionsResponse> {
     return await TAURI_INVOKE("get_pending_transactions", { req });
 },
@@ -2055,6 +2058,22 @@ export type GetPendingTransactionsResponse = {
  * List of pending transactions
  */
 transactions: PendingTransactionRecord[] }
+/**
+ * Get the thumbnail of an NFT that isn't in the wallet
+ */
+export type GetRequestedNftThumbnail = { 
+/**
+ * NFT launcher ID
+ */
+nft_id: string }
+/**
+ * Response with the thumbnail of an NFT that isn't in the wallet
+ */
+export type GetRequestedNftThumbnailResponse = { 
+/**
+ * Base64-encoded PNG thumbnail, or null if there isn't one
+ */
+thumbnail: string | null }
 /**
  * Get wallet secret key
  */

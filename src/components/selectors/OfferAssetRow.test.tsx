@@ -38,14 +38,50 @@ describe('RequestedNftPreview', () => {
   });
 
   it('shows the name and marks a mutable NFT', () => {
-    renderPreview({ status: 'found', name: 'Cool NFT', kind: 'any' });
+    renderPreview({
+      status: 'found',
+      name: 'Cool NFT',
+      kind: 'any',
+      thumbnail: null,
+    });
     expect(screen.getByText('Cool NFT')).toBeTruthy();
     expect(screen.getByLabelText('Mutable NFT')).toBeTruthy();
   });
 
   it("doesn't call a found NFT unnamed before its name is known", () => {
-    renderPreview({ status: 'found', name: null, kind: 'default' });
+    renderPreview({
+      status: 'found',
+      name: null,
+      kind: 'default',
+      thumbnail: null,
+    });
     expect(screen.getByText('NFT found')).toBeTruthy();
     expect(screen.queryByLabelText('Mutable NFT')).toBeNull();
+  });
+
+  it('shows the thumbnail in place of the placeholder once it loads', () => {
+    const { container, rerender } = renderPreview({
+      status: 'found',
+      name: 'Cool NFT',
+      kind: 'default',
+      thumbnail: null,
+    });
+    expect(container.querySelector('img')).toBeNull();
+
+    rerender(
+      <I18nProvider i18n={i18n}>
+        <RequestedNftPreview
+          lookup={{
+            status: 'found',
+            name: 'Cool NFT',
+            kind: 'default',
+            thumbnail: 'data:image/png;base64,AQID',
+          }}
+        />
+      </I18nProvider>,
+    );
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(
+      'data:image/png;base64,AQID',
+    );
   });
 });

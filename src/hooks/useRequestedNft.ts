@@ -1,4 +1,5 @@
 import { commands, NftUpdaterKind } from '@/bindings';
+import { nftUri } from '@/lib/nftUri';
 import { isValidAddress } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { useDebounce } from './useDebounce';
@@ -13,6 +14,8 @@ export type NftLookup =
       /** Null until the NFT's metadata has been downloaded. */
       name: string | null;
       kind: NftUpdaterKind;
+      /** Null while it loads, or if there isn't one. */
+      thumbnail: string | null;
     };
 
 /**
@@ -43,11 +46,28 @@ export function useRequestedNft(nftId: string): NftLookup {
       .getNftMetadataUpdater({ nft_id: debounced })
       .then(({ metadata_updater_kind: kind, name }) => {
         if (cancelled) return;
-        setLookup(
-          kind === null
-            ? { status: 'missing' }
-            : { status: 'found', name, kind },
-        );
+        if (kind === null) {
+          setLookup({ status: 'missing' });
+          return;
+        }
+
+        setLookup({ status: 'found', name, kind, thumbnail: null });
+
+        // The thumbnail can take a while to come from MintGarden, so it's
+        // loaded once the NFT is found rather than holding that up. It needs
+        // the NFT's info, which the lookup above saves to the wallet.
+        commands
+          .getRequestedNftThumbnail({ nft_id: debounced })
+          .then(({ thumbnail }) => {
+            if (cancelled || thumbnail === null) return;
+            setLookup((current) =>
+              current.status === 'found'
+                ? { ...current, thumbnail: nftUri('image/png', thumbnail) }
+                : current,
+            );
+          })
+          // Without a thumbnail, the preview keeps its placeholder.
+          .catch(() => undefined);
       })
       .catch(() => {
         if (!cancelled) setLookup({ status: 'missing' });

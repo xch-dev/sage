@@ -5,11 +5,14 @@ import { bech32m } from 'bech32';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getNftMetadataUpdater = vi.fn();
+const getRequestedNftThumbnail = vi.fn();
 
 vi.mock('@/bindings', () => ({
   commands: {
     getNftMetadataUpdater: (...args: unknown[]) =>
       getNftMetadataUpdater(...args),
+    getRequestedNftThumbnail: (...args: unknown[]) =>
+      getRequestedNftThumbnail(...args),
   },
 }));
 
@@ -28,6 +31,9 @@ function Probe({ id }: { id: string }) {
       <span data-testid='name'>
         {lookup.status === 'found' ? (lookup.name ?? '') : ''}
       </span>
+      <span data-testid='thumbnail'>
+        {lookup.status === 'found' ? (lookup.thumbnail ?? '') : ''}
+      </span>
     </div>
   );
 }
@@ -40,12 +46,13 @@ async function settle() {
 
 beforeEach(() => {
   vi.useFakeTimers();
+  getRequestedNftThumbnail.mockResolvedValue({ thumbnail: null });
 });
 
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
-  vi.clearAllMocks();
+  vi.resetAllMocks();
 });
 
 describe('useRequestedNft', () => {
@@ -162,5 +169,88 @@ describe('useRequestedNft', () => {
 
     rerender(<Probe id='not an nft' />);
     expect(screen.getByTestId('status').textContent).toBe('invalid');
+  });
+  it('shows the thumbnail once it loads, without holding up the lookup', async () => {
+    getNftMetadataUpdater.mockResolvedValue({
+      metadata_updater_kind: 'default',
+      name: 'Cool NFT',
+    });
+    let finishThumbnail: (value: unknown) => void = () => undefined;
+    getRequestedNftThumbnail.mockReturnValue(
+      new Promise((resolve) => {
+        finishThumbnail = resolve;
+      }),
+    );
+
+    render(<Probe id={nftId} />);
+    await settle();
+
+    expect(screen.getByTestId('status').textContent).toBe('found');
+    expect(screen.getByTestId('thumbnail').textContent).toBe('');
+    expect(getRequestedNftThumbnail).toHaveBeenCalledWith({ nft_id: nftId });
+
+    await act(async () => {
+      finishThumbnail({ thumbnail: 'AQID' });
+    });
+    expect(screen.getByTestId('thumbnail').textContent).toBe(
+      'data:image/png;base64,AQID',
+    );
+  });
+
+  it("doesn't ask for a thumbnail of an NFT that wasn't found", async () => {
+    getNftMetadataUpdater.mockResolvedValue({
+      metadata_updater_kind: null,
+      name: null,
+    });
+
+    render(<Probe id={nftId} />);
+    await settle();
+
+    expect(getRequestedNftThumbnail).not.toHaveBeenCalled();
+  });
+
+  it('keeps a found NFT when its thumbnail fails to load', async () => {
+    getNftMetadataUpdater.mockResolvedValue({
+      metadata_updater_kind: 'default',
+      name: 'Cool NFT',
+    });
+    getRequestedNftThumbnail.mockRejectedValue(new Error('offline'));
+
+    render(<Probe id={nftId} />);
+    await settle();
+
+    expect(screen.getByTestId('status').textContent).toBe('found');
+    expect(screen.getByTestId('thumbnail').textContent).toBe('');
+  });
+
+  it('ignores a thumbnail that loads after the ID changed', async () => {
+    getNftMetadataUpdater
+      .mockResolvedValueOnce({
+        metadata_updater_kind: 'default',
+        name: 'First',
+      })
+      .mockResolvedValueOnce({
+        metadata_updater_kind: 'default',
+        name: 'Second',
+      });
+    let finishFirst: (value: unknown) => void = () => undefined;
+    getRequestedNftThumbnail
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishFirst = resolve;
+        }),
+      )
+      .mockResolvedValueOnce({ thumbnail: null });
+
+    const { rerender } = render(<Probe id={otherNftId} />);
+    await settle();
+    rerender(<Probe id={nftId} />);
+    await settle();
+    expect(screen.getByTestId('name').textContent).toBe('Second');
+
+    await act(async () => {
+      finishFirst({ thumbnail: 'AQID' });
+    });
+    expect(screen.getByTestId('thumbnail').textContent).toBe('');
   });
 });
