@@ -43,6 +43,12 @@ pub use wallet_kind::*;
 
 use crate::WalletError;
 
+/// Shows that a wallet's spend lock is held, until it's dropped. See [`Wallet::lock_spends`].
+#[derive(Debug)]
+pub struct SpendGuard<'a> {
+    _guard: MutexGuard<'a, ()>,
+}
+
 #[derive(Debug)]
 pub struct Wallet {
     pub db: Database,
@@ -92,8 +98,14 @@ impl Wallet {
     /// is saved, so the guard has to be held from coin selection until then. Otherwise two
     /// requests could select the same coin, or a transaction could spend a coin that an offer
     /// created at the same time locks.
-    pub async fn lock_spends(&self) -> MutexGuard<'_, ()> {
-        self.spend_lock.lock().await
+    ///
+    /// The helpers that record a transaction or offer take a [`SpendGuard`], so an endpoint
+    /// that forgets the lock doesn't compile. Take it before selecting any coins, not just
+    /// before recording, or the selection isn't covered.
+    pub async fn lock_spends(&self) -> SpendGuard<'_> {
+        SpendGuard {
+            _guard: self.spend_lock.lock().await,
+        }
     }
 
     /// Sets how many seconds the transactions this wallet creates can be confirmed for, or 0

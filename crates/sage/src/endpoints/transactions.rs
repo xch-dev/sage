@@ -17,7 +17,7 @@ use sage_api::{
 };
 use sage_assets::fetch_uris_without_hash;
 use sage_database::{Asset, AssetKind};
-use sage_wallet::{MultiSendPayment, WalletNftMint, WalletOptionMint};
+use sage_wallet::{MultiSendPayment, SpendGuard, WalletNftMint, WalletOptionMint};
 use tokio::time::timeout;
 
 use crate::{
@@ -29,7 +29,7 @@ use crate::{
 impl Sage {
     pub async fn send_xch(&self, req: SendXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let mut info = ConfirmationInfo::default();
         let puzzle_hash = self
             .resolve_recipient(&req.address, &req.confirmed_handles, &mut info)
@@ -48,12 +48,13 @@ impl Sage {
                 selected_coin_ids,
             )
             .await?;
-        self.transact_with(coin_spends, req.auto_submit, info).await
+        self.transact_with(coin_spends, req.auto_submit, info, &spends)
+            .await
     }
 
     pub async fn bulk_send_xch(&self, req: BulkSendXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
 
         let amount = parse_amount(req.amount)?;
 
@@ -70,22 +71,23 @@ impl Sage {
         let memos = parse_memos(req.memos)?;
 
         let coin_spends = wallet.send_xch(amounts, fee, memos, None).await?;
-        self.transact_with(coin_spends, req.auto_submit, info).await
+        self.transact_with(coin_spends, req.auto_submit, info, &spends)
+            .await
     }
 
     pub async fn combine(&self, req: Combine) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
         let coin_ids = parse_coin_ids(req.coin_ids)?;
 
         let coin_spends = wallet.combine(coin_ids, fee).await?;
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn auto_combine_xch(&self, req: AutoCombineXch) -> Result<AutoCombineXchResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
         let max_amount = req.max_coin_amount.map(parse_amount).transpose()?;
 
@@ -112,7 +114,7 @@ impl Sage {
         let coin_spends = wallet
             .combine(coins.iter().map(Coin::coin_id).collect(), fee)
             .await?;
-        let response = self.transact(coin_spends, req.auto_submit).await?;
+        let response = self.transact(coin_spends, req.auto_submit, &spends).await?;
 
         Ok(AutoCombineXchResponse {
             coin_ids,
@@ -123,19 +125,19 @@ impl Sage {
 
     pub async fn split(&self, req: Split) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
         let coin_ids = parse_coin_ids(req.coin_ids)?;
 
         let coin_spends = wallet
             .split(coin_ids, req.output_count as usize, fee)
             .await?;
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn auto_combine_cat(&self, req: AutoCombineCat) -> Result<AutoCombineCatResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
         let asset_id = parse_asset_id(req.asset_id)?;
         let max_amount = req.max_coin_amount.map(parse_amount).transpose()?;
@@ -163,7 +165,7 @@ impl Sage {
         let coin_spends = wallet
             .combine(cats.iter().map(|row| row.coin.coin_id()).collect(), fee)
             .await?;
-        let response = self.transact(coin_spends, req.auto_submit).await?;
+        let response = self.transact(coin_spends, req.auto_submit, &spends).await?;
 
         Ok(AutoCombineCatResponse {
             coin_ids,
@@ -174,7 +176,7 @@ impl Sage {
 
     pub async fn issue_cat(&self, req: IssueCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
         let hidden_puzzle_hash = if req.revocable {
@@ -203,12 +205,12 @@ impl Sage {
         .await?;
         tx.commit().await?;
 
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn send_cat(&self, req: SendCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let asset_id = parse_asset_id(req.asset_id)?;
         let mut info = ConfirmationInfo::default();
         let puzzle_hash = self
@@ -230,12 +232,13 @@ impl Sage {
                 selected_coin_ids,
             )
             .await?;
-        self.transact_with(coin_spends, req.auto_submit, info).await
+        self.transact_with(coin_spends, req.auto_submit, info, &spends)
+            .await
     }
 
     pub async fn bulk_send_cat(&self, req: BulkSendCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let asset_id = parse_asset_id(req.asset_id)?;
 
         let amount = parse_amount(req.amount)?;
@@ -255,12 +258,13 @@ impl Sage {
         let coin_spends = wallet
             .send_cat(asset_id, amounts, fee, req.include_hint, memos, None)
             .await?;
-        self.transact_with(coin_spends, req.auto_submit, info).await
+        self.transact_with(coin_spends, req.auto_submit, info, &spends)
+            .await
     }
 
     pub async fn multi_send(&self, req: MultiSend) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
 
         let mut info = ConfirmationInfo::default();
         let addresses = req
@@ -294,12 +298,13 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet.multi_send(payments, fee).await?;
-        self.transact_with(coin_spends, req.auto_submit, info).await
+        self.transact_with(coin_spends, req.auto_submit, info, &spends)
+            .await
     }
 
     pub async fn create_did(&self, req: CreateDid) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
 
         let (coin_spends, did) = wallet.create_did(fee).await?;
@@ -320,13 +325,18 @@ impl Sage {
             })
             .await?;
 
-        self.transact_with(coin_spends, req.auto_submit, ConfirmationInfo::default())
-            .await
+        self.transact_with(
+            coin_spends,
+            req.auto_submit,
+            ConfirmationInfo::default(),
+            &spends,
+        )
+        .await
     }
 
     pub async fn bulk_mint_nfts(&self, req: BulkMintNfts) -> Result<BulkMintNftsResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
         let did_id = parse_did_id(req.did_id)?;
 
@@ -356,7 +366,7 @@ impl Sage {
         }
 
         let response = self
-            .transact_with(coin_spends, req.auto_submit, info)
+            .transact_with(coin_spends, req.auto_submit, info, &spends)
             .await?;
 
         Ok(BulkMintNftsResponse {
@@ -368,7 +378,7 @@ impl Sage {
 
     pub async fn transfer_nfts(&self, req: TransferNfts) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let nft_ids = req
             .nft_ids
             .into_iter()
@@ -383,12 +393,13 @@ impl Sage {
         let coin_spends = wallet
             .transfer_nfts(nft_ids, puzzle_hash, fee, req.clawback)
             .await?;
-        self.transact_with(coin_spends, req.auto_submit, info).await
+        self.transact_with(coin_spends, req.auto_submit, info, &spends)
+            .await
     }
 
     pub async fn add_nft_uri(&self, req: AddNftUri) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let nft_id = parse_nft_id(req.nft_id)?;
         let fee = parse_amount(req.fee)?;
 
@@ -408,12 +419,12 @@ impl Sage {
         };
 
         let coin_spends = wallet.add_nft_uri(nft_id, fee, uri).await?;
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn assign_nfts_to_did(&self, req: AssignNftsToDid) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let nft_ids = req
             .nft_ids
             .into_iter()
@@ -423,12 +434,12 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet.assign_nfts(nft_ids, did_id, fee).await?;
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn transfer_dids(&self, req: TransferDids) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let did_ids = req
             .did_ids
             .into_iter()
@@ -443,12 +454,13 @@ impl Sage {
         let coin_spends = wallet
             .transfer_dids(did_ids, puzzle_hash, fee, req.clawback)
             .await?;
-        self.transact_with(coin_spends, req.auto_submit, info).await
+        self.transact_with(coin_spends, req.auto_submit, info, &spends)
+            .await
     }
 
     pub async fn normalize_dids(&self, req: NormalizeDids) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let did_ids = req
             .did_ids
             .into_iter()
@@ -457,12 +469,12 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet.normalize_dids(did_ids, fee).await?;
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn mint_option(&self, req: MintOption) -> Result<MintOptionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
 
         let underlying_type = self.parse_option_asset(req.underlying).await?;
@@ -479,7 +491,7 @@ impl Sage {
             )
             .await?;
 
-        let response = self.transact(coin_spends, req.auto_submit).await?;
+        let response = self.transact(coin_spends, req.auto_submit, &spends).await?;
 
         Ok(MintOptionResponse {
             option_id: Address::new(option.info.launcher_id, "option".to_string()).encode()?,
@@ -523,7 +535,7 @@ impl Sage {
 
     pub async fn transfer_options(&self, req: TransferOptions) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let option_ids = req
             .option_ids
             .into_iter()
@@ -538,12 +550,13 @@ impl Sage {
         let coin_spends = wallet
             .transfer_options(option_ids, puzzle_hash, fee, req.clawback)
             .await?;
-        self.transact_with(coin_spends, req.auto_submit, info).await
+        self.transact_with(coin_spends, req.auto_submit, info, &spends)
+            .await
     }
 
     pub async fn exercise_options(&self, req: ExerciseOptions) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let option_ids = req
             .option_ids
             .into_iter()
@@ -552,12 +565,12 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet.exercise_options(option_ids, fee).await?;
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn cancel_options(&self, req: CancelOptions) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let option_ids = req
             .option_ids
             .into_iter()
@@ -566,27 +579,27 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet.cancel_options(option_ids, fee).await?;
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn finalize_clawback(&self, req: FinalizeClawback) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let coin_ids = parse_coin_ids(req.coin_ids)?;
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet.finalize_clawback(coin_ids, fee).await?;
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn claim_clawback(&self, req: ClaimClawback) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
+        let spends = wallet.lock_spends().await;
         let coin_ids = parse_coin_ids(req.coin_ids)?;
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet.claim_clawback(coin_ids, fee).await?;
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn sign_coin_spends(&self, req: SignCoinSpends) -> Result<SignCoinSpendsResponse> {
@@ -615,8 +628,8 @@ impl Sage {
 
         if req.auto_submit {
             let wallet = self.wallet()?;
-            let _spends = wallet.lock_spends().await;
-            self.submit(spend_bundle).await?;
+            let spends = wallet.lock_spends().await;
+            self.submit(spend_bundle, &spends).await?;
         }
 
         Ok(SignCoinSpendsResponse {
@@ -644,8 +657,8 @@ impl Sage {
     ) -> Result<SubmitTransactionResponse> {
         let spend_bundle = rust_bundle(req.spend_bundle)?;
         let wallet = self.wallet()?;
-        let _spends = wallet.lock_spends().await;
-        self.submit(spend_bundle).await?;
+        let spends = wallet.lock_spends().await;
+        self.submit(spend_bundle, &spends).await?;
 
         Ok(SubmitTransactionResponse {})
     }
@@ -654,9 +667,15 @@ impl Sage {
         &self,
         coin_spends: Vec<CoinSpend>,
         auto_submit: bool,
+        spends: &SpendGuard<'_>,
     ) -> Result<TransactionResponse> {
-        self.transact_with(coin_spends, auto_submit, ConfirmationInfo::default())
-            .await
+        self.transact_with(
+            coin_spends,
+            auto_submit,
+            ConfirmationInfo::default(),
+            spends,
+        )
+        .await
     }
 
     pub(crate) async fn transact_with(
@@ -664,6 +683,7 @@ impl Sage {
         coin_spends: Vec<CoinSpend>,
         auto_submit: bool,
         mut info: ConfirmationInfo,
+        spends: &SpendGuard<'_>,
     ) -> Result<TransactionResponse> {
         let handle_sends = std::mem::take(&mut info.handle_sends);
 
@@ -671,7 +691,7 @@ impl Sage {
             // The handles were resolved while the transaction was created, so there is
             // nothing to check again.
             let spend_bundle = self.sign(coin_spends.clone(), false).await?;
-            self.submit_unchecked(spend_bundle).await?;
+            self.submit_unchecked(spend_bundle, spends).await?;
             self.record_handle_sends(&handle_sends).await;
         } else {
             self.remember_handle_sends(&coin_spends, handle_sends);
