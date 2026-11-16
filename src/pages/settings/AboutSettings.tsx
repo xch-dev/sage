@@ -15,7 +15,6 @@ import { exportText, ExportType } from '@/lib/exportText';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { DownloadIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { commands, LogFile } from '../../bindings';
@@ -79,7 +78,8 @@ function LogLevelSettings() {
 }
 
 export function UpdateSettings() {
-  const { enabled, setEnabled, status, update, checkNow } = useUpdates();
+  const { enabled, setEnabled, status, update, checkNow, openRelease } =
+    useUpdates();
   const updateVersion = update?.version ?? '';
 
   const statusText = {
@@ -103,7 +103,7 @@ export function UpdateSettings() {
         description={statusText}
         control={
           update ? (
-            <Button onClick={() => void openUrl(update.url)}>
+            <Button onClick={openRelease}>
               <Trans>View Release</Trans>
             </Button>
           ) : (

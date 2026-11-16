@@ -9,7 +9,6 @@ import { offersEnabled, optionsEnabled } from '@/lib/features';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   ArrowDownUp,
@@ -122,7 +121,7 @@ export function TopNav({ isCollapsed }: NavProps) {
 
 export function BottomNav({ isCollapsed }: NavProps) {
   const navigate = useNavigate();
-  const { update } = useUpdates();
+  const { update, openRelease } = useUpdates();
   const updateVersion = update?.version ?? '';
 
   const { peers } = usePeers();
@@ -217,7 +216,7 @@ export function BottomNav({ isCollapsed }: NavProps) {
 
       {update && (
         <NavLink
-          url={() => void openUrl(update.url)}
+          url={openRelease}
           isCollapsed={isCollapsed}
           message={t`Update Available`}
           customTooltip={

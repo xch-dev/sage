@@ -5,6 +5,7 @@ import {
   LatestRelease,
 } from '@/lib/updates';
 import { getVersion } from '@tauri-apps/api/app';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   createContext,
@@ -43,6 +44,8 @@ export interface UpdateContextType {
   /** The newer release, while one is available. */
   update: LatestRelease | null;
   checkNow: () => void;
+  /** Opens the newer release's page, which also counts as having seen it, so its toast goes away. */
+  openRelease: () => void;
 }
 
 const UpdateContext = createContext<UpdateContextType | undefined>(undefined);
@@ -51,7 +54,7 @@ const currentPlatform = platform();
 const supported = currentPlatform !== 'ios' && currentPlatform !== 'android';
 
 export function UpdateProvider({ children }: { children: ReactNode }) {
-  const [enabled, setEnabled] = useLocalStorage<boolean>(
+  const [enabled, setEnabledSetting] = useLocalStorage<boolean>(
     UPDATE_CHECKS_STORAGE_KEY,
     true,
   );
@@ -144,6 +147,26 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     return () => hideUpdateToast(version);
   }, [update, notifiedVersion, setNotifiedVersion]);
 
+  // Opening the release or turning checks off means the user knows about this version, so its
+  // toast is closed and doesn't come back. A newer release still gets one.
+  const markSeen = useCallback(() => {
+    if (update) setNotifiedVersion(update.version);
+  }, [update, setNotifiedVersion]);
+
+  const openRelease = useCallback(() => {
+    if (!update) return;
+    void openUrl(update.url);
+    markSeen();
+  }, [update, markSeen]);
+
+  const setEnabled = useCallback(
+    (enabled: boolean) => {
+      if (!enabled) markSeen();
+      setEnabledSetting(enabled);
+    },
+    [markSeen, setEnabledSetting],
+  );
+
   const checkNow = useCallback(() => {
     if (!supported || currentVersion === null) return;
 
@@ -164,6 +187,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         status,
         update,
         checkNow,
+        openRelease,
       }}
     >
       {children}

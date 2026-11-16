@@ -3,7 +3,6 @@
 import type { UpdateContextType } from '@/contexts/UpdateContext';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { UpdateSettings } from './AboutSettings';
@@ -13,8 +12,6 @@ let updates: UpdateContextType;
 vi.mock('@/contexts/UpdateContext', () => ({
   useUpdates: () => updates,
 }));
-
-vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
 vi.mock('../../bindings', () => ({
   commands: {},
@@ -36,6 +33,7 @@ function renderWith(overrides: Partial<UpdateContextType>) {
     status: 'up-to-date',
     update: null,
     checkNow: vi.fn(),
+    openRelease: vi.fn(),
     ...overrides,
   };
   render(
@@ -47,7 +45,6 @@ function renderWith(overrides: Partial<UpdateContextType>) {
 
 afterEach(() => {
   cleanup();
-  vi.mocked(openUrl).mockReset();
 });
 
 describe('UpdateSettings', () => {
@@ -81,7 +78,7 @@ describe('UpdateSettings', () => {
     expect(screen.getByText('Sage 0.14.0 is available.')).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'View Release' }));
 
-    expect(openUrl).toHaveBeenCalledWith(update.url);
+    expect(updates.openRelease).toHaveBeenCalledTimes(1);
   });
 
   it('says checks are off only when they are', () => {

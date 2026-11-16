@@ -24,7 +24,6 @@ import {
 } from '@dnd-kit/sortable';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { platform } from '@tauri-apps/plugin-os';
 import { CircleArrowUp, CogIcon } from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
@@ -37,7 +36,7 @@ const isMobile = platform() === 'ios' || platform() === 'android';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { update } = useUpdates();
+  const { update, openRelease } = useUpdates();
   const updateVersion = update?.version ?? '';
   const { addError } = useErrors();
   const [wallets, setWallets] = useState<WalletInfo[] | null>(null);
@@ -130,7 +129,7 @@ export default function Login() {
                 {update && (
                   <Button
                     variant='outline'
-                    onClick={() => void openUrl(update.url)}
+                    onClick={openRelease}
                     title={t`Sage ${updateVersion} is available. Open its release page to download it.`}
                   >
                     <CircleArrowUp

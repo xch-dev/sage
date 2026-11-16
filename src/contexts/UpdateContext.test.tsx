@@ -4,6 +4,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { hideUpdateToast, showUpdateToast } from '@/components/UpdateToast';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   UPDATE_CHECKS_STORAGE_KEY,
   UPDATE_NOTIFIED_STORAGE_KEY,
@@ -24,7 +25,15 @@ vi.mock('@/components/UpdateToast', () => ({
   hideUpdateToast: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
+
 const fetchMock = vi.fn();
+
+function storedNotifiedVersion(): unknown {
+  return JSON.parse(
+    window.localStorage.getItem(UPDATE_NOTIFIED_STORAGE_KEY) ?? 'null',
+  );
+}
 
 function respondWithTag(tag: string) {
   fetchMock.mockImplementation(() =>
@@ -46,6 +55,7 @@ afterEach(() => {
   fetchMock.mockReset();
   vi.mocked(showUpdateToast).mockReset();
   vi.mocked(hideUpdateToast).mockReset();
+  vi.mocked(openUrl).mockReset();
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
@@ -129,11 +139,7 @@ describe('UpdateProvider', () => {
 
     act(() => onDismiss());
 
-    expect(
-      JSON.parse(
-        window.localStorage.getItem(UPDATE_NOTIFIED_STORAGE_KEY) ?? 'null',
-      ),
-    ).toBe('0.14.0');
+    expect(storedNotifiedVersion()).toBe('0.14.0');
     expect(showUpdateToast).toHaveBeenCalledTimes(1);
   });
 
@@ -163,7 +169,7 @@ describe('UpdateProvider', () => {
     expect(vi.mocked(showUpdateToast).mock.calls[0][0].version).toBe('0.15.0');
   });
 
-  it('hides the toast when checks are turned off', async () => {
+  it('hides the toast for good when checks are turned off', async () => {
     respondWithTag('v0.14.0');
 
     const { result } = renderHook(() => useUpdates(), { wrapper });
@@ -173,7 +179,30 @@ describe('UpdateProvider', () => {
     act(() => result.current.setEnabled(false));
 
     expect(hideUpdateToast).toHaveBeenCalledWith('0.14.0');
-    expect(window.localStorage.getItem(UPDATE_NOTIFIED_STORAGE_KEY)).toBeNull();
+    expect(storedNotifiedVersion()).toBe('0.14.0');
+
+    // Turning checks back on finds the same release, but doesn't pop the toast up again.
+    act(() => result.current.setEnabled(true));
+    await waitFor(() => expect(result.current.status).toBe('available'));
+    expect(showUpdateToast).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the release and closes its toast for good', async () => {
+    respondWithTag('v0.14.0');
+
+    const { result } = renderHook(() => useUpdates(), { wrapper });
+
+    await waitFor(() => expect(showUpdateToast).toHaveBeenCalledTimes(1));
+
+    act(() => result.current.openRelease());
+
+    expect(openUrl).toHaveBeenCalledWith(
+      'https://github.com/xch-dev/sage/releases/tag/v0.14.0',
+    );
+    expect(hideUpdateToast).toHaveBeenCalledWith('0.14.0');
+    expect(storedNotifiedVersion()).toBe('0.14.0');
+    // The update is still shown elsewhere, such as the sidebar.
+    expect(result.current.update?.version).toBe('0.14.0');
   });
 
   it('ignores a check still running when checks are turned off', async () => {
