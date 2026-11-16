@@ -42,6 +42,16 @@ pub async fn initialize(
     *initialized = Some(result.clone());
     result?;
 
+    #[cfg(not(mobile))]
+    {
+        use tauri::Manager;
+        crate::connections::initialize(
+            &app_handle.state::<crate::connections::Connections>(),
+            (*state).clone(),
+        )
+        .await;
+    }
+
     let app_state = (*state).clone();
 
     tokio::spawn(async move {

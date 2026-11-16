@@ -461,6 +461,27 @@ async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
 async getXchUsdPrice(req: GetXchUsdPrice) : Promise<GetXchUsdPriceResponse> {
     return await TAURI_INVOKE("get_xch_usd_price", { req });
 },
+async connectionsReview() : Promise<ConnectionsView> {
+    return await TAURI_INVOKE("connections_review");
+},
+async connectionsDecideOperation(id: string, approved: boolean) : Promise<null> {
+    return await TAURI_INVOKE("connections_decide_operation", { id, approved });
+},
+async connectionsSetServer(enabled: boolean, port: number) : Promise<null> {
+    return await TAURI_INVOKE("connections_set_server", { enabled, port });
+},
+async connectionsCreate(grant: ConnectionGrant) : Promise<IssuedCredential> {
+    return await TAURI_INVOKE("connections_create", { grant });
+},
+async connectionsRevoke(id: string) : Promise<null> {
+    return await TAURI_INVOKE("connections_revoke", { id });
+},
+async connectionsRotate(id: string) : Promise<IssuedCredential> {
+    return await TAURI_INVOKE("connections_rotate", { id });
+},
+async connectionsDecidePairing(id: string, grant: ConnectionGrant | null) : Promise<null> {
+    return await TAURI_INVOKE("connections_decide_pairing", { id, grant });
+},
 async appsEnterWorkspace() : Promise<null> {
     return await TAURI_INVOKE("apps_enter_workspace");
 },
@@ -487,6 +508,9 @@ async appsRerunSandboxTests() : Promise<SandboxStateView> {
 },
 async appsListInstalledApps() : Promise<ListedSageAppView[]> {
     return await TAURI_INVOKE("apps_list_installed_apps");
+},
+async appsReviewPermissions() : Promise<AppPermissionReviews> {
+    return await TAURI_INVOKE("apps_review_permissions");
 },
 async appsUninstallApp(appId: string) : Promise<null> {
     return await TAURI_INVOKE("apps_uninstall_app", { appId });
@@ -663,6 +687,8 @@ export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "
 export type Amount = string | number
 export type AppLaunchGateResult = { allowed: boolean; kind: string; capability: SandboxCapability | null; message: string | null }
 export type AppModalPresentation = { visibleOverAppIds: string[]; visibleOverLaunchpad: boolean; priority: number }
+export type AppPermissionReview = { id: string; name: string; walletScope: SageAppWalletScope; capabilities: ReviewedAppCapability[]; network: SageGrantedNetworkPermissionsView }
+export type AppPermissionReviews = { apps: AppPermissionReview[]; unavailableAppIds: string[] }
 export type AppPresentation = { kind: "Taskbar" } | ({ kind: "Modal" } & AppModalPresentation)
 export type Asset = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; icon_url: string | null; description: string | null; is_sensitive_content: boolean; is_visible: boolean; revocation_address: string | null; kind: AssetKind }
 /**
@@ -1033,6 +1059,9 @@ export type CombineOffersResponse = {
  * Combined offer string
  */
 offer: string }
+export type ConnectionGrant = { name: string; kind: ConnectionKind; capabilities: WalletCapability[]; walletScope: SageAppWalletScope }
+export type ConnectionKind = "service" | "agent"
+export type ConnectionsView = { running: boolean; enabled: boolean; port: number; certificatePath: string; error: string | null; credentials: CredentialInfo[]; pending: PairingInfo[]; capabilities: CredentialCapability[]; operations: OperationReview[]; ownerOnlyMethods: string[] }
 /**
  * A contact in a portable form, for export and import
  */
@@ -1156,6 +1185,8 @@ auto_submit?: boolean;
  * confirmed here before it can be used.
  */
 confirmed_handles?: HandleConfirmation[] }
+export type CredentialCapability = { key: WalletCapability; label: string; description: string; category: string; approval: boolean; methods: string[] }
+export type CredentialInfo = { id: string; grant: ConnectionGrant; createdAt: number }
 /**
  * Delete a contact from the address book
  */
@@ -2718,6 +2749,7 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
+export type IssuedCredential = { credential: CredentialInfo; token: string }
 /**
  * Public information about a key in the keychain
  */
@@ -3157,6 +3189,11 @@ export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled"
  */
 export type OfferSortMode = "created" | "expiration"
 export type OfferSummary = { fee: Amount; maker: OfferAsset[]; taker: OfferAsset[]; expiration_height: number | null; expiration_timestamp: number | null }
+export type OperationReview = { id: string; credentialId: string; name: string; method: string;
+/**
+ * Exact RPC parameters being authorized, presented as formatted JSON.
+ */
+parameters: string; fingerprint: number | null; network: string; expiresAt: number }
 /**
  * Asset specification for options
  */
@@ -3189,6 +3226,7 @@ export type OptionRecord = { launcher_id: string; name: string | null; visible: 
  */
 is_creator: boolean }
 export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
+export type PairingInfo = { id: string; code: string; grant: ConnectionGrant; expiresAt: number }
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }
 /**
@@ -3453,6 +3491,7 @@ export type ResyncCatResponse = Record<string, never>
  * Response from resynchronizing the wallet
  */
 export type ResyncResponse = Record<string, never>
+export type ReviewedAppCapability = { key: string; label: string; description: string; wallet: boolean; automatic: boolean }
 export type RuntimeTargetParams = { appId: string }
 export type RustBridgeErrorPayload = { code: string; message: string }
 export type RustBridgeErrorResponse = { bridgeVersion: string; id: string; ok: boolean; error: RustBridgeErrorPayload }
@@ -4235,6 +4274,7 @@ export type Wallet =
  * The p2 puzzle hashes being watched. The first one is the wallet's receive address.
  */
 { type: "watch"; p2_puzzle_hashes: string[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
+export type WalletCapability = "wallet.get_wallet" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.resolve_handle" | "wallet.get_handles" | "wallet.get_contacts" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.get_wallets" | "wallet.get_wallet_address" | "wallet.get_database_stats" | "wallet.get_contact" | "wallet.add_contact" | "wallet.update_contact" | "wallet.delete_contact" | "wallet.export_contacts" | "wallet.import_contacts" | "wallet.get_are_coins_spendable" | "wallet.get_cats" | "wallet.get_all_cats" | "wallet.get_token" | "wallet.get_dids" | "wallet.get_minter_did_ids" | "wallet.get_options" | "wallet.get_option" | "wallet.get_nft_collections" | "wallet.get_nft_collection" | "wallet.get_nfts" | "wallet.get_nft" | "wallet.get_nft_icon" | "wallet.get_nft_thumbnail" | "wallet.get_nft_metadata_updater" | "wallet.get_nft_data" | "wallet.bulk_send_xch" | "wallet.combine" | "wallet.split" | "wallet.auto_combine_xch" | "wallet.auto_combine_cat" | "wallet.issue_cat" | "wallet.send_cat" | "wallet.bulk_send_cat" | "wallet.multi_send" | "wallet.create_did" | "wallet.bulk_mint_nfts" | "wallet.transfer_nfts" | "wallet.add_nft_uri" | "wallet.assign_nfts_to_did" | "wallet.transfer_dids" | "wallet.normalize_dids" | "wallet.mint_option" | "wallet.transfer_options" | "wallet.exercise_options" | "wallet.cancel_options" | "wallet.finalize_clawback" | "wallet.claim_clawback" | "wallet.create_transaction" | "wallet.view_coin_spends" | "wallet.submit_transaction" | "wallet.make_offer" | "wallet.take_offer" | "wallet.combine_offers" | "wallet.view_offer" | "wallet.import_offer" | "wallet.get_offers" | "wallet.get_offers_for_asset" | "wallet.get_offer" | "wallet.delete_offer" | "wallet.cancel_offer" | "wallet.cancel_offers" | "wallet.get_peers" | "wallet.get_user_themes" | "wallet.get_user_theme" | "wallet.get_networks" | "wallet.get_network" | "wallet.resync_cat" | "wallet.update_cat" | "wallet.update_did" | "wallet.update_option" | "wallet.update_nft" | "wallet.update_nft_collection" | "wallet.redownload_nft" | "wallet.is_asset_owned"
 export type WalletDefaults = { delta_sync: boolean; 
 /**
  * How many seconds after a transaction is created that it can no longer be confirmed, or 0

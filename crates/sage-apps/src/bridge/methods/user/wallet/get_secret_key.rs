@@ -26,6 +26,10 @@ impl BridgeMethod for WalletGetSecretKey {
         BridgeMethodCapability::user(UserBridgeCapability::WalletGetSecretKey)
     }
 
+    fn binds_approval_to_wallet(&self) -> bool {
+        true
+    }
+
     async fn prepare_approval(
         &self,
         ctx: BridgeContext<'_>,
@@ -33,7 +37,7 @@ impl BridgeMethod for WalletGetSecretKey {
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
         let _params: WalletGetSecretKeyParams = parse_optional_params(self, request)?;
-        let sage = tools.app_state.lock().await;
+        let sage = tools.wallet().await?;
         let (_, fingerprint) = current_scoped_wallet(&ctx, &sage)?;
 
         Ok(Some(RustBridgeApprovalRequest {
@@ -49,14 +53,15 @@ impl BridgeMethod for WalletGetSecretKey {
     ) -> BridgeHandleResult {
         let _params: WalletGetSecretKeyParams = parse_optional_params(self, request)?;
 
-        let sage = tools.app_state.lock().await;
+        let mut sage = tools.wallet().await?;
         let (_, fingerprint) = current_scoped_wallet(&ctx, &sage)?;
 
-        let response = sage
-            .get_secret_key(GetSecretKey { fingerprint })
-            .map_err(|err| {
-                BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
-            })?;
+        let rpc_request = GetSecretKey { fingerprint };
+        sage.bind_approved_request("get_secret_key", &rpc_request)
+            .map_err(|err| BridgeMethodHandleError::new("approval_invalid", err.to_string()))?;
+        let response = sage.get_secret_key(rpc_request).map_err(|err| {
+            BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
+        })?;
 
         Ok(Box::new(response))
     }

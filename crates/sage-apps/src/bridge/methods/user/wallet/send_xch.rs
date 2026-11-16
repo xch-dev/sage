@@ -119,9 +119,8 @@ async fn execute_send_xch(
     }
 
     let result = tools
-        .app_state
-        .lock()
-        .await
+        .approved_wallet("send_xch", &request)
+        .await?
         .send_xch(request)
         .await
         .map_err(|err| {
@@ -194,9 +193,8 @@ impl BridgeMethod for WalletSendXch {
             && is_handle_recipient(summary)
         {
             let result = tools
-                .app_state
-                .lock()
-                .await
+                .wallet()
+                .await?
                 .resolve_handle(ResolveHandle {
                     handle: summary.address.trim().to_string(),
                 })

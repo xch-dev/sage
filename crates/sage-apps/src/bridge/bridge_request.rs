@@ -172,12 +172,29 @@ async fn process_shared(
         ));
     }
 
+    let approval_wallet = if method.binds_approval_to_wallet() {
+        active_wallet_fingerprint(app_state).await
+    } else {
+        None
+    };
+
+    if method.binds_approval_to_wallet() && approval_wallet.is_none() {
+        return Ok(RustBridgeInvokeResult::error(
+            &request.id,
+            "wallet_unavailable",
+            "No active wallet is available for approval",
+        ));
+    }
+
     match method
         .prepare_approval(
             BridgeContext { app },
             BridgeTools {
                 app_handle,
                 app_state,
+                caller: app,
+                invocation: request,
+                approval: None,
                 host_state: &app_handle.state::<AppsHostState>(),
             },
             request,
@@ -190,6 +207,7 @@ async fn process_shared(
                 app_state,
                 app.id(),
                 registry_kind,
+                approval_wallet,
                 approval,
                 request,
             )
@@ -228,6 +246,9 @@ async fn execute_bridge_request(
             BridgeTools {
                 app_handle,
                 app_state,
+                caller: &origin.app,
+                invocation: request,
+                approval: None,
                 host_state: &app_handle.state::<AppsHostState>(),
             },
             request,
@@ -260,12 +281,16 @@ async fn execute_approved_bridge_request(
         return response;
     }
 
-    if wallet_binding_violated(app_state, pending, method).await {
-        return RustBridgeResponse::error(
-            &pending.request.id,
-            "wallet_changed",
-            "Active wallet changed since the approval was requested",
-        );
+    let fingerprint = active_wallet_fingerprint(app_state).await;
+    let invocation =
+        serde_json::to_string(&pending.request).expect("bridge request is serializable");
+    if let Err(err) = pending.binding.validate(
+        &sage_permissions::CallerId::App(origin.app.id()),
+        &invocation,
+        fingerprint,
+        unix_timestamp_ms() as u64,
+    ) {
+        return RustBridgeResponse::error(&pending.request.id, "approval_invalid", err.to_string());
     }
 
     let result = method
@@ -275,6 +300,9 @@ async fn execute_approved_bridge_request(
             BridgeTools {
                 app_handle,
                 app_state,
+                caller: &origin.app,
+                invocation: &pending.request,
+                approval: Some(&pending.binding),
                 host_state: &app_handle.state::<AppsHostState>(),
             },
             &pending.request,
@@ -312,32 +340,21 @@ async fn active_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u3
         .ok()
 }
 
-async fn wallet_binding_violated(
-    app_state: &State<'_, AppState>,
-    pending: &PendingBridgeApproval,
-    method: &dyn BridgeMethod,
-) -> bool {
-    if !method.binds_approval_to_wallet() {
-        return false;
-    }
-
-    let Some(approved_fingerprint) = pending.approved_fingerprint else {
-        return true;
-    };
-
-    active_wallet_fingerprint(app_state).await != Some(approved_fingerprint)
-}
-
 async fn request_approval(
     app_handle: &AppHandle,
     app_state: &State<'_, AppState>,
     app_id: String,
     registry_kind: BridgeRegistryKind,
+    approved_fingerprint: Option<u32>,
     approval: RustBridgeApprovalRequest,
     request: &RustBridgeRequest,
 ) -> Result<(), String> {
     let apps_state = app_handle.state::<AppsHostState>();
-    let approved_fingerprint = active_wallet_fingerprint(app_state).await;
+    if approved_fingerprint.is_some()
+        && active_wallet_fingerprint(app_state).await != approved_fingerprint
+    {
+        return Err("Active wallet changed while preparing approval".into());
+    }
 
     write_pending_approval(
         &apps_state,

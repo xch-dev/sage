@@ -261,9 +261,8 @@ impl BridgeMethod for WalletSignCoinSpends {
         validate_params(&params)?;
 
         let summary = tools
-            .app_state
-            .lock()
-            .await
+            .wallet()
+            .await?
             .view_coin_spends(params.preview_request())
             .await
             .map_err(|err| {
@@ -291,11 +290,11 @@ impl BridgeMethod for WalletSignCoinSpends {
         let params: WalletSignCoinSpendsParams = parse_required_params(self, request)?;
         validate_params(&params)?;
 
+        let rpc_request = params.into_request();
         let response = tools
-            .app_state
-            .lock()
-            .await
-            .sign_coin_spends(params.into_request())
+            .approved_wallet("sign_coin_spends", &rpc_request)
+            .await?
+            .sign_coin_spends(rpc_request)
             .await
             .map_err(|err| {
                 BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))

@@ -15,6 +15,8 @@ use tokio::sync::Mutex;
 
 mod app_state;
 mod commands;
+#[cfg(not(mobile))]
+mod connections;
 mod error;
 
 #[cfg(not(mobile))]
@@ -192,6 +194,13 @@ fn specta_builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
         .commands(sage_commands![
+            connections::connections_review,
+            connections::connections_decide_operation,
+            connections::connections_set_server,
+            connections::connections_create,
+            connections::connections_revoke,
+            connections::connections_rotate,
+            connections::connections_decide_pairing,
             apps::apps_enter_workspace,
             apps::apps_leave_workspace,
             apps::apps_invoke_bridge,
@@ -201,6 +210,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             apps::apps_get_app_launch_gate,
             apps::apps_rerun_sandbox_tests,
             apps::apps_list_installed_apps,
+            apps::apps_review_permissions,
             apps::apps_uninstall_app,
             apps::apps_check_app_update,
             apps::apps_apply_app_update,
@@ -351,6 +361,8 @@ pub fn run() {
             let path = root_override.unwrap_or(default_root);
             let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
 
+            #[cfg(not(mobile))]
+            app.manage(connections::Connections::default());
             app.manage(Initialized(Mutex::new(None)));
             app.manage(RpcTask(Mutex::new(None)));
             app.manage(app_state);

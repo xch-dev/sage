@@ -1,9 +1,8 @@
 use std::collections::BTreeSet;
 
 use crate::{
-    CapabilityFlags, SageNetworkWhitelistEntry, SageRequestedCapabilities,
-    SageRequestedPermissions, UserBridgeCapability, UserSageAppSource,
-    get_user_capability_definition,
+    SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedPermissions,
+    UserBridgeCapability, UserSageAppSource, get_user_capability_definition,
 };
 
 pub fn validate_network_permissions_for_source(
@@ -33,19 +32,17 @@ pub fn validate_permissions_policy(
     network: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
     context: &str,
 ) -> anyhow::Result<()> {
-    let capability_flags = capabilities
-        .into_iter()
-        .fold(CapabilityFlags::EMPTY, |flags, cap| {
-            flags.union(get_user_capability_definition(cap).flags())
-        });
-
-    let has_secret_access = capability_flags.accesses_sensitive_secret();
-    let has_external_access =
-        capability_flags.externally_observable() || network.into_iter().next().is_some();
-
-    if has_secret_access && has_external_access {
-        anyhow::bail!("{context} cannot include both external access and sensitive secret access");
-    }
+    // Apps adds network and runtime permissions to the inherited wallet policy.
+    let capabilities: Vec<_> = capabilities.into_iter().collect();
+    let flags = crate::CapabilityFlags::from_capabilities(&capabilities);
+    let external = flags.externally_observable() || network.into_iter().next().is_some();
+    sage_permissions::validate_capability_policy(
+        capabilities
+            .into_iter()
+            .filter_map(UserBridgeCapability::wallet_capability),
+        external,
+    )
+    .map_err(|err| anyhow::anyhow!("{context}: {err}"))?;
 
     Ok(())
 }
@@ -192,5 +189,26 @@ mod tests {
                 "unexpected error: {err}"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod inherited_policy_tests {
+    use super::*;
+
+    #[test]
+    fn app_external_access_cannot_be_combined_with_inherited_secret_access() {
+        let secret = UserBridgeCapability::WalletGetSecretKey;
+        assert!(validate_permissions_policy([secret], [], "test").is_ok());
+        assert!(
+            validate_permissions_policy(
+                [secret, UserBridgeCapability::EnvironmentOpenExternalUrl],
+                [],
+                "test"
+            )
+            .is_err()
+        );
+        let network = SageNetworkWhitelistEntry::new("https", "example.com").unwrap();
+        assert!(validate_permissions_policy([secret], [network], "test").is_err());
     }
 }

@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sage_api::{GetDerivations, GetDerivationsResponse};
+use sage_api::GetDerivations;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -38,18 +38,6 @@ impl From<WalletGetPublicKeysParams> for GetDerivations {
 #[serde(transparent)]
 pub struct WalletGetPublicKeysResult(pub Vec<String>);
 
-impl From<GetDerivationsResponse> for WalletGetPublicKeysResult {
-    fn from(response: GetDerivationsResponse) -> Self {
-        Self(
-            response
-                .derivations
-                .into_iter()
-                .map(|derivation| derivation.public_key)
-                .collect(),
-        )
-    }
-}
-
 #[async_trait]
 impl BridgeMethod for WalletGetPublicKeys {
     fn name(&self) -> &'static str {
@@ -77,15 +65,14 @@ impl BridgeMethod for WalletGetPublicKeys {
     ) -> BridgeHandleResult {
         let params: WalletGetPublicKeysParams = parse_optional_params(self, request)?;
         let response = tools
-            .app_state
-            .lock()
-            .await
-            .get_derivations(params.into())
+            .wallet()
+            .await?
+            .get_public_keys(params.into())
             .await
             .map_err(|err| {
                 BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
             })?;
 
-        Ok(Box::new(WalletGetPublicKeysResult::from(response)))
+        Ok(Box::new(WalletGetPublicKeysResult(response)))
     }
 }

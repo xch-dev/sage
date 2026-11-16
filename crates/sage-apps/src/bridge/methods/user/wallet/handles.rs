@@ -69,7 +69,7 @@ impl BridgeMethod for WalletResolveHandle {
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: ResolveHandle = parse_required_params(self, request)?;
-        let sage = tools.app_state.lock().await;
+        let mut sage = tools.wallet().await?;
 
         let mut result = sage
             .resolve_handle(params)
@@ -101,7 +101,7 @@ impl BridgeMethod for WalletGetHandle {
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: GetHandle = parse_required_params(self, request)?;
-        let sage = tools.app_state.lock().await;
+        let mut sage = tools.wallet().await?;
 
         let mut result = sage
             .get_handle(params)
@@ -154,7 +154,7 @@ impl BridgeMethod for WalletGetHandles {
         let params: GetHandles = parse_required_params(self, request)?;
         validate_get_handles(&params)?;
 
-        let sage = tools.app_state.lock().await;
+        let mut sage = tools.wallet().await?;
 
         let result = sage
             .get_handles(params)
@@ -185,7 +185,7 @@ impl BridgeMethod for WalletLookupAddressHandles {
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: LookupAddressHandles = parse_required_params(self, request)?;
-        let sage = tools.app_state.lock().await;
+        let mut sage = tools.wallet().await?;
 
         let result = sage
             .lookup_address_handles(params)

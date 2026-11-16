@@ -1,5 +1,6 @@
 mod contacts;
 mod keys;
+mod permissions;
 mod recipients;
 mod wallets;
 mod watch_wallets;

@@ -7,6 +7,8 @@ edition = "2024"
 workspace = true
 
 [dependencies]
+sage-rpc = { workspace = true }
+sage-permissions = { workspace = true }
 sage = { workspace = true }
 sage-api = { workspace = true, features = ["tauri"] }
 serde = { workspace = true, features = ["derive"] }

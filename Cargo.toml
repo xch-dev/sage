@@ -46,6 +46,7 @@ cast_lossless = "allow"
 result_large_err = "allow"
 
 [workspace.dependencies]
+sage-permissions = { path = "./crates/sage-permissions" }
 sage = { path = "./crates/sage" }
 sage-api = { path = "./crates/sage-api" }
 sage-api-macro = { path = "./crates/sage-api/macro" }

@@ -169,6 +169,7 @@ pub(crate) struct BridgeOrigin {
 
 #[derive(Debug, Clone)]
 pub(crate) struct PendingBridgeApproval {
+    pub binding: sage_permissions::ApprovalBinding,
     pub approval_id: String,
     pub app_id: String,
     pub registry_kind: BridgeRegistryKind,
@@ -176,7 +177,6 @@ pub(crate) struct PendingBridgeApproval {
     pub request: RustBridgeRequest,
     pub created_at_ms: u64,
     pub expires_at_ms: u64,
-    pub approved_fingerprint: Option<u32>,
 }
 
 impl RustBridgeInvokeResult {

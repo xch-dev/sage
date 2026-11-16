@@ -68,6 +68,9 @@ vi.mock('./settings/GeneralSettings', () => ({
 vi.mock('./settings/AppearanceSettings', () => ({
   AppearanceSettings: stub('appearance'),
 }));
+vi.mock('./settings/PermissionsSettings', () => ({
+  PermissionsSettings: stub('permissions'),
+}));
 vi.mock('./settings/SecuritySettings', () => ({
   SecuritySettings: stub('security'),
 }));
@@ -92,6 +95,7 @@ const APP_PAGES = [
   'general',
   'appearance',
   'security',
+  'permissions',
   'transactions',
   'network',
   'connections',

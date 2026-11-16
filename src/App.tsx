@@ -21,6 +21,7 @@ import {
   SupportedLanguage,
   useLanguage,
 } from './contexts/LanguageContext';
+import { ConnectionsProvider } from './contexts/ConnectionsContext';
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
@@ -221,7 +222,9 @@ function AppInner() {
             <AppsProvider>
               <WalletConnectProvider>
                 <PriceProvider>
-                  <RouterProvider router={router} />
+                  <ConnectionsProvider>
+                    <RouterProvider router={router} />
+                  </ConnectionsProvider>
                 </PriceProvider>
               </WalletConnectProvider>
             </AppsProvider>

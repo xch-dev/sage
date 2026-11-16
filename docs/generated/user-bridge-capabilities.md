@@ -116,7 +116,7 @@ Allows the app to request additional capabilities and network targets in one app
 
 **Read wallet**
 
-Allows the app to read public information about the selected wallet.
+Allows the caller to read public information about the selected wallet.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -130,7 +130,7 @@ Allows the app to read public information about the selected wallet.
 
 **Read wallet secret key**
 
-Allows the app to read wallet secrets, including the mnemonic or private key when available.
+Allows the caller to read wallet secrets, including the mnemonic or private key when available.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -144,7 +144,7 @@ Allows the app to read wallet secrets, including the mnemonic or private key whe
 
 **Send XCH**
 
-Allows the app to request XCH transactions from your wallet.
+Allows the caller to request XCH transactions from your wallet.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -158,7 +158,7 @@ Allows the app to request XCH transactions from your wallet.
 
 **Automatic XCH send**
 
-Allows the app to submit XCH transactions without asking for per-transaction approval.
+Allows the caller to submit XCH transactions without asking for per-transaction approval.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -172,7 +172,7 @@ Allows the app to submit XCH transactions without asking for per-transaction app
 
 **Read sync status**
 
-Allows the app to read wallet sync status and current wallet balance summary.
+Allows the caller to read wallet sync status and current wallet balance summary.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -186,7 +186,7 @@ Allows the app to read wallet sync status and current wallet balance summary.
 
 **Read wallet version**
 
-Allows the app to read the current Sage wallet version.
+Allows the caller to read the current Sage wallet version.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -200,7 +200,7 @@ Allows the app to read the current Sage wallet version.
 
 **Read XCH/USD price**
 
-Allows the app to read the current estimated XCH price in USD.
+Allows the caller to read the current estimated XCH price in USD.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -214,7 +214,7 @@ Allows the app to read the current estimated XCH price in USD.
 
 **Check address**
 
-Allows the app to validate whether an address belongs to this wallet.
+Allows the caller to validate whether an address belongs to this wallet.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -228,7 +228,7 @@ Allows the app to validate whether an address belongs to this wallet.
 
 **Resolve XCHandles**
 
-Allows the app to look up XCHandles handles, which sends them to the XCHandles API, and verify them against the blockchain.
+Allows the caller to look up XCHandles handles, which sends them to the XCHandles API, and verify them against the blockchain.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -242,7 +242,7 @@ Allows the app to look up XCHandles handles, which sends them to the XCHandles A
 
 **Read known XCHandles**
 
-Allows the app to read the XCHandles handles Sage has already verified on this network, in any wallet, including which ones this wallet owns and which handles point to an address.
+Allows the caller to read the XCHandles handles Sage has already verified on this network, in any wallet, including which ones this wallet owns and which handles point to an address.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -256,7 +256,7 @@ Allows the app to read the XCHandles handles Sage has already verified on this n
 
 **Read address book**
 
-Allows the app to read the contacts in your address book, which every wallet on this network shares, including their names, notes, addresses and handles.
+Allows the caller to read the contacts in your address book, which every wallet on this network shares, including their names, notes, addresses and handles.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -270,7 +270,7 @@ Allows the app to read the contacts in your address book, which every wallet on 
 
 **Filter unlocked wallet coins**
 
-Allows the app to check which supplied coin IDs are currently spendable.
+Allows the caller to check which supplied coin IDs are currently spendable.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -284,7 +284,7 @@ Allows the app to check which supplied coin IDs are currently spendable.
 
 **Read wallet asset coins**
 
-Allows the app to list spendable XCH, CAT, DID, or NFT coins.
+Allows the caller to list spendable XCH, CAT, DID, or NFT coins.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -298,7 +298,7 @@ Allows the app to list spendable XCH, CAT, DID, or NFT coins.
 
 **Read wallet asset balance**
 
-Allows the app to read confirmed and spendable balances for XCH, CAT, DID, or NFT assets.
+Allows the caller to read confirmed and spendable balances for XCH, CAT, DID, or NFT assets.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -312,7 +312,7 @@ Allows the app to read confirmed and spendable balances for XCH, CAT, DID, or NF
 
 **Sign wallet coin spends**
 
-Allows the app to request signatures for custom coin spends after per-request approval.
+Allows the caller to request signatures for custom coin spends after per-request approval.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -326,7 +326,7 @@ Allows the app to request signatures for custom coin spends after per-request ap
 
 **Sign wallet messages**
 
-Allows the app to request a message signature after per-request approval.
+Allows the caller to request a message signature after per-request approval.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -340,7 +340,7 @@ Allows the app to request a message signature after per-request approval.
 
 **Broadcast wallet transactions**
 
-Allows the app to submit an already signed spend bundle to the Chia network.
+Allows the caller to submit an already signed spend bundle to the Chia network.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -354,7 +354,7 @@ Allows the app to submit an already signed spend bundle to the Chia network.
 
 **Read wallet public keys**
 
-Allows the app to read public keys derived by the active wallet.
+Allows the caller to read public keys derived by the active wallet.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -368,7 +368,7 @@ Allows the app to read public keys derived by the active wallet.
 
 **Read derivations**
 
-Allows the app to read wallet derivation records and addresses.
+Allows the caller to read wallet derivation records and addresses.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -382,7 +382,7 @@ Allows the app to read wallet derivation records and addresses.
 
 **Read spendable coin count**
 
-Allows the app to read the number of spendable coins in the wallet.
+Allows the caller to read the number of spendable coins in the wallet.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -396,7 +396,7 @@ Allows the app to read the number of spendable coins in the wallet.
 
 **Read coins by IDs**
 
-Allows the app to read specific wallet coin records by coin ID.
+Allows the caller to read specific wallet coin records by coin ID.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -410,7 +410,7 @@ Allows the app to read specific wallet coin records by coin ID.
 
 **Read coins**
 
-Allows the app to list wallet coins.
+Allows the caller to list wallet coins.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -424,7 +424,7 @@ Allows the app to list wallet coins.
 
 **Read pending transactions**
 
-Allows the app to read pending wallet transactions.
+Allows the caller to read pending wallet transactions.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -438,7 +438,7 @@ Allows the app to read pending wallet transactions.
 
 **Read transaction**
 
-Allows the app to read a wallet transaction by height.
+Allows the caller to read a wallet transaction by height.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -452,7 +452,7 @@ Allows the app to read a wallet transaction by height.
 
 **Read transactions**
 
-Allows the app to list wallet transactions.
+Allows the caller to list wallet transactions.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |

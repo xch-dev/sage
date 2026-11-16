@@ -252,3 +252,109 @@ mod tests {
         assert_eq!(shared_capabilities, vec![shared]);
     }
 }
+
+impl UserBridgeCapability {
+    /// Project the inherited wallet grant; Apps-only permissions never reach wallet callers.
+    pub fn wallet_capability(self) -> Option<sage_permissions::WalletCapability> {
+        use sage_permissions::WalletCapability;
+        match self {
+            Self::WalletGetWallet => Some(WalletCapability::WalletGetWallet),
+            Self::WalletGetSecretKey => Some(WalletCapability::WalletGetSecretKey),
+            Self::WalletSendXch => Some(WalletCapability::WalletSendXch),
+            Self::WalletSendXchAutoSubmit => Some(WalletCapability::WalletSendXchAutoSubmit),
+            Self::WalletGetSyncStatus => Some(WalletCapability::WalletGetSyncStatus),
+            Self::WalletGetVersion => Some(WalletCapability::WalletGetVersion),
+            Self::WalletGetXchUsdPrice => Some(WalletCapability::WalletGetXchUsdPrice),
+            Self::WalletCheckAddress => Some(WalletCapability::WalletCheckAddress),
+            Self::WalletResolveHandle => Some(WalletCapability::WalletResolveHandle),
+            Self::WalletGetHandles => Some(WalletCapability::WalletGetHandles),
+            Self::WalletGetContacts => Some(WalletCapability::WalletGetContacts),
+            Self::WalletFilterUnlockedCoins => Some(WalletCapability::WalletFilterUnlockedCoins),
+            Self::WalletGetAssetCoins => Some(WalletCapability::WalletGetAssetCoins),
+            Self::WalletGetAssetBalance => Some(WalletCapability::WalletGetAssetBalance),
+            Self::WalletSignCoinSpends => Some(WalletCapability::WalletSignCoinSpends),
+            Self::WalletSignMessage => Some(WalletCapability::WalletSignMessage),
+            Self::WalletSendTransaction => Some(WalletCapability::WalletSendTransaction),
+            Self::WalletGetPublicKeys => Some(WalletCapability::WalletGetPublicKeys),
+            Self::WalletGetDerivations => Some(WalletCapability::WalletGetDerivations),
+            Self::WalletGetSpendableCoinCount => {
+                Some(WalletCapability::WalletGetSpendableCoinCount)
+            }
+            Self::WalletGetCoinsByIds => Some(WalletCapability::WalletGetCoinsByIds),
+            Self::WalletGetCoins => Some(WalletCapability::WalletGetCoins),
+            Self::WalletGetPendingTransactions => {
+                Some(WalletCapability::WalletGetPendingTransactions)
+            }
+            Self::WalletGetTransaction => Some(WalletCapability::WalletGetTransaction),
+            Self::WalletGetTransactions => Some(WalletCapability::WalletGetTransactions),
+            Self::BridgeSend => None,
+            Self::AppGetInfo => None,
+            Self::AppLifecycleReadyToStop => None,
+            Self::AppLifecycleSetBeforeStopListener => None,
+            Self::AppGetCapabilities => None,
+            Self::AppRequestCapabilityGrant => None,
+            Self::AppRequestNetworkWhitelistGrant => None,
+            Self::AppRequestPermissionGrants => None,
+            Self::WalletListenSelectedWalletChanged => None,
+            Self::EnvironmentThemeGetCurrent => None,
+            Self::EnvironmentThemeCssVars => None,
+            Self::EnvironmentThemeListenChanged => None,
+            Self::EnvironmentGetNetwork => None,
+            Self::EnvironmentOpenExternalUrl => None,
+            Self::StoragePersistentWebview => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod inheritance_tests {
+    use super::*;
+    use sage_permissions::WalletCapability;
+
+    #[test]
+    fn inherited_wallet_grants_preserve_keys_and_metadata() {
+        for &wallet in WalletCapability::ALL {
+            let Some(app) = UserBridgeCapability::from_key(wallet.key()) else {
+                continue;
+            };
+            assert_eq!(app.wallet_capability(), Some(wallet));
+            assert_eq!(
+                serde_json::to_value(app).unwrap(),
+                serde_json::to_value(wallet).unwrap()
+            );
+            let inherited = get_user_capability_definition(app);
+            let shared = sage_permissions::wallet_capability_definition(wallet);
+            assert_eq!(inherited.label(), shared.label);
+            assert_eq!(
+                inherited.flags().externally_observable(),
+                shared.externally_observable
+            );
+            assert_eq!(
+                inherited.flags().accesses_sensitive_secret(),
+                shared.accesses_sensitive_secret
+            );
+        }
+        for &app in UserBridgeCapability::ALL {
+            assert_eq!(
+                app.wallet_capability(),
+                WalletCapability::from_key(app.key())
+            );
+        }
+        let legacy: WalletCapability = serde_json::from_str("\"wallet.get_key\"").unwrap();
+        assert_eq!(legacy, WalletCapability::WalletGetWallet);
+    }
+
+    #[test]
+    fn app_extensions_are_not_wallet_grants() {
+        for capability in [
+            UserBridgeCapability::AppGetInfo,
+            UserBridgeCapability::AppRequestNetworkWhitelistGrant,
+            UserBridgeCapability::StoragePersistentWebview,
+            UserBridgeCapability::EnvironmentOpenExternalUrl,
+            UserBridgeCapability::WalletListenSelectedWalletChanged,
+        ] {
+            assert!(capability.wallet_capability().is_none());
+            assert!(WalletCapability::from_key(capability.key()).is_none());
+        }
+    }
+}

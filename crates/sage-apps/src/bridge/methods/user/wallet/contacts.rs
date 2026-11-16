@@ -165,7 +165,7 @@ impl BridgeMethod for WalletGetContacts {
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: GetContacts = parse_required_params(self, request)?;
-        let sage = tools.app_state.lock().await;
+        let mut sage = tools.wallet().await?;
 
         let result = sage
             .get_contacts(params)
@@ -196,7 +196,7 @@ impl BridgeMethod for WalletLookupAddressContacts {
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: LookupAddressContacts = parse_required_params(self, request)?;
-        let sage = tools.app_state.lock().await;
+        let mut sage = tools.wallet().await?;
 
         let result = sage
             .lookup_address_contacts(params)

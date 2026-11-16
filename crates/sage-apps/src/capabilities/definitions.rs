@@ -5,7 +5,7 @@ use crate::{
     UserBridgeCapability, UserCapabilityDefinition,
 };
 
-pub(crate) fn get_user_capability_definition(
+pub fn get_user_capability_definition(
     capability: UserBridgeCapability,
 ) -> UserCapabilityDefinition {
     match capability {
@@ -63,162 +63,187 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to request additional capabilities and network targets in one approval after installation.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
-        UserBridgeCapability::WalletGetWallet => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetWallet => inherited_definition(
             capability,
-            "Read wallet",
-            "Allows the app to read public information about the selected wallet.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetWallet,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetSecretKey => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetSecretKey => inherited_definition(
             capability,
-            "Read wallet secret key",
-            "Allows the app to read wallet secrets, including the mnemonic or private key when available.",
-            CapabilityFlags::new(false, true, true, true, true),
+            sage_permissions::WalletCapability::WalletGetSecretKey,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletSendXch => CapabilityDefinition::new(
+        UserBridgeCapability::WalletSendXch => inherited_definition(
             capability,
-            "Send XCH",
-            "Allows the app to request XCH transactions from your wallet.",
-            CapabilityFlags::new(true, false, true, true, true),
+            sage_permissions::WalletCapability::WalletSendXch,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletSendXchAutoSubmit => CapabilityDefinition::new(
+        UserBridgeCapability::WalletSendXchAutoSubmit => inherited_definition(
             capability,
-            "Automatic XCH send",
-            "Allows the app to submit XCH transactions without asking for per-transaction approval.",
-            CapabilityFlags::new(false, false, false, true, false),
+            sage_permissions::WalletCapability::WalletSendXchAutoSubmit,
+            false,
+            true,
+            false,
         ),
-        UserBridgeCapability::WalletGetSyncStatus => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetSyncStatus => inherited_definition(
             capability,
-            "Read sync status",
-            "Allows the app to read wallet sync status and current wallet balance summary.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetSyncStatus,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetVersion => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetVersion => inherited_definition(
             capability,
-            "Read wallet version",
-            "Allows the app to read the current Sage wallet version.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetVersion,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetXchUsdPrice => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetXchUsdPrice => inherited_definition(
             capability,
-            "Read XCH/USD price",
-            "Allows the app to read the current estimated XCH price in USD.",
-            CapabilityFlags::new(false, false, true, false, true),
+            sage_permissions::WalletCapability::WalletGetXchUsdPrice,
+            true,
+            false,
+            true,
         ),
-        UserBridgeCapability::WalletCheckAddress => CapabilityDefinition::new(
+        UserBridgeCapability::WalletCheckAddress => inherited_definition(
             capability,
-            "Check address",
-            "Allows the app to validate whether an address belongs to this wallet.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletCheckAddress,
+            true,
+            true,
+            true,
         ),
         // Resolving a handle sends it to the XCHandles API, so the app chooses what is sent
         // to an outside server. That makes it externally observable, which also keeps it
         // from being granted alongside secret access.
-        UserBridgeCapability::WalletResolveHandle => CapabilityDefinition::new(
+        UserBridgeCapability::WalletResolveHandle => inherited_definition(
             capability,
-            "Resolve XCHandles",
-            "Allows the app to look up XCHandles handles, which sends them to the XCHandles API, and verify them against the blockchain.",
-            CapabilityFlags::new(true, false, true, true, true),
+            sage_permissions::WalletCapability::WalletResolveHandle,
+            true,
+            true,
+            true,
         ),
         // Known handles come from the local store only, but reveal which handles have been
         // looked up in any wallet on this network, so they need their own grant.
-        UserBridgeCapability::WalletGetHandles => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetHandles => inherited_definition(
             capability,
-            "Read known XCHandles",
-            "Allows the app to read the XCHandles handles Sage has already verified on this network, in any wallet, including which ones this wallet owns and which handles point to an address.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetHandles,
+            true,
+            true,
+            true,
         ),
         // Contacts come from the local store only, but are personal, so they need their own
         // grant. Apps can only read them.
-        UserBridgeCapability::WalletGetContacts => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetContacts => inherited_definition(
             capability,
-            "Read address book",
-            "Allows the app to read the contacts in your address book, which every wallet on this network shares, including their names, notes, addresses and handles.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetContacts,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletFilterUnlockedCoins => CapabilityDefinition::new(
+        UserBridgeCapability::WalletFilterUnlockedCoins => inherited_definition(
             capability,
-            "Filter unlocked wallet coins",
-            "Allows the app to check which supplied coin IDs are currently spendable.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletFilterUnlockedCoins,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetAssetCoins => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetAssetCoins => inherited_definition(
             capability,
-            "Read wallet asset coins",
-            "Allows the app to list spendable XCH, CAT, DID, or NFT coins.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetAssetCoins,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetAssetBalance => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetAssetBalance => inherited_definition(
             capability,
-            "Read wallet asset balance",
-            "Allows the app to read confirmed and spendable balances for XCH, CAT, DID, or NFT assets.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetAssetBalance,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletSignCoinSpends => CapabilityDefinition::new(
+        UserBridgeCapability::WalletSignCoinSpends => inherited_definition(
             capability,
-            "Sign wallet coin spends",
-            "Allows the app to request signatures for custom coin spends after per-request approval.",
-            CapabilityFlags::new(true, false, true, true, true),
+            sage_permissions::WalletCapability::WalletSignCoinSpends,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletSignMessage => CapabilityDefinition::new(
+        UserBridgeCapability::WalletSignMessage => inherited_definition(
             capability,
-            "Sign wallet messages",
-            "Allows the app to request a message signature after per-request approval.",
-            CapabilityFlags::new(true, false, true, true, true),
+            sage_permissions::WalletCapability::WalletSignMessage,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletSendTransaction => CapabilityDefinition::new(
+        UserBridgeCapability::WalletSendTransaction => inherited_definition(
             capability,
-            "Broadcast wallet transactions",
-            "Allows the app to submit an already signed spend bundle to the Chia network.",
-            CapabilityFlags::new(true, false, true, true, true),
+            sage_permissions::WalletCapability::WalletSendTransaction,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetPublicKeys => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetPublicKeys => inherited_definition(
             capability,
-            "Read wallet public keys",
-            "Allows the app to read public keys derived by the active wallet.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetPublicKeys,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetDerivations => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetDerivations => inherited_definition(
             capability,
-            "Read derivations",
-            "Allows the app to read wallet derivation records and addresses.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetDerivations,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetSpendableCoinCount => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetSpendableCoinCount => inherited_definition(
             capability,
-            "Read spendable coin count",
-            "Allows the app to read the number of spendable coins in the wallet.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetSpendableCoinCount,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetCoinsByIds => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetCoinsByIds => inherited_definition(
             capability,
-            "Read coins by IDs",
-            "Allows the app to read specific wallet coin records by coin ID.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetCoinsByIds,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetCoins => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetCoins => inherited_definition(
             capability,
-            "Read coins",
-            "Allows the app to list wallet coins.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetCoins,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetPendingTransactions => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetPendingTransactions => inherited_definition(
             capability,
-            "Read pending transactions",
-            "Allows the app to read pending wallet transactions.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetPendingTransactions,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetTransaction => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetTransaction => inherited_definition(
             capability,
-            "Read transaction",
-            "Allows the app to read a wallet transaction by height.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetTransaction,
+            true,
+            true,
+            true,
         ),
-        UserBridgeCapability::WalletGetTransactions => CapabilityDefinition::new(
+        UserBridgeCapability::WalletGetTransactions => inherited_definition(
             capability,
-            "Read transactions",
-            "Allows the app to list wallet transactions.",
-            CapabilityFlags::new(false, false, true, true, true),
+            sage_permissions::WalletCapability::WalletGetTransactions,
+            true,
+            true,
+            true,
         ),
         UserBridgeCapability::WalletListenSelectedWalletChanged => CapabilityDefinition::new(
             capability,
@@ -259,7 +284,7 @@ pub(crate) fn get_user_capability_definition(
     }
 }
 
-pub(crate) fn get_system_capability_definition(
+pub fn get_system_capability_definition(
     capability: SystemBridgeCapability,
 ) -> SystemCapabilityDefinition {
     match capability {
@@ -424,7 +449,7 @@ pub(crate) fn get_system_capability_definition(
     }
 }
 
-pub(crate) fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDefinition> {
+pub fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDefinition> {
     UserBridgeCapability::ALL
         .iter()
         .copied()
@@ -434,6 +459,28 @@ pub(crate) fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDe
 
 fn system_app_flags() -> CapabilityFlags {
     CapabilityFlags::new(false, false, true, false, true)
+}
+
+fn inherited_definition(
+    capability: UserBridgeCapability,
+    wallet: sage_permissions::WalletCapability,
+    requestable: bool,
+    grantable: bool,
+    visible: bool,
+) -> UserCapabilityDefinition {
+    let definition = sage_permissions::wallet_capability_definition(wallet);
+    CapabilityDefinition::new(
+        capability,
+        definition.label,
+        definition.description,
+        CapabilityFlags::new(
+            definition.externally_observable,
+            definition.accesses_sensitive_secret,
+            requestable,
+            grantable,
+            visible,
+        ),
+    )
 }
 
 #[cfg(test)]

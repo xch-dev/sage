@@ -1,6 +1,15 @@
+mod operation_approvals;
+pub use operation_approvals::{OperationReview, RpcApprovalRequest};
 mod cert_verifier;
+mod credentials;
 mod openapi;
 mod rustls_config;
+mod scoped_server;
+mod session;
+pub use credentials::*;
+pub use scoped_server::*;
+
+pub use session::RpcSession;
 
 #[cfg(test)]
 mod tests;
@@ -11,7 +20,7 @@ use anyhow::Result;
 use axum::{
     Json, Router,
     extract::State,
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::post,
 };
@@ -31,11 +40,16 @@ pub use openapi::generate_openapi as generate_openapi_spec;
 #[derive(Debug, Clone)]
 struct AppState {
     sage: Arc<Mutex<Sage>>,
+    authenticator: Option<Arc<dyn RpcAuthenticator>>,
 }
 
 impl_endpoints! {
-    (repeat async fn endpoint(State(state): State<AppState>, Json(req): Json<sage_api::Endpoint>) -> Response {
-        handle(state.sage.lock().await.endpoint(req) maybe_await)
+    (repeat async fn endpoint(State(state): State<AppState>, headers: HeaderMap, Json(req): Json<sage_api::Endpoint>) -> Response {
+        let mut session = match state.session(&headers, endpoint_string, &req).await {
+            Ok(session) => session,
+            Err(error) => return handle::<()>(Err(error)),
+        };
+        handle(session.endpoint(req) maybe_await)
     })
 
     fn api_router() -> Router<AppState> {
@@ -132,5 +146,104 @@ pub async fn start_rpc(sage: Arc<Mutex<Sage>>) -> Result<()> {
 }
 
 pub fn make_router(sage: Arc<Mutex<Sage>>) -> Router {
-    api_router().with_state(AppState { sage })
+    api_router().with_state(AppState {
+        sage,
+        authenticator: None,
+    })
+}
+
+/// Trusted authentication/grant resolver for a scoped HTTP listener. It must validate the
+/// credentials and read current grants on each invocation. Client-provided identities or
+/// capability lists are never accepted by the router itself. This callback runs under the
+/// Sage lock, so it must not try to acquire that lock again.
+pub trait RpcAuthenticator: std::fmt::Debug + Send + Sync {
+    fn authenticate(&self, headers: &HeaderMap) -> Result<sage_permissions::Caller, String>;
+    fn request_approval(
+        &self,
+        _request: RpcApprovalRequest,
+    ) -> Result<
+        tokio::sync::oneshot::Receiver<Result<sage_permissions::ApprovalBinding, String>>,
+        String,
+    > {
+        Err("This transport has no approval presenter".into())
+    }
+}
+
+/// Build a restricted RPC listener. Missing/invalid credentials fail closed; there is no
+/// fallback to owner access. GUI-required operations are denied on this transport until a
+/// host approval adapter is supplied. Existing mTLS owner RPC continues to use `make_router`.
+pub fn make_scoped_router(
+    sage: Arc<Mutex<Sage>>,
+    authenticator: Arc<dyn RpcAuthenticator>,
+) -> Router {
+    api_router().with_state(AppState {
+        sage,
+        authenticator: Some(authenticator),
+    })
+}
+
+impl AppState {
+    async fn session(
+        &self,
+        headers: &HeaderMap,
+        method: &str,
+        request: &impl Serialize,
+    ) -> sage::Result<RpcSession<'_>> {
+        let sage = self.sage.lock().await;
+        let Some(authenticator) = &self.authenticator else {
+            return Ok(RpcSession::owner(sage));
+        };
+        let caller = authenticator
+            .authenticate(headers)
+            .map_err(sage::Error::PermissionDenied)?;
+        let caller_id = caller.id.clone();
+        let body = serde_json::to_value(request)
+            .map_err(|e| sage::Error::PermissionDenied(e.to_string()))?;
+        let mut session = RpcSession::scoped(sage, caller, String::new(), None);
+        let (approval, fingerprint) = session.preflight_rpc(method, &body)?;
+        if !approval {
+            return Ok(session);
+        }
+        let (network_name, network_context) = session.network_context()?;
+        // Never hold the wallet mutex while the user reviews a request.
+        let pending = authenticator
+            .request_approval(RpcApprovalRequest {
+                caller: caller_id.clone(),
+                method: method.into(),
+                body,
+                fingerprint,
+                network: network_name,
+            })
+            .map_err(sage::Error::PermissionDenied)?;
+        drop(session);
+        let binding = tokio::time::timeout(std::time::Duration::from_secs(300), pending)
+            .await
+            .map_err(|_| sage::Error::PermissionDenied("Approval timed out".into()))?
+            .map_err(|_| sage::Error::PermissionDenied("Approval canceled".into()))?
+            .map_err(sage::Error::PermissionDenied)?;
+        let sage = self.sage.lock().await;
+        let caller = authenticator
+            .authenticate(headers)
+            .map_err(sage::Error::PermissionDenied)?;
+        if caller.id != caller_id {
+            return Err(sage::Error::PermissionDenied(
+                "Caller changed during approval".into(),
+            ));
+        }
+        // Authorization rechecks current grants and the bound wallet/payload during execution.
+        if serde_json::to_string(&sage.network())
+            .map_err(|e| sage::Error::PermissionDenied(e.to_string()))?
+            != network_context
+        {
+            return Err(sage::Error::PermissionDenied(
+                "Network changed during approval".into(),
+            ));
+        }
+        Ok(RpcSession::scoped(
+            sage,
+            caller,
+            String::new(),
+            Some(binding),
+        ))
+    }
 }
