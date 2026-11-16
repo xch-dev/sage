@@ -389,15 +389,13 @@ pub async fn insert_nft(
         .await?;
     }
 
-    let (data_uris, metadata_uris, license_uris) = metadata
-        .map(|metadata| {
-            (
-                metadata.data_uris,
-                metadata.metadata_uris,
-                metadata.license_uris,
-            )
-        })
-        .unwrap_or_default();
+    let (data_uris, metadata_uris, license_uris) = metadata.map_or_default(|metadata| {
+        (
+            metadata.data_uris,
+            metadata.metadata_uris,
+            metadata.license_uris,
+        )
+    });
 
     if let Some(hash) = coin_info.data_hash {
         tx.insert_file(hash).await?;

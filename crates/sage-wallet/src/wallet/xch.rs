@@ -361,19 +361,19 @@ mod tests {
             if let Some(row) = rows.first()
                 && let Some(height) = row.created_height
             {
-                let header_hash = wallet
-                    .wallet
-                    .db
-                    .latest_peak()
-                    .await?
-                    .map(|(peak_height, hash)| {
-                        if peak_height == height {
-                            hash
-                        } else {
-                            Bytes32::default()
-                        }
-                    })
-                    .unwrap_or_default();
+                let header_hash =
+                    wallet
+                        .wallet
+                        .db
+                        .latest_peak()
+                        .await?
+                        .map_or_default(|(peak_height, hash)| {
+                            if peak_height == height {
+                                hash
+                            } else {
+                                Bytes32::default()
+                            }
+                        });
                 wallet
                     .wallet
                     .db

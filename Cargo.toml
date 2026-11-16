@@ -44,6 +44,7 @@ cast_possible_truncation = "allow"
 cast_sign_loss = "allow"
 cast_lossless = "allow"
 result_large_err = "allow"
+assert_is_empty = "allow"
 
 [workspace.dependencies]
 sage = { path = "./crates/sage" }
