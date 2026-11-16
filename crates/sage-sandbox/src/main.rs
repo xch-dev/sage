@@ -8,6 +8,7 @@ mod bridge;
 mod endpoints;
 mod error;
 mod events;
+mod vaults;
 mod wallet;
 
 #[cfg(test)]
@@ -17,6 +18,7 @@ pub use bridge::*;
 pub use endpoints::*;
 pub use error::*;
 pub use events::*;
+pub use vaults::*;
 pub use wallet::*;
 
 use std::{fs, net::SocketAddr, path::PathBuf};
@@ -45,6 +47,7 @@ struct Cli {
 struct Ready {
     port: u16,
     wallets: Vec<WalletInfo>,
+    vaults: Vec<VaultInfo>,
 }
 
 #[tokio::main]
@@ -74,7 +77,12 @@ async fn main() -> Result<()> {
 
     let sim = PeerSimulator::new().await?;
     let (router, wallets) = start_bridge(&data_dir, &sim, &listener).await?;
-    let ready = Ready { port, wallets };
+    let vaults = mint_vaults(&sim, &data_dir, ALICE_SEED, BOB_SEED).await?;
+    let ready = Ready {
+        port,
+        wallets,
+        vaults,
+    };
 
     fs::write(&ready_path, serde_json::to_string_pretty(&ready)?)?;
     info!("Sandbox bridge listening on http://127.0.0.1:{port}");

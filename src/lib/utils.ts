@@ -78,7 +78,9 @@ export function getAssetDisplayName(
       ? t`Unknown CAT`
       : kind === 'option'
         ? 'Untitled Option'
-        : t`Untitled ${upperKind}`)
+        : kind === 'vault'
+          ? t`Vault`
+          : t`Untitled ${upperKind}`)
   );
 }
 

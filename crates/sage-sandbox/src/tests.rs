@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, time::Duration};
+use std::{fs, net::SocketAddr, time::Duration};
 
 use anyhow::Result;
 use axum::{
@@ -6,9 +6,9 @@ use axum::{
     body::{Body, to_bytes},
     http::{Request, StatusCode},
 };
-use chia_wallet_sdk::{prelude::*, test::PeerSimulator};
+use chia_wallet_sdk::{prelude::*, test::PeerSimulator, utils::Address};
 use futures_util::StreamExt;
-use sage_wallet::SyncEvent;
+use sage_wallet::{SyncEvent, parse_vault_config_file};
 use serde_json::{Value, json};
 use tempfile::TempDir;
 use tokio::{
@@ -18,15 +18,15 @@ use tokio::{
 };
 use tower::ServiceExt;
 
-use crate::{WalletInfo, forward_events, start_bridge};
+use crate::{ALICE_SEED, BOB_SEED, WalletInfo, forward_events, mint_vaults, start_bridge};
 
 const MOJOS_PER_XCH: u64 = 1_000_000_000_000;
 
 struct TestBridge {
     router: Router,
     wallets: Vec<WalletInfo>,
-    _sim: PeerSimulator,
-    _dir: TempDir,
+    sim: PeerSimulator,
+    dir: TempDir,
 }
 
 impl TestBridge {
@@ -46,8 +46,8 @@ impl TestBridge {
         Ok(Self {
             router,
             wallets,
-            _sim: sim,
-            _dir: dir,
+            sim,
+            dir,
         })
     }
 
@@ -444,6 +444,69 @@ async fn test_forward_events_sends_what_the_frontend_listens_for() -> Result<()>
         listener.recv().await,
         Err(broadcast::error::RecvError::Closed)
     ));
+
+    Ok(())
+}
+
+/// The sandbox's vaults can each be imported the way `docs/sandbox.md` describes.
+#[tokio::test]
+async fn vaults_can_be_imported() -> Result<()> {
+    let bridge = TestBridge::start().await?;
+    let vaults = mint_vaults(&bridge.sim, bridge.dir.path(), ALICE_SEED, BOB_SEED).await?;
+
+    assert_eq!(
+        vaults
+            .iter()
+            .map(|vault| vault.name.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "memo",
+            "no-memo",
+            "two-recovery-keys",
+            "no-recovery",
+            "recovering"
+        ]
+    );
+
+    for vault in &vaults {
+        // Vaults with memos, or without recovery, need only their id. The others need their
+        // recovery keys.
+        let recovery = (!vault.memo && !vault.recovery_keys.is_empty()).then(|| {
+            json!({
+                "keys": vault.recovery_keys,
+                "threshold": vault.recovery_threshold,
+                "timelock": null,
+            })
+        });
+
+        let (status, body) = bridge
+            .invoke(
+                "alice",
+                "import_vault",
+                json!({
+                    "req": {
+                        "name": vault.name,
+                        "launcher_id": vault.launcher_id,
+                        "address": null,
+                        "config": null,
+                        "recovery": recovery,
+                        "emoji": null,
+                        "login": false,
+                    }
+                }),
+            )
+            .await;
+        assert_eq!(status, StatusCode::OK, "{}: {body}", vault.name);
+
+        // Each config file is for its vault, in the format the import page accepts.
+        let config = parse_vault_config_file(&fs::read_to_string(&vault.config_file)?)?;
+        assert_eq!(
+            config.launcher_id,
+            Address::decode(&vault.launcher_id)?.puzzle_hash,
+            "{}",
+            vault.name
+        );
+    }
 
     Ok(())
 }

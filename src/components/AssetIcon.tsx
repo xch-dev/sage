@@ -1,5 +1,12 @@
 import { AssetKind } from '@/bindings';
-import { Coins, FilePenLine, Image, UndoDot, User } from 'lucide-react';
+import {
+  Coins,
+  FilePenLine,
+  Image,
+  Landmark,
+  UndoDot,
+  User,
+} from 'lucide-react';
 
 export interface AssetIconProps {
   asset: {
@@ -48,6 +55,8 @@ export function AssetIcon({
     <Image className={`${iconClasses} ${className}`} aria-hidden='true' />
   ) : asset.kind === 'option' ? (
     <FilePenLine className={`${iconClasses} ${className}`} aria-hidden='true' />
+  ) : asset.kind === 'vault' ? (
+    <Landmark className={`${iconClasses} ${className}`} aria-hidden='true' />
   ) : (
     <User className={`${iconClasses} ${className}`} aria-hidden='true' />
   );

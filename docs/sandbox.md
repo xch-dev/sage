@@ -62,6 +62,26 @@ storage apart.
 Bob plays everyone else. To test receiving, an offer being taken, and so on, act as bob, either in
 a second tab or by calling bob's bridge directly.
 
+## Vaults
+
+Sage can't create vaults, so the sandbox mints a few at startup to import. `instance.json` lists
+them under `vaults`, each with its `launcher_id` (a `vault1` id), its first `address`, whether its
+config is in its `memo`, the `recovery_keys` and `recovery_threshold` to import it with if not, and
+a `config_file` in `data/vaults/` to import it from. Alice's key is the custody of every vault, so
+she can attach it as a signer, and bob's key is the recovery key.
+
+| Vault               | What it's for                                                        |
+| ------------------- | -------------------------------------------------------------------- |
+| `memo`              | Config in its memos, so its id or address is enough                  |
+| `no-memo`           | A legacy vault without memos, imported with bob's recovery key       |
+| `two-recovery-keys` | Without memos, with a 2 of 2 recovery of bob's key and another key   |
+| `no-recovery`       | Without memos or recovery, so it's rebuilt from its spends alone     |
+| `recovering`        | Bob has started recovery, which stays pending while the sandbox runs |
+
+Each vault has spent from its first address, which reveals it, and holds 1 TXCH there. The browser
+can't read the config files from disk, so paste one's contents, or set the file input with the
+preview tools.
+
 ## Calling the bridge
 
 Every command the UI can call is also an HTTP endpoint on the bridge:
@@ -101,12 +121,14 @@ curl -s -X POST "$bridge/bob/invoke/issue_cat" -H 'content-type: application/jso
 | `clipboard`   | The last text the app copied, since a browser clipboard may not be readable |
 | `openedUrls`  | URLs the app asked to open externally                                       |
 | `unsupported` | Commands that failed because the sandbox has no stand-in for them           |
+| `savedFiles`  | Files the app saved, as `{ name, text }`, which are also downloaded         |
 
 ## What doesn't work
 
 - Mini-apps. They run in native webviews, so the Apps page lists nothing and can't start an app.
   The app logs "Failed to refresh sandbox state" to the console on each load because of this.
-- Native features: file dialogs, biometrics, NFC, QR scanning, the share sheet, and window controls.
+- Native features: open file dialogs, biometrics, NFC, QR scanning, the share sheet, and window
+  controls.
 - The RPC server settings, since starting it would bind the real RPC port.
 - CAT names from the token registry, NFT metadata and images from their URIs, and block timestamps.
   The backends run in Sage's test mode, which turns these background lookups off.

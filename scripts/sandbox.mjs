@@ -307,6 +307,9 @@ async function main() {
     app: wallets.alice.url,
     bridge: bridgeUrl,
     wallets,
+    vaults: Object.fromEntries(
+      ready.vaults.map(({ name, ...vault }) => [name, vault]),
+    ),
     logs: { backend: paths.backendLog, vite: paths.viteLog },
   });
 

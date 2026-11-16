@@ -26,9 +26,10 @@ use test_log::test;
 use tokio::time::sleep;
 
 use crate::{
-    ChildKind, FixedConditionsMemo, SyncCommand, SyncEvent, TestWallet, VAULT_ADDRESS_GAP,
-    VaultHashes, WalletNftMint, build_vault, build_vault_recovery, is_relevant_child,
-    p2_singleton_puzzle_hash, recovery_restrictions, track_vault, vault_hashes,
+    ChildKind, FixedConditionsMemo, RecoveryKey, RecoverySearch, SyncCommand, SyncEvent,
+    TestWallet, VAULT_ADDRESS_GAP, VaultHashes, WalletNftMint, WalletPeer, build_vault,
+    build_vault_recovery, is_relevant_child, p2_singleton_puzzle_hash, rebuild_vault_config,
+    recovery_restrictions, track_vault, vault_hashes,
 };
 
 const TIMELOCK: u64 = 60;
@@ -662,6 +663,151 @@ async fn test_vault_without_recovery() -> anyhow::Result<()> {
         status.config.map(|row| row.layout),
         Some(VaultLayout::Custody(config))
     );
+
+    Ok(())
+}
+
+/// While recovery is pending, the current custody is in the recovery state, which can't be rebuilt,
+/// so the config from before recovery started is rebuilt instead. Spends in the recovery state also
+/// reveal custodies which can't be rebuilt, and those mustn't stop the search.
+#[test(tokio::test)]
+async fn test_rebuild_during_recovery() -> anyhow::Result<()> {
+    let test = TestWallet::new(0).await?;
+
+    let custody = BlsPair::new(1);
+    let recovery = BlsPair::new(2);
+    let config = vault_config(&custody, &recovery, VaultVersion::ForceSingletonRecreation);
+    let new_config = vault_config(
+        &BlsPair::new(3),
+        &recovery,
+        VaultVersion::ForceSingletonRecreation,
+    );
+    let other_config = vault_config(
+        &BlsPair::new(4),
+        &recovery,
+        VaultVersion::ForceSingletonRecreation,
+    );
+    let third_config = vault_config(
+        &BlsPair::new(5),
+        &recovery,
+        VaultVersion::ForceSingletonRecreation,
+    );
+
+    let vault = mint(&test, &config, false).await?;
+    let custody_hash = vault.custody_hash();
+    let amount = vault.vault.coin.amount;
+    custody_spend(&test, &vault, vault_hashes(&config)?, &custody, |_| {
+        Ok(Conditions::new().create_coin(custody_hash, amount, Memos::None))
+    })
+    .await?;
+    let vault = vault.child(custody_hash);
+
+    // Recovery is started and cancelled twice, each time to another custody, then started a third
+    // time, and the vault is recreated while it's pending. Each recovery state has its own custody
+    // hash, and none of them uses up the searches for older custodies.
+    let vault = start_recovery(&test, &vault, &config, &recovery, &new_config).await?;
+    let vault = cancel_recovery(&test, &vault, &config, &custody, &new_config).await?;
+    let vault = start_recovery(&test, &vault, &config, &recovery, &other_config).await?;
+    let vault = cancel_recovery(&test, &vault, &config, &custody, &other_config).await?;
+    let vault = start_recovery(&test, &vault, &config, &recovery, &third_config).await?;
+
+    let mut ctx = SpendContext::new();
+    let (hashes, _) = recovery_state(&mut ctx, &config, &third_config, amount)?;
+    let recovery_hash = vault.custody_hash();
+    custody_spend(&test, &vault, hashes, &custody, |_| {
+        Ok(Conditions::new().create_coin(recovery_hash, amount, Memos::None))
+    })
+    .await?;
+
+    let peer = WalletPeer::new(test.peer.clone());
+    let search = RecoverySearch::new(&[RecoveryKey::Bls(recovery.pk)], None, vec![TIMELOCK])?;
+
+    let rebuilt = rebuild_vault_config(
+        &peer,
+        vault.launcher_id(),
+        test.wallet.genesis_challenge,
+        Some(search),
+        100,
+    )
+    .await?;
+
+    assert!(!rebuilt.is_current);
+    assert!(rebuilt.in_recovery);
+    assert_eq!(rebuilt.row.custody_hash, custody_hash);
+    assert_eq!(rebuilt.row.layout, VaultLayout::Custody(config));
+
+    Ok(())
+}
+
+/// Finishing recovery also goes through the recovery side, but the custody it moves to isn't in the
+/// recovery state, so it can be rebuilt once it's been spent through.
+#[test(tokio::test)]
+async fn test_rebuild_after_recovery_finished() -> anyhow::Result<()> {
+    let test = TestWallet::new(0).await?;
+
+    let custody = BlsPair::new(1);
+    let recovery = BlsPair::new(2);
+    let new_custody = BlsPair::new(3);
+    let config = vault_config(&custody, &recovery, VaultVersion::ForceSingletonRecreation);
+    let new_config = vault_config(
+        &new_custody,
+        &recovery,
+        VaultVersion::ForceSingletonRecreation,
+    );
+
+    let vault = mint(&test, &config, false).await?;
+    let custody_hash = vault.custody_hash();
+    let amount = vault.vault.coin.amount;
+    custody_spend(&test, &vault, vault_hashes(&config)?, &custody, |_| {
+        Ok(Conditions::new().create_coin(custody_hash, amount, Memos::None))
+    })
+    .await?;
+    let vault = vault.child(custody_hash);
+
+    let vault = start_recovery(&test, &vault, &config, &recovery, &new_config).await?;
+
+    let peer = WalletPeer::new(test.peer.clone());
+    let search = || RecoverySearch::new(&[RecoveryKey::Bls(recovery.pk)], None, vec![TIMELOCK]);
+
+    // While recovery is pending, the config from before it started is rebuilt.
+    let rebuilt = rebuild_vault_config(
+        &peer,
+        vault.launcher_id(),
+        test.wallet.genesis_challenge,
+        Some(search()?),
+        100,
+    )
+    .await?;
+    assert!(!rebuilt.is_current);
+    assert!(rebuilt.in_recovery);
+    assert_eq!(rebuilt.row.custody_hash, custody_hash);
+
+    test.sim.lock().await.pass_time(TIMELOCK + 1);
+    let vault = finish_recovery(&test, &vault, &config, &new_config).await?;
+
+    // The new custody is spent through, without a memo.
+    let new_custody_hash = vault.custody_hash();
+    custody_spend(
+        &test,
+        &vault,
+        vault_hashes(&new_config)?,
+        &new_custody,
+        |_| Ok(Conditions::new().create_coin(new_custody_hash, amount, Memos::None)),
+    )
+    .await?;
+
+    let rebuilt = rebuild_vault_config(
+        &peer,
+        vault.launcher_id(),
+        test.wallet.genesis_challenge,
+        Some(search()?),
+        100,
+    )
+    .await?;
+    assert!(rebuilt.is_current);
+    assert!(!rebuilt.in_recovery);
+    assert_eq!(rebuilt.row.custody_hash, new_custody_hash);
+    assert_eq!(rebuilt.row.layout, VaultLayout::Custody(new_config));
 
     Ok(())
 }

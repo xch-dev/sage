@@ -614,7 +614,7 @@ fn parse_vault_child(
 }
 
 /// Whether a singleton's inner puzzle is the top level of a MIPS tree, as vaults are.
-fn is_mips_top_level(allocator: &Allocator, puzzle: Puzzle) -> bool {
+pub(crate) fn is_mips_top_level(allocator: &Allocator, puzzle: Puzzle) -> bool {
     let Some(curried) = puzzle.as_curried() else {
         return false;
     };

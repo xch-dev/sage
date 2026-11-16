@@ -223,6 +223,9 @@ pub enum VaultConfigSource {
     Memo,
     ConfigFile,
     Unknown,
+    /// Rebuilt from what the vault's spends reveal and its recovery key, which was verified against
+    /// the custody hash.
+    Reconstructed,
 }
 
 impl Convert<VaultConfigSource> for i64 {
@@ -231,6 +234,7 @@ impl Convert<VaultConfigSource> for i64 {
             0 => VaultConfigSource::Memo,
             1 => VaultConfigSource::ConfigFile,
             2 => VaultConfigSource::Unknown,
+            3 => VaultConfigSource::Reconstructed,
             _ => return Err(DatabaseError::InvalidEnumVariant),
         })
     }

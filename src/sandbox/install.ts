@@ -26,6 +26,8 @@ interface SandboxGlobals {
   openedUrls: string[];
   /** Commands that failed because the sandbox has no stand-in for them. */
   unsupported: string[];
+  /** Files the app saved through a save dialog, oldest first. Each is also downloaded. */
+  savedFiles: { name: string; text: string }[];
 }
 
 /** Picks the wallet from the host, so `bob.localhost` talks to bob and anything else to alice. */
@@ -48,7 +50,11 @@ const sandbox: SandboxGlobals = {
   clipboard: null,
   openedUrls: [],
   unsupported: [],
+  savedFiles: [],
 };
+
+/** The file name picked in the last save dialog, which the next file write saves to. */
+let savePath: string | null = null;
 
 window.__SAGE_SANDBOX__ = sandbox;
 
@@ -133,6 +139,25 @@ async function pluginCommand(
         sandbox.clipboard ??
         ''
       );
+    // A save dialog picks its default name, and writing the file downloads it.
+    case 'plugin:dialog|save': {
+      const options = (args.options ?? {}) as { defaultPath?: string };
+      savePath = options.defaultPath ?? 'export.txt';
+      return savePath;
+    }
+    case 'plugin:fs|write_text_file': {
+      if (!(args instanceof Uint8Array) || savePath === null) break;
+      const text = new TextDecoder().decode(args);
+      const name = savePath.split(/[\\/]/).pop() ?? savePath;
+      savePath = null;
+      sandbox.savedFiles.push({ name, text });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([text]));
+      link.download = name;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      return null;
+    }
     case 'plugin:opener|open_url': {
       const url = String(args.url);
       sandbox.openedUrls.push(url);
