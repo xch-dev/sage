@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO vault_coins (coin_id, custody_hash)\n        SELECT id, ? FROM coins WHERE hash = ?\n        ON CONFLICT(coin_id) DO UPDATE SET\n            custody_hash = COALESCE(excluded.custody_hash, custody_hash)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "7ee6e3db2172d5432492317c552bb294b7c63e0f80cd5e22f130017baa37c8a0"
+}
