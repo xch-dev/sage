@@ -50,7 +50,8 @@ fn offer(auto_import: bool) -> MakeOffer {
     }
 }
 
-/// Runs both requests at once, failing rather than hanging if they deadlock.
+/// Runs both requests at once, failing rather than hanging if they deadlock. The requests
+/// are boxed by the caller, since the endpoint futures are large.
 async fn concurrently<A, B>(first: A, second: B) -> (A::Output, B::Output)
 where
     A: Future,
@@ -111,8 +112,8 @@ async fn concurrent_sends_dont_select_the_same_coin() -> Result<()> {
     let (first, second) = {
         let sage = app.sage.lock().await;
         concurrently(
-            sage.send_xch(send(&address, true)),
-            sage.send_xch(send(&address, true)),
+            Box::pin(sage.send_xch(send(&address, true))),
+            Box::pin(sage.send_xch(send(&address, true))),
         )
         .await
     };
@@ -131,8 +132,8 @@ async fn send_doesnt_spend_a_coin_locked_by_a_concurrent_offer() -> Result<()> {
     let (made, sent) = {
         let sage = app.sage.lock().await;
         concurrently(
-            sage.make_offer(offer(true)),
-            sage.send_xch(send(&address, true)),
+            Box::pin(sage.make_offer(offer(true))),
+            Box::pin(sage.send_xch(send(&address, true))),
         )
         .await
     };
@@ -163,8 +164,8 @@ async fn send_doesnt_select_a_coin_a_concurrent_submission_spends() -> Result<()
     let (submitted, sent) = {
         let sage = app.sage.lock().await;
         concurrently(
-            sage.submit_transaction(SubmitTransaction { spend_bundle }),
-            sage.send_xch(send(&address, true)),
+            Box::pin(sage.submit_transaction(SubmitTransaction { spend_bundle })),
+            Box::pin(sage.send_xch(send(&address, true))),
         )
         .await
     };
@@ -185,8 +186,8 @@ async fn send_doesnt_spend_a_coin_locked_by_a_concurrent_import() -> Result<()> 
     let (imported, sent) = {
         let sage = app.sage.lock().await;
         concurrently(
-            sage.import_offer(ImportOffer { offer: encoded }),
-            sage.send_xch(send(&address, true)),
+            Box::pin(sage.import_offer(ImportOffer { offer: encoded })),
+            Box::pin(sage.send_xch(send(&address, true))),
         )
         .await
     };
@@ -216,12 +217,12 @@ async fn send_doesnt_select_a_coin_a_concurrent_take_spends() -> Result<()> {
     let (taken, sent) = {
         let sage = app.sage.lock().await;
         concurrently(
-            sage.take_offer(TakeOffer {
+            Box::pin(sage.take_offer(TakeOffer {
                 offer: encoded,
                 fee: Amount::u64(0),
                 auto_submit: true,
-            }),
-            sage.send_xch(send(&address, true)),
+            })),
+            Box::pin(sage.send_xch(send(&address, true))),
         )
         .await
     };
