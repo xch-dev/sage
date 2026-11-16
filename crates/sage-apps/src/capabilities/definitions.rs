@@ -1,0 +1,549 @@
+use std::collections::BTreeMap;
+
+use crate::{
+    CapabilityDefinition, CapabilityFlags, SystemBridgeCapability, SystemCapabilityDefinition,
+    UserBridgeCapability, UserCapabilityDefinition,
+};
+
+pub fn get_user_capability_definition(
+    capability: UserBridgeCapability,
+) -> UserCapabilityDefinition {
+    match capability {
+        UserBridgeCapability::StoragePersistentWebview => CapabilityDefinition::new(
+            capability,
+            "Persistent storage",
+            "Allows the app to store data on this device between sessions.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
+        UserBridgeCapability::BridgeSend => CapabilityDefinition::new(
+            capability,
+            "Bridge messaging",
+            "Allows the app to send messages through the Sage bridge. (Only for sandbox tests)",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::AppGetCapabilities => CapabilityDefinition::new(
+            capability,
+            "Read granted capabilities",
+            "Allows the app to read the capabilities currently visible to it.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::AppGetInfo => CapabilityDefinition::new(
+            capability,
+            "Read app information",
+            "Allows the app to read its Sage app identity and permission information.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::AppLifecycleReadyToStop => CapabilityDefinition::new(
+            capability,
+            "Acknowledge app shutdown",
+            "Allows the app to acknowledge that it is ready to stop after a lifecycle request.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::AppLifecycleSetBeforeStopListener => CapabilityDefinition::new(
+            capability,
+            "Listen before app shutdown",
+            "Allows the app to register a before-stop lifecycle listener.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::AppRequestCapabilityGrant => CapabilityDefinition::new(
+            capability,
+            "Request additional capability",
+            "Allows the app to request a capability grant after installation.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::AppRequestNetworkWhitelistGrant => CapabilityDefinition::new(
+            capability,
+            "Request network access",
+            "Allows the app to request access to an additional network target after installation.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::AppRequestPermissionGrants => CapabilityDefinition::new(
+            capability,
+            "Request additional permissions",
+            "Allows the app to request additional capabilities and network targets in one approval after installation.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::WalletGetWallet => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetWallet,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetSecretKey => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetSecretKey,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletSendXch => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletSendXch,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletSendXchAutoSubmit => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletSendXchAutoSubmit,
+            false,
+            true,
+            false,
+        ),
+        UserBridgeCapability::WalletGetSyncStatus => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetSyncStatus,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetVersion => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetVersion,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetXchUsdPrice => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetXchUsdPrice,
+            true,
+            false,
+            true,
+        ),
+        UserBridgeCapability::WalletCheckAddress => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletCheckAddress,
+            true,
+            true,
+            true,
+        ),
+        // Resolving a handle sends it to the XCHandles API, so the app chooses what is sent
+        // to an outside server. That makes it externally observable, which also keeps it
+        // from being granted alongside secret access.
+        UserBridgeCapability::WalletResolveHandle => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletResolveHandle,
+            true,
+            true,
+            true,
+        ),
+        // Known handles come from the local store only, but reveal which handles have been
+        // looked up in any wallet on this network, so they need their own grant.
+        UserBridgeCapability::WalletGetHandles => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetHandles,
+            true,
+            true,
+            true,
+        ),
+        // Contacts come from the local store only, but are personal, so they need their own
+        // grant. Apps can only read them.
+        UserBridgeCapability::WalletGetContacts => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetContacts,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletFilterUnlockedCoins => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletFilterUnlockedCoins,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetAssetCoins => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetAssetCoins,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetAssetBalance => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetAssetBalance,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletSignCoinSpends => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletSignCoinSpends,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletSignMessage => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletSignMessage,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletSendTransaction => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletSendTransaction,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetPublicKeys => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetPublicKeys,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetDerivations => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetDerivations,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetSpendableCoinCount => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetSpendableCoinCount,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetCoinsByIds => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetCoinsByIds,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetCoins => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetCoins,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetPendingTransactions => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetPendingTransactions,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetTransaction => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetTransaction,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletGetTransactions => inherited_definition(
+            capability,
+            sage_permissions::WalletCapability::WalletGetTransactions,
+            true,
+            true,
+            true,
+        ),
+        UserBridgeCapability::WalletListenSelectedWalletChanged => CapabilityDefinition::new(
+            capability,
+            "Observe selected wallet changes",
+            "Allows the app to receive the fingerprint when Sage switches to a wallet where the app is installed.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
+        UserBridgeCapability::EnvironmentThemeGetCurrent => CapabilityDefinition::new(
+            capability,
+            "Read current theme",
+            "Allows the app to read Sage's current theme.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::EnvironmentThemeCssVars => CapabilityDefinition::new(
+            capability,
+            "Use Sage theme CSS variables",
+            "Allows Sage to inject current theme CSS variables into the app runtime.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::EnvironmentThemeListenChanged => CapabilityDefinition::new(
+            capability,
+            "Observe theme changes",
+            "Allows the app to receive events when Sage's theme changes.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::EnvironmentGetNetwork => CapabilityDefinition::new(
+            capability,
+            "Read current network",
+            "Allows the app to read Sage's currently active network information.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::EnvironmentOpenExternalUrl => CapabilityDefinition::new(
+            capability,
+            "Open external links",
+            "Allows the app to request opening an HTTP or HTTPS link in your default browser. Every link requires approval, and the destination can observe the request.",
+            CapabilityFlags::new(true, false, true, false, true),
+        ),
+    }
+}
+
+pub fn get_system_capability_definition(
+    capability: SystemBridgeCapability,
+) -> SystemCapabilityDefinition {
+    match capability {
+        SystemBridgeCapability::RuntimeManagerListRuntimes => CapabilityDefinition::new(
+            capability,
+            "List app runtimes",
+            "Allows the system app to inspect running Sage app runtimes.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::RuntimeManagerFocusTaskbarRuntime => CapabilityDefinition::new(
+            capability,
+            "Focus taskbar app runtime",
+            "Allows the system app to focus running Sage taskbar app runtime.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::RuntimeManagerHideRuntime => CapabilityDefinition::new(
+            capability,
+            "Hide app runtime",
+            "Allows the system app to hide running Sage app runtime.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::RuntimeManagerKillRuntime => CapabilityDefinition::new(
+            capability,
+            "Kill app runtime",
+            "Allows the system app to stop running Sage app runtime.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::RuntimeManagerGetActiveTaskbarRuntime => CapabilityDefinition::new(
+            capability,
+            "Get active runtime",
+            "Allows the system app to retrieve the currently active Sage app runtime.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::RuntimeManagerListenRuntimesChanged => CapabilityDefinition::new(
+            capability,
+            "Observe runtime changes",
+            "Allows the system app to receive events when Sage app runtimes change.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::RuntimeManagerListenActiveTaskbarRuntimeChanged => {
+            CapabilityDefinition::new(
+                capability,
+                "Observe active runtime changes",
+                "Allows the system app to receive events when the active Sage app runtime changes.",
+                system_app_flags(),
+            )
+        }
+        SystemBridgeCapability::RuntimeManagerHideSelf => CapabilityDefinition::new(
+            capability,
+            "Hide itself",
+            "Allows the system app to hide its own runtime.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::RuntimeManagerCloseSelf => CapabilityDefinition::new(
+            capability,
+            "Close itself",
+            "Allows the system app to close its own runtime.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppUpdateRead => CapabilityDefinition::new(
+            capability,
+            "Read app update review context",
+            "Allows the system app to read update information for installed Sage apps.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppUpdateApply => CapabilityDefinition::new(
+            capability,
+            "Apply app updates",
+            "Allows the system app to download and apply approved Sage app updates.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppRegistryListenListedAppsChanged => CapabilityDefinition::new(
+            capability,
+            "Observe listed apps changes",
+            "Allows the system app to receive events when installed/listed Sage apps change.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::CapabilityDefinitionsRead => CapabilityDefinition::new(
+            capability,
+            "Read capability definitions",
+            "Allows the system app to read Sage capability definitions.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppPermissionsRead => CapabilityDefinition::new(
+            capability,
+            "Read app permissions",
+            "Allows the system app to read app permissions for review.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppPermissionsApply => CapabilityDefinition::new(
+            capability,
+            "Apply app permissions",
+            "Allows the system app to apply reviewed app permission changes.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppInstallPreview => CapabilityDefinition::new(
+            capability,
+            "Preview app installs",
+            "Allows the system app to preview URL and ZIP app installations.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppInstallApply => CapabilityDefinition::new(
+            capability,
+            "Install apps",
+            "Allows the system app to install Sage apps after review.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::FileSystemSelectFile => CapabilityDefinition::new(
+            capability,
+            "Select file",
+            "Allows the system app to ask the user to select a local file.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::BridgeApprovalList => CapabilityDefinition::new(
+            capability,
+            "List bridge approvals",
+            "Allows the system app to list pending bridge approvals.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::BridgeApprovalResolve => CapabilityDefinition::new(
+            capability,
+            "Resolve bridge approval",
+            "Allows the system app to resolve a pending bridge approval.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::BridgeApprovalListenApprovalsChanged => CapabilityDefinition::new(
+            capability,
+            "Listen for bridge approval changes",
+            "Allows the system app to listen for changes in pending bridge approvals.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::DonationGetDetails => CapabilityDefinition::new(
+            capability,
+            "Get details for donation",
+            "Allows the system app to retrieve details to send donation.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::SandboxGetState => CapabilityDefinition::new(
+            capability,
+            "Read sandbox state",
+            "Allows the system app to read Sage app sandbox test state.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::SandboxRerunTests => CapabilityDefinition::new(
+            capability,
+            "Re-run sandbox tests",
+            "Allows the system app to re-run Sage app sandbox tests.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::SandboxListenStateChanged => CapabilityDefinition::new(
+            capability,
+            "Observe sandbox state changes",
+            "Allows the system app to receive events when sandbox test state changes.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::WalletListWallets => CapabilityDefinition::new(
+            capability,
+            "List wallets",
+            "Allows the system app to list wallets available in Sage.",
+            system_app_flags(),
+        ),
+    }
+}
+
+pub fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDefinition> {
+    UserBridgeCapability::ALL
+        .iter()
+        .copied()
+        .map(|capability| (capability, get_user_capability_definition(capability)))
+        .collect()
+}
+
+fn system_app_flags() -> CapabilityFlags {
+    CapabilityFlags::new(false, false, true, false, true)
+}
+
+fn inherited_definition(
+    capability: UserBridgeCapability,
+    wallet: sage_permissions::WalletCapability,
+    requestable: bool,
+    grantable: bool,
+    visible: bool,
+) -> UserCapabilityDefinition {
+    let definition = sage_permissions::wallet_capability_definition(wallet);
+    CapabilityDefinition::new(
+        capability,
+        definition.label,
+        definition.description,
+        CapabilityFlags::new(
+            definition.externally_observable,
+            definition.accesses_sensitive_secret,
+            requestable,
+            grantable,
+            visible,
+        ),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn approval_gated_signing_does_not_claim_secret_exposure() {
+        for capability in [
+            UserBridgeCapability::WalletSignCoinSpends,
+            UserBridgeCapability::WalletSignMessage,
+        ] {
+            let flags = get_user_capability_definition(capability).flags();
+
+            assert!(flags.externally_observable());
+            assert!(!flags.accesses_sensitive_secret());
+            assert!(flags.requestable_by_app());
+            assert!(flags.user_grantable());
+            assert!(flags.shared_with_app());
+        }
+    }
+
+    #[test]
+    fn resolving_handles_is_external_but_reading_known_handles_is_not() {
+        let resolve =
+            get_user_capability_definition(UserBridgeCapability::WalletResolveHandle).flags();
+
+        assert!(resolve.externally_observable());
+        assert!(!resolve.accesses_sensitive_secret());
+        assert!(resolve.requestable_by_app());
+        assert!(resolve.user_grantable());
+        assert!(resolve.shared_with_app());
+
+        let read = get_user_capability_definition(UserBridgeCapability::WalletGetHandles).flags();
+
+        assert!(!read.externally_observable());
+        assert!(!read.accesses_sensitive_secret());
+        assert!(read.requestable_by_app());
+        assert!(read.user_grantable());
+        assert!(read.shared_with_app());
+    }
+
+    #[test]
+    fn reading_contacts_is_not_external() {
+        let flags = get_user_capability_definition(UserBridgeCapability::WalletGetContacts).flags();
+
+        assert!(!flags.externally_observable());
+        assert!(!flags.accesses_sensitive_secret());
+        assert!(flags.requestable_by_app());
+        assert!(flags.user_grantable());
+        assert!(flags.shared_with_app());
+    }
+
+    #[test]
+    fn opening_external_urls_is_external_but_not_user_grantable() {
+        let flags =
+            get_user_capability_definition(UserBridgeCapability::EnvironmentOpenExternalUrl)
+                .flags();
+
+        assert!(flags.externally_observable());
+        assert!(!flags.accesses_sensitive_secret());
+        assert!(flags.requestable_by_app());
+        assert!(!flags.user_grantable());
+        assert!(flags.shared_with_app());
+    }
+}

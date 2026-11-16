@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 use std::fmt;
 
-use crate::{CapabilityFlags, UserBridgeCapability, WalletScope, get_user_capability_definition};
+use crate::{WalletCapability, WalletScope, wallet_capability_definition};
 
 /// Assigned by a trusted transport adapter, never accepted from request parameters.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,7 +15,7 @@ pub enum CallerId {
 #[derive(Debug, Clone)]
 pub struct Caller {
     pub id: CallerId,
-    pub capabilities: BTreeSet<UserBridgeCapability>,
+    pub capabilities: BTreeSet<WalletCapability>,
     pub wallet_scope: WalletScope,
 }
 
@@ -31,7 +31,7 @@ impl fmt::Display for PermissionError {
 impl std::error::Error for PermissionError {}
 
 impl Caller {
-    pub fn require(&self, capability: UserBridgeCapability) -> Result<(), PermissionError> {
+    pub fn require(&self, capability: WalletCapability) -> Result<(), PermissionError> {
         validate_capability_policy(self.capabilities.iter().copied(), false)?;
         if !self.capabilities.contains(&capability) {
             return Err(PermissionError("Required capability has not been granted"));
@@ -49,15 +49,17 @@ impl Caller {
 }
 
 pub fn validate_capability_policy(
-    capabilities: impl IntoIterator<Item = UserBridgeCapability>,
-    has_network_access: bool,
+    capabilities: impl IntoIterator<Item = WalletCapability>,
+    has_external_access: bool,
 ) -> Result<(), PermissionError> {
-    let flags = capabilities
-        .into_iter()
-        .fold(CapabilityFlags::EMPTY, |flags, cap| {
-            flags.union(get_user_capability_definition(cap).flags())
-        });
-    if flags.accesses_sensitive_secret() && (flags.externally_observable() || has_network_access) {
+    let mut external = has_external_access;
+    let mut secret = false;
+    for capability in capabilities {
+        let definition = wallet_capability_definition(capability);
+        external |= definition.externally_observable;
+        secret |= definition.accesses_sensitive_secret;
+    }
+    if secret && external {
         return Err(PermissionError(
             "Permissions cannot include both external access and sensitive secret access",
         ));
@@ -170,7 +172,7 @@ impl<T> ApprovalQueue<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::UserBridgeCapability as Cap;
+    use crate::WalletCapability as Cap;
 
     fn caller(id: CallerId) -> Caller {
         Caller {

@@ -204,6 +204,7 @@ impl BridgeTools<'_> {
                     app.common().granted_permissions().capabilities().copied(),
                 )
                 .into_iter()
+                .filter_map(UserBridgeCapability::wallet_capability)
                 .collect(),
             wallet_scope: app.common().wallet_scope().clone(),
         });

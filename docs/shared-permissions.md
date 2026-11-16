@@ -1,7 +1,7 @@
 # Shared RPC permissions
 
 Sage Apps and agent transports use `sage-permissions` for caller identities,
-capabilities, wallet scopes, permission-policy validation and GUI approval bindings.
+wallet capabilities, wallet scopes, permission-policy validation and GUI approval bindings.
 The crate has no dependency on Sage Apps, Tauri or HTTP. Existing capability keys,
 legacy aliases and wallet-scope serialization are preserved.
 
@@ -64,3 +64,22 @@ present a GUI request, then execute its approved payload. `ApprovalBinding::new`
 
 This change does not add an MCP server, agent credential management or an agent GUI
 approval presenter. Those can be built on the shared layer in a subsequent stage.
+
+## Apps extends the shared model
+
+`sage-permissions::WalletCapability` contains only shared wallet operations and their
+security properties. `Caller` accepts only these grants. Apps owns its bridge and system
+capabilities, runtime subscriptions, storage permissions, network whitelist, and the
+App-specific flags controlling manifest requests and permission presentation.
+
+The Apps capability catalog inherits wallet labels, descriptions and security properties
+from the shared definitions, adding its own requestable/grantable/visible policy. The flat
+`UserBridgeCapability` representation remains an adapter for existing manifests, saved
+grants and generated SDK types; its keys and legacy aliases are unchanged. Before creating
+an RPC session, Apps projects effective grants through `wallet_capability()`, excluding
+all Apps-only extensions.
+
+Apps validates the combined policy, including its network whitelist and external-access
+capabilities, so an inherited secret-access grant cannot be combined with Apps-specific
+external access. This rule remains enforced even though network permissions do not enter
+the wallet caller's grant set.

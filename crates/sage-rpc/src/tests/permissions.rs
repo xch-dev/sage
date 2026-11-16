@@ -1,8 +1,6 @@
 use anyhow::Result;
 use sage_api::{GetDerivations, GetSecretKey, Login};
-use sage_permissions::{
-    ApprovalBinding, Caller, CallerId, UserBridgeCapability as Cap, WalletScope,
-};
+use sage_permissions::{ApprovalBinding, Caller, CallerId, WalletCapability as Cap, WalletScope};
 
 use super::TestApp;
 use crate::RpcSession;

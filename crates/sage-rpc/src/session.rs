@@ -3,7 +3,7 @@
 use sage::Sage;
 use sage_api::{self as api, wallet_connect::*};
 use sage_api_macro::impl_endpoints;
-use sage_permissions::{ApprovalBinding, Caller, UserBridgeCapability as Cap};
+use sage_permissions::{ApprovalBinding, Caller, WalletCapability as Cap};
 use serde::Serialize;
 use serde_json::Value;
 use tokio::sync::MutexGuard;
