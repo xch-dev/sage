@@ -17,7 +17,7 @@ export interface LatestRelease {
 }
 
 export function parseVersion(version: string): ParsedVersion | null {
-  const match = version.trim().match(VERSION_REGEX);
+  const match = version.match(VERSION_REGEX);
   if (!match) return null;
 
   return {

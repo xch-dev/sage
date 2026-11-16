@@ -62,6 +62,9 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     UPDATE_NOTIFIED_STORAGE_KEY,
     null,
   );
+  // Bumped by Check Now while automatic checks are on, so the schedule restarts from that check and
+  // a failure is retried like any other.
+  const [restarts, setRestarts] = useState(0);
   // Only the most recent check's result is used, so one still running when checks are turned off
   // or another starts is ignored.
   const checkId = useRef(0);
@@ -129,7 +132,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [enabled, currentVersion, check]);
+  }, [enabled, currentVersion, check, restarts]);
 
   // Pop up a toast the first time each release is found. It stays until it's dismissed, and comes
   // back on the next start if it wasn't. The sidebar keeps showing the update after that.
@@ -143,8 +146,13 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 
   const checkNow = useCallback(() => {
     if (!supported || currentVersion === null) return;
-    void check(currentVersion);
-  }, [currentVersion, check]);
+
+    if (enabled) {
+      setRestarts((restarts) => restarts + 1);
+    } else {
+      void check(currentVersion);
+    }
+  }, [enabled, currentVersion, check]);
 
   return (
     <UpdateContext.Provider

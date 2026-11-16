@@ -177,6 +177,7 @@ describe('UpdateProvider', () => {
   });
 
   it('ignores a check still running when checks are turned off', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     let respond: (response: Response) => void = () => undefined;
     fetchMock.mockImplementation(
       () =>
@@ -197,6 +198,10 @@ describe('UpdateProvider', () => {
     expect(result.current.status).toBe('idle');
     expect(result.current.update).toBeNull();
     expect(showUpdateToast).not.toHaveBeenCalled();
+
+    // The check that finished late doesn't schedule another one.
+    await act(() => vi.advanceTimersByTimeAsync(12 * 60 * 60 * 1000));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('checks again every 6 hours, and stops when checks are turned off', async () => {
@@ -229,8 +234,30 @@ describe('UpdateProvider', () => {
 
     await waitFor(() => expect(result.current.status).toBe('error'));
 
-    await act(() => vi.advanceTimersByTimeAsync(15 * 60 * 1000));
+    await act(() => vi.advanceTimersByTimeAsync(15 * 60 * 1000 - 1000));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(() => vi.advanceTimersByTimeAsync(1000));
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(result.current.status).toBe('available');
+  });
+
+  it('retries a failed Check Now on the same schedule', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    respondWithTag('v0.13.1');
+
+    const { result } = renderHook(() => useUpdates(), { wrapper });
+
+    await waitFor(() => expect(result.current.status).toBe('up-to-date'));
+
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    act(() => result.current.checkNow());
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    await act(() => vi.advanceTimersByTimeAsync(15 * 60 * 1000));
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(result.current.status).toBe('up-to-date');
   });
 });

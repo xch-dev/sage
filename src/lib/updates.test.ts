@@ -101,8 +101,16 @@ describe('fetchLatestRelease', () => {
       ),
     );
 
-    const result = expect(fetchLatestRelease()).rejects.toThrow('Aborted');
-    await vi.advanceTimersByTimeAsync(15_000);
-    await result;
+    let settled = false;
+    const result = fetchLatestRelease().finally(() => {
+      settled = true;
+    });
+    const rejected = expect(result).rejects.toThrow('Aborted');
+
+    await vi.advanceTimersByTimeAsync(14_999);
+    expect(settled).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await rejected;
   });
 });
