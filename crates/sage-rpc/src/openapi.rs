@@ -1,5 +1,4 @@
 use indexmap::IndexMap;
-use std::collections::BTreeSet;
 use utoipa::openapi::{
     ComponentsBuilder, ContentBuilder, InfoBuilder, OpenApi, PathsBuilder, RefOr, ResponsesBuilder,
     path::{HttpMethod, OperationBuilder, PathItemBuilder},
@@ -9,6 +8,65 @@ use utoipa::openapi::{
     tag::TagBuilder,
 };
 
+/// The categories endpoints are grouped into, in the order they're shown, with their descriptions
+const TAGS: &[(&str, &str)] = &[
+    (
+        "Wallets",
+        "Create, import, log into and manage wallets, including watch-only wallets.",
+    ),
+    (
+        "Keys",
+        "Generate mnemonics and manage the keys in the keychain.",
+    ),
+    (
+        "Addresses",
+        "Check, derive and configure the active wallet's addresses.",
+    ),
+    (
+        "Coins",
+        "Look up the active wallet's coins, and combine or split them.",
+    ),
+    ("Payments", "Send XCH and CATs, and settle clawbacks."),
+    (
+        "Tokens",
+        "Look up XCH and CAT balances and metadata, and issue new CATs.",
+    ),
+    (
+        "NFTs",
+        "Look up, mint, transfer and update NFTs and their collections.",
+    ),
+    ("DIDs", "Look up, create, transfer and update DIDs."),
+    (
+        "Options",
+        "Look up, mint, transfer, exercise and cancel options.",
+    ),
+    ("Offers", "Make, view, take, track and cancel offers."),
+    (
+        "Transactions",
+        "Build transactions from actions, sign and submit coin spends, and look up the \
+         transaction history.",
+    ),
+    (
+        "Address Book",
+        "Manage the contacts shared by the wallets on a network.",
+    ),
+    ("XCHandles", "Resolve and verify XCHandles handles."),
+    (
+        "Network",
+        "Choose the network and configure how wallets sync.",
+    ),
+    ("Peers", "Manage the peers Sage connects to."),
+    (
+        "Themes",
+        "Save themes from theme NFTs and remember the selected theme.",
+    ),
+    (
+        "System",
+        "Check the version and sync status, resync wallets, maintain their databases, and get \
+         the XCH price.",
+    ),
+];
+
 /// Generates the `OpenAPI` specification for all RPC endpoints
 /// Dynamically reads from endpoints.json at compile time
 pub fn generate_openapi() -> OpenApi {
@@ -17,11 +75,12 @@ pub fn generate_openapi() -> OpenApi {
         serde_json::from_str(include_str!("../../sage-api/endpoints.json"))
             .expect("Failed to parse endpoints.json");
 
-    // Collect unique tags from all endpoints (BTreeSet keeps them sorted)
-    let mut tags = BTreeSet::new();
     for endpoint in endpoints.keys() {
         let (tag, _) = get_endpoint_metadata(endpoint);
-        tags.insert(tag);
+        assert!(
+            TAGS.iter().any(|(name, _)| *name == tag),
+            "The {endpoint} endpoint's tag \"{tag}\" isn't listed in TAGS"
+        );
     }
 
     let mut paths_builder = PathsBuilder::new();
@@ -36,17 +95,28 @@ pub fn generate_openapi() -> OpenApi {
             .title("Sage Wallet RPC API")
             .version(env!("CARGO_PKG_VERSION"))
             .description(Some(
-                "RPC API for Sage wallet. All endpoints accept JSON request bodies and return JSON responses.\n\n\
-                 **Authentication**: Sage RPC uses Mutual TLS for authentication.",
+                "RPC API for the Sage wallet. Every endpoint is a POST request with a JSON body, \
+                 and returns a JSON response.\n\n\
+                 **Authentication**: Sage RPC uses mutual TLS for authentication.\n\n\
+                 **Active wallet**: Most endpoints act on the active wallet, which is chosen with \
+                 `login`, and fail if no wallet is logged into.\n\n\
+                 **Transactions**: Endpoints that create a transaction return a summary of it and \
+                 its unsigned coin spends. With `auto_submit` set, it's also signed and submitted \
+                 to the network. Otherwise, it can be signed with `sign_coin_spends` and submitted \
+                 with `submit_transaction`.",
             ))
             .build(),
         paths_builder.build(),
     );
 
-    // Add alphabetically sorted tags to the OpenAPI spec
     openapi.tags = Some(
-        tags.into_iter()
-            .map(|tag| TagBuilder::new().name(tag).build())
+        TAGS.iter()
+            .map(|(name, description)| {
+                TagBuilder::new()
+                    .name(*name)
+                    .description(Some(*description))
+                    .build()
+            })
             .collect(),
     );
 
@@ -287,4 +357,29 @@ fn get_endpoint_tags(_endpoint: &str) -> Vec<&'static str> {
 
 fn get_endpoint_description(endpoint: &str) -> String {
     format!("Endpoint for {endpoint}")
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use super::{TAGS, generate_openapi};
+
+    #[test]
+    fn every_tag_is_listed_and_used() {
+        let openapi = generate_openapi();
+
+        let used: HashSet<&str> = openapi
+            .paths
+            .paths
+            .values()
+            .filter_map(|item| item.post.as_ref())
+            .flat_map(|operation| operation.tags.iter().flatten())
+            .map(String::as_str)
+            .collect();
+
+        for (name, _) in TAGS {
+            assert!(used.contains(name), "The \"{name}\" tag isn't used");
+        }
+    }
 }

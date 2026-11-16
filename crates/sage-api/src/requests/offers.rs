@@ -12,7 +12,7 @@ use super::TransactionResponse;
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Create a new offer for peer-to-peer trading of assets."
+        description = "Create an offer of assets from the active wallet in exchange for requested assets, optionally with an expiration. Its coins are locked while the offer is active."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,7 +95,7 @@ pub struct MakeOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Accept and complete an offer created by another party."
+        description = "Take an offer, signing the wallet's side and combining it with the offer. Offers of a handle NFT with a pending transfer, or one that can't be checked, are refused."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,7 +131,7 @@ pub struct TakeOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Combine multiple offers into a single compound offer."
+        description = "Combine several offers into one offer, which is taken all at once."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -157,7 +157,7 @@ pub struct CombineOffersResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "View the details of an offer without accepting it."
+        description = "Summarize an offer and its status without importing or taking it, and check any XCHandles handle NFTs it offers."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -190,7 +190,7 @@ pub struct ViewOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Import an offer file from an external source."
+        description = "Save an offer to the wallet's offer list, so its status is tracked. Returns its offer ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -216,7 +216,7 @@ pub struct ImportOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "List all offers created by or available to this wallet."
+        description = "List the offers saved in the wallet, made or imported, with filtering, searching, sorting and pagination."
     )
 )]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -286,7 +286,7 @@ pub struct GetOffersResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Get all offers that involve a specific asset."
+        description = "List the active offers saved in the wallet that include an asset, given a CAT asset ID or an NFT or option ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -312,7 +312,7 @@ pub struct GetOffersForAssetResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Get detailed information about a specific offer by ID."
+        description = "Get an offer saved in the wallet by its offer ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -338,7 +338,7 @@ pub struct GetOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Delete an offer from the wallet (doesn't cancel on-chain)."
+        description = "Remove an offer from the wallet, which unlocks its coins. The offer isn't cancelled, so anyone with a copy can still take it."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -361,7 +361,7 @@ pub struct DeleteOfferResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Cancel an offer by spending the offered coins on-chain.",
+        description = "Cancel an offer on chain by spending its coins back to the wallet, so it can no longer be taken.",
         response_type = "TransactionResponse"
     )
 )]
@@ -390,7 +390,7 @@ pub type CancelOfferResponse = TransactionResponse;
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Cancel multiple offers in a single transaction.",
+        description = "Cancel several offers on chain in one transaction. The fee is paid once per offer.",
         response_type = "TransactionResponse"
     )
 )]

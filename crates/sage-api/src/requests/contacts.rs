@@ -46,7 +46,7 @@ pub struct GetContactsResponse {
 /// Get a contact from the address book
 #[cfg_attr(
     feature = "openapi",
-    crate::openapi_attr(tag = "Address Book", description = "Get a single contact by its ID.")
+    crate::openapi_attr(tag = "Address Book", description = "Get a contact by its ID.")
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]

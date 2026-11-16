@@ -609,7 +609,7 @@ auto_submit?: boolean }
  */
 export type AddPeer = { 
 /**
- * IP address or hostname with port
+ * IP address of the peer, which is connected to on the network's default port
  */
 ip: string }
 /**
@@ -2068,7 +2068,7 @@ fingerprint: number }
  */
 export type GetSecretKeyResponse = { 
 /**
- * Secret key information if authorized
+ * Secret key information, or null if only the public key is stored
  */
 secrets: SecretKeyInfo | null }
 /**
@@ -2234,7 +2234,7 @@ theme: string | null }
 export type GetUserThemes = Record<string, never>
 export type GetUserThemesResponse = { 
 /**
- * List of theme NFT IDs
+ * The JSON of each saved theme
  */
 themes: string[] }
 /**
@@ -2594,15 +2594,15 @@ name: string;
  */
 key: string; 
 /**
- * Starting derivation index
+ * Number of addresses of each enabled kind to derive up front
  */
 derivation_index?: number; 
 /**
- * Optional hardened derivation count
+ * Whether to derive hardened addresses (defaults to true). Needs a secret key
  */
 hardened?: boolean | null; 
 /**
- * Optional unhardened derivation count
+ * Whether to derive unhardened addresses (defaults to true)
  */
 unhardened?: boolean | null; 
 /**
@@ -3349,7 +3349,7 @@ export type RedownloadNftResponse = Record<string, never>
  */
 export type RemovePeer = { 
 /**
- * IP address or hostname of the peer
+ * IP address of the peer
  */
 ip: string; 
 /**

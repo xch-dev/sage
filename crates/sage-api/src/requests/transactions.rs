@@ -6,8 +6,8 @@ use crate::{Amount, CoinSpendJson, HandleConfirmation, SpendBundleJson, Transact
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "XCH Transactions",
-        description = "Send XCH to a recipient address with optional fee and memos.",
+        tag = "Payments",
+        description = "Send XCH to an address or handle, optionally with memos and a clawback.",
         response_type = "TransactionResponse"
     )
 )]
@@ -48,8 +48,8 @@ pub struct SendXch {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "XCH Transactions",
-        description = "Send XCH to multiple addresses in a single transaction.",
+        tag = "Payments",
+        description = "Send the same amount of XCH to each of several addresses or handles in one transaction.",
         response_type = "TransactionResponse"
     )
 )]
@@ -81,8 +81,8 @@ pub struct BulkSendXch {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "XCH Transactions",
-        description = "Combine multiple small coins into a single larger coin to reduce coin count.",
+        tag = "Coins",
+        description = "Combine the given coins into one coin per asset.",
         response_type = "TransactionResponse"
     )
 )]
@@ -104,8 +104,8 @@ pub struct Combine {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "XCH Transactions",
-        description = "Split a large coin into multiple smaller coins of specified amounts.",
+        tag = "Coins",
+        description = "Split the given coins of a single asset into the given number of coins of roughly equal amounts.",
         response_type = "TransactionResponse"
     )
 )]
@@ -129,8 +129,8 @@ pub struct Split {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "XCH Transactions",
-        description = "Automatically combine XCH coins based on configurable thresholds."
+        tag = "Coins",
+        description = "Combine the active wallet's smallest spendable XCH coins, up to max_coins of them, optionally only those of at most max_coin_amount. Returns the IDs of the coins it combines."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -151,7 +151,7 @@ pub struct AutoCombineXch {
 }
 
 /// Response for auto-combine XCH
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "XCH Transactions"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Coins"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -168,8 +168,8 @@ pub struct AutoCombineXchResponse {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "CAT Tokens",
-        description = "Automatically combine CAT token coins to reduce coin count."
+        tag = "Coins",
+        description = "Combine the active wallet's smallest spendable coins of a CAT, up to max_coins of them, optionally only those of at most max_coin_amount. Returns the IDs of the coins it combines."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -192,7 +192,7 @@ pub struct AutoCombineCat {
 }
 
 /// Response for auto-combine CAT
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "CAT Tokens"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Coins"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -209,8 +209,8 @@ pub struct AutoCombineCatResponse {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "CAT Tokens",
-        description = "Issue (mint) a new CAT token with a specified supply.",
+        tag = "Tokens",
+        description = "Issue a new CAT with the given name, ticker and supply, optionally revocable by the issuer.",
         response_type = "TransactionResponse"
     )
 )]
@@ -240,8 +240,8 @@ pub struct IssueCat {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "CAT Tokens",
-        description = "Send CAT tokens to a recipient address.",
+        tag = "Payments",
+        description = "Send a CAT to an address or handle, optionally with memos and a clawback.",
         response_type = "TransactionResponse"
     )
 )]
@@ -287,8 +287,8 @@ pub struct SendCat {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "CAT Tokens",
-        description = "Send CAT tokens to multiple addresses in a single transaction.",
+        tag = "Payments",
+        description = "Send the same amount of a CAT to each of several addresses or handles in one transaction.",
         response_type = "TransactionResponse"
     )
 )]
@@ -330,8 +330,8 @@ fn yes() -> bool {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "XCH Transactions",
-        description = "Send multiple different assets (XCH, CATs, NFTs) in a single transaction.",
+        tag = "Payments",
+        description = "Send XCH and CATs to several recipients in one transaction, each with its own asset and amount.",
         response_type = "TransactionResponse"
     )
 )]
@@ -355,7 +355,7 @@ pub struct MultiSend {
 }
 
 /// Individual payment in a multi-send transaction
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "XCH Transactions"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Payments"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -378,7 +378,7 @@ pub struct Payment {
     feature = "openapi",
     crate::openapi_attr(
         tag = "DIDs",
-        description = "Create a new DID (Decentralized Identifier) for identity and NFT minting.",
+        description = "Create a new DID with the given name.",
         response_type = "TransactionResponse"
     )
 )]
@@ -401,7 +401,7 @@ pub struct CreateDid {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Mint multiple NFTs in a single transaction with metadata and royalties."
+        description = "Mint NFTs with the given metadata and royalties from a DID the wallet owns, in one transaction. Returns the new NFT IDs."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -492,7 +492,7 @@ pub struct NftMint {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Transfer one or more NFTs to a new owner address.",
+        description = "Send NFTs to an address or handle, optionally with a clawback.",
         response_type = "TransactionResponse"
     )
 )]
@@ -526,7 +526,7 @@ pub struct TransferNfts {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Add a new URI to an NFT's metadata (for updated content or mirrors.).",
+        description = "Add a data, metadata or license URI to an NFT. Only NFTs using the default metadata updater, which can only append URIs, are supported.",
         response_type = "TransactionResponse"
     )
 )]
@@ -565,7 +565,7 @@ pub enum NftUriKind {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Assign NFTs to a DID for identity-based ownership tracking.",
+        description = "Assign NFTs to a DID the wallet owns, or remove their DID if none is given.",
         response_type = "TransactionResponse"
     )
 )]
@@ -591,7 +591,7 @@ pub struct AssignNftsToDid {
     feature = "openapi",
     crate::openapi_attr(
         tag = "DIDs",
-        description = "Transfer DID ownership to a new address.",
+        description = "Send DIDs to an address or handle, optionally with a clawback.",
         response_type = "TransactionResponse"
     )
 )]
@@ -625,7 +625,7 @@ pub struct TransferDids {
     feature = "openapi",
     crate::openapi_attr(
         tag = "DIDs",
-        description = "Update DID records to their latest on-chain state.",
+        description = "Reset DIDs to an empty recovery list and one required verification, which is the form Sage creates them in. Useful for DIDs created by other wallets.",
         response_type = "TransactionResponse"
     )
 )]
@@ -661,7 +661,7 @@ pub struct OptionAsset {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Options",
-        description = "Mint a new option (Chia options protocol) with strike price and expiration."
+        description = "Mint an option that lets its holder buy the underlying asset for the strike asset until it expires. The underlying asset is locked when it's minted. Returns the new option ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -701,7 +701,7 @@ pub struct MintOptionResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Options",
-        description = "Exercise options that are in-the-money and not expired.",
+        description = "Exercise unexpired options the wallet holds, paying their strike amount to the creator and receiving their underlying assets.",
         response_type = "TransactionResponse"
     )
 )]
@@ -747,7 +747,7 @@ pub struct CancelOptions {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Options",
-        description = "Transfer options to another address.",
+        description = "Send options to an address or handle, optionally with a clawback.",
         response_type = "TransactionResponse"
     )
 )]
@@ -780,8 +780,8 @@ pub struct TransferOptions {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "XCH Transactions",
-        description = "Finalize the clawback for a set of coins.",
+        tag = "Payments",
+        description = "Push clawback coins through to their receiver once their clawback period has ended. Anyone can finalize a clawback, so this works for coins sent or received by the wallet. Supports XCH and CAT clawbacks.",
         response_type = "TransactionResponse"
     )
 )]
@@ -803,8 +803,8 @@ pub struct FinalizeClawback {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "XCH Transactions",
-        description = "Claim the coins from an early clawback version.",
+        tag = "Payments",
+        description = "Claim XCH sent to the wallet with the earlier version of clawback, once its clawback period has ended.",
         response_type = "TransactionResponse"
     )
 )]
@@ -827,7 +827,7 @@ pub struct ClaimClawback {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Transactions",
-        description = "Sign coin spends to create a valid spend bundle for a transaction."
+        description = "Sign coin spends with the active wallet's keys, returning a spend bundle. With partial set, signatures for keys the wallet doesn't have are skipped instead of failing, so that another signer can add them."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -866,7 +866,7 @@ pub struct SignCoinSpendsResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Transactions",
-        description = "View coin spends without signing, useful for transaction inspection."
+        description = "Summarize what coin spends would do, without signing or submitting them."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -892,7 +892,7 @@ pub struct ViewCoinSpendsResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Transactions",
-        description = "Submit a signed transaction (spend bundle) to the blockchain network."
+        description = "Submit a signed spend bundle to the network, and track it as a pending transaction."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]

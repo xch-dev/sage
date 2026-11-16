@@ -6,8 +6,8 @@ use crate::TokenRecord;
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "CAT Tokens",
-        description = "Resynchronize a specific CAT token's coins and balance."
+        tag = "Tokens",
+        description = "Fetch a CAT's name, ticker, description and icon from Dexie again, replacing what the wallet has stored."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,7 +23,7 @@ pub struct ResyncCat {
 }
 
 /// Response after resynchronizing a `CAT` token
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "CAT Tokens"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Tokens"))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -31,14 +31,17 @@ pub struct ResyncCatResponse {}
 
 #[cfg_attr(
     feature = "openapi",
-    crate::openapi_attr(tag = "Price", description = "Get XCH-USD price")
+    crate::openapi_attr(
+        tag = "System",
+        description = "Get the current price of XCH in USD, from CoinGecko."
+    )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetXchUsdPrice {}
 
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Price"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System"))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -50,8 +53,8 @@ pub struct GetXchUsdPriceResponse {
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "CAT Tokens",
-        description = "Update CAT token metadata (name, ticker, etc.)."
+        tag = "Tokens",
+        description = "Change how a CAT is shown in the wallet: its name, ticker, description, icon and visibility. Nothing on chain changes."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,7 +66,7 @@ pub struct UpdateCat {
 }
 
 /// Response after updating a `CAT` token
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "CAT Tokens"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Tokens"))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -74,7 +77,7 @@ pub struct UpdateCatResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Options",
-        description = "Update option visibility and display settings."
+        description = "Show or hide an option in the wallet. Nothing on chain changes."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,7 +102,10 @@ pub struct UpdateOptionResponse {}
 /// Update a `DID`'s name and visibility settings
 #[cfg_attr(
     feature = "openapi",
-    crate::openapi_attr(tag = "DIDs", description = "Update DID metadata and information.")
+    crate::openapi_attr(
+        tag = "DIDs",
+        description = "Change a DID's name and visibility in the wallet. Nothing on chain changes."
+    )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -128,7 +134,7 @@ pub struct UpdateDidResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Update NFT metadata and display settings."
+        description = "Show or hide an NFT in the wallet. Nothing on chain changes."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -155,7 +161,7 @@ pub struct UpdateNftResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Update NFT collection metadata and settings."
+        description = "Show or hide an NFT collection in the wallet. Nothing on chain changes."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -182,7 +188,7 @@ pub struct UpdateNftCollectionResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Re-download NFT data and metadata from URIs."
+        description = "Delete an NFT's downloaded data, metadata and license, and queue them to be downloaded again from its URIs."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -206,7 +212,7 @@ pub struct RedownloadNftResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Addresses",
-        description = "Increase the derivation index to generate more addresses for the wallet."
+        description = "Derive the active wallet's addresses up to the given index, and start syncing them. Hardened addresses need the wallet's secret key. Not supported by watch wallets."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

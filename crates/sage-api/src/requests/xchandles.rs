@@ -10,7 +10,7 @@ use crate::{
     feature = "openapi",
     crate::openapi_attr(
         tag = "XCHandles",
-        description = "Resolve an XCHandles handle to the address it points to. The result is verified against the blockchain through connected peers before it is returned. If the handle cannot be verified right now, a mapping verified within the last day may be returned instead, marked as cached."
+        description = "Resolve an XCHandles handle to the address it points to. The result is verified against the blockchain through connected peers before it's returned. If the handle can't be verified right now, a mapping verified within the last day may be returned instead, marked as cached."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,7 +37,7 @@ pub struct ResolveHandleResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "XCHandles",
-        description = "Resolve an XCHandles handle like resolve_handle, and also return the registry slot it was verified against and whether a transfer of the handle is pending. A pending transfer reported by the API is checked against the blockchain before it is marked verified."
+        description = "Resolve an XCHandles handle like resolve_handle, and also return the registry slot it was verified against and whether a transfer of the handle is pending. A pending transfer reported by the API is checked against the blockchain before it's marked verified."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
