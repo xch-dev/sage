@@ -18,6 +18,7 @@ use indexmap::IndexMap;
 use sage_database::{
     AssetKind, CoinKind, Database, DeserializePrimitive, P2Puzzle, SharedDatabase,
 };
+use tokio::sync::{Mutex, MutexGuard};
 
 mod cats;
 mod coin_management;
@@ -56,6 +57,9 @@ pub struct Wallet {
     /// How many seconds a transaction can be confirmed for after it's created, or 0 for no
     /// limit. It's atomic so that changing the setting doesn't need the wallet to be reloaded.
     transaction_expiration: AtomicU64,
+    /// Held from when coins are selected for a transaction or offer until it's recorded, so
+    /// that coin selection never picks a coin another request is about to spend or lock.
+    spend_lock: Mutex<()>,
 }
 
 impl Wallet {
@@ -77,7 +81,19 @@ impl Wallet {
             agg_sig_constants,
             change_p2_puzzle_hash,
             transaction_expiration: AtomicU64::new(0),
+            spend_lock: Mutex::new(()),
         }
+    }
+
+    /// Waits until no other request is creating a transaction or offer for this wallet, and
+    /// keeps others waiting until the guard is dropped.
+    ///
+    /// Coins are only marked as spent or locked once a transaction is submitted or an offer
+    /// is saved, so the guard has to be held from coin selection until then. Otherwise two
+    /// requests could select the same coin, or a transaction could spend a coin that an offer
+    /// created at the same time locks.
+    pub async fn lock_spends(&self) -> MutexGuard<'_, ()> {
+        self.spend_lock.lock().await
     }
 
     /// Sets how many seconds the transactions this wallet creates can be confirmed for, or 0

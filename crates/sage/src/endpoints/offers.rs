@@ -50,6 +50,7 @@ struct AssetToOffer {
 impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
 
         let selected_coin_ids = parse_coin_ids(req.coin_ids.unwrap_or_default())?;
 
@@ -231,11 +232,11 @@ impl Sage {
 
             Some(hex::encode(transaction_id))
         } else {
-            if req.auto_import {
-                self.import_offer(ImportOffer {
-                    offer: encoded_offer.clone(),
-                })
-                .await?;
+            // This doesn't call `import_offer`, since the spend lock is already held.
+            if req.auto_import
+                && let Some(prepared) = self.prepare_offer_import(encoded_offer.clone()).await?
+            {
+                self.insert_offer(prepared, OfferStatus::Active).await?;
             }
 
             None
@@ -253,6 +254,7 @@ impl Sage {
 
     pub async fn take_offer(&self, req: TakeOffer) -> Result<TakeOfferResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
 
         let offer = decode_offer(&req.offer)?;
         let fee = parse_amount(req.fee)?;
@@ -404,6 +406,11 @@ impl Sage {
 
     pub async fn import_offer(&self, req: ImportOffer) -> Result<ImportOfferResponse> {
         let offer_id = sort_offer(decode_offer(&req.offer)?).name();
+
+        // Saving the offer locks its coins, which mustn't happen to a coin that another
+        // request has selected for a transaction it hasn't submitted yet.
+        let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
 
         if let Some(prepared) = self.prepare_offer_import(req.offer).await? {
             self.insert_offer(prepared, OfferStatus::Active).await?;
@@ -905,6 +912,7 @@ impl Sage {
 
     pub async fn cancel_offer(&self, req: CancelOffer) -> Result<CancelOfferResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let offer_id = parse_offer_id(req.offer_id)?;
         let fee = parse_amount(req.fee)?;
 
@@ -925,6 +933,7 @@ impl Sage {
 
     pub async fn cancel_offers(&self, req: CancelOffers) -> Result<CancelOffersResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
 
         let offer_ids = req

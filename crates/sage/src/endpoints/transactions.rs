@@ -29,6 +29,7 @@ use crate::{
 impl Sage {
     pub async fn send_xch(&self, req: SendXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let mut info = ConfirmationInfo::default();
         let puzzle_hash = self
             .resolve_recipient(&req.address, &req.confirmed_handles, &mut info)
@@ -52,6 +53,7 @@ impl Sage {
 
     pub async fn bulk_send_xch(&self, req: BulkSendXch) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
 
         let amount = parse_amount(req.amount)?;
 
@@ -73,6 +75,7 @@ impl Sage {
 
     pub async fn combine(&self, req: Combine) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
         let coin_ids = parse_coin_ids(req.coin_ids)?;
 
@@ -82,6 +85,7 @@ impl Sage {
 
     pub async fn auto_combine_xch(&self, req: AutoCombineXch) -> Result<AutoCombineXchResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
         let max_amount = req.max_coin_amount.map(parse_amount).transpose()?;
 
@@ -119,6 +123,7 @@ impl Sage {
 
     pub async fn split(&self, req: Split) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
         let coin_ids = parse_coin_ids(req.coin_ids)?;
 
@@ -130,6 +135,7 @@ impl Sage {
 
     pub async fn auto_combine_cat(&self, req: AutoCombineCat) -> Result<AutoCombineCatResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
         let asset_id = parse_asset_id(req.asset_id)?;
         let max_amount = req.max_coin_amount.map(parse_amount).transpose()?;
@@ -168,6 +174,7 @@ impl Sage {
 
     pub async fn issue_cat(&self, req: IssueCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
         let hidden_puzzle_hash = if req.revocable {
@@ -201,6 +208,7 @@ impl Sage {
 
     pub async fn send_cat(&self, req: SendCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let asset_id = parse_asset_id(req.asset_id)?;
         let mut info = ConfirmationInfo::default();
         let puzzle_hash = self
@@ -227,6 +235,7 @@ impl Sage {
 
     pub async fn bulk_send_cat(&self, req: BulkSendCat) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let asset_id = parse_asset_id(req.asset_id)?;
 
         let amount = parse_amount(req.amount)?;
@@ -251,6 +260,7 @@ impl Sage {
 
     pub async fn multi_send(&self, req: MultiSend) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
 
         let mut info = ConfirmationInfo::default();
         let addresses = req
@@ -289,6 +299,7 @@ impl Sage {
 
     pub async fn create_did(&self, req: CreateDid) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
 
         let (coin_spends, did) = wallet.create_did(fee).await?;
@@ -315,6 +326,7 @@ impl Sage {
 
     pub async fn bulk_mint_nfts(&self, req: BulkMintNfts) -> Result<BulkMintNftsResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
         let did_id = parse_did_id(req.did_id)?;
 
@@ -356,6 +368,7 @@ impl Sage {
 
     pub async fn transfer_nfts(&self, req: TransferNfts) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let nft_ids = req
             .nft_ids
             .into_iter()
@@ -375,6 +388,7 @@ impl Sage {
 
     pub async fn add_nft_uri(&self, req: AddNftUri) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let nft_id = parse_nft_id(req.nft_id)?;
         let fee = parse_amount(req.fee)?;
 
@@ -399,6 +413,7 @@ impl Sage {
 
     pub async fn assign_nfts_to_did(&self, req: AssignNftsToDid) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let nft_ids = req
             .nft_ids
             .into_iter()
@@ -413,6 +428,7 @@ impl Sage {
 
     pub async fn transfer_dids(&self, req: TransferDids) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let did_ids = req
             .did_ids
             .into_iter()
@@ -432,6 +448,7 @@ impl Sage {
 
     pub async fn normalize_dids(&self, req: NormalizeDids) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let did_ids = req
             .did_ids
             .into_iter()
@@ -445,6 +462,7 @@ impl Sage {
 
     pub async fn mint_option(&self, req: MintOption) -> Result<MintOptionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
 
         let underlying_type = self.parse_option_asset(req.underlying).await?;
@@ -505,6 +523,7 @@ impl Sage {
 
     pub async fn transfer_options(&self, req: TransferOptions) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let option_ids = req
             .option_ids
             .into_iter()
@@ -524,6 +543,7 @@ impl Sage {
 
     pub async fn exercise_options(&self, req: ExerciseOptions) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let option_ids = req
             .option_ids
             .into_iter()
@@ -537,6 +557,7 @@ impl Sage {
 
     pub async fn cancel_options(&self, req: CancelOptions) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let option_ids = req
             .option_ids
             .into_iter()
@@ -550,6 +571,7 @@ impl Sage {
 
     pub async fn finalize_clawback(&self, req: FinalizeClawback) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let coin_ids = parse_coin_ids(req.coin_ids)?;
         let fee = parse_amount(req.fee)?;
 
@@ -559,6 +581,7 @@ impl Sage {
 
     pub async fn claim_clawback(&self, req: ClaimClawback) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let coin_ids = parse_coin_ids(req.coin_ids)?;
         let fee = parse_amount(req.fee)?;
 
@@ -591,6 +614,8 @@ impl Sage {
         let json_bundle = json_bundle(&spend_bundle);
 
         if req.auto_submit {
+            let wallet = self.wallet()?;
+            let _spends = wallet.lock_spends().await;
             self.submit(spend_bundle).await?;
         }
 
@@ -618,6 +643,8 @@ impl Sage {
         req: SubmitTransaction,
     ) -> Result<SubmitTransactionResponse> {
         let spend_bundle = rust_bundle(req.spend_bundle)?;
+        let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         self.submit(spend_bundle).await?;
 
         Ok(SubmitTransactionResponse {})

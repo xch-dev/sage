@@ -255,6 +255,7 @@ impl Sage {
         // TODO: Should this be the normal way of sending transactions?
 
         let wallet = self.wallet()?;
+        let _spends = wallet.lock_spends().await;
         let spend_bundle = rust_bundle(req.spend_bundle)?;
         let peers = self.peer_state.lock().await.peers();
 

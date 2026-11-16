@@ -1,6 +1,7 @@
 mod contacts;
 mod keys;
 mod recipients;
+mod spend_lock;
 mod wallets;
 mod watch_wallets;
 
