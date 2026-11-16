@@ -19,7 +19,10 @@ import {
 import { useLocalStorage } from 'usehooks-ts';
 
 export const UPDATE_CHECKS_STORAGE_KEY = 'sage-update-checks';
-/** The last version whose update toast was dismissed, so each release only pops up once. */
+/**
+ * The last version the user has seen, by dismissing its toast, opening the release or turning checks
+ * off, so each release only pops up once.
+ */
 export const UPDATE_NOTIFIED_STORAGE_KEY = 'sage-update-notified-version';
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
