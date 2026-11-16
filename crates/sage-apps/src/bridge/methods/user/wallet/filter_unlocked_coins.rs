@@ -71,7 +71,7 @@ impl BridgeMethod for WalletFilterUnlockedCoins {
 
         let response = tools
             .app_state
-            .lock()
+            .read()
             .await
             .filter_unlocked_coins(params.into())
             .await

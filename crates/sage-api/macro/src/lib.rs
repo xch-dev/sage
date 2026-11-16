@@ -1,5 +1,7 @@
 mod openapi;
 
+use std::collections::HashSet;
+
 use convert_case::{Case, Casing};
 use indexmap::IndexMap;
 use proc_macro::{Delimiter, Group, TokenStream, TokenTree};
@@ -68,6 +70,29 @@ pub fn response_schemas(input: TokenStream) -> TokenStream {
     openapi::impl_response_schemas(input)
 }
 
+/// The endpoints which need exclusive access to `Sage`, since they take `&mut self`. Every
+/// other endpoint runs under a shared lock, at the same time as others.
+fn exclusive_endpoints() -> HashSet<String> {
+    let exclusive: HashSet<String> =
+        serde_json::from_str(include_str!("../../endpoints-exclusive.json"))
+            .expect("Invalid exclusive endpoint file");
+
+    let rpc: IndexMap<String, bool> =
+        serde_json::from_str(include_str!("../../endpoints.json")).expect("Invalid endpoint file");
+    let tauri: IndexMap<String, bool> =
+        serde_json::from_str(include_str!("../../endpoints-tauri.json"))
+            .expect("Invalid endpoint file");
+
+    for endpoint in &exclusive {
+        assert!(
+            rpc.contains_key(endpoint) || tauri.contains_key(endpoint),
+            "Unknown exclusive endpoint {endpoint}"
+        );
+    }
+
+    exclusive
+}
+
 fn generate(input: &TokenStream, tauri: bool) -> TokenStream {
     let mut endpoints: IndexMap<String, bool> =
         serde_json::from_str(include_str!("../../endpoints.json")).expect("Invalid endpoint file");
@@ -80,10 +105,12 @@ fn generate(input: &TokenStream, tauri: bool) -> TokenStream {
         endpoints.extend(tauri_endpoints);
     }
 
+    let exclusive = exclusive_endpoints();
+
     let mut output = proc_macro2::TokenStream::new();
 
     for token in input.clone() {
-        convert(token, &endpoints, None, &mut output);
+        convert(token, &endpoints, &exclusive, None, &mut output);
     }
 
     output.into()
@@ -92,6 +119,7 @@ fn generate(input: &TokenStream, tauri: bool) -> TokenStream {
 fn convert(
     tree: TokenTree,
     endpoints: &IndexMap<String, bool>,
+    exclusive: &HashSet<String>,
     endpoint: Option<&str>,
     output: &mut proc_macro2::TokenStream,
 ) {
@@ -114,6 +142,12 @@ fn convert(
             } else if ident == "maybe_await" {
                 if is_async {
                     output.extend(quote!(.await));
+                }
+            } else if ident == "read_or_write" {
+                if exclusive.contains(endpoint) {
+                    output.extend(quote!(write));
+                } else {
+                    output.extend(quote!(read));
                 }
             } else if ident.is_case(Case::Snake) {
                 let ident = proc_macro2::Ident::new(
@@ -152,14 +186,14 @@ fn convert(
             if repeat {
                 for endpoint in endpoints.keys() {
                     for tree in stream.clone() {
-                        convert(tree, endpoints, Some(endpoint), output);
+                        convert(tree, endpoints, exclusive, Some(endpoint), output);
                     }
                 }
             } else {
                 let mut inner = proc_macro2::TokenStream::new();
 
                 for tree in stream {
-                    convert(tree, endpoints, endpoint, &mut inner);
+                    convert(tree, endpoints, exclusive, endpoint, &mut inner);
                 }
 
                 output.extend(proc_macro2::TokenStream::from(TokenStream::from(

@@ -92,7 +92,9 @@ async fn invoke(
     // as a Tauri command would.
     let sage = wallet.sage.clone();
     let result = tokio::spawn(async move {
-        let mut sage = sage.lock().await;
+        // The commands run one at a time here, for simplicity, rather than concurrently like
+        // the read-only ones do in the app.
+        let mut sage = sage.write().await;
         invoke_command(&mut sage, &command, args).await
     })
     .await;

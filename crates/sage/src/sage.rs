@@ -801,7 +801,7 @@ fn parse_config_file<T: DeserializeOwned>(path: &Path, text: &str) -> Result<T> 
 
 /// Writes to a temporary file in the same directory, then renames it over the destination, so
 /// that a crash or power loss can't leave the file truncated or empty.
-fn write_atomic(path: &Path, contents: impl AsRef<[u8]>) -> Result<()> {
+pub(crate) fn write_atomic(path: &Path, contents: impl AsRef<[u8]>) -> Result<()> {
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
     let mut file = tempfile::NamedTempFile::new_in(dir)?;
     file.write_all(contents.as_ref())?;

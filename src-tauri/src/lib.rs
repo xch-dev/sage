@@ -11,7 +11,7 @@ use tauri::Manager;
 #[cfg(all(not(mobile), not(debug_assertions)))]
 use tauri::path::BaseDirectory;
 use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 mod app_state;
 mod commands;
@@ -349,7 +349,7 @@ pub fn run() {
             )?;
 
             let path = root_override.unwrap_or(default_root);
-            let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
+            let app_state = AppState::new(RwLock::new(Sage::new(&path, false)));
 
             app.manage(Initialized(Mutex::new(None)));
             app.manage(RpcTask(Mutex::new(None)));

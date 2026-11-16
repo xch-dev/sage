@@ -55,7 +55,7 @@ General:
 - Edge cases: empty wallets, zero amounts, amounts near `u64::MAX` (mojos), CATs and NFTs alongside XCH, unsynced or partially synced wallets, hardened and unhardened derivations, coins that are pending or locked in an offer.
 - Errors: is every failure reported to the caller with a useful message, rather than panicking (`unwrap`, indexing) or being swallowed?
 - Untrusted input: data from offers (what the maker claims about assets), NFT and CAT metadata and names, external HTTP APIs, and dApps. Is it validated before it's trusted or shown, and can spam, invisible characters or a lookalike name mislead the user?
-- Concurrency: is the `Sage` lock held across network calls? Can two requests read then write the same state and race?
+- Concurrency: endpoints run concurrently under a shared `Sage` read lock, except those in `endpoints-exclusive.json`. Does a new endpoint that selects coins take `wallet.lock_spends()` before selecting? Does an exclusive endpoint hold the write lock across network calls? Can two requests read then write the same state (a file, a database row) and race?
 - External network calls: do they have timeouts, tell transient errors (timeouts, 429, 5xx) from permanent ones, and avoid caching a temporary failure so it's never retried?
 - Surfaces: if the feature exists in the Tauri UI, RPC and `sage-cli`, WalletConnect and the Sage Apps bridge, does the change behave the same on each?
 

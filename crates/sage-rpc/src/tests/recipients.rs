@@ -55,7 +55,7 @@ pub(super) fn send(
 
 async fn registry_launcher_id(app: &TestApp) -> Bytes32 {
     app.sage
-        .lock()
+        .read()
         .await
         .network()
         .xchandles()
@@ -104,7 +104,7 @@ pub(super) async fn store_handle(
 
     edit(&mut row);
 
-    let wallet = app.sage.lock().await.wallet()?;
+    let wallet = app.sage.read().await.wallet()?;
     wallet.shared_db.upsert_xchandle(&row).await?;
 
     Ok(())
@@ -112,7 +112,7 @@ pub(super) async fn store_handle(
 
 pub(super) async fn stored_handle(app: &TestApp, handle: &str) -> Result<XchandleRow> {
     let registry_launcher_id = registry_launcher_id(app).await;
-    let wallet = app.sage.lock().await.wallet()?;
+    let wallet = app.sage.read().await.wallet()?;
 
     Ok(wallet
         .shared_db
@@ -411,7 +411,7 @@ async fn test_raw_address_errors_are_unchanged() -> Result<()> {
 async fn test_handle_recipients_on_unsupported_networks() -> Result<()> {
     let app = funded_app().await?;
 
-    for network in &mut app.sage.lock().await.network_list.networks {
+    for network in &mut app.sage.write().await.network_list.networks {
         network.inherit = None;
         network.xchandles = None;
     }

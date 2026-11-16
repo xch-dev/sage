@@ -39,7 +39,7 @@ async fn imports_a_key_that_is_not_a_wallet_yet() -> Result<()> {
     let master_pk = SecretKey::from_seed(&mnemonic.to_seed("")).public_key();
 
     // The keychain can hold keys without wallets, such as a public key added on its own.
-    let fingerprint = app.sage.lock().await.keychain.add_public_key(&master_pk)?;
+    let fingerprint = app.sage.write().await.keychain.add_public_key(&master_pk)?;
 
     let import = |save_secrets| ImportWallet {
         name: "Imported".to_string(),
@@ -179,7 +179,7 @@ async fn reimporting_restores_a_wallet_whose_key_is_missing() -> Result<()> {
     let fingerprint = app.import_wallet(import("Original")).await?.fingerprint;
 
     // Without its key, such as after restoring an older keychain, the wallet is hidden.
-    app.sage.lock().await.keychain.remove(fingerprint);
+    app.sage.write().await.keychain.remove(fingerprint);
     assert!(app.get_wallets(GetWallets {}).await?.wallets.is_empty());
 
     assert_eq!(
@@ -206,7 +206,7 @@ async fn logging_into_a_key_that_is_not_a_wallet_fails() -> Result<()> {
     let app = TestApp::new().await?;
 
     let master_pk = SecretKey::from_seed(&[8; 32]).public_key();
-    let fingerprint = app.sage.lock().await.keychain.add_public_key(&master_pk)?;
+    let fingerprint = app.sage.write().await.keychain.add_public_key(&master_pk)?;
 
     let error = app
         .login(Login { fingerprint })
@@ -215,7 +215,7 @@ async fn logging_into_a_key_that_is_not_a_wallet_fails() -> Result<()> {
     assert!(error.to_string().contains("Unknown fingerprint"), "{error}");
 
     // Nothing is saved, so the next start doesn't try to open it.
-    assert_eq!(app.sage.lock().await.config.global.fingerprint, None);
+    assert_eq!(app.sage.read().await.config.global.fingerprint, None);
 
     // Neither is a wallet whose key is missing.
     let wallet = app
@@ -232,7 +232,7 @@ async fn logging_into_a_key_that_is_not_a_wallet_fails() -> Result<()> {
         .await?
         .fingerprint;
     {
-        let mut sage = app.sage.lock().await;
+        let mut sage = app.sage.write().await;
         sage.keychain.remove(wallet);
         // Importing it selected it, so that's undone to see whether logging in saves it.
         sage.config.global.fingerprint = None;
@@ -245,7 +245,7 @@ async fn logging_into_a_key_that_is_not_a_wallet_fails() -> Result<()> {
         .await
         .expect_err("a wallet without its key can't be logged into");
     assert!(error.to_string().contains("Unknown fingerprint"), "{error}");
-    assert_eq!(app.sage.lock().await.config.global.fingerprint, None);
+    assert_eq!(app.sage.read().await.config.global.fingerprint, None);
 
     Ok(())
 }
@@ -258,7 +258,7 @@ async fn sets_the_transaction_expiration() -> Result<()> {
 
     // Transactions expire after an hour unless told otherwise.
     {
-        let sage = app.sage.lock().await;
+        let sage = app.sage.read().await;
         assert_eq!(sage.wallet_config.defaults.transaction_expiration, 3600);
         assert_eq!(sage.wallet()?.transaction_expiration(), 3600);
     }
@@ -268,7 +268,7 @@ async fn sets_the_transaction_expiration() -> Result<()> {
 
     // The setting is saved, and the wallet that's logged in uses it straight away.
     {
-        let sage = app.sage.lock().await;
+        let sage = app.sage.read().await;
         assert_eq!(sage.wallet_config.defaults.transaction_expiration, 0);
         assert_eq!(sage.wallet()?.transaction_expiration(), 0);
 
@@ -293,7 +293,7 @@ async fn sets_the_transaction_expiration() -> Result<()> {
     app.set_transaction_expiration(SetTransactionExpiration { seconds: 300 })
         .await?;
     assert_eq!(
-        app.sage.lock().await.wallet()?.transaction_expiration(),
+        app.sage.read().await.wallet()?.transaction_expiration(),
         300
     );
 
@@ -302,7 +302,7 @@ async fn sets_the_transaction_expiration() -> Result<()> {
 
     // A wallet that logs in later uses it too.
     app.setup_bls(0).await?;
-    assert_eq!(app.sage.lock().await.wallet()?.transaction_expiration(), 0);
+    assert_eq!(app.sage.read().await.wallet()?.transaction_expiration(), 0);
 
     Ok(())
 }

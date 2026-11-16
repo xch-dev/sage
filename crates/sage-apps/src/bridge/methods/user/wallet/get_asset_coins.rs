@@ -193,7 +193,7 @@ impl BridgeMethod for WalletGetAssetCoins {
 
         let response = tools
             .app_state
-            .lock()
+            .read()
             .await
             .get_asset_coins(params.into())
             .await

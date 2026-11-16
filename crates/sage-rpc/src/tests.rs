@@ -1,5 +1,6 @@
 mod contacts;
 mod keys;
+mod locking;
 mod recipients;
 mod spend_lock;
 mod wallets;
@@ -52,7 +53,7 @@ use sage_wallet::{SyncCommand, SyncEvent};
 use serde::{Serialize, de::DeserializeOwned};
 use tempfile::TempDir;
 use tokio::{
-    sync::{Mutex, mpsc},
+    sync::{RwLock, mpsc},
     time::timeout,
 };
 use tower::ServiceExt;
@@ -61,7 +62,7 @@ use tracing::debug;
 use crate::make_router;
 
 struct TestApp {
-    sage: Arc<Mutex<Sage>>,
+    sage: Arc<RwLock<Sage>>,
     router: Router<()>,
     rng: ChaCha8Rng,
     sim: PeerSimulator,
@@ -144,7 +145,7 @@ impl TestApp {
             }
         }
 
-        let sage = Arc::new(Mutex::new(sage));
+        let sage = Arc::new(RwLock::new(sage));
         let router = make_router(sage.clone());
 
         let app = Self {
@@ -160,7 +161,7 @@ impl TestApp {
         let (peer, receiver) = app.sim.connect_raw().await?;
 
         app.sage
-            .lock()
+            .read()
             .await
             .command_sender
             .send(SyncCommand::AddPeer { peer, receiver })
@@ -520,7 +521,7 @@ async fn test_offer_not_completed_by_another_offer_of_the_same_coin() -> Result<
 
     let coin_id = app
         .sage
-        .lock()
+        .read()
         .await
         .wallet()?
         .db
@@ -627,7 +628,7 @@ async fn reused_cat_offers(
     let asset_id = Bytes32::try_from(hex::decode(&cat_id)?)?;
 
     let (cat_coin_id, xch_coin_ids) = {
-        let sage = app.sage.lock().await;
+        let sage = app.sage.read().await;
         let db = &sage.wallet()?.db;
 
         (
@@ -818,7 +819,7 @@ async fn test_coin_id_lookups_reject_non_hex_input() -> Result<()> {
         .is_err()
     );
 
-    let sage = app.sage.lock().await;
+    let sage = app.sage.read().await;
     let unlocked = sage
         .filter_unlocked_coins(FilterUnlockedCoins {
             coin_ids: vec![coin_id.clone()],
@@ -848,7 +849,7 @@ async fn test_send_xch_with_coin_ids() -> Result<()> {
     let selectable = async |app: &TestApp| -> Result<Vec<Coin>> {
         Ok(app
             .sage
-            .lock()
+            .read()
             .await
             .wallet()?
             .db
@@ -1005,7 +1006,7 @@ async fn test_pre_split_offer() -> Result<()> {
     for _ in 0..100 {
         amounts = app
             .sage
-            .lock()
+            .read()
             .await
             .wallet()?
             .db
@@ -1104,7 +1105,7 @@ async fn test_pre_split_cat_offer() -> Result<()> {
     let mut amounts = (Vec::new(), Vec::new());
 
     for _ in 0..100 {
-        let sage = app.sage.lock().await;
+        let sage = app.sage.read().await;
         let db = &sage.wallet()?.db;
 
         amounts = (
@@ -1162,7 +1163,7 @@ async fn test_resolve_handle_rejects_unsupported_networks() -> Result<()> {
     // A network which doesn't inherit from a built-in network has no XCHandles deployment,
     // and must not fall back to another network's. The tests configure their own API, so
     // that is removed too.
-    for network in &mut app.sage.lock().await.network_list.networks {
+    for network in &mut app.sage.write().await.network_list.networks {
         network.inherit = None;
         network.xchandles = None;
     }
@@ -1254,7 +1255,7 @@ async fn test_owned_handles_are_per_wallet() -> Result<()> {
     let resolved = Bytes32::new([0xaa; 32]);
 
     {
-        let sage = app.sage.lock().await;
+        let sage = app.sage.read().await;
         let registry = sage
             .network()
             .xchandles()
@@ -1314,7 +1315,7 @@ async fn test_known_handles() -> Result<()> {
     let other_nft = Bytes32::new([0xbb; 32]);
 
     {
-        let sage = app.sage.lock().await;
+        let sage = app.sage.read().await;
         let registry = sage
             .network()
             .xchandles()
@@ -1484,7 +1485,7 @@ async fn test_known_handles() -> Result<()> {
 
     // The wallet's handle NFT names `@alice`. If it can't be verified, refreshing leaves the
     // store as it was rather than failing or trusting the name.
-    for network in &mut app.sage.lock().await.network_list.networks {
+    for network in &mut app.sage.write().await.network_list.networks {
         if let Some(mut config) = network.xchandles() {
             config.api_url = "http://127.0.0.1:1".to_string();
             network.xchandles = Some(config);
@@ -1561,7 +1562,7 @@ async fn test_handle_endpoints_reject_unsupported_networks() -> Result<()> {
     let mut app = TestApp::new().await?;
     app.setup_bls(0).await?;
 
-    for network in &mut app.sage.lock().await.network_list.networks {
+    for network in &mut app.sage.write().await.network_list.networks {
         network.inherit = None;
         network.xchandles = None;
     }
@@ -1617,7 +1618,7 @@ async fn mint_mutable_nft_named(app: &mut TestApp, display_name: &str) -> Result
     let did_id = Address::decode(&did_id)?.puzzle_hash;
 
     let (coin_spends, launcher_id) = {
-        let wallet = app.sage.lock().await.wallet()?;
+        let wallet = app.sage.read().await.wallet()?;
         let mut ctx = SpendContext::new();
 
         let metadata = ctx.alloc_hashed(&HandleNftMetadata {
@@ -1824,7 +1825,7 @@ async fn test_mutable_nft() -> Result<()> {
 /// Removes an NFT's saved on-chain info from a wallet's database, as for offers imported
 /// before that info was saved.
 async fn forget_nft_info(app: &TestApp, fingerprint: u32, nft_id: &str) -> Result<()> {
-    let path = app.sage.lock().await.wallet_db_path(fingerprint)?;
+    let path = app.sage.read().await.wallet_db_path(fingerprint)?;
     let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", path.display())).await?;
     let launcher_id = Address::decode(nft_id)?.puzzle_hash;
 
@@ -1978,7 +1979,7 @@ async fn test_nft_metadata_updater_of_unspent_singleton() -> Result<()> {
 
     let coin_id = app
         .sage
-        .lock()
+        .read()
         .await
         .wallet()?
         .db

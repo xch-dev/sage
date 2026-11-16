@@ -14,7 +14,7 @@ use tokio::sync::Mutex;
 
 use crate::{AppRuntimeState, AppsDb, BridgeState, EnvironmentThemeView, SandboxStateStore};
 
-pub type AppState = Arc<Mutex<Sage>>;
+pub type AppState = Arc<tokio::sync::RwLock<Sage>>;
 
 #[derive(Debug)]
 pub struct AppsHostState {

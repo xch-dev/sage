@@ -110,7 +110,7 @@ async fn concurrent_sends_dont_select_the_same_coin() -> Result<()> {
     let (_, address) = wallet_with_one_coin(&mut app).await?;
 
     let (first, second) = {
-        let sage = app.sage.lock().await;
+        let sage = app.sage.read().await;
         concurrently(
             Box::pin(sage.send_xch(send(&address, true))),
             Box::pin(sage.send_xch(send(&address, true))),
@@ -130,7 +130,7 @@ async fn send_doesnt_spend_a_coin_locked_by_a_concurrent_offer() -> Result<()> {
     let (_, address) = wallet_with_one_coin(&mut app).await?;
 
     let (made, sent) = {
-        let sage = app.sage.lock().await;
+        let sage = app.sage.read().await;
         concurrently(
             Box::pin(sage.make_offer(offer(true))),
             Box::pin(sage.send_xch(send(&address, true))),
@@ -162,7 +162,7 @@ async fn send_doesnt_select_a_coin_a_concurrent_submission_spends() -> Result<()
         .spend_bundle;
 
     let (submitted, sent) = {
-        let sage = app.sage.lock().await;
+        let sage = app.sage.read().await;
         concurrently(
             Box::pin(sage.submit_transaction(SubmitTransaction { spend_bundle })),
             Box::pin(sage.send_xch(send(&address, true))),
@@ -184,7 +184,7 @@ async fn send_doesnt_spend_a_coin_locked_by_a_concurrent_import() -> Result<()> 
     let encoded = app.make_offer(offer(false)).await?.offer;
 
     let (imported, sent) = {
-        let sage = app.sage.lock().await;
+        let sage = app.sage.read().await;
         concurrently(
             Box::pin(sage.import_offer(ImportOffer { offer: encoded })),
             Box::pin(sage.send_xch(send(&address, true))),
@@ -215,7 +215,7 @@ async fn send_doesnt_select_a_coin_a_concurrent_take_spends() -> Result<()> {
     app.wait_for_coins().await;
 
     let (taken, sent) = {
-        let sage = app.sage.lock().await;
+        let sage = app.sage.read().await;
         concurrently(
             Box::pin(sage.take_offer(TakeOffer {
                 offer: encoded,
