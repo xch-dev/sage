@@ -105,7 +105,7 @@ fn validate_grants_allowed_by_manifest(
     ctx: &BridgeContext<'_>,
     params: &RequestPermissionGrantsParams,
 ) -> Result<(), BridgeMethodHandleError> {
-    ctx.app()?
+    ctx.app
         .try_with(|app| {
             let requested = app.common().requested_permissions();
             let mut granted = app.common().granted_permissions().clone();
@@ -138,14 +138,11 @@ fn validate_grants_allowed_by_manifest(
 fn missing_grants(
     ctx: &BridgeContext<'_>,
     params: &RequestPermissionGrantsParams,
-) -> Result<
-    (
-        Vec<PermissionGrantCapabilityApproval>,
-        Vec<PermissionGrantNetworkTarget>,
-    ),
-    BridgeMethodHandleError,
-> {
-    Ok(ctx.app()?.with(|app| {
+) -> (
+    Vec<PermissionGrantCapabilityApproval>,
+    Vec<PermissionGrantNetworkTarget>,
+) {
+    ctx.app.with(|app| {
         let granted = app.granted_permissions();
         let capabilities = params
             .capabilities
@@ -172,7 +169,7 @@ fn missing_grants(
             .collect();
 
         (capabilities, network_whitelist)
-    }))
+    })
 }
 
 #[async_trait]
@@ -192,7 +189,7 @@ impl BridgeMethod for AppRequestPermissionGrants {
     ) -> BridgeApprovalRequestResult {
         let params = normalized_params(parse_required_params(self, request)?)?;
         validate_grants_allowed_by_manifest(&ctx, &params)?;
-        let (capabilities, network_whitelist) = missing_grants(&ctx, &params)?;
+        let (capabilities, network_whitelist) = missing_grants(&ctx, &params);
 
         if capabilities.is_empty() && network_whitelist.is_empty() {
             return Ok(None);
@@ -222,7 +219,7 @@ impl BridgeMethod for AppRequestPermissionGrants {
         let update = grant_permissions(
             tools.app_handle,
             tools.host_state,
-            &ctx.app()?.id(),
+            &ctx.app.id(),
             &params.capabilities,
             &network_entries,
         )

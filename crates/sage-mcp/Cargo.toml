@@ -1,0 +1,35 @@
+[package]
+name = "sage-mcp"
+version = "0.13.1"
+edition = "2024"
+license = "Apache-2.0"
+description = "MCP server exposing read-only Sage wallet tools to agents."
+authors = ["Rigidity <me@rigidnetwork.com>"]
+homepage = "https://github.com/rigidity/sage"
+repository = "https://github.com/rigidity/sage"
+readme = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+
+[lints]
+workspace = true
+
+[dependencies]
+sage-api = { workspace = true, features = ["openapi"] }
+sage-auth = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["net", "sync", "time", "rt"] }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+async-trait = "0.1.89"
+rmcp = { version = "3.10", default-features = false, features = ["server", "transport-streamable-http-server"] }
+axum = { workspace = true }
+utoipa = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "io-util"] }
+tower = { workspace = true, features = ["util"] }
+futures = "0.3.32"
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }

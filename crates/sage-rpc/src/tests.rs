@@ -38,11 +38,11 @@ use sage::Sage;
 use sage_api::{
     Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CoinFilterMode, CoinJson,
     CoinSortMode, CoinSpendJson, CreateDid, CreateTransaction, GetAreCoinsSpendable, GetCats,
-    GetCoins, GetCoinsByIds, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater,
-    GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode,
-    HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet, IssueCat, Login,
-    LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind, OfferAmount,
-    OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, TakeOffer,
+    GetCoins, GetCoinsByIds, GetDids, GetHandle, GetHandles, GetNetworks, GetNft,
+    GetNftMetadataUpdater, GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet,
+    HandleFilterMode, HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet,
+    IssueCat, Login, LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind,
+    OfferAmount, OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, TakeOffer,
     UpdateNftAction, ViewCoinSpends, ViewOffer, wallet_connect::FilterUnlockedCoins,
 };
 use sage_api_macro::impl_endpoints;
@@ -274,6 +274,17 @@ async fn test_rpc_version() -> Result<()> {
     let response = app.get_version(GetVersion {}).await?;
 
     assert_eq!(response.version, env!("CARGO_PKG_VERSION"));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn owner_reaches_unmapped_and_mapped_endpoints_without_a_wallet() -> Result<()> {
+    let app = TestApp::new().await?;
+
+    // `get_version` has a capability mapping; `get_networks` does not.
+    app.get_version(GetVersion {}).await?;
+    app.get_networks(GetNetworks {}).await?;
 
     Ok(())
 }

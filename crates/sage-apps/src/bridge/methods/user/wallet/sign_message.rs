@@ -74,14 +74,15 @@ impl BridgeMethod for WalletSignMessage {
 
     async fn handle(
         &self,
-        ctx: BridgeContext<'_>,
+        _ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: WalletSignMessageParams = parse_required_params(self, request)?;
         let response = tools
-            .sage(&ctx)
-            .await?
+            .app_state
+            .lock()
+            .await
             .sign_message_with_public_key(params.into())
             .await
             .map_err(|err| {

@@ -36,11 +36,11 @@ macro_rules! define_wallet_read_no_params_async_method {
 
             async fn handle(
                 &self,
-                ctx: BridgeContext<'_>,
+                _ctx: BridgeContext<'_>,
                 tools: BridgeTools<'_>,
                 _request: &RustBridgeRequest,
             ) -> BridgeHandleResult {
-                let sage = tools.sage(&ctx).await?;
+                let sage = tools.app_state.lock().await;
 
                 let result = sage.$handler($request_ident {}).await.map_err(|err| {
                     BridgeMethodHandleError::internal_error(format!(
@@ -80,11 +80,11 @@ macro_rules! define_wallet_read_no_params_sync_method {
 
             async fn handle(
                 &self,
-                ctx: BridgeContext<'_>,
+                _ctx: BridgeContext<'_>,
                 tools: BridgeTools<'_>,
                 _request: &RustBridgeRequest,
             ) -> BridgeHandleResult {
-                let sage = tools.sage(&ctx).await?;
+                let sage = tools.app_state.lock().await;
 
                 let result = sage.$handler($request_ident {}).map_err(|err| {
                     BridgeMethodHandleError::internal_error(format!(
@@ -124,13 +124,13 @@ macro_rules! define_wallet_read_params_async_method {
 
             async fn handle(
                 &self,
-                ctx: BridgeContext<'_>,
+                _ctx: BridgeContext<'_>,
                 tools: BridgeTools<'_>,
                 request: &RustBridgeRequest,
             ) -> BridgeHandleResult {
                 let params: $request_ty = parse_required_params(self, request)?;
 
-                let sage = tools.sage(&ctx).await?;
+                let sage = tools.app_state.lock().await;
 
                 let result = sage.$handler(params).await.map_err(|err| {
                     BridgeMethodHandleError::internal_error(format!(

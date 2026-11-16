@@ -249,7 +249,12 @@ impl SageAppCommon {
     }
 
     pub fn is_wallet_in_scope(&self, fingerprint: u32) -> bool {
-        self.wallet_scope().allows(fingerprint)
+        match self.wallet_scope() {
+            SageAppWalletScope::AllWallets => true,
+            SageAppWalletScope::SelectedWallets { fingerprints } => {
+                fingerprints.contains(&fingerprint)
+            }
+        }
     }
 
     pub fn identity(&self) -> &SageAppIdentity {

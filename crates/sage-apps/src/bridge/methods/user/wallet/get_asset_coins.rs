@@ -5,7 +5,6 @@ use sage_api::wallet_connect::{
 };
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use utoipa::ToSchema;
 
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
@@ -16,7 +15,7 @@ use crate::{
 #[derive(Debug, Clone, Copy)]
 pub struct WalletGetAssetCoins;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Type, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub enum WalletAssetCoinType {
     Cat,
@@ -34,13 +33,12 @@ impl From<WalletAssetCoinType> for AssetCoinType {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Type, ToSchema)]
+#[derive(Debug, Clone, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub struct WalletGetAssetCoinsParams {
     #[serde(default, rename = "type")]
     pub kind: Option<WalletAssetCoinType>,
-    /// Asset id (hex), required when type is cat.
     #[serde(default)]
     pub asset_id: Option<String>,
     #[serde(default)]
@@ -186,17 +184,22 @@ impl BridgeMethod for WalletGetAssetCoins {
 
     async fn handle(
         &self,
-        ctx: BridgeContext<'_>,
+        _ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: WalletGetAssetCoinsParams = parse_required_params(self, request)?;
         validate_params(&params)?;
 
-        let sage = tools.sage(&ctx).await?;
-        let response = sage.get_asset_coins(params.into()).await.map_err(|err| {
-            BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
-        })?;
+        let response = tools
+            .app_state
+            .lock()
+            .await
+            .get_asset_coins(params.into())
+            .await
+            .map_err(|err| {
+                BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
+            })?;
 
         Ok(Box::new(WalletGetAssetCoinsResult::from(response)))
     }

@@ -1,8 +1,8 @@
 use std::{fs, time::Duration};
 
 use crate::{
-    app_state::{self, AppState, AppsDbFailure, Initialized, RpcTask},
-    error::{Error, Result},
+    app_state::{self, AppState, Initialized, RpcTask},
+    error::Result,
 };
 use reqwest::StatusCode;
 use sage_api::{wallet_connect::*, *};
@@ -13,7 +13,7 @@ use sage_config::{NetworkConfig, Wallet, WalletDefaults};
 use sage_rpc::start_rpc;
 use serde::{Deserialize, Serialize};
 use specta::{Type, specta};
-use tauri::{AppHandle, Manager, State, command};
+use tauri::{AppHandle, State, command};
 use tokio::time::sleep;
 use tracing::error;
 
@@ -31,18 +31,6 @@ pub async fn initialize(
     // can't be used safely if it failed partway, so the original outcome is reported instead.
     if let Some(result) = initialized.as_ref() {
         return result.clone();
-    }
-
-    // The wallet isn't loaded without the apps database, since the app features rely on it.
-    if let Some(failure) = app_handle.try_state::<AppsDbFailure>() {
-        // Another instance using the same data may be why it couldn't be opened, and must be
-        // reported first, since offering to delete the database would destroy that instance's data.
-        let result = match state.lock().await.lock_data_dir() {
-            Ok(()) => Err(failure.to_error()),
-            Err(err) => Err(err.into()),
-        };
-        *initialized = Some(result.clone());
-        return result;
     }
 
     let mut sage = state.lock().await;
@@ -78,38 +66,9 @@ pub async fn initialize(
     drop(app_state);
 
     #[cfg(not(mobile))]
-    sage_apps::start_agent_server_if_enabled(app_handle.clone()).await;
+    crate::agents::start_agent_server_if_enabled(app_handle.clone()).await;
 
     Ok(())
-}
-
-/// Deletes an apps database that couldn't be opened, then restarts Sage to recreate it.
-#[command]
-#[specta]
-pub async fn reset_apps_database(app_handle: AppHandle, state: State<'_, AppState>) -> Result<()> {
-    let Some(failure) = app_handle.try_state::<AppsDbFailure>() else {
-        return Err(Error {
-            kind: ErrorKind::Api,
-            reason: "The apps database is in use and can't be deleted".to_string(),
-            handle_error_code: None,
-            recipients: None,
-        });
-    };
-
-    if !failure.resettable() {
-        return Err(failure.to_error());
-    }
-
-    // Deleting the files under another running instance would corrupt its database.
-    let mut sage = state.lock().await;
-    sage.lock_data_dir()?;
-
-    // Mobile builds have no apps database, so the failure is never set there.
-    #[cfg(not(mobile))]
-    sage_apps::AppsDb::delete_files(&failure.root)?;
-    drop(sage);
-
-    app_handle.restart()
 }
 
 /// Exits the app. This is used when initialization fails, since Sage can't continue safely.

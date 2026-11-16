@@ -14,12 +14,6 @@ async initialize() : Promise<null> {
 async quit() : Promise<void> {
     await TAURI_INVOKE("quit");
 },
-/**
- * Deletes an apps database that couldn't be opened, then restarts Sage to recreate it.
- */
-async resetAppsDatabase() : Promise<null> {
-    return await TAURI_INVOKE("reset_apps_database");
-},
 async login(req: Login) : Promise<LoginResponse> {
     return await TAURI_INVOKE("login", { req });
 },
@@ -539,29 +533,29 @@ async appsGetAutoUpdateEnabled() : Promise<boolean> {
 async appsSetAutoUpdateEnabled(enabled: boolean) : Promise<boolean> {
     return await TAURI_INVOKE("apps_set_auto_update_enabled", { enabled });
 },
-async appsGetAgentServerStatus() : Promise<AgentServerStatus> {
-    return await TAURI_INVOKE("apps_get_agent_server_status");
+async agentsGetServerStatus() : Promise<AgentServerStatus> {
+    return await TAURI_INVOKE("agents_get_server_status");
 },
-async appsSetAgentServerSettings(enabled: boolean, port: number) : Promise<AgentServerStatus> {
-    return await TAURI_INVOKE("apps_set_agent_server_settings", { enabled, port });
+async agentsSetServerSettings(enabled: boolean, port: number) : Promise<AgentServerStatus> {
+    return await TAURI_INVOKE("agents_set_server_settings", { enabled, port });
 },
-async appsListAgents() : Promise<SageAgent[]> {
-    return await TAURI_INVOKE("apps_list_agents");
+async agentsListAgents() : Promise<Agent[]> {
+    return await TAURI_INVOKE("agents_list_agents");
 },
-async appsListAgentCapabilities() : Promise<SageAppCapabilityDefinitionView[]> {
-    return await TAURI_INVOKE("apps_list_agent_capabilities");
+async agentsListCapabilities() : Promise<AgentCapabilityView[]> {
+    return await TAURI_INVOKE("agents_list_capabilities");
 },
-async appsCreateAgent(name: string, capabilities: UserBridgeCapability[], walletScope: SageAppWalletScope) : Promise<CreatedAgent> {
-    return await TAURI_INVOKE("apps_create_agent", { name, capabilities, walletScope });
+async agentsCreateAgent(name: string, capabilities: Capability[], walletScope: WalletScope) : Promise<CreatedAgent> {
+    return await TAURI_INVOKE("agents_create_agent", { name, capabilities, walletScope });
 },
-async appsUpdateAgent(id: string, name: string, capabilities: UserBridgeCapability[], walletScope: SageAppWalletScope) : Promise<SageAgent> {
-    return await TAURI_INVOKE("apps_update_agent", { id, name, capabilities, walletScope });
+async agentsUpdateAgent(id: string, name: string, capabilities: Capability[], walletScope: WalletScope) : Promise<Agent> {
+    return await TAURI_INVOKE("agents_update_agent", { id, name, capabilities, walletScope });
 },
-async appsRotateAgentToken(id: string) : Promise<string> {
-    return await TAURI_INVOKE("apps_rotate_agent_token", { id });
+async agentsRotateAgentToken(id: string) : Promise<string> {
+    return await TAURI_INVOKE("agents_rotate_agent_token", { id });
 },
-async appsRevokeAgent(id: string) : Promise<null> {
-    return await TAURI_INVOKE("apps_revoke_agent", { id });
+async agentsRevokeAgent(id: string) : Promise<null> {
+    return await TAURI_INVOKE("agents_revoke_agent", { id });
 }
 }
 
@@ -690,6 +684,11 @@ address: string;
  */
 handles: HandleRecord[] }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
+/**
+ * A registered agent and its grant.
+ */
+export type Agent = { id: string; name: string; capabilities: Capability[]; walletScope: WalletScope; createdAtMs: number; updatedAtMs: number; lastUsedAtMs: number | null }
+export type AgentCapabilityView = { key: string; label: string; description: string }
 export type AgentServerStatus = { running: boolean; enabled: boolean; port: number; 
 /**
  * Why the server failed to start with Sage, while it is still stopped.
@@ -968,6 +967,10 @@ fee: Amount;
  */
 auto_submit?: boolean }
 /**
+ * A permission a caller can be granted over the wallet.
+ */
+export type Capability = "wallet.get_wallet" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_token" | "wallet.get_coins" | "wallet.get_coins_by_ids" | "wallet.get_spendable_coin_count" | "wallet.get_transactions" | "wallet.get_transaction" | "wallet.get_pending_transactions" | "wallet.get_xch_usd_price" | "wallet.check_address"
+/**
  * Validate and check an address
  */
 export type CheckAddress = { 
@@ -1191,7 +1194,7 @@ auto_submit?: boolean;
  * confirmed here before it can be used.
  */
 confirmed_handles?: HandleConfirmation[] }
-export type CreatedAgent = { agent: SageAgent; token: string }
+export type CreatedAgent = { agent: Agent; token: string }
 /**
  * Delete a contact from the address book
  */
@@ -1293,11 +1296,7 @@ export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "inter
 /**
  * One or more recipients couldn't be used. See the attached recipient errors.
  */
-"recipient" | "already_running" | 
-/**
- * The apps database couldn't be opened. It holds app and agent state, not wallet data.
- */
-"apps_database"
+"recipient" | "already_running"
 /**
  * Exercise options
  */
@@ -3499,10 +3498,7 @@ export type RustBridgeErrorResponse = { bridgeVersion: string; id: string; ok: b
 export type RustBridgeInvokeResult = ({ kind: "success" } & RustBridgeSuccessResponse) | ({ kind: "error" } & RustBridgeErrorResponse) | { kind: "pending" }
 export type RustBridgeRequest = { bridgeVersion: string | null; id: string; method: string; paramsJson: string | null }
 export type RustBridgeSuccessResponse = { bridgeVersion: string; id: string; ok: boolean; resultJson: string }
-export type SageAgent = { id: string; name: string; capabilities: UserBridgeCapability[]; walletScope: SageAppWalletScope; createdAtMs: number; updatedAtMs: number; lastUsedAtMs: number | null }
 export type SageAppAuthor = { name: string; avatar: string | null }
-export type SageAppCapabilityDefinitionView = { key: string; label: string; description: string; flags: SageAppCapabilityFlagsView }
-export type SageAppCapabilityFlagsView = { externallyObservable: boolean; accessesSensitiveSecret: boolean; requestableByApp: boolean; userGrantable: boolean }
 export type SageAppCommonView = { identity: SageAppIdentityView; grantedPermissions: SageGrantedPermissionsView; walletScope: SageAppWalletScope; activeSnapshot: SageAppSnapshotView; icon: SageAppIconView | null }
 export type SageAppCompatibility = { currentVersion: string; status: SageAppCompatibilityStatus }
 export type SageAppCompatibilityStatus = { kind: "compatible" } | { kind: "requiresNewerSage"; minimumVersion: string } | { kind: "untestedNewerSage"; testedMaxVersion: string } | { kind: "invalid"; reason: string }
@@ -4302,6 +4298,10 @@ export type WalletKind =
  * The addresses being watched. The first one is the receive address
  */
 addresses: string[] } }
+/**
+ * Which wallets a grantee may act on.
+ */
+export type WalletScope = { kind: "allWallets" } | { kind: "selectedWallets"; fingerprints: number[] }
 export type WindowTargetParams = { windowLabel: string }
 /**
  * The XCHandles deployment used to resolve handles on a network.

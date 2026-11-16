@@ -15,7 +15,6 @@ import { toCustomError } from '@/lib/errors';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import { AlertTriangleIcon } from 'lucide-react';
-import { useState } from 'react';
 
 export interface StartupErrorProps {
   error: CustomError;
@@ -26,8 +25,6 @@ export interface StartupErrorProps {
 export function StartupError({ error }: StartupErrorProps) {
   const { addError } = useErrors();
   const alreadyRunning = error.kind === 'already_running';
-  const appsDatabase = error.kind === 'apps_database';
-  const [confirmingReset, setConfirmingReset] = useState(false);
 
   // Mobile apps are expected to be closed by the user rather than exit themselves
   const currentPlatform = platform();
@@ -42,8 +39,6 @@ export function StartupError({ error }: StartupErrorProps) {
               <AlertTriangleIcon className='h-5 w-5 text-destructive' />
               {alreadyRunning ? (
                 <Trans>Sage is already running</Trans>
-              ) : appsDatabase ? (
-                <Trans>The apps database could not be opened</Trans>
               ) : (
                 <Trans>Sage could not start</Trans>
               )}
@@ -53,12 +48,6 @@ export function StartupError({ error }: StartupErrorProps) {
                 <Trans>
                   Another instance of Sage is already using this wallet data.
                   Close this one and use the other instance instead.
-                </Trans>
-              ) : appsDatabase ? (
-                <Trans>
-                  Sage can&apos;t start without it. Deleting it removes your
-                  installed apps, their saved data, and your agents and their
-                  tokens. Your wallets, keys and funds are not affected.
                 </Trans>
               ) : (
                 <Trans>
@@ -76,27 +65,7 @@ export function StartupError({ error }: StartupErrorProps) {
             </CardContent>
           )}
           {!isMobile && (
-            <CardFooter className='justify-end gap-2'>
-              {appsDatabase &&
-                (confirmingReset ? (
-                  <Button
-                    variant='destructive'
-                    onClick={() =>
-                      commands
-                        .resetAppsDatabase()
-                        .catch((e) => addError(toCustomError(e)))
-                    }
-                  >
-                    <Trans>Yes, delete and restart</Trans>
-                  </Button>
-                ) : (
-                  <Button
-                    variant='outline'
-                    onClick={() => setConfirmingReset(true)}
-                  >
-                    <Trans>Delete and restart</Trans>
-                  </Button>
-                ))}
+            <CardFooter className='justify-end'>
               <Button
                 onClick={() =>
                   commands.quit().catch((e) => addError(toCustomError(e)))

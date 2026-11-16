@@ -3,7 +3,6 @@ use sage_api::Amount;
 use sage_api::wallet_connect::GetAssetCoins;
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use utoipa::ToSchema;
 
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
@@ -16,13 +15,12 @@ const BALANCE_PAGE_SIZE: u32 = 100;
 #[derive(Debug, Clone, Copy)]
 pub struct WalletGetAssetBalance;
 
-#[derive(Debug, Clone, Deserialize, Type, ToSchema)]
+#[derive(Debug, Clone, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub struct WalletGetAssetBalanceParams {
     #[serde(default, rename = "type")]
     pub kind: Option<WalletAssetCoinType>,
-    /// Asset id (hex), required when type is cat.
     #[serde(default)]
     pub asset_id: Option<String>,
 }
@@ -80,7 +78,7 @@ impl BridgeMethod for WalletGetAssetBalance {
 
     async fn handle(
         &self,
-        ctx: BridgeContext<'_>,
+        _ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
@@ -91,7 +89,7 @@ impl BridgeMethod for WalletGetAssetBalance {
         let mut spendable = 0_u128;
         let mut spendable_coin_count = 0_u32;
         let mut offset = 0_u32;
-        let sage = tools.sage(&ctx).await?;
+        let sage = tools.app_state.lock().await;
 
         loop {
             let coins = sage

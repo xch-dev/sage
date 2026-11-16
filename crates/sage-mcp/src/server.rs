@@ -1,4 +1,8 @@
-use std::{net::Ipv4Addr, sync::Arc, time::Duration};
+use std::{
+    net::{Ipv4Addr, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 
 use axum::{
     Router,
@@ -24,14 +28,12 @@ use rmcp::{
         StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
     },
 };
+use sage_auth::{Agent, AgentStore, AgentToken, Decision, authorize, unix_timestamp_ms};
 use serde_json::{Value, json};
 use tokio::{net::TcpListener, sync::oneshot, task::JoinHandle, time::timeout};
 use tracing::{error, warn};
 
-use crate::{
-    AgentToken, AgentTool, AgentToolExecutor, AppsDb, BridgeRegistry, BridgeRegistryKind,
-    SageAgent, authorize_agent_call, find_agent_tool, tools_for_agent, unix_timestamp_ms,
-};
+use crate::{AgentTool, AgentToolExecutor, ToolError, find_agent_tool, tools_for_agent};
 
 const INSTRUCTIONS: &str = "Tools act on the wallet that is currently open in Sage. \
      Only the tools this agent has been granted are listed.";
@@ -39,18 +41,22 @@ const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
 const LAST_USED_RESOLUTION_MS: i64 = 60_000;
 
 #[derive(Debug, Clone)]
-pub(crate) struct AuthenticatedAgent(pub SageAgent);
+struct AuthenticatedAgent(pub Agent);
 
 #[derive(Debug)]
-pub(crate) struct AgentServerHandle {
-    port: u16,
+pub struct AgentServerHandle {
+    local_addr: SocketAddr,
     shutdown: oneshot::Sender<()>,
     task: JoinHandle<()>,
 }
 
 impl AgentServerHandle {
     pub fn port(&self) -> u16 {
-        self.port
+        self.local_addr.port()
+    }
+
+    pub fn local_addr(&self) -> SocketAddr {
+        self.local_addr
     }
 
     pub async fn stop(self) {
@@ -69,22 +75,18 @@ impl AgentServerHandle {
 }
 
 #[cfg(test)]
-pub(crate) fn agent_router(
-    db: AppsDb,
-    executor: Arc<dyn AgentToolExecutor>,
-    version: String,
-) -> Router {
+fn agent_router(db: AgentStore, executor: Arc<dyn AgentToolExecutor>, version: String) -> Router {
     build_router(db, executor, version, StreamableHttpServerConfig::default())
 }
 
-pub(crate) async fn start_agent_server(
-    db: AppsDb,
+pub async fn start_agent_server(
+    db: AgentStore,
     executor: Arc<dyn AgentToolExecutor>,
     version: String,
     port: u16,
 ) -> anyhow::Result<AgentServerHandle> {
     let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, port)).await?;
-    let port = listener.local_addr()?.port();
+    let local_addr = listener.local_addr()?;
 
     let config = StreamableHttpServerConfig::default();
     let cancel = config.cancellation_token.clone();
@@ -105,14 +107,14 @@ pub(crate) async fn start_agent_server(
     });
 
     Ok(AgentServerHandle {
-        port,
+        local_addr,
         shutdown,
         task,
     })
 }
 
 fn build_router(
-    db: AppsDb,
+    db: AgentStore,
     executor: Arc<dyn AgentToolExecutor>,
     version: String,
     config: StreamableHttpServerConfig,
@@ -130,7 +132,7 @@ fn build_router(
         .layer(middleware::from_fn_with_state(db, authenticate))
 }
 
-async fn authenticate(State(db): State<AppsDb>, mut request: Request, next: Next) -> Response {
+async fn authenticate(State(db): State<AgentStore>, mut request: Request, next: Next) -> Response {
     let Some(token) = bearer_token(request.headers()) else {
         return unauthorized();
     };
@@ -191,7 +193,7 @@ struct AgentMcpHandler {
     version: String,
 }
 
-fn authenticated_agent(ctx: &RequestContext<RoleServer>) -> Result<SageAgent, ErrorData> {
+fn authenticated_agent(ctx: &RequestContext<RoleServer>) -> Result<Agent, ErrorData> {
     ctx.extensions
         .get::<Parts>()
         .and_then(|parts| parts.extensions.get::<AuthenticatedAgent>())
@@ -256,10 +258,14 @@ impl ServerHandler for AgentMcpHandler {
         };
 
         // Refused here, before the executor runs, so that a refusal never depends on what the
-        // executor does. The bridge checks again when it runs the method.
-        let registry = BridgeRegistry::new(BridgeRegistryKind::User);
+        // executor does.
         let fingerprint = self.executor.current_fingerprint().await;
-        if let Err(err) = authorize_agent_call(&registry, &agent, tool, fingerprint) {
+        let refusal = match authorize(&agent.identity(), tool.capability, fingerprint) {
+            Ok(Decision::Allowed) => None,
+            Ok(_) => Some(ToolError::approval_unsupported()),
+            Err(err) => Some(ToolError::from(err)),
+        };
+        if let Some(err) = refusal {
             return Ok(tool_error(format!("{}: {}", err.code, err.message)).into());
         }
 
@@ -288,18 +294,18 @@ mod tests {
         },
     };
     use futures::StreamExt;
+    use sage_auth::{Agent, Capability, WalletScope};
     use serde_json::{Value, json};
     use tempfile::{TempDir, tempdir};
     use tokio::io::AsyncWriteExt;
     use tower::ServiceExt;
 
     use super::*;
-    use crate::{BridgeMethodHandleError, SageAppWalletScope, UserBridgeCapability};
 
     const PROTOCOL_VERSION: &str = "2025-06-18";
     const VERSION: &str = "9.9.9-test";
 
-    /// Runs no bridge methods, and reports a wallet that the tests can switch.
+    /// Runs no wallet code, and reports a wallet that the tests can switch.
     struct FakeExecutor {
         fingerprint: std::sync::Mutex<Option<u32>>,
     }
@@ -324,17 +330,14 @@ mod tests {
 
         async fn call(
             &self,
-            _agent: &SageAgent,
+            _agent: &Agent,
             tool: &AgentTool,
             arguments: Value,
-        ) -> Result<Value, BridgeMethodHandleError> {
+        ) -> Result<Value, ToolError> {
             if tool.name == "get_sync_status" {
-                return Err(BridgeMethodHandleError::new(
-                    "no_wallet",
-                    "no wallet is open",
-                ));
+                return Err(ToolError::new("no_wallet", "no wallet is open"));
             }
-            if tool.name == "get_asset_coins" {
+            if tool.name == "get_coins" {
                 return Ok(json!([{ "coin": 1 }, { "coin": 2 }]));
             }
             Ok(json!({ "tool": tool.name, "args": arguments }))
@@ -343,10 +346,10 @@ mod tests {
 
     struct Fixture {
         _dir: TempDir,
-        db: AppsDb,
+        db: AgentStore,
         router: Router,
         executor: Arc<FakeExecutor>,
-        agent: SageAgent,
+        agent: Agent,
         token: AgentToken,
     }
 
@@ -356,18 +359,15 @@ mod tests {
         }
     }
 
-    async fn fixture(capabilities: &[UserBridgeCapability]) -> Fixture {
-        scoped_fixture(capabilities, SageAppWalletScope::AllWallets).await
+    async fn fixture(capabilities: &[Capability]) -> Fixture {
+        scoped_fixture(capabilities, WalletScope::AllWallets).await
     }
 
-    async fn scoped_fixture(
-        capabilities: &[UserBridgeCapability],
-        wallet_scope: SageAppWalletScope,
-    ) -> Fixture {
+    async fn scoped_fixture(capabilities: &[Capability], wallet_scope: WalletScope) -> Fixture {
         let dir = tempdir().unwrap();
-        let db = AppsDb::initialize(dir.path()).await.unwrap();
-        let agent = SageAgent {
-            id: uuid::Uuid::new_v4().to_string(),
+        let db = AgentStore::open(dir.path()).await.unwrap();
+        let agent = Agent {
+            id: "agent-1".to_string(),
             name: "agent".to_string(),
             capabilities: capabilities.iter().copied().collect(),
             wallet_scope,
@@ -535,7 +535,7 @@ mod tests {
 
     #[tokio::test]
     async fn auth_header_variants() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
 
         let unknown = format!("Bearer {}", unknown_token());
         for auth in [
@@ -578,7 +578,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_tools_only_shows_granted() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let auth = f.bearer();
         let session = initialize(&f.router, &auth).await;
 
@@ -588,7 +588,7 @@ mod tests {
 
     #[tokio::test]
     async fn call_ungranted_tool_is_tool_error() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let auth = f.bearer();
         let session = initialize(&f.router, &auth).await;
 
@@ -625,8 +625,8 @@ mod tests {
     #[tokio::test]
     async fn switching_out_of_scope_refuses_calls() {
         let f = scoped_fixture(
-            &[UserBridgeCapability::WalletGetWallet],
-            SageAppWalletScope::SelectedWallets {
+            &[Capability::WalletGetWallet],
+            WalletScope::SelectedWallets {
                 fingerprints: vec![1],
             },
         )
@@ -654,7 +654,7 @@ mod tests {
 
     #[tokio::test]
     async fn call_unknown_tool_is_protocol_error() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let auth = f.bearer();
         let session = initialize(&f.router, &auth).await;
 
@@ -672,7 +672,7 @@ mod tests {
 
     #[tokio::test]
     async fn call_granted_tool_returns_executor_value() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let auth = f.bearer();
         let session = initialize(&f.router, &auth).await;
         let expected = json!({ "tool": "get_wallet", "args": {} });
@@ -695,7 +695,7 @@ mod tests {
 
     #[tokio::test]
     async fn non_object_result_is_wrapped_in_structured_content() {
-        let f = fixture(&[UserBridgeCapability::WalletGetAssetCoins]).await;
+        let f = fixture(&[Capability::WalletGetCoins]).await;
         let auth = f.bearer();
         let session = initialize(&f.router, &auth).await;
         let expected = json!([{ "coin": 1 }, { "coin": 2 }]);
@@ -705,7 +705,7 @@ mod tests {
             &auth,
             &session,
             "tools/call",
-            json!({ "name": "get_asset_coins", "arguments": {} }),
+            json!({ "name": "get_coins", "arguments": {} }),
         )
         .await;
         assert!(
@@ -722,7 +722,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_and_delete_without_auth_are_401() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         for method in ["GET", "DELETE"] {
             let request = Request::builder()
                 .method(method)
@@ -738,7 +738,7 @@ mod tests {
 
     #[tokio::test]
     async fn executor_error_is_tool_error() {
-        let f = fixture(&[UserBridgeCapability::WalletGetSyncStatus]).await;
+        let f = fixture(&[Capability::WalletGetSyncStatus]).await;
         let auth = f.bearer();
         let session = initialize(&f.router, &auth).await;
 
@@ -759,7 +759,7 @@ mod tests {
 
     #[tokio::test]
     async fn revoked_agent_is_rejected_mid_session() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let auth = f.bearer();
         let session = initialize(&f.router, &auth).await;
 
@@ -771,7 +771,7 @@ mod tests {
 
     #[tokio::test]
     async fn capability_removed_mid_session_hides_tool() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let auth = f.bearer();
         let session = initialize(&f.router, &auth).await;
 
@@ -802,7 +802,7 @@ mod tests {
 
     #[tokio::test]
     async fn rotated_token_rejects_old() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let old = f.bearer();
         let session = initialize(&f.router, &old).await;
 
@@ -823,7 +823,7 @@ mod tests {
 
     #[tokio::test]
     async fn non_local_host_header_rejected() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let response = send(
             &f.router,
             build_request(Some(&f.bearer()), "evil.example", None, &initialize_body()),
@@ -834,7 +834,7 @@ mod tests {
 
     #[tokio::test]
     async fn host_header_with_port_is_checked() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let auth = f.bearer();
 
         for host in ["evil.example:9258", "127.0.0.1.evil.example"] {
@@ -856,43 +856,6 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn secret_and_signing_grants_expose_no_tools() {
-        // Such grants can't be made through Sage, only by editing the database.
-        let f = fixture(&[
-            UserBridgeCapability::WalletGetSecretKey,
-            UserBridgeCapability::WalletSignCoinSpends,
-            UserBridgeCapability::WalletSendXch,
-        ])
-        .await;
-        let auth = f.bearer();
-        let session = initialize(&f.router, &auth).await;
-
-        let list = rpc_ok(&f.router, &auth, &session, "tools/list", json!({})).await;
-        assert!(tool_names(&list).is_empty(), "{list}");
-
-        for name in ["get_secret_key", "sign_coin_spends", "send_xch"] {
-            let message = rpc_ok(
-                &f.router,
-                &auth,
-                &session,
-                "tools/call",
-                json!({ "name": name, "arguments": {} }),
-            )
-            .await;
-            assert_eq!(message["error"]["code"], -32602, "{name}: {message}");
-        }
-    }
-
-    #[tokio::test]
-    async fn lookup_failure_is_not_reported_as_unauthorized() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
-        f.db.pool().close().await;
-
-        let response = post_initialize(&f.router, Some(&f.bearer())).await;
-        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
-    }
-
     #[test]
     fn last_used_is_rewritten_once_a_minute() {
         assert!(last_used_is_stale(None, 0));
@@ -907,8 +870,17 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn lookup_failure_is_not_reported_as_unauthorized() {
+        let f = fixture(&[Capability::WalletGetWallet]).await;
+        f.db.close().await;
+
+        let response = post_initialize(&f.router, Some(&f.bearer())).await;
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[tokio::test]
     async fn last_used_is_recorded() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let before = f.db.get_agent(&f.agent.id).await.unwrap().unwrap();
         assert!(before.last_used_at_ms.is_none());
 
@@ -940,6 +912,8 @@ mod tests {
             .await
             .unwrap();
         assert_ne!(handle.port(), 0);
+        assert!(handle.local_addr().ip().is_loopback());
+        assert_eq!(handle.local_addr().port(), handle.port());
 
         let occupied = start_agent_server(
             f.db.clone(),
@@ -983,7 +957,7 @@ mod tests {
 
     #[tokio::test]
     async fn stop_with_open_sse_stream_is_bounded() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let handle = start_agent_server(f.db.clone(), FakeExecutor::new(), VERSION.to_string(), 0)
             .await
             .unwrap();
@@ -1041,7 +1015,7 @@ mod tests {
 
     #[tokio::test]
     async fn stop_with_stalled_request_is_bounded() {
-        let f = fixture(&[UserBridgeCapability::WalletGetWallet]).await;
+        let f = fixture(&[Capability::WalletGetWallet]).await;
         let handle = start_agent_server(f.db.clone(), FakeExecutor::new(), VERSION.to_string(), 0)
             .await
             .unwrap();

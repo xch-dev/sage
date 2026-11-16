@@ -69,13 +69,12 @@ impl BridgeMethod for BridgeSend {
 
         match ctx_kind {
             BridgeSendContextKind::Sandbox => {
-                ingest_bridge_send_payload(&ctx.app()?.id(), &payload_value, tools.host_state)
-                    .await;
+                ingest_bridge_send_payload(&ctx.app.id(), &payload_value, tools.host_state).await;
             }
 
             BridgeSendContextKind::OriginCleanup => {
                 ingest_origin_cleanup_bridge_send_payload(
-                    &ctx.app()?.id(),
+                    &ctx.app.id(),
                     &payload_value,
                     tools.host_state,
                 )
@@ -93,12 +92,12 @@ impl BridgeMethod for BridgeSend {
 }
 
 fn check_ctx(ctx: &BridgeContext<'_>) -> Result<BridgeSendContextKind, BridgeMethodHandleError> {
-    let is_sandbox_test = ctx.app()?.with(|app| app.common().is_sandbox_test());
+    let is_sandbox_test = ctx.app.with(|app| app.common().is_sandbox_test());
     if is_sandbox_test {
         return Ok(BridgeSendContextKind::Sandbox);
     }
 
-    let app_id = ctx.app()?.id();
+    let app_id = ctx.app.id();
     if app_id == BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID {
         return Ok(BridgeSendContextKind::OriginCleanup);
     }

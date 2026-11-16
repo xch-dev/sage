@@ -41,23 +41,24 @@ Other MCP clients (JSON config):
 
 ## Tools (stage 1)
 
-| Tool                       | What it does                      |
-| -------------------------- | --------------------------------- |
-| `get_wallet`               | Current wallet information        |
-| `get_sync_status`          | Sync status of the wallet         |
-| `get_version`              | Sage version                      |
-| `get_asset_balance`        | Balance of an asset               |
-| `get_asset_coins`          | Coins of an asset                 |
-| `get_coins`                | Coins in the wallet               |
-| `get_coins_by_ids`         | Look up coins by id               |
-| `get_spendable_coin_count` | Number of spendable coins         |
-| `get_transactions`         | Transaction history               |
-| `get_transaction`          | A single transaction              |
-| `get_pending_transactions` | Pending transactions              |
-| `get_xch_usd_price`        | Current XCH price in USD          |
-| `check_address`            | Check whether an address is valid |
+| Tool                       | What it does                                    |
+| -------------------------- | ----------------------------------------------- |
+| `get_wallet`               | Current wallet information                      |
+| `get_sync_status`          | Sync status of the wallet                       |
+| `get_version`              | Sage version                                    |
+| `get_token`                | Balance and details of an asset                 |
+| `get_coins`                | Coins in the wallet, by asset                   |
+| `get_coins_by_ids`         | Look up coins by id                             |
+| `get_spendable_coin_count` | Number of spendable coins                       |
+| `get_transactions`         | Transaction history                             |
+| `get_transaction`          | A single transaction                            |
+| `get_pending_transactions` | Pending transactions                            |
+| `get_xch_usd_price`        | Current XCH price in USD                        |
+| `check_address`            | Check whether an address belongs to this wallet |
 
-An agent only sees the tools matching the capabilities you granted. Secret keys are never available to agents.
+An agent only sees the tools matching the capabilities you granted. Secret keys are never available to agents. Agents use Sage's own permission checks, separate from the permissions of Sage apps, and are stored separately from them.
+
+`get_coins` lists XCH and CAT coins only, not DID or NFT coins, and coin records don't include the puzzle or lineage proof. `get_token` doesn't report a spendable coin count; use `get_spendable_coin_count` for that.
 
 Every tool acts on the wallet currently logged in to Sage. If no wallet is logged in, every call fails with `no_wallet`, including `get_version` and `get_xch_usd_price`.
 
@@ -69,9 +70,13 @@ Every tool acts on the wallet currently logged in to Sage. If no wallet is logge
 
 If the current wallet is outside an agent's scope, its calls fail with `wallet_not_in_scope` until you switch back. A deleted wallet is dropped from every agent's scope the next time Sage starts or Settings lists the agents, so importing it again later doesn't give an agent access back.
 
+## Where agents are stored
+
+Agents and the agent server settings live in their own database, `agents.sqlite`, in the Sage data directory. If that database can't be opened, Sage still starts and your wallets work normally, but the agent server stays off and the Agents section shows the reason. Agent commands fail until you fix the problem and restart Sage.
+
 ## Security
 
-A token only grants its capabilities. But an agent that can run shell commands as your OS user can do anything you can. That includes reading Sage's RPC certificate while the RPC server is enabled, which gives full wallet access and bypasses agent approvals.
+A token only grants its capabilities. But an agent that can run shell commands as your OS user can do anything you can. That includes reading Sage's RPC certificate while the RPC server is enabled, which gives full wallet access and bypasses agent permissions.
 
 - Run such agents sandboxed, or as a different OS user.
 - Keep the RPC server off while using agents. The Agents settings show a warning whenever the RPC server is running.

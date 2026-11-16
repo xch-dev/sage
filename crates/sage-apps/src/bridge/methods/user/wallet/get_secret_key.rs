@@ -33,7 +33,7 @@ impl BridgeMethod for WalletGetSecretKey {
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
         let _params: WalletGetSecretKeyParams = parse_optional_params(self, request)?;
-        let sage = tools.sage(&ctx).await?;
+        let sage = tools.app_state.lock().await;
         let (_, fingerprint) = current_scoped_wallet(&ctx, &sage)?;
 
         Ok(Some(RustBridgeApprovalRequest {
@@ -49,7 +49,7 @@ impl BridgeMethod for WalletGetSecretKey {
     ) -> BridgeHandleResult {
         let _params: WalletGetSecretKeyParams = parse_optional_params(self, request)?;
 
-        let sage = tools.sage(&ctx).await?;
+        let sage = tools.app_state.lock().await;
         let (_, fingerprint) = current_scoped_wallet(&ctx, &sage)?;
 
         let response = sage

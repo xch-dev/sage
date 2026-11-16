@@ -1,9 +1,6 @@
 // @vitest-environment jsdom
 
-import type {
-  SageAppCapabilityDefinitionView,
-  UserBridgeCapability,
-} from '@/bindings';
+import type { AgentCapabilityView, Capability } from '@/bindings';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -16,25 +13,16 @@ beforeAll(() => {
 
 afterEach(cleanup);
 
-const flags = {
-  externallyObservable: false,
-  accessesSensitiveSecret: false,
-  requestableByApp: true,
-  userGrantable: true,
-};
-
-const definitions: SageAppCapabilityDefinitionView[] = [
+const definitions: AgentCapabilityView[] = [
   {
     key: 'wallet.get_coins',
     label: 'Read coins',
     description: 'Lists coins.',
-    flags,
   },
   {
     key: 'wallet.get_transactions',
     label: 'Read transactions',
     description: 'Lists transactions.',
-    flags,
   },
 ];
 
@@ -43,7 +31,7 @@ function renderPanel(onCapabilitiesChange = vi.fn()) {
     <I18nProvider i18n={i18n}>
       <AgentPermissionsPanel
         definitions={definitions}
-        capabilities={['wallet.get_coins'] as UserBridgeCapability[]}
+        capabilities={['wallet.get_coins'] as Capability[]}
         onCapabilitiesChange={onCapabilitiesChange}
         walletScope={{ kind: 'selectedWallets', fingerprints: [7] }}
         onWalletScopeChange={vi.fn()}

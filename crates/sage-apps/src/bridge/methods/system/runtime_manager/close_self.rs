@@ -33,7 +33,7 @@ impl BridgeMethod for RuntimeManagerCloseSelf {
         tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let app_id = ctx.app()?.id();
+        let app_id = ctx.app.id();
 
         match kill_runtime(tools.app_handle, tools.host_state, &app_id, "self_close").await {
             Ok(())

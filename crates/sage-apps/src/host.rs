@@ -12,9 +12,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tokio::sync::Mutex;
 
-use crate::{
-    AgentServerState, AppRuntimeState, AppsDb, BridgeState, EnvironmentThemeView, SandboxStateStore,
-};
+use crate::{AppRuntimeState, AppsDb, BridgeState, EnvironmentThemeView, SandboxStateStore};
 
 pub type AppState = Arc<Mutex<Sage>>;
 
@@ -39,7 +37,6 @@ pub struct AppsHostState {
     pub sandbox: SandboxStateStore,
     pub environment: AppsEnvironmentState,
     pub db: AppsDb,
-    pub(crate) agent_server: Mutex<AgentServerState>,
 }
 
 impl AppsHostState {
@@ -56,7 +53,6 @@ impl AppsHostState {
             sandbox: SandboxStateStore::default(),
             environment: AppsEnvironmentState::default(),
             db,
-            agent_server: Mutex::default(),
         }
     }
 

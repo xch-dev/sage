@@ -13,6 +13,8 @@ use tauri::path::BaseDirectory;
 use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
 use tokio::sync::Mutex;
 
+#[cfg(not(mobile))]
+mod agents;
 mod app_state;
 mod commands;
 mod error;
@@ -33,7 +35,6 @@ macro_rules! sage_commands {
         collect_commands![
             commands::initialize,
             commands::quit,
-            commands::reset_apps_database,
             commands::login,
             commands::logout,
             commands::resync,
@@ -217,14 +218,14 @@ fn specta_builder() -> Builder<tauri::Wry> {
             apps::apps_dev_reload_runtime,
             apps::apps_get_auto_update_enabled,
             apps::apps_set_auto_update_enabled,
-            apps::apps_get_agent_server_status,
-            apps::apps_set_agent_server_settings,
-            apps::apps_list_agents,
-            apps::apps_list_agent_capabilities,
-            apps::apps_create_agent,
-            apps::apps_update_agent,
-            apps::apps_rotate_agent_token,
-            apps::apps_revoke_agent,
+            agents::agents_get_server_status,
+            agents::agents_set_server_settings,
+            agents::agents_list_agents,
+            agents::agents_list_capabilities,
+            agents::agents_create_agent,
+            agents::agents_update_agent,
+            agents::agents_rotate_agent_token,
+            agents::agents_revoke_agent,
         ])
         .events(collect_events![SyncEvent])
 }
@@ -382,20 +383,11 @@ pub fn run() {
                     }
                 }
 
-                // Sage still opens without the apps database, to report the failure and offer a reset.
-                let apps_db = match tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
-                {
-                    Ok(apps_db) => apps_db,
-                    Err(err) => {
-                        tracing::error!("failed to initialize Sage apps database: {err:#}");
-                        app.manage(app_state::AppsDbFailure {
-                            root: path,
-                            newer_version: apps::AppsDb::is_newer_version_error(&err),
-                            reason: format!("{err:#}"),
-                        });
-                        return Ok(());
-                    }
-                };
+                // Sage still opens without the agents database, and reports why in agent settings.
+                app.manage(tauri::async_runtime::block_on(agents::AgentsState::open(&path)));
+
+                let apps_db = tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
+                    .expect("failed to initialize Sage apps database");
 
                 app.manage(
                     AppsHostState::new(path.clone(), webview_root, apps_db)
@@ -625,6 +617,7 @@ mod tests {
             .filter_map(|line| {
                 line.strip_prefix("commands::")
                     .or_else(|| line.strip_prefix("apps::"))
+                    .or_else(|| line.strip_prefix("agents::"))
             })
             .filter_map(|line| line.strip_suffix(','))
             .collect();

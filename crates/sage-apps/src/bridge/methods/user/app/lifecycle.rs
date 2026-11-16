@@ -46,9 +46,9 @@ impl BridgeMethod for AppLifecycleSetBeforeStopListener {
             .await;
 
         if params.active() {
-            listeners.insert(ctx.app()?.id().clone());
+            listeners.insert(ctx.app.id().clone());
         } else {
-            listeners.remove(&ctx.app()?.id());
+            listeners.remove(&ctx.app.id());
         }
 
         Ok(Box::new(RuntimeAckResult { ok: true }))

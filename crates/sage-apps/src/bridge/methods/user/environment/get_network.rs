@@ -43,13 +43,14 @@ impl BridgeMethod for EnvironmentGetNetwork {
 
     async fn handle(
         &self,
-        ctx: BridgeContext<'_>,
+        _ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let current = tools
-            .sage(&ctx)
-            .await?
+            .app_state
+            .lock()
+            .await
             .get_network(GetNetwork {})
             .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
 

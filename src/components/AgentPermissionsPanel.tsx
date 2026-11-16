@@ -1,12 +1,10 @@
-import type {
-  SageAppCapabilityDefinitionView,
-  SageAppWalletScope,
-  UserBridgeCapability,
-} from '@/bindings';
+import type { AgentCapabilityView, Capability, WalletScope } from '@/bindings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   agentGrantedPermissions,
   agentRequestedPermissions,
+  editorCapabilitiesToAgent,
+  toEditorDefinitions,
 } from '@/lib/agentPermissions';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -18,11 +16,11 @@ import {
 } from 'sage-app-ui';
 
 interface AgentPermissionsPanelProps {
-  definitions: SageAppCapabilityDefinitionView[];
-  capabilities: UserBridgeCapability[];
-  onCapabilitiesChange: (capabilities: UserBridgeCapability[]) => void;
-  walletScope: SageAppWalletScope;
-  onWalletScopeChange: (scope: SageAppWalletScope) => void;
+  definitions: AgentCapabilityView[];
+  capabilities: Capability[];
+  onCapabilitiesChange: (capabilities: Capability[]) => void;
+  walletScope: WalletScope;
+  onWalletScopeChange: (scope: WalletScope) => void;
   wallets: WalletScopeEditorWallet[];
   disabled?: boolean;
 }
@@ -38,6 +36,10 @@ export function AgentPermissionsPanel({
 }: AgentPermissionsPanelProps) {
   const requested = useMemo(
     () => agentRequestedPermissions(definitions),
+    [definitions],
+  );
+  const editorDefinitions = useMemo(
+    () => toEditorDefinitions(definitions),
     [definitions],
   );
   const granted = useMemo(
@@ -60,9 +62,9 @@ export function AgentPermissionsPanel({
         <PermissionEditor
           requestedPermissions={requested}
           grantedPermissions={granted}
-          capabilityDefinitions={definitions}
+          capabilityDefinitions={editorDefinitions}
           onGrantedPermissionsChange={(next) =>
-            onCapabilitiesChange(next.capabilities)
+            onCapabilitiesChange(editorCapabilitiesToAgent(next.capabilities))
           }
           editable={!disabled}
           collapseUngrantedOptional={false}

@@ -8,7 +8,7 @@ workspace = true
 
 [dependencies]
 sage = { workspace = true }
-sage-api = { workspace = true, features = ["tauri", "openapi"] }
+sage-api = { workspace = true, features = ["tauri"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 specta = { workspace = true, features = ["derive", "function", "url"] }
@@ -26,7 +26,6 @@ sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
 sha2 = "0.10.9"
 uuid = { workspace = true, features = ["v4", "serde"] }
 tempfile = "3"
-rand = { workspace = true }
 zip = "8.5.1"
 mime_guess = "2"
 url = "2"
@@ -35,11 +34,7 @@ erased-serde = "0.4.9"
 serde_path_to_error = "0.1.20"
 parking_lot = "0.12.5"
 futures = "0.3.32"
-rmcp = { version = "3.10", default-features = false, features = ["server", "transport-streamable-http-server"] }
-axum = { workspace = true }
-utoipa = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
 sage-wallet = { workspace = true }
-tower = { workspace = true, features = ["util"] }

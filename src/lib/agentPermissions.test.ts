@@ -1,8 +1,4 @@
-import type {
-  SageAgent,
-  SageAppCapabilityDefinitionView,
-  UserBridgeCapability,
-} from '@/bindings';
+import type { Agent, AgentCapabilityView, Capability } from '@/bindings';
 import { describe, expect, it } from 'vitest';
 import {
   agentGrantedPermissions,
@@ -11,32 +7,26 @@ import {
   hasSelectableWallet,
   hasUnsavedAgentChanges,
   initialAgentCapabilities,
+  isAgentStoreUnavailable,
   isValidAgentPort,
   mcpClientSnippets,
+  shouldReportAgentLoadError,
+  toEditorDefinitions,
 } from './agentPermissions';
 
-const flags = {
-  externallyObservable: false,
-  accessesSensitiveSecret: false,
-  requestableByApp: true,
-  userGrantable: true,
-};
-
-const defA: SageAppCapabilityDefinitionView = {
+const defA: AgentCapabilityView = {
   key: 'wallet.get_coins',
   label: 'Read coins',
   description: 'Lists coins.',
-  flags,
 };
 
-const defB: SageAppCapabilityDefinitionView = {
+const defB: AgentCapabilityView = {
   key: 'wallet.get_transactions',
   label: 'Read transactions',
   description: 'Lists transactions.',
-  flags,
 };
 
-function agentWith(capabilities: UserBridgeCapability[]): SageAgent {
+function agentWith(capabilities: Capability[]): Agent {
   return {
     id: 'a',
     name: 'agent',
@@ -47,6 +37,25 @@ function agentWith(capabilities: UserBridgeCapability[]): SageAgent {
     lastUsedAtMs: null,
   };
 }
+
+describe('toEditorDefinitions', () => {
+  it('adapts agent capabilities to editor definitions the user can grant', () => {
+    const [d] = toEditorDefinitions([
+      { key: 'wallet.get_coins', label: 'L', description: 'D' },
+    ]);
+    expect(d).toEqual({
+      key: 'wallet.get_coins',
+      label: 'L',
+      description: 'D',
+      flags: {
+        externallyObservable: false,
+        accessesSensitiveSecret: false,
+        requestableByApp: true,
+        userGrantable: true,
+      },
+    });
+  });
+});
 
 describe('agentRequestedPermissions', () => {
   it('requests every definition as optional', () => {
@@ -195,5 +204,34 @@ describe('mcpClientSnippets', () => {
         },
       },
     });
+  });
+});
+
+describe('shouldReportAgentLoadError', () => {
+  it('stays quiet while the status explains the failure', () => {
+    expect(shouldReportAgentLoadError({ startError: 'db locked' })).toBe(false);
+  });
+
+  it('reports failures otherwise', () => {
+    expect(shouldReportAgentLoadError({ startError: null })).toBe(true);
+    expect(shouldReportAgentLoadError(null)).toBe(true);
+  });
+});
+
+describe('isAgentStoreUnavailable', () => {
+  it('is true for a start error while disabled', () => {
+    expect(
+      isAgentStoreUnavailable({ enabled: false, startError: 'disk full' }),
+    ).toBe(true);
+  });
+
+  it('is false otherwise', () => {
+    expect(
+      isAgentStoreUnavailable({ enabled: true, startError: 'address in use' }),
+    ).toBe(false);
+    expect(isAgentStoreUnavailable({ enabled: false, startError: null })).toBe(
+      false,
+    );
+    expect(isAgentStoreUnavailable(null)).toBe(false);
   });
 });

@@ -1,8 +1,8 @@
 import type {
-  SageAgent,
-  SageAppCapabilityDefinitionView,
-  SageAppWalletScope,
-  UserBridgeCapability,
+  Agent,
+  AgentCapabilityView,
+  Capability,
+  WalletScope,
 } from '@/bindings';
 import type {
   PermissionEditorProps,
@@ -10,42 +10,67 @@ import type {
 } from 'sage-app-ui';
 
 type GrantedPermissions = PermissionEditorProps['grantedPermissions'];
+type EditorDefinitions = PermissionEditorProps['capabilityDefinitions'];
+// The shared editor is typed with the app bridge's capability keys; the casts between it and
+// `Capability` stay in this file.
+type EditorCapability = GrantedPermissions['capabilities'][number];
 
-function definitionKeys(
-  definitions: SageAppCapabilityDefinitionView[],
-): UserBridgeCapability[] {
-  return definitions.map(
-    (definition) => definition.key as UserBridgeCapability,
-  );
+function definitionKeys(definitions: AgentCapabilityView[]): Capability[] {
+  return definitions.map((definition) => definition.key as Capability);
+}
+
+export function toEditorDefinitions(
+  views: AgentCapabilityView[],
+): EditorDefinitions {
+  return views.map((view) => ({
+    key: view.key as EditorCapability,
+    label: view.label,
+    description: view.description,
+    flags: {
+      externallyObservable: false,
+      accessesSensitiveSecret: false,
+      requestableByApp: true,
+      userGrantable: true,
+    },
+  }));
+}
+
+export function editorCapabilitiesToAgent(
+  capabilities: EditorCapability[],
+): Capability[] {
+  return capabilities as string[] as Capability[];
 }
 
 export function agentRequestedPermissions(
-  definitions: SageAppCapabilityDefinitionView[],
+  definitions: AgentCapabilityView[],
 ): RequestedPermissionsView {
   return {
-    capabilities: { required: [], optional: definitionKeys(definitions) },
+    capabilities: {
+      required: [],
+      optional: definitionKeys(definitions) as string[] as EditorCapability[],
+    },
   };
 }
 
 export function agentGrantedPermissions(
-  capabilities: UserBridgeCapability[],
+  capabilities: Capability[],
 ): GrantedPermissions {
   return {
-    capabilities,
+    capabilities: capabilities as string[] as EditorCapability[],
     network: { whitelist: [], whitelistByNetwork: {} },
   };
 }
 
 export function initialAgentCapabilities(
-  agent: SageAgent | null,
-  definitions: SageAppCapabilityDefinitionView[],
-): UserBridgeCapability[] {
+  agent: Agent | null,
+  definitions: AgentCapabilityView[],
+): Capability[] {
   return agent ? agent.capabilities : definitionKeys(definitions);
 }
 
 export function defaultAgentWalletScope(
   currentFingerprint?: number,
-): SageAppWalletScope {
+): WalletScope {
   return {
     kind: 'selectedWallets',
     fingerprints: currentFingerprint === undefined ? [] : [currentFingerprint],
@@ -53,7 +78,7 @@ export function defaultAgentWalletScope(
 }
 
 export function hasSelectableWallet(
-  scope: SageAppWalletScope,
+  scope: WalletScope,
   wallets: { fingerprint: number }[],
 ): boolean {
   if (scope.kind === 'allWallets') return true;
@@ -62,10 +87,10 @@ export function hasSelectableWallet(
 }
 
 export function hasUnsavedAgentChanges(
-  agent: SageAgent,
+  agent: Agent,
   name: string,
-  editedCapabilities: UserBridgeCapability[] | null,
-  walletScope: SageAppWalletScope,
+  editedCapabilities: Capability[] | null,
+  walletScope: WalletScope,
 ): boolean {
   return (
     name.trim() !== agent.name ||
@@ -109,4 +134,18 @@ export function mcpClientSnippets(
       },
     }),
   };
+}
+
+// A failed agent load is only worth a toast when the server isn't already showing why it failed.
+export function shouldReportAgentLoadError(
+  status: { startError: string | null } | null,
+): boolean {
+  return !status?.startError;
+}
+
+// The server only reports a start error while disabled when the agents database couldn't be opened.
+export function isAgentStoreUnavailable(
+  status: { enabled: boolean; startError: string | null } | null,
+): boolean {
+  return !!status?.startError && !status.enabled;
 }

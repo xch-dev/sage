@@ -1,6 +1,6 @@
 use tauri::State;
 
-use crate::{AppState, SharedSageApp};
+use crate::{AppState, SageAppWalletScope, SharedSageApp};
 
 pub(crate) async fn ensure_app_is_enabled_for_scope(
     app_state: &State<'_, AppState>,
@@ -18,10 +18,19 @@ async fn app_is_enabled_for_scope(app_state: &State<'_, AppState>, app: &SharedS
         return false;
     };
 
-    app.is_wallet_in_scope(fingerprint)
+    app.with(|sage_app| {
+        wallet_scope_allows_fingerprint(sage_app.common().wallet_scope(), fingerprint)
+    })
 }
 
-pub(crate) async fn current_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u32> {
+fn wallet_scope_allows_fingerprint(scope: &SageAppWalletScope, fingerprint: u32) -> bool {
+    match scope {
+        SageAppWalletScope::AllWallets => true,
+        SageAppWalletScope::SelectedWallets { fingerprints } => fingerprints.contains(&fingerprint),
+    }
+}
+
+async fn current_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u32> {
     let state = app_state.lock().await;
     state.config.global.fingerprint
 }

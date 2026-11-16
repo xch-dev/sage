@@ -1,10 +1,10 @@
 import {
+  Agent,
+  AgentCapabilityView,
   AgentServerStatus,
+  Capability,
   commands,
-  SageAgent,
-  SageAppCapabilityDefinitionView,
-  SageAppWalletScope,
-  UserBridgeCapability,
+  WalletScope,
   WalletInfo,
 } from '@/bindings';
 import { AgentPermissionsPanel } from '@/components/AgentPermissionsPanel';
@@ -32,10 +32,12 @@ import {
   hasSelectableWallet,
   hasUnsavedAgentChanges,
   initialAgentCapabilities,
+  isAgentStoreUnavailable,
   isValidAgentPort,
   MAX_AGENT_PORT,
   MIN_AGENT_PORT,
   mcpClientSnippets,
+  shouldReportAgentLoadError,
 } from '@/lib/agentPermissions';
 import { formatTimestamp } from '@/lib/utils';
 import { plural, t } from '@lingui/core/macro';
@@ -59,7 +61,7 @@ function lastUsedSummary(lastUsedAtMs: number | null) {
   return t`Last used ${when}`;
 }
 
-function scopeSummary(scope: SageAppWalletScope, currentFingerprint?: number) {
+function scopeSummary(scope: WalletScope, currentFingerprint?: number) {
   if (scope.kind === 'allWallets') return t`All wallets`;
   if (
     scope.fingerprints.length === 1 &&
@@ -81,36 +83,47 @@ export function AgentSettings() {
   const [status, setStatus] = useState<AgentServerStatus | null>(null);
   const [portInput, setPortInput] = useState(String(DEFAULT_AGENT_PORT));
   const [rpcRunning, setRpcRunning] = useState(false);
-  const [agents, setAgents] = useState<SageAgent[]>([]);
-  const [definitions, setDefinitions] = useState<
-    SageAppCapabilityDefinitionView[]
-  >([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [definitions, setDefinitions] = useState<AgentCapabilityView[]>([]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<SageAgent | null>(null);
-  const [revoking, setRevoking] = useState<SageAgent | null>(null);
+  const [editing, setEditing] = useState<Agent | null>(null);
+  const [revoking, setRevoking] = useState<Agent | null>(null);
 
   const refreshAgents = useCallback(() => {
-    commands.appsListAgents().then(setAgents).catch(addError);
+    commands.agentsListAgents().then(setAgents).catch(addError);
   }, [addError]);
+
+  const statusLoaded = status !== null;
+  const statusStartError = status?.startError ?? null;
+
+  // Load once the status is known, and again when a start error clears. While one is set, a
+  // failure is not toasted because the section already shows the reason.
+  useEffect(() => {
+    if (!statusLoaded) return;
+    const report = shouldReportAgentLoadError({ startError: statusStartError });
+    const onError = (error: unknown) => {
+      if (report) addError(error as CustomError);
+    };
+    commands.agentsListCapabilities().then(setDefinitions).catch(onError);
+    commands.agentsListAgents().then(setAgents).catch(onError);
+  }, [addError, statusLoaded, statusStartError]);
 
   useEffect(() => {
     commands
-      .appsGetAgentServerStatus()
+      .agentsGetServerStatus()
       .then((s) => {
         setStatus(s);
         setPortInput(String(s.port));
       })
       .catch(addError);
-    commands.appsListAgentCapabilities().then(setDefinitions).catch(addError);
-    refreshAgents();
     commands.isRpcRunning().then(setRpcRunning).catch(addError);
 
     // Agents are used, and the RPC server toggled, outside this component. A failure here was
     // already reported by the first load, so it isn't repeated on every tick.
     const interval = setInterval(() => {
       commands
-        .appsListAgents()
+        .agentsListAgents()
         .then(setAgents)
         .catch(() => undefined);
       commands
@@ -120,7 +133,7 @@ export function AgentSettings() {
     }, REFRESH_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [addError, refreshAgents]);
+  }, [addError]);
 
   const portValid = isValidAgentPort(portInput);
 
@@ -128,10 +141,10 @@ export function AgentSettings() {
     if (enabled && !(await promptIfEnabled())) return;
 
     try {
-      setStatus(await commands.appsSetAgentServerSettings(enabled, port));
+      setStatus(await commands.agentsSetServerSettings(enabled, port));
     } catch (error) {
       addError(error as CustomError);
-      commands.appsGetAgentServerStatus().then(setStatus).catch(addError);
+      commands.agentsGetServerStatus().then(setStatus).catch(addError);
     }
   };
 
@@ -140,7 +153,7 @@ export function AgentSettings() {
     const id = revoking.id;
     setRevoking(null);
     try {
-      await commands.appsRevokeAgent(id);
+      await commands.agentsRevokeAgent(id);
       refreshAgents();
     } catch (error) {
       addError(error as CustomError);
@@ -150,6 +163,7 @@ export function AgentSettings() {
   const port = status?.port ?? DEFAULT_AGENT_PORT;
   const revokingName = revoking?.name ?? '';
   const startError = status?.startError ?? '';
+  const storeUnavailable = isAgentStoreUnavailable(status);
   const portChanged =
     status !== null && portValid && Number(portInput) !== port;
 
@@ -160,7 +174,11 @@ export function AgentSettings() {
           <ServerStatusIndicator running={status?.running ?? false} />
           <Switch
             checked={status?.enabled ?? false}
-            disabled={status === null || (!status.enabled && !portValid)}
+            disabled={
+              status === null ||
+              storeUnavailable ||
+              (!status.enabled && !portValid)
+            }
             onCheckedChange={(checked) =>
               applySettings(checked, portValid ? Number(portInput) : port)
             }
@@ -206,10 +224,14 @@ export function AgentSettings() {
         )}
         {status?.startError && (
           <div className='text-sm text-destructive'>
-            <Trans>
-              The agent server couldn&apos;t start: {startError}. Turn it off
-              and on again to retry.
-            </Trans>
+            {status.enabled ? (
+              <Trans>
+                The agent server couldn&apos;t start: {startError}. Turn it off
+                and on again to retry.
+              </Trans>
+            ) : (
+              <Trans>The agent server couldn&apos;t start: {startError}.</Trans>
+            )}
           </div>
         )}
         {rpcRunning && (
@@ -217,7 +239,7 @@ export function AgentSettings() {
             <AlertDescription>
               <Trans>
                 The RPC server is also running. Its certificate on disk gives
-                full wallet access and bypasses agent approvals.
+                full wallet access and bypasses agent permissions.
               </Trans>
             </AlertDescription>
           </Alert>
@@ -228,6 +250,7 @@ export function AgentSettings() {
         <div className='flex items-center justify-end'>
           <Button
             size='sm'
+            disabled={storeUnavailable}
             onClick={() => {
               setEditing(null);
               setDialogOpen(true);
@@ -324,8 +347,8 @@ export function AgentSettings() {
 interface AgentDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
-  agent: SageAgent | null;
-  definitions: SageAppCapabilityDefinitionView[];
+  agent: Agent | null;
+  definitions: AgentCapabilityView[];
   port: number;
   currentFingerprint?: number;
   onChanged: () => void;
@@ -346,9 +369,9 @@ function AgentDialog({
   const [name, setName] = useState('');
   // Null until edited, so a new agent follows the definitions even if they load late.
   const [editedCapabilities, setEditedCapabilities] = useState<
-    UserBridgeCapability[] | null
+    Capability[] | null
   >(null);
-  const [walletScope, setWalletScope] = useState<SageAppWalletScope>(
+  const [walletScope, setWalletScope] = useState<WalletScope>(
     defaultAgentWalletScope(),
   );
   // Null until the wallets load, so that no wallet is reported missing before then.
@@ -356,10 +379,10 @@ function AgentDialog({
   const [pending, setPending] = useState(false);
   const [token, setToken] = useState<string | null>(null);
 
-  // Reset the form whenever the dialog is opened.
+  // Reset the form whenever the dialog is opened, and drop the token once it closes.
   useEffect(() => {
-    if (!open) return;
     setToken(null);
+    if (!open) return;
     setPending(false);
     setName(agent?.name ?? '');
     setEditedCapabilities(null);
@@ -385,7 +408,7 @@ function AgentDialog({
     try {
       setPending(true);
       if (agent) {
-        await commands.appsUpdateAgent(
+        await commands.agentsUpdateAgent(
           agent.id,
           name.trim(),
           capabilities,
@@ -394,7 +417,7 @@ function AgentDialog({
         onChanged();
         setOpen(false);
       } else {
-        const created = await commands.appsCreateAgent(
+        const created = await commands.agentsCreateAgent(
           name.trim(),
           capabilities,
           walletScope,
@@ -417,7 +440,7 @@ function AgentDialog({
 
     try {
       setPending(true);
-      setToken(await commands.appsRotateAgentToken(agent.id));
+      setToken(await commands.agentsRotateAgentToken(agent.id));
       onChanged();
     } catch (error) {
       addError(error as CustomError);

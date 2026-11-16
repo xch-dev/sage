@@ -109,10 +109,6 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       kind = 'Already Running';
       break;
 
-    case 'apps_database':
-      kind = 'Apps Database';
-      break;
-
     default:
       kind = null;
   }

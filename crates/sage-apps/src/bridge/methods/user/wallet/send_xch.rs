@@ -105,7 +105,6 @@ impl From<WalletSendXchParams> for SendXch {
 }
 
 async fn execute_send_xch(
-    ctx: BridgeContext<'_>,
     tools: BridgeTools<'_>,
     params: WalletSendXchParams,
     confirmed_address: Option<String>,
@@ -120,8 +119,9 @@ async fn execute_send_xch(
     }
 
     let result = tools
-        .sage(&ctx)
-        .await?
+        .app_state
+        .lock()
+        .await
         .send_xch(request)
         .await
         .map_err(|err| {
@@ -166,7 +166,7 @@ impl BridgeMethod for WalletSendXch {
         // change hands and only Sage can show what it resolves to now.
         if !is_handle_recipient(&params)
             && ctx
-                .app()?
+                .app
                 .is_capability_granted(UserBridgeCapability::WalletSendXchAutoSubmit.into())
         {
             return Ok(None);
@@ -194,8 +194,9 @@ impl BridgeMethod for WalletSendXch {
             && is_handle_recipient(summary)
         {
             let result = tools
-                .sage(&ctx)
-                .await?
+                .app_state
+                .lock()
+                .await
                 .resolve_handle(ResolveHandle {
                     handle: summary.address.trim().to_string(),
                 })
@@ -227,18 +228,18 @@ impl BridgeMethod for WalletSendXch {
     async fn handle_approved(
         &self,
         approval: &RustBridgeApprovalRequest,
-        ctx: BridgeContext<'_>,
+        _ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
         response: Option<&RustBridgeApprovalResponse>,
     ) -> BridgeHandleResult {
         let (params, confirmed_address) = approved_send_xch_params(approval, response)?;
-        execute_send_xch(ctx, tools, params, confirmed_address).await
+        execute_send_xch(tools, params, confirmed_address).await
     }
 
     async fn handle(
         &self,
-        ctx: BridgeContext<'_>,
+        _ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
@@ -252,7 +253,7 @@ impl BridgeMethod for WalletSendXch {
             ));
         }
 
-        execute_send_xch(ctx, tools, params, None).await
+        execute_send_xch(tools, params, None).await
     }
 }
 

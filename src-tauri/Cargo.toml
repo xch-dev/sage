@@ -54,9 +54,13 @@ tauri-plugin-sharesheet = "0.0.1"
 [dev-dependencies]
 toml = { workspace = true }
 tempfile = "3"
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 sage-apps = { workspace = true }
+sage-auth = { workspace = true, features = ["tauri"] }
+sage-mcp = { workspace = true }
+async-trait = "0.1.89"
 tauri-plugin-window-state = { workspace = true }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"

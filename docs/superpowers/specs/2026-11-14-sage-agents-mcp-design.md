@@ -2,6 +2,8 @@
 
 Status: draft for review · 2026-11-14
 
+Superseded in part by `2026-11-15-agents-shared-authorization-design.md` (authorization and storage).
+
 ## Intent
 
 Let AI agents act on a Sage wallet through the Model Context Protocol (MCP), so a user can run

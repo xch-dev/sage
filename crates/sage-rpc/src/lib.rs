@@ -21,6 +21,8 @@ use rustls_config::load_rustls_config;
 use sage::Sage;
 use sage_api::{ErrorKind, RecipientError, RecipientErrorKind};
 use sage_api_macro::impl_endpoints;
+// Aliased because `impl_endpoints!` rewrites every identifier containing `endpoint`.
+use sage_auth::{Decision, Identity, authorize_endpoint as authorize_api};
 use serde::Serialize;
 use tokio::sync::Mutex;
 use tracing::info;
@@ -33,9 +35,21 @@ struct AppState {
     sage: Arc<Mutex<Sage>>,
 }
 
+// `unused_mut` is allowed because some endpoints take `&self`.
 impl_endpoints! {
-    (repeat async fn endpoint(State(state): State<AppState>, Json(req): Json<sage_api::Endpoint>) -> Response {
-        handle(state.sage.lock().await.endpoint(req) maybe_await)
+    (repeat #[allow(unused_mut)] async fn endpoint(State(state): State<AppState>, Json(req): Json<sage_api::Endpoint>) -> Response {
+        let mut sage = state.sage.lock().await;
+
+        match authorize_api(&Identity::Owner, endpoint_string, sage.config.global.fingerprint) {
+            Ok(Decision::Allowed) => {}
+            Ok(_) => {
+                return (StatusCode::FORBIDDEN, "this action needs approval, which isn't supported")
+                    .into_response();
+            }
+            Err(error) => return (StatusCode::FORBIDDEN, error.to_string()).into_response(),
+        }
+
+        handle(sage.endpoint(req) maybe_await)
     })
 
     fn api_router() -> Router<AppState> {
@@ -62,7 +76,6 @@ where
                 ErrorKind::AlreadyRunning => StatusCode::CONFLICT,
                 ErrorKind::DatabaseMigration
                 | ErrorKind::SharedDatabaseMigration
-                | ErrorKind::AppsDatabase
                 | ErrorKind::Wallet
                 | ErrorKind::Internal
                 | ErrorKind::Nfc => StatusCode::INTERNAL_SERVER_ERROR,

@@ -1,14 +1,11 @@
-use serde_json::Value;
 use tauri::{AppHandle, Manager, State, Webview};
-use uuid::Uuid;
 
 use crate::{
-    AgentTool, AppState, AppsHostState, BridgeApprovalsChangedEvent, BridgeCaller,
-    BridgeCapability, BridgeContext, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError,
-    BridgeOrigin, BridgeRegistry, BridgeRegistryKind, BridgeTools, PendingBridgeApproval,
-    ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult,
-    RustBridgeRequest, RustBridgeResponse, SageAgent, SharedSageApp, SystemBridgeCapability,
-    UserBridgeCapability, assert_bridge_origin, authorize_agent_call, current_wallet_fingerprint,
+    AppState, AppsHostState, BridgeApprovalsChangedEvent, BridgeCapability, BridgeContext,
+    BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry, BridgeRegistryKind,
+    BridgeTools, PendingBridgeApproval, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest,
+    RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse, SharedSageApp,
+    SystemBridgeCapability, UserBridgeCapability, assert_bridge_origin,
     emit_bridge_response_to_app, emit_system_runtime_event_to_listeners,
     ensure_app_is_enabled_for_scope, ensure_approval_expiry_loop, get_system_capability_definition,
     get_user_capability_definition, list_pending_approvals, resolve_app,
@@ -134,48 +131,6 @@ pub(crate) async fn process_after_approval(
     Ok(())
 }
 
-/// Runs an agent's tool call. Agents can only call the methods in their catalog.
-pub(crate) async fn process_agent(
-    app_handle: &AppHandle,
-    app_state: &State<'_, AppState>,
-    agent: &SageAgent,
-    tool: &AgentTool,
-    arguments: Value,
-) -> Result<Value, BridgeMethodHandleError> {
-    let registry = BridgeRegistry::new(BridgeRegistryKind::User);
-
-    let fingerprint = current_wallet_fingerprint(app_state).await;
-    let method = authorize_agent_call(&registry, agent, tool, fingerprint)?;
-
-    ensure_can_sign(app_state, method).await?;
-
-    let request = RustBridgeRequest {
-        bridge_version: Some("v1".to_string()),
-        id: Uuid::new_v4().to_string(),
-        method: tool.bridge_method.to_string(),
-        params_json: Some(arguments.to_string()),
-    };
-    let ctx = || BridgeContext {
-        caller: BridgeCaller::Agent(agent),
-    };
-    let host_state = app_handle.state::<AppsHostState>();
-    let tools = || BridgeTools::new(app_handle, app_state, &host_state);
-
-    if method
-        .prepare_approval(ctx(), tools(), &request)
-        .await?
-        .is_some()
-    {
-        return Err(BridgeMethodHandleError::new(
-            "approval_unsupported",
-            "Agent approvals arrive in a later release",
-        ));
-    }
-
-    let result = method.handle(ctx(), tools(), &request).await?;
-    serialize_bridge_result(method.name(), &*result)
-}
-
 async fn process_shared(
     app_handle: &AppHandle,
     app_state: &State<'_, AppState>,
@@ -209,20 +164,22 @@ async fn process_shared(
         }
     }
 
-    if let Err(err) = ensure_can_sign(app_state, method).await {
+    if method.requires_signing() && app_state.lock().await.is_watch_only() {
         return Ok(RustBridgeInvokeResult::error(
             &request.id,
-            err.code,
-            err.message,
+            "watch_only",
+            "Watch-only wallets can't create or sign transactions",
         ));
     }
 
     match method
         .prepare_approval(
-            BridgeContext {
-                caller: BridgeCaller::App(app),
+            BridgeContext { app },
+            BridgeTools {
+                app_handle,
+                app_state,
+                host_state: &app_handle.state::<AppsHostState>(),
             },
-            BridgeTools::new(app_handle, app_state, &app_handle.state::<AppsHostState>()),
             request,
         )
         .await
@@ -267,10 +224,12 @@ async fn execute_bridge_request(
 
     let result = method
         .handle(
-            BridgeContext {
-                caller: BridgeCaller::App(&origin.app),
+            BridgeContext { app: &origin.app },
+            BridgeTools {
+                app_handle,
+                app_state,
+                host_state: &app_handle.state::<AppsHostState>(),
             },
-            BridgeTools::new(app_handle, app_state, &app_handle.state::<AppsHostState>()),
             request,
         )
         .await;
@@ -312,10 +271,12 @@ async fn execute_approved_bridge_request(
     let result = method
         .handle_approved(
             &pending.approval,
-            BridgeContext {
-                caller: BridgeCaller::App(&origin.app),
+            BridgeContext { app: &origin.app },
+            BridgeTools {
+                app_handle,
+                app_state,
+                host_state: &app_handle.state::<AppsHostState>(),
             },
-            BridgeTools::new(app_handle, app_state, &app_handle.state::<AppsHostState>()),
             &pending.request,
             response,
         )
@@ -329,36 +290,17 @@ fn bridge_handle_result_to_response(
     method_name: &str,
     result: crate::BridgeHandleResult,
 ) -> RustBridgeResponse {
-    match result.and_then(|value| serialize_bridge_result(method_name, &*value)) {
-        Ok(value) => RustBridgeResponse::success(request_id, &value),
+    match result {
+        Ok(value) => match erased_serde::serialize(&*value, serde_json::value::Serializer) {
+            Ok(value) => RustBridgeResponse::success(request_id, &value),
+            Err(err) => RustBridgeResponse::error(
+                request_id,
+                "internal_error",
+                format!("failed to encode {method_name} result: {err}"),
+            ),
+        },
         Err(err) => RustBridgeResponse::error(request_id, err.code, err.message),
     }
-}
-
-/// Refuses methods that sign while a watch-only wallet is loaded.
-async fn ensure_can_sign(
-    app_state: &State<'_, AppState>,
-    method: &dyn BridgeMethod,
-) -> Result<(), BridgeMethodHandleError> {
-    if method.requires_signing() && app_state.lock().await.is_watch_only() {
-        return Err(BridgeMethodHandleError::new(
-            "watch_only",
-            "Watch-only wallets can't create or sign transactions",
-        ));
-    }
-
-    Ok(())
-}
-
-fn serialize_bridge_result(
-    method_name: &str,
-    value: &(dyn erased_serde::Serialize + Send),
-) -> Result<Value, BridgeMethodHandleError> {
-    erased_serde::serialize(value, serde_json::value::Serializer).map_err(|err| {
-        BridgeMethodHandleError::internal_error(format!(
-            "failed to encode {method_name} result: {err}"
-        ))
-    })
 }
 
 async fn active_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u32> {

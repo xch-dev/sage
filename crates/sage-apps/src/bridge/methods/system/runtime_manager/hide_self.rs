@@ -33,7 +33,7 @@ impl BridgeMethod for RuntimeManagerHideSelf {
         tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        hide_runtime(tools.app_handle, tools.host_state, &ctx.app()?.id())
+        hide_runtime(tools.app_handle, tools.host_state, &ctx.app.id())
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 

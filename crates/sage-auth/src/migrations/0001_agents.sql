@@ -8,3 +8,5 @@ CREATE TABLE IF NOT EXISTS sage_agents (
     updated_at_ms INTEGER NOT NULL,
     last_used_at_ms INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);

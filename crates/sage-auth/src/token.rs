@@ -1,35 +1,12 @@
-use std::collections::BTreeSet;
-
 use rand::{RngCore, rngs::OsRng};
-use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use specta::Type;
-
-use crate::{SageAppWalletScope, UserBridgeCapability};
 
 const TOKEN_PREFIX: &str = "sage_agent_";
 const TOKEN_BODY_LEN: usize = 64;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct SageAgent {
-    pub id: String,
-    pub name: String,
-    pub capabilities: BTreeSet<UserBridgeCapability>,
-    pub wallet_scope: SageAppWalletScope,
-    pub created_at_ms: i64,
-    pub updated_at_ms: i64,
-    pub last_used_at_ms: Option<i64>,
-}
-
-impl SageAgent {
-    pub fn is_wallet_in_scope(&self, fingerprint: u32) -> bool {
-        self.wallet_scope.allows(fingerprint)
-    }
-}
-
 /// Plaintext agent bearer token; deliberately has no `Debug` or `Display`.
 #[derive(Clone)]
+#[allow(missing_debug_implementations)]
 pub struct AgentToken(String);
 
 impl AgentToken {

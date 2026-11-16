@@ -17,6 +17,4 @@ pub enum ErrorKind {
     /// One or more recipients couldn't be used. See the attached recipient errors.
     Recipient,
     AlreadyRunning,
-    /// The apps database couldn't be opened. It holds app and agent state, not wallet data.
-    AppsDatabase,
 }
