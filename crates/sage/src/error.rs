@@ -18,8 +18,8 @@ use sage_assets::UriError;
 use sage_database::DatabaseError;
 use sage_keychain::KeychainError;
 use sage_wallet::{
-    SyncCommand, VaultConfigFileError, VaultHistoryError, WalletError, XchandlesApiError,
-    XchandlesError,
+    SyncCommand, VaultConfigFileError, VaultHistoryError, WalletError, WalletKind,
+    XchandlesApiError, XchandlesError,
 };
 use sqlx::migrate::MigrateError;
 use thiserror::Error;
@@ -148,6 +148,17 @@ pub enum Error {
 
     #[error("Wallet {0} isn't a vault")]
     NotVaultWallet(u32),
+
+    #[error("{} wallets can't {action}", .kind.name())]
+    WalletKindNotSupported {
+        kind: WalletKindName,
+        action: &'static str,
+    },
+
+    #[error(
+        "Refusing to sign with a vault's keys for anything other than the vault's spend through its custody"
+    )]
+    VaultSignatureNotAllowed,
 
     #[error(
         "Import a vault from one of its launcher id, an address it has spent from, or a config file. Recovery keys can only be given with a launcher id or address."
@@ -413,6 +424,34 @@ pub enum Error {
     OfferHandleNft(String),
 }
 
+/// The kind of a wallet, as named in errors about what it can't do.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WalletKindName {
+    Bls,
+    Watch,
+    Vault,
+}
+
+impl WalletKindName {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Bls => "BLS",
+            Self::Watch => "Watch",
+            Self::Vault => "Vault",
+        }
+    }
+}
+
+impl From<WalletKind> for WalletKindName {
+    fn from(kind: WalletKind) -> Self {
+        match kind {
+            WalletKind::Bls { .. } => Self::Bls,
+            WalletKind::Watch => Self::Watch,
+            WalletKind::Vault { .. } => Self::Vault,
+        }
+    }
+}
+
 fn recipient_errors_message(errors: &[RecipientError]) -> String {
     errors
         .iter()
@@ -433,7 +472,11 @@ impl Error {
     pub fn kind(&self) -> ErrorKind {
         match self {
             Self::Recipients(..) => ErrorKind::Recipient,
-            Self::Wallet(..) | Self::NoSigningKey | Self::NoVaultSigners => ErrorKind::Wallet,
+            Self::Wallet(..)
+            | Self::NoSigningKey
+            | Self::NoVaultSigners
+            | Self::WalletKindNotSupported { .. }
+            | Self::VaultSignatureNotAllowed => ErrorKind::Wallet,
             Self::Xchandles(error) => match error {
                 XchandlesError::Database(..) => ErrorKind::Internal,
                 error if error.is_not_registered() => ErrorKind::NotFound,

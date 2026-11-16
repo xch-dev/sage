@@ -1,6 +1,7 @@
 mod cert_verifier;
 mod openapi;
 mod rustls_config;
+mod wallet_kinds;
 
 #[cfg(test)]
 mod tests;
@@ -24,6 +25,7 @@ use sage_api_macro::impl_endpoints;
 use serde::Serialize;
 use tokio::sync::Mutex;
 use tracing::info;
+use wallet_kinds::*;
 
 // Re-export for CLI usage
 pub use openapi::generate_openapi as generate_openapi_spec;

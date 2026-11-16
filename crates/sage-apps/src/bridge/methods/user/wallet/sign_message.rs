@@ -57,6 +57,11 @@ impl BridgeMethod for WalletSignMessage {
         true
     }
 
+    /// A vault's addresses aren't locked to a key, so it can't sign by public key.
+    fn supports_vaults(&self) -> bool {
+        false
+    }
+
     fn approval_request(
         &self,
         _ctx: BridgeContext<'_>,

@@ -41,7 +41,7 @@ use tracing_subscriber::{
     EnvFilter, Layer, Registry, filter::filter_fn, fmt, layer::SubscriberExt,
 };
 
-use crate::{DataDirLock, Error, PendingHandleSends, Result, peers::Peers};
+use crate::{DataDirLock, Error, PendingHandleSends, Result, WalletKindName, peers::Peers};
 
 static LOGGING_SETUP: Once = Once::new();
 
@@ -403,6 +403,19 @@ impl Sage {
 
         let wallet_config = self.wallet_config().cloned().unwrap_or_default();
 
+        // Only BLS wallets can send change somewhere else. A vault's change always goes back to
+        // the vault, so it stays behind the vault's custody and recovery, and watch wallets never
+        // make change.
+        let change_p2_puzzle_hash = match kind {
+            WalletKind::Bls { .. } => wallet_config
+                .change_address
+                .as_ref()
+                .map(|address| Address::decode(address))
+                .transpose()?
+                .map(|address| address.puzzle_hash),
+            WalletKind::Watch | WalletKind::Vault { .. } => None,
+        };
+
         let wallet = Arc::new(Wallet::new(
             db.clone(),
             shared_db,
@@ -410,12 +423,7 @@ impl Sage {
             kind,
             self.network().genesis_challenge,
             AggSigConstants::new(self.network().agg_sig_me()),
-            wallet_config
-                .change_address
-                .as_ref()
-                .map(|address| Address::decode(address))
-                .transpose()?
-                .map(|address| address.puzzle_hash),
+            change_p2_puzzle_hash,
         ));
 
         wallet.set_transaction_expiration(self.wallet_config.defaults.transaction_expiration());
@@ -782,6 +790,13 @@ impl Sage {
             .is_some_and(|wallet| matches!(wallet.kind, WalletKind::Vault { .. }))
     }
 
+    /// Whether the open wallet is a vault with no attached signers, so it can't sign anything.
+    pub fn is_vault_without_signers(&self) -> bool {
+        self.wallet.as_ref().is_some_and(|wallet| {
+            matches!(wallet.kind, WalletKind::Vault { .. }) && wallet.vault_signer_keys().is_empty()
+        })
+    }
+
     /// The secret key that signs for a BLS wallet. Watch wallets never have one, and cold BLS
     /// wallets only have their public key. Vaults sign with their signers' keys instead, which
     /// [`Sage::sign`] uses, but they can't sign with a single key.
@@ -789,7 +804,12 @@ impl Sage {
         match wallet.kind {
             WalletKind::Bls { .. } => {}
             WalletKind::Watch => return Err(WalletError::WatchOnly.into()),
-            WalletKind::Vault { .. } => return Err(WalletError::VaultSpendNotSupported.into()),
+            WalletKind::Vault { .. } => {
+                return Err(Error::WalletKindNotSupported {
+                    kind: WalletKindName::Vault,
+                    action: "sign with a single key",
+                });
+            }
         }
 
         let (_mnemonic, Some(master_sk)) =

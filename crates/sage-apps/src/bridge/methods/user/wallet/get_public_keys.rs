@@ -38,13 +38,15 @@ impl From<WalletGetPublicKeysParams> for GetDerivations {
 #[serde(transparent)]
 pub struct WalletGetPublicKeysResult(pub Vec<String>);
 
+/// A vault's addresses aren't locked to keys, so a vault has no public keys to list, and the
+/// result is empty.
 impl From<GetDerivationsResponse> for WalletGetPublicKeysResult {
     fn from(response: GetDerivationsResponse) -> Self {
         Self(
             response
                 .derivations
                 .into_iter()
-                .map(|derivation| derivation.public_key)
+                .filter_map(|derivation| derivation.public_key)
                 .collect(),
         )
     }

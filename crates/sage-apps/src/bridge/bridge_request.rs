@@ -165,9 +165,13 @@ async fn process_shared(
     }
 
     if method.requires_signing() {
-        let (is_watch_only, is_vault) = {
+        let (is_watch_only, is_vault, is_vault_without_signers) = {
             let state = app_state.lock().await;
-            (state.is_watch_only(), state.is_vault())
+            (
+                state.is_watch_only(),
+                state.is_vault(),
+                state.is_vault_without_signers(),
+            )
         };
 
         if is_watch_only {
@@ -178,11 +182,19 @@ async fn process_shared(
             ));
         }
 
-        if is_vault {
+        if is_vault && !method.supports_vaults() {
             return Ok(RustBridgeInvokeResult::error(
                 &request.id,
                 "vault_unsupported",
-                "Vaults can't create or sign transactions yet",
+                format!("Vaults can't use {}", method.name()),
+            ));
+        }
+
+        if is_vault_without_signers {
+            return Ok(RustBridgeInvokeResult::error(
+                &request.id,
+                "no_vault_signers",
+                "No keys that sign for this vault are attached, so it can't sign",
             ));
         }
     }

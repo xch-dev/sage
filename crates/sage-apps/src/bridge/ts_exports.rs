@@ -33,13 +33,13 @@ use crate::{
     RustBridgeInvokeResult, SageAppCapabilityDefinitionView, SageAppWalletScope,
     SageNetworkPermissionInfo, SandboxStateChangedEvent, SandboxStateView,
     SelectedWalletChangedEvent, SetBeforeStopListenerParams, SystemKillRuntimeResult,
-    SystemWalletView, WalletFilterUnlockedCoinsParams, WalletFilterUnlockedCoinsResult,
-    WalletGetAssetBalanceParams, WalletGetAssetBalanceResult, WalletGetAssetCoinsParams,
-    WalletGetAssetCoinsResult, WalletGetContactsResult, WalletGetPublicKeysParams,
-    WalletGetPublicKeysResult, WalletListWalletsResult, WalletLookupAddressContactsResult,
-    WalletSendTransactionParams, WalletSendTransactionResult, WalletSendXchApprovalResponse,
-    WalletSendXchParams, WalletSignCoinSpendsParams, WalletSignCoinSpendsResult,
-    WalletSignMessageParams, WalletSignMessageResult,
+    SystemWalletKind, SystemWalletView, WalletFilterUnlockedCoinsParams,
+    WalletFilterUnlockedCoinsResult, WalletGetAssetBalanceParams, WalletGetAssetBalanceResult,
+    WalletGetAssetCoinsParams, WalletGetAssetCoinsResult, WalletGetContactsResult,
+    WalletGetPublicKeysParams, WalletGetPublicKeysResult, WalletListWalletsResult,
+    WalletLookupAddressContactsResult, WalletSendTransactionParams, WalletSendTransactionResult,
+    WalletSendXchApprovalResponse, WalletSendXchParams, WalletSignCoinSpendsParams,
+    WalletSignCoinSpendsResult, WalletSignMessageParams, WalletSignMessageResult,
 };
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -174,6 +174,7 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     types.register::<SandboxStateView>();
 
     types.register::<SageAppWalletScope>();
+    types.register::<SystemWalletKind>();
     types.register::<SystemWalletView>();
     types.register::<WalletListWalletsResult>();
 

@@ -137,7 +137,7 @@ pub struct LineageProof {
     feature = "openapi",
     crate::openapi_attr(
         tag = "WalletConnect",
-        description = "Sign a message using a specific public key."
+        description = "Sign a message using a specific public key. Only BLS wallets can sign by public key: vaults sign by address instead, and watch wallets can't sign."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -224,7 +224,7 @@ pub struct SpendBundle {
     feature = "openapi",
     crate::openapi_attr(
         tag = "WalletConnect",
-        description = "Sign a message using the key associated with an address."
+        description = "Sign a message using the key associated with an address. A vault signs as the vault for one of its addresses, and returns a vaultsig proof with its vault1 id. Watch wallets can't sign."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -245,8 +245,10 @@ pub struct SignMessageByAddress {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct SignMessageByAddressResponse {
-    /// Public key used
+    /// The public key used, in hex. For a vault, this is the vault's `vault1` id, which a verifier
+    /// uses to look up its custody hash
     pub public_key: String,
-    /// Signature
+    /// The signature, in hex. For a vault, this is a `vaultsig` vault message proof, in which the
+    /// vault signed the tree hash of `("Chia Signed Message", message)`
     pub signature: String,
 }

@@ -23,7 +23,11 @@ export async function handleGetPublicKeys(
     hardened: params?.hardened ?? false,
   });
 
-  return data.derivations.map((derivation) => derivation.public_key);
+  // A vault's addresses aren't locked to keys, so a vault has no public keys
+  // to share, and dApps should use its addresses and asset coins instead.
+  return data.derivations.flatMap((derivation) =>
+    derivation.public_key === null ? [] : [derivation.public_key],
+  );
 }
 
 export async function handleFilterUnlockedCoins(

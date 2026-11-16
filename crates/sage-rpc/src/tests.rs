@@ -1,6 +1,7 @@
 mod contacts;
 mod keys;
 mod recipients;
+mod vault_external;
 mod vault_mint;
 mod vault_offers;
 mod vault_recovery;

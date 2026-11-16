@@ -1315,7 +1315,20 @@ delete_keys?: boolean }
  * Response for wallet deletion
  */
 export type DeleteWalletResponse = Record<string, never>
-export type DerivationRecord = { index: number; public_key: string; address: string }
+/**
+ * One of the wallet's addresses. A BLS wallet's addresses are derived from its key, and a
+ * vault's are its P2 singleton addresses, numbered by their nonce
+ */
+export type DerivationRecord = { 
+/**
+ * The derivation index of a BLS wallet's address, or the nonce of a vault's address
+ */
+index: number; 
+/**
+ * The synthetic public key of a BLS wallet's address, in hex. A vault's addresses aren't
+ * locked to a key, so they have none
+ */
+public_key: string | null; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
 export type EnvironmentThemeView = { name: string; displayName: string; mostLike?: string | null; inherits?: string | null; cssVars: Partial<{ [key in string]: string }> }
@@ -4148,11 +4161,13 @@ address: string }
  */
 export type SignMessageByAddressResponse = { 
 /**
- * Public key used
+ * The public key used, in hex. For a vault, this is the vault's `vault1` id, which a verifier
+ * uses to look up its custody hash
  */
 publicKey: string; 
 /**
- * Signature
+ * The signature, in hex. For a vault, this is a `vaultsig` vault message proof, in which the
+ * vault signed the tree hash of `("Chia Signed Message", message)`
  */
 signature: string }
 /**

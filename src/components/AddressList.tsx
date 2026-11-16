@@ -33,7 +33,8 @@ const AddressCell = ({ row }: { row: Row<DerivationRecord> }) => {
 const PublicKeyHeader = () => <Trans>Public Key</Trans>;
 
 const PublicKeyCell = ({ row }: { row: Row<DerivationRecord> }) => {
-  const publicKey = row.getValue('public_key') as string;
+  // A vault's addresses aren't locked to a key, so they have none.
+  const publicKey = (row.getValue('public_key') as string | null) ?? '';
   return (
     <AddressItem
       address={publicKey}

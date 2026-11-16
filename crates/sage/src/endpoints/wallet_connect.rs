@@ -4,7 +4,7 @@ use chia_wallet_sdk::{
         bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
         puzzle_types::{DeriveSynthetic, Proof},
     },
-    driver::P2DelegatedConditionsLayer,
+    driver::{P2DelegatedConditionsLayer, VaultMessageProof, vault_message_envelope},
     prelude::*,
 };
 use sage_api::{
@@ -16,15 +16,20 @@ use sage_api::{
         SignMessageWithPublicKey, SignMessageWithPublicKeyResponse, SpendableCoin,
     },
 };
-use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, DeserializePrimitive, P2Puzzle};
+use sage_database::{
+    AssetFilter, CoinFilterMode, CoinSortMode, ConditionsOrSingleton, DeserializePrimitive,
+    P2Puzzle,
+};
 use sage_wallet::{
-    Status, SyncCommand, Transaction, WalletError, insert_transaction, submit_to_peers,
+    Status, SyncCommand, Transaction, Wallet, WalletError, custody_mips_spend, insert_transaction,
+    sign_with_secret_keys, submit_to_peers,
 };
 use tracing::{debug, info, warn};
 
 use crate::{
-    Error, Result, Sage, parse_asset_id, parse_coin_id, parse_did_id, parse_hash, parse_nft_id,
-    parse_program, parse_public_key, parse_signature, parse_signature_message,
+    Error, Result, Sage, WalletKindName, encode_vault_id, parse_asset_id, parse_coin_id,
+    parse_did_id, parse_hash, parse_nft_id, parse_program, parse_public_key, parse_signature,
+    parse_signature_message,
 };
 
 impl Sage {
@@ -121,8 +126,25 @@ impl Sage {
                     P2DelegatedConditionsLayer::new(key).construct_puzzle(&mut ctx)?
                 }
                 P2Puzzle::External => return Err(WalletError::WatchOnly.into()),
-                P2Puzzle::P2Singleton(_) | P2Puzzle::P2ConditionsOrSingleton(_) => {
-                    return Err(WalletError::VaultSpendNotSupported.into());
+                // The MIPS puzzle doesn't depend on the delegated spend or the singleton's
+                // details, which are only in the solution.
+                P2Puzzle::P2Singleton(p2) => {
+                    p2.spend(
+                        &mut ctx,
+                        Bytes32::default(),
+                        1,
+                        Spend::new(NodePtr::NIL, NodePtr::NIL),
+                    )?
+                    .puzzle
+                }
+                P2Puzzle::P2ConditionsOrSingleton(ConditionsOrSingleton { p2, .. }) => {
+                    p2.p2_singleton_spend(
+                        &mut ctx,
+                        Bytes32::default(),
+                        1,
+                        Spend::new(NodePtr::NIL, NodePtr::NIL),
+                    )?
+                    .puzzle
                 }
             };
 
@@ -188,6 +210,14 @@ impl Sage {
     ) -> Result<SignMessageWithPublicKeyResponse> {
         let wallet = self.wallet()?;
 
+        // A vault's addresses aren't locked to a key, so it signs messages by address instead.
+        if wallet.vault_launcher_id().is_some() {
+            return Err(Error::WalletKindNotSupported {
+                kind: WalletKindName::Vault,
+                action: "sign messages with a public key. Sign by the vault's address instead",
+            });
+        }
+
         // Checked first, so watch wallets get a clear error rather than an unknown key.
         let master_sk = self.master_secret_key(&wallet)?;
 
@@ -220,6 +250,10 @@ impl Sage {
     ) -> Result<SignMessageByAddressResponse> {
         let wallet = self.wallet()?;
 
+        if let Some(launcher_id) = wallet.vault_launcher_id() {
+            return self.sign_vault_message(&wallet, launcher_id, req).await;
+        }
+
         // Checked first, so watch wallets get a clear error rather than an unknown key.
         let master_sk = self.master_secret_key(&wallet)?;
 
@@ -248,6 +282,71 @@ impl Sage {
         Ok(SignMessageByAddressResponse {
             public_key: hex::encode(public_key.to_bytes()),
             signature: hex::encode(signature.to_bytes()),
+        })
+    }
+
+    /// Signs a message as a vault, for one of the vault's addresses. The vault signs a
+    /// [`vault_message_envelope`] that sends the tree hash of `("Chia Signed Message", message)`,
+    /// the same message a BLS key signs, and the result is a `vaultsig` [`VaultMessageProof`].
+    ///
+    /// The proof is checked against the vault's custody hash, so it's only valid while the
+    /// vault's custody is unchanged. The response's public key is the vault's `vault1` id, which
+    /// a verifier uses to look up the custody hash.
+    async fn sign_vault_message(
+        &self,
+        wallet: &Wallet,
+        launcher_id: Bytes32,
+        req: SignMessageByAddress,
+    ) -> Result<SignMessageByAddressResponse> {
+        let p2_puzzle_hash = self.parse_address(req.address)?;
+
+        match wallet.db.p2_puzzle(p2_puzzle_hash).await {
+            Ok(P2Puzzle::P2Singleton(p2)) if p2.launcher_id == launcher_id => {}
+            _ => return Err(Error::InvalidKey),
+        }
+
+        let secret_keys = self.vault_signer_secret_keys(wallet.fingerprint)?;
+
+        if secret_keys.is_empty() {
+            return Err(Error::NoVaultSigners);
+        }
+
+        let vault = wallet.spendable_vault().await?;
+        let decoded_message = parse_signature_message(req.message)?;
+        let message: Bytes32 = ("Chia Signed Message", decoded_message).tree_hash().into();
+
+        let mut ctx = SpendContext::new();
+
+        let envelope = vault_message_envelope(&mut ctx, &vault.vault, &[message.to_vec().into()])?;
+        let mips_spend = custody_mips_spend(
+            &mut ctx,
+            &vault.custody,
+            vault.recovery_member_hash,
+            envelope,
+            &wallet.vault_signer_keys(),
+        )?;
+        vault.vault.spend(&mut ctx, &mips_spend)?;
+
+        let Some(coin_spend) = ctx.take().into_iter().next() else {
+            return Err(Error::MissingCoin(vault.vault.coin.coin_id()));
+        };
+
+        let spend_bundle = sign_with_secret_keys(
+            SpendBundle::new(vec![coin_spend], Signature::default()),
+            &AggSigConstants::new(self.network().agg_sig_me()),
+            &secret_keys,
+            false,
+        )?;
+
+        let Some(coin_spend) = spend_bundle.coin_spends.into_iter().next() else {
+            return Err(Error::MissingCoin(vault.vault.coin.coin_id()));
+        };
+
+        let proof = VaultMessageProof::new(coin_spend, spend_bundle.aggregated_signature);
+
+        Ok(SignMessageByAddressResponse {
+            public_key: encode_vault_id(launcher_id)?,
+            signature: proof.encode_string()?,
         })
     }
 
