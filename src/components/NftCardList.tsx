@@ -29,7 +29,6 @@ interface NftCardListProps {
   addError?: (error: Error) => void;
   children?: ReactNode;
   cardSize?: CardSize;
-  setSplitNftOffers?: (value: boolean) => void;
 }
 
 export function NftCardList({
@@ -49,7 +48,6 @@ export function NftCardList({
   addError,
   children,
   cardSize = CardSize.Large,
-  setSplitNftOffers,
 }: NftCardListProps) {
   const handleSelection = useCallback(
     (id: string) => {
@@ -97,7 +95,6 @@ export function NftCardList({
                   .then(() => updateNfts(page))
                   .catch(addError);
               }}
-              setSplitNftOffers={setSplitNftOffers}
             />
           ))}
         </>
@@ -121,7 +118,6 @@ export function NftCardList({
               updateNfts={updateNfts}
               page={page}
               isPlaceHolder={false}
-              setSplitNftOffers={setSplitNftOffers}
             />
           ))}
         </>
@@ -145,7 +141,6 @@ export function NftCardList({
               updateNfts={updateNfts}
               page={page}
               isPlaceHolder={false}
-              setSplitNftOffers={setSplitNftOffers}
             />
           ))}
         </>

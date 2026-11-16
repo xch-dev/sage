@@ -804,13 +804,16 @@ impl Sage {
 
         let nft_id = parse_nft_id(req.nft_id)?;
 
-        let Some(nft) = wallet.db.nft(nft_id).await? else {
-            return Ok(GetNftThumbnailResponse { thumbnail: None });
-        };
+        // Any NFT the wallet knows, not only ones it holds: an NFT looked up for an offer is
+        // saved too, and its data is downloaded and thumbnailed like any other.
+        let data_hash = wallet
+            .db
+            .offer_nft_info(nft_id)
+            .await?
+            .and_then(|info| info.parsed_metadata())
+            .and_then(|metadata| metadata.data_hash);
 
-        let metadata = nft.info.parsed_metadata();
-
-        let Some(data_hash) = metadata.as_ref().and_then(|m| m.data_hash) else {
+        let Some(data_hash) = data_hash else {
             return Ok(GetNftThumbnailResponse { thumbnail: None });
         };
 

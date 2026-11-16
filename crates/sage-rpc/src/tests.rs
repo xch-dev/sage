@@ -39,14 +39,14 @@ use sage_api::{
     Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CoinFilterMode, CoinJson,
     CoinSortMode, CoinSpendJson, CreateDid, CreateTransaction, GetAreCoinsSpendable, GetCats,
     GetCoins, GetCoinsByIds, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater,
-    GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet, HandleFilterMode,
-    HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet, IssueCat, Login,
-    LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind, OfferAmount,
-    OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, TakeOffer,
+    GetNftThumbnail, GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet,
+    HandleFilterMode, HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet,
+    IssueCat, Login, LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind,
+    OfferAmount, OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, TakeOffer,
     UpdateNftAction, ViewCoinSpends, ViewOffer, wallet_connect::FilterUnlockedCoins,
 };
 use sage_api_macro::impl_endpoints;
-use sage_database::{OfferStatus, XchandleRow, XchandleStatus};
+use sage_database::{OfferStatus, ResizedImageKind, XchandleRow, XchandleStatus};
 use sage_wallet::{SyncCommand, SyncEvent};
 use serde::{Serialize, de::DeserializeOwned};
 use tempfile::TempDir;
@@ -1904,6 +1904,64 @@ async fn test_requested_mutable_nft() -> Result<()> {
     );
 
     Ok(())
+}
+
+#[tokio::test]
+async fn test_thumbnail_of_requested_nft() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(1000).await?;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let nft_id = mint_mutable_nft(&mut app).await?;
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
+
+    // Bob doesn't hold the NFT and hasn't looked it up, so it's unknown to his wallet.
+    assert_eq!(nft_thumbnail(&mut app, &nft_id).await?, None);
+
+    app.get_nft_metadata_updater(GetNftMetadataUpdater {
+        nft_id: nft_id.clone(),
+    })
+    .await?;
+
+    // Looking it up saves the NFT, but its data hasn't been downloaded yet. (The download
+    // queue doesn't run in tests.)
+    assert_eq!(nft_thumbnail(&mut app, &nft_id).await?, None);
+
+    // Once the wallet has a thumbnail of the NFT's data, it's returned even though Bob
+    // doesn't hold the NFT.
+    // The image hash that `mint_mutable_nft` gives the NFT.
+    let data_hash = Bytes32::new([1; 32]);
+    let png = vec![1, 2, 3];
+    {
+        let wallet = app.sage.lock().await.wallet()?;
+        let mut tx = wallet.db.tx().await?;
+        tx.insert_file(data_hash).await?;
+        tx.insert_resized_image(data_hash, ResizedImageKind::Thumbnail, png)
+            .await?;
+        tx.commit().await?;
+    }
+
+    assert_eq!(
+        nft_thumbnail(&mut app, &nft_id).await?.as_deref(),
+        Some("AQID")
+    );
+
+    Ok(())
+}
+
+async fn nft_thumbnail(app: &mut TestApp, nft_id: &str) -> Result<Option<String>> {
+    Ok(app
+        .get_nft_thumbnail(GetNftThumbnail {
+            nft_id: nft_id.to_string(),
+        })
+        .await?
+        .thumbnail)
 }
 
 #[tokio::test]

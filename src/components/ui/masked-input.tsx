@@ -2,7 +2,11 @@ import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import * as React from 'react';
-import { NumericFormat, NumericFormatProps } from 'react-number-format';
+import {
+  NumericFormat,
+  NumericFormatProps,
+  SourceInfo,
+} from 'react-number-format';
 import { toast } from 'react-toastify';
 import { Input, InputProps } from './input';
 import { Button } from '@/components/ui/button';
@@ -232,10 +236,14 @@ interface FeeAmountInputProps extends Omit<TokenInputProps, 'value'> {
   value?: string;
   className?: string;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onValueChange?: (values: {
-    floatValue: number | undefined;
-    value: string;
-  }) => void;
+  onValueChange?: (
+    values: {
+      floatValue: number | undefined;
+      value: string;
+    },
+    // Absent when the input fills in the default fee.
+    sourceInfo?: SourceInfo,
+  ) => void;
 }
 
 const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
@@ -243,10 +251,13 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     const { fee: defaultFee } = useDefaultFee();
     const hasSetInitialValue = React.useRef(false);
 
-    // Set initial value when component mounts
+    // Start from the default fee if the input first appears empty. Only on
+    // mount: a value cleared later (by the user, or by its owner resetting
+    // it) shouldn't be replaced with the default.
     React.useEffect(() => {
-      if (!value && !hasSetInitialValue.current) {
-        hasSetInitialValue.current = true;
+      if (hasSetInitialValue.current) return;
+      hasSetInitialValue.current = true;
+      if (!value) {
         if (onChange) {
           onChange({
             target: { value: defaultFee },
