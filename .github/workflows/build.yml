@@ -60,7 +60,7 @@ jobs:
 
       - name: Unused dependencies
         run: |
-          cargo install cargo-machete --locked
+          cargo install cargo-machete@0.10.1 --locked
           cargo machete --skip-target-dir
 
       - name: Fmt

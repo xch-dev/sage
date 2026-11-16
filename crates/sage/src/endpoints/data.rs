@@ -873,20 +873,13 @@ impl Sage {
             )
             .encode()?,
             royalty_ten_thousandths: row.nft_info.royalty_basis_points,
-            data_uris: metadata
-                .as_ref()
-                .map(|m| m.data_uris.clone())
-                .unwrap_or_default(),
+            data_uris: metadata.as_ref().map_or_default(|m| m.data_uris.clone()),
             data_hash: data_hash.map(hex::encode),
             metadata_uris: metadata
                 .as_ref()
-                .map(|m| m.metadata_uris.clone())
-                .unwrap_or_default(),
+                .map_or_default(|m| m.metadata_uris.clone()),
             metadata_hash: metadata_hash.map(hex::encode),
-            license_uris: metadata
-                .as_ref()
-                .map(|m| m.license_uris.clone())
-                .unwrap_or_default(),
+            license_uris: metadata.as_ref().map_or_default(|m| m.license_uris.clone()),
             license_hash: license_hash.map(hex::encode),
             edition_number: metadata
                 .as_ref()
