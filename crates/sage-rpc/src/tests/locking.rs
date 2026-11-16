@@ -51,6 +51,13 @@ async fn exclusive_requests_wait_for_requests_in_progress() -> Result<()> {
         "an exclusive request should wait for the request in progress"
     );
 
+    // A queued writer keeps new readers out, so this shows that the login is waiting for the
+    // lock, rather than just being slow.
+    assert!(
+        app.sage.try_read().is_err(),
+        "the login should be waiting for exclusive access"
+    );
+
     drop(held);
 
     timeout(WAIT, login)

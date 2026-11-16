@@ -14,6 +14,8 @@ use tokio::sync::Mutex;
 
 use crate::{AppRuntimeState, AppsDb, BridgeState, EnvironmentThemeView, SandboxStateStore};
 
+/// This must be the same type as `AppState` in `src-tauri/src/app_state.rs`, which is what
+/// Tauri manages, since this crate isn't built for mobile and can't define it for both.
 pub type AppState = Arc<tokio::sync::RwLock<Sage>>;
 
 #[derive(Debug)]

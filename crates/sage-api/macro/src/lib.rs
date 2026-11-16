@@ -70,42 +70,29 @@ pub fn response_schemas(input: TokenStream) -> TokenStream {
     openapi::impl_response_schemas(input)
 }
 
-/// The endpoints which need exclusive access to `Sage`, since they take `&mut self`. Every
-/// other endpoint runs under a shared lock, at the same time as others.
-fn exclusive_endpoints() -> HashSet<String> {
+fn generate(input: &TokenStream, tauri: bool) -> TokenStream {
+    let mut endpoints: IndexMap<String, bool> =
+        serde_json::from_str(include_str!("../../endpoints.json")).expect("Invalid endpoint file");
+    let tauri_endpoints: IndexMap<String, bool> =
+        serde_json::from_str(include_str!("../../endpoints-tauri.json"))
+            .expect("Invalid endpoint file");
+
+    // The endpoints which need exclusive access to `Sage`, since they take `&mut self`. Every
+    // other endpoint runs under a shared lock, at the same time as others.
     let exclusive: HashSet<String> =
         serde_json::from_str(include_str!("../../endpoints-exclusive.json"))
             .expect("Invalid exclusive endpoint file");
 
-    let rpc: IndexMap<String, bool> =
-        serde_json::from_str(include_str!("../../endpoints.json")).expect("Invalid endpoint file");
-    let tauri: IndexMap<String, bool> =
-        serde_json::from_str(include_str!("../../endpoints-tauri.json"))
-            .expect("Invalid endpoint file");
-
     for endpoint in &exclusive {
         assert!(
-            rpc.contains_key(endpoint) || tauri.contains_key(endpoint),
+            endpoints.contains_key(endpoint) || tauri_endpoints.contains_key(endpoint),
             "Unknown exclusive endpoint {endpoint}"
         );
     }
 
-    exclusive
-}
-
-fn generate(input: &TokenStream, tauri: bool) -> TokenStream {
-    let mut endpoints: IndexMap<String, bool> =
-        serde_json::from_str(include_str!("../../endpoints.json")).expect("Invalid endpoint file");
-
     if tauri {
-        let tauri_endpoints: IndexMap<String, bool> =
-            serde_json::from_str(include_str!("../../endpoints-tauri.json"))
-                .expect("Invalid endpoint file");
-
         endpoints.extend(tauri_endpoints);
     }
-
-    let exclusive = exclusive_endpoints();
 
     let mut output = proc_macro2::TokenStream::new();
 
