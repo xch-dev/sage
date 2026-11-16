@@ -1935,6 +1935,7 @@ async fn test_thumbnail_of_requested_nft() -> Result<()> {
 
     // Once the wallet has a thumbnail of the NFT's data, it's returned even though Bob
     // doesn't hold the NFT.
+    // The image hash that `mint_mutable_nft` gives the NFT.
     let data_hash = Bytes32::new([1; 32]);
     let png = vec![1, 2, 3];
     {
