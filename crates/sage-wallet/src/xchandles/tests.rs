@@ -324,12 +324,17 @@ impl MockIndex {
 }
 
 impl XchandlesIndex for MockIndex {
-    async fn handle(&self, _handle: &Handle) -> Result<HandleResponse, XchandlesApiError> {
-        self.0
+    fn handle(
+        &self,
+        _handle: &Handle,
+    ) -> impl Future<Output = Result<HandleResponse, XchandlesApiError>> + Send {
+        let response = self
+            .0
             .lock()
             .unwrap()
             .pop_front()
-            .ok_or(XchandlesApiError::IndexStale)
+            .ok_or(XchandlesApiError::IndexStale);
+        std::future::ready(response)
     }
 }
 
