@@ -96,10 +96,10 @@ pub fn scoped_connection_router(
     let pairing = Router::new()
         .route("/pairing/request", post(request_pairing))
         .route("/pairing/collect", post(collect_pairing))
-        .with_state(store.clone());
+        .with_state(store.clone())
+        .layer(DefaultBodyLimit::max(16 * 1024));
     crate::make_scoped_router(sage, Arc::new(store))
         .merge(pairing)
-        .layer(DefaultBodyLimit::max(16 * 1024))
         .layer(middleware::from_fn_with_state(port, local_requests))
 }
 
