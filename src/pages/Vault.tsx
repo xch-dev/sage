@@ -10,6 +10,7 @@ import {
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,14 +38,15 @@ import { ExportType, exportText } from '@/lib/exportText';
 import { keyWalletName } from '@/lib/walletKind';
 import {
   EMPTY_RECOVERY,
+  formatDuration,
   RecoveryInput,
-  timelockParts,
   vaultRecoveryKeys,
 } from '@/lib/vaultRecovery';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { Download, KeyRound, RotateCcw, Upload } from 'lucide-react';
+import { Download, KeyRound, Loader2, RotateCcw, Upload } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 function stateLabel(state: VaultState): string {
@@ -75,20 +77,6 @@ function memberKindLabel(kind: VaultMemberKind): string {
     case 'custom':
       return t`Custom`;
   }
-}
-
-/** A timelock in the same units it's entered in, such as "12 hours 30 minutes". */
-function formatDuration(timelock: number): string {
-  const { days, hours, minutes, seconds } = timelockParts(timelock);
-
-  return [
-    days === 1 ? t`1 day` : days > 0 ? t`${days} days` : null,
-    hours === 1 ? t`1 hour` : hours > 0 ? t`${hours} hours` : null,
-    minutes === 1 ? t`1 minute` : minutes > 0 ? t`${minutes} minutes` : null,
-    seconds === 1 ? t`1 second` : seconds > 0 ? t`${seconds} seconds` : null,
-  ]
-    .filter((part) => part !== null)
-    .join(' ');
 }
 
 function SignersList({ signers }: { signers: VaultSignersRecord }) {
@@ -254,6 +242,18 @@ export default function Vault() {
     }
   };
 
+  const canSpend = vault?.signers.some((signer) => signer.custody) ?? false;
+
+  // A newly minted vault asks for a backup of its config once it's known.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const backupRequested = searchParams.get('backup') === '1';
+  const backupOpen = backupRequested && vault?.config != null && !vault.minting;
+
+  const closeBackup = () => {
+    searchParams.delete('backup');
+    setSearchParams(searchParams, { replace: true });
+  };
+
   const config = vault?.config ?? null;
   const recoveryStartedAt = vault?.recovery_started_at
     ? new Date(vault.recovery_started_at * 1000).toLocaleString()
@@ -302,13 +302,34 @@ export default function Vault() {
               )}
             </CardTitle>
             <CardDescription>
-              <Trans>
-                This vault is read-only for now. Spending from it will come in a
-                future update.
-              </Trans>
+              {canSpend ? (
+                <Trans>
+                  Send and manage the vault&apos;s coins from the other pages,
+                  like any other wallet. Its custody key signs each transaction.
+                </Trans>
+              ) : (
+                <Trans>
+                  This vault is read-only, since none of its custody keys are
+                  attached. Attach a custody key to spend from it.
+                </Trans>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className='space-y-4'>
+            {vault?.minting && (
+              <Alert>
+                <Loader2 className='h-4 w-4 animate-spin' />
+                <AlertTitle>
+                  <Trans>Minting</Trans>
+                </AlertTitle>
+                <AlertDescription>
+                  <Trans>
+                    The vault appears once its mint transaction confirms. If the
+                    mint fails, this wallet is removed.
+                  </Trans>
+                </AlertDescription>
+              </Alert>
+            )}
             {vault && (
               <CopyBox
                 title={t`Launcher ID`}
@@ -359,6 +380,11 @@ export default function Vault() {
                 ) : (
                   <Trans>Read from the vault&apos;s memos on chain.</Trans>
                 )
+              ) : vault?.minting ? (
+                <Trans>
+                  The config is read from the vault&apos;s memos once its mint
+                  confirms.
+                </Trans>
               ) : (
                 <Trans>
                   This vault&apos;s config isn&apos;t known, since it has no
@@ -553,6 +579,42 @@ export default function Vault() {
             >
               <Trans>Attach</Trans>
             </LoadingButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={backupOpen}
+        onOpenChange={(open) => {
+          if (!open) closeBackup();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Back up your vault</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              <Trans>
+                Your vault is ready. Export its config and keep it with your
+                recovery phrase. With it, the vault can be imported again from
+                any wallet, even if its memos aren&apos;t available.
+              </Trans>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant='outline' onClick={closeBackup}>
+              <Trans>Later</Trans>
+            </Button>
+            <Button
+              onClick={async () => {
+                await exportConfig();
+                closeBackup();
+              }}
+            >
+              <Download className='h-4 w-4 mr-2' />
+              <Trans>Export Config</Trans>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

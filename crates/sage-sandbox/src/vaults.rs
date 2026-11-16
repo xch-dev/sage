@@ -1,8 +1,9 @@
 //! Vaults on the simulated chain, for testing vault import and the vault page.
 //!
-//! Sage can't create vaults yet, so the sandbox mints a fixed set of them at startup, one for each
-//! way a vault can be imported. Alice's key is the custody of each, so she can attach it as a
-//! signer, and bob's key is the recovery key where there is one.
+//! The sandbox mints a fixed set of vaults at startup, one for each way a vault can be imported,
+//! including ones Sage doesn't mint itself, such as legacy vaults and vaults without memos. Alice's
+//! key is the custody of each, so she can attach it as a signer, and bob's key is the recovery key
+//! where there is one.
 
 use std::{fs, path::Path, slice};
 

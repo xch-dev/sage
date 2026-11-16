@@ -1,6 +1,9 @@
 use std::{
     collections::{HashMap, HashSet},
-    sync::atomic::{AtomicU64, Ordering},
+    sync::{
+        RwLock,
+        atomic::{AtomicU64, Ordering},
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -29,6 +32,7 @@ mod nfts;
 mod offer;
 mod options;
 mod signing;
+mod vault;
 mod wallet_kind;
 mod xch;
 
@@ -38,6 +42,7 @@ pub use nfts::*;
 pub use offer::*;
 pub use options::*;
 pub use signing::*;
+pub use vault::*;
 pub use wallet_kind::*;
 
 use crate::WalletError;
@@ -56,6 +61,9 @@ pub struct Wallet {
     /// How many seconds a transaction can be confirmed for after it's created, or 0 for no
     /// limit. It's atomic so that changing the setting doesn't need the wallet to be reloaded.
     transaction_expiration: AtomicU64,
+    /// The public keys of the keychain keys that sign for a vault wallet, which are preferred
+    /// when choosing which of its custody members sign a spend.
+    vault_signer_keys: RwLock<Vec<PublicKey>>,
 }
 
 impl Wallet {
@@ -77,6 +85,7 @@ impl Wallet {
             agg_sig_constants,
             change_p2_puzzle_hash,
             transaction_expiration: AtomicU64::new(0),
+            vault_signer_keys: RwLock::new(Vec::new()),
         }
     }
 
@@ -85,6 +94,21 @@ impl Wallet {
     pub fn set_transaction_expiration(&self, seconds: u64) {
         self.transaction_expiration
             .store(seconds, Ordering::Relaxed);
+    }
+
+    /// Sets the public keys of the keychain keys that sign for this vault wallet.
+    pub fn set_vault_signer_keys(&self, keys: Vec<PublicKey>) {
+        *self
+            .vault_signer_keys
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = keys;
+    }
+
+    pub fn vault_signer_keys(&self) -> Vec<PublicKey> {
+        self.vault_signer_keys
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
     }
 
     pub fn transaction_expiration(&self) -> u64 {
@@ -106,12 +130,10 @@ impl Wallet {
     }
 
     /// Watch wallets don't know the puzzle reveals of their coins, so they can't spend them.
-    /// Vault wallets can't spend yet.
     fn ensure_spendable(&self) -> Result<(), WalletError> {
         match self.kind {
-            WalletKind::Bls { .. } => Ok(()),
+            WalletKind::Bls { .. } | WalletKind::Vault { .. } => Ok(()),
             WalletKind::Watch => Err(WalletError::WatchOnly),
-            WalletKind::Vault { .. } => Err(WalletError::VaultSpendNotSupported),
         }
     }
 
@@ -166,6 +188,12 @@ impl Wallet {
         selected_coin_ids: &[Bytes32],
     ) -> Result<Spends, WalletError> {
         self.ensure_spendable()?;
+
+        // A vault that can't be spent right now, for example because it has a pending spend,
+        // is refused before coins are selected, so the error explains why.
+        if self.vault_launcher_id().is_some() {
+            self.spendable_vault().await?;
+        }
 
         let change_p2_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
@@ -414,6 +442,10 @@ impl Wallet {
     ) -> Result<Outputs, WalletError> {
         self.ensure_spendable()?;
 
+        if self.vault_launcher_id().is_some() {
+            return self.complete_vault_spends(ctx, deltas, spends).await;
+        }
+
         let mut p2_puzzles = IndexMap::new();
 
         for p2_puzzle_hash in spends.p2_puzzle_hashes() {
@@ -536,5 +568,34 @@ impl Wallet {
         }
 
         Ok(spends.spend(ctx, coin_spends)?)
+    }
+
+    /// Finishes the spends of a vault wallet, whose coins are spent by its singleton.
+    async fn complete_vault_spends(
+        &self,
+        ctx: &mut SpendContext,
+        deltas: &Deltas,
+        mut spends: Spends,
+    ) -> Result<Outputs, WalletError> {
+        let vault = self.spendable_vault().await?;
+
+        let mut p2_puzzles = HashMap::new();
+
+        for p2_puzzle_hash in spends.p2_puzzle_hashes() {
+            if p2_puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
+                continue;
+            }
+
+            p2_puzzles.insert(p2_puzzle_hash, self.db.p2_puzzle(p2_puzzle_hash).await?);
+        }
+
+        // The vault approves each coin's spend with a message, which ties them together, so they
+        // don't need to assert each other. Conditions that no coin can output are output by the
+        // vault instead of an intermediate coin, which the vault couldn't spend.
+        spends.conditions.return_unplaced_conditions = true;
+
+        let spends = spends.prepare(ctx, deltas, Relation::None)?;
+
+        self.spend_vault_coins(ctx, spends, &p2_puzzles, &vault)
     }
 }

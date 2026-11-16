@@ -39,7 +39,7 @@ export function TopNav({ isCollapsed }: NavProps) {
   const isIos = platform() === 'ios';
   const isMobile = platform() === 'android' || isIos;
 
-  const { isVault } = useWallet();
+  const { isVault, isWatchOnly, isReadOnly } = useWallet();
 
   return (
     <nav
@@ -91,6 +91,16 @@ export function TopNav({ isCollapsed }: NavProps) {
           message={<Trans>Offers</Trans>}
         >
           <Handshake className={className} aria-hidden='true' />
+        </NavLink>
+      )}
+
+      {vaultsEnabled && !isVault && !isWatchOnly && !isReadOnly && (
+        <NavLink
+          url={'/vault/mint'}
+          isCollapsed={isCollapsed}
+          message={<Trans>Mint Vault</Trans>}
+        >
+          <Landmark className={className} aria-hidden='true' />
         </NavLink>
       )}
 

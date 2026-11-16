@@ -24,6 +24,10 @@ pub struct VaultRecord {
     pub config: Option<VaultConfigRecord>,
     /// The keychain keys that sign for the vault
     pub signers: Vec<VaultSignerRecord>,
+    /// Whether the vault was minted by this wallet, and the mint hasn't been found on chain yet.
+    /// If the mint fails, the vault wallet is removed
+    #[serde(default)]
+    pub minting: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

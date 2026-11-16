@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::VaultRecord;
+use crate::{Amount, CoinSpendJson, TransactionSummary, VaultRecord};
 
 /// Import an existing vault as a wallet
 #[cfg_attr(
@@ -236,4 +236,68 @@ pub struct FindVaultResponse {
 
 fn yes() -> bool {
     true
+}
+
+/// Mint a new vault, funded by the open BLS wallet
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Vaults",
+        description = "Mint a new vault with a BLS custody key and a BLS recovery key, in the layout Chia Cloud Wallet uses. The vault's singleton and the fee are paid by the open BLS wallet. The custody key is derived from the open wallet's key unless an existing keychain key is given, and the recovery key is a mnemonic or an existing keychain key. Both are stored in the keychain, and the new vault wallet is added with them as its signers. The recovery key exists to recover the vault if the custody key is lost, so it must also be backed up offline. Without `auto_submit`, nothing is stored, and the response only shows what the mint would do."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct MintVault {
+    /// Display name for the vault wallet
+    pub name: String,
+    /// Optional emoji identifier
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub emoji: Option<String>,
+    /// The fingerprint of a keychain key with a secret key to use as the custody key. If it isn't
+    /// given, a custody key is derived from the open wallet's key, so its mnemonic backs it up
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub custody_fingerprint: Option<u32>,
+    /// The recovery key's mnemonic, such as one from `generate_mnemonic`
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub recovery_mnemonic: Option<String>,
+    /// The fingerprint of a keychain key with a secret key to use as the recovery key, instead of
+    /// a mnemonic
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub recovery_fingerprint: Option<u32>,
+    /// How long a recovery takes before it can be finished, in seconds. It must be at least an
+    /// hour, so that a recovery this wallet didn't start can be cancelled in time
+    #[cfg_attr(feature = "openapi", schema(example = 43_200))]
+    pub recovery_timelock: u64,
+    /// Transaction fee
+    pub fee: Amount,
+    /// Whether to sign and submit the mint, and add the vault wallet
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub auto_submit: bool,
+}
+
+/// Response with the mint transaction and the vault's launcher id
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Vaults"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct MintVaultResponse {
+    /// The vault's launcher id, as a `vault1` id
+    pub launcher_id: String,
+    /// The fingerprint of the new vault wallet, once the mint is submitted
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fingerprint: Option<u32>,
+    /// The fingerprints of the custody and recovery keys
+    pub custody_fingerprint: u32,
+    pub recovery_fingerprint: u32,
+    /// Transaction summary
+    pub summary: TransactionSummary,
+    /// Coin spends in the transaction
+    pub coin_spends: Vec<CoinSpendJson>,
 }

@@ -126,8 +126,13 @@ impl Sage {
         })
     }
 
-    pub async fn get_vault(&self, _req: GetVault) -> Result<GetVaultResponse> {
+    pub async fn get_vault(&mut self, _req: GetVault) -> Result<GetVaultResponse> {
+        self.resolve_vault_mints().await?;
+
         let wallet = self.wallet()?;
+        let minting = self
+            .wallet_entry(wallet.fingerprint)
+            .is_some_and(|wallet| wallet.vault_mint.is_some());
         let launcher_id = self.vault_launcher_id(wallet.fingerprint)?;
         let signers = self.vault_signer_keys(wallet.fingerprint)?;
 
@@ -187,6 +192,7 @@ impl Sage {
                     .map(|config| config_record(&config, pre_recovery.as_ref(), &signers))
                     .transpose()?,
                 signers: signer_records,
+                minting,
             },
         })
     }
@@ -241,6 +247,15 @@ impl Sage {
 
         self.save_keychain()?;
         self.save_config()?;
+
+        // The open vault prefers its signers' members when it builds a spend.
+        if let Some(wallet) = self
+            .wallet
+            .as_ref()
+            .filter(|wallet| wallet.fingerprint == req.fingerprint)
+        {
+            wallet.set_vault_signer_keys(self.vault_signer_public_keys(req.fingerprint)?);
+        }
 
         Ok(AttachVaultSignerResponse {
             fingerprint: key_fingerprint,
@@ -364,8 +379,8 @@ impl Sage {
         Ok(keys)
     }
 
-    /// The database of a vault wallet, which doesn't need to be open.
-    async fn vault_database(&self, fingerprint: u32) -> Result<Database> {
+    /// The database of a wallet, which doesn't need to be open.
+    pub(crate) async fn vault_database(&self, fingerprint: u32) -> Result<Database> {
         if let Some(wallet) = self
             .wallet
             .as_ref()

@@ -7047,6 +7047,7 @@ dependencies = [
  "sage",
  "sage-api",
  "sage-api-macro",
+ "sage-config",
  "sage-database",
  "sage-wallet",
  "serde",

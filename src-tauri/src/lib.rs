@@ -48,6 +48,7 @@ macro_rules! sage_commands {
             commands::import_vault_config,
             commands::rebuild_vault_config,
             commands::find_vault,
+            commands::mint_vault,
             commands::delete_wallet,
             commands::delete_database,
             commands::rename_wallet,

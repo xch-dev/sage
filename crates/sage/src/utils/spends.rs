@@ -1,5 +1,8 @@
 use chia_wallet_sdk::prelude::*;
-use sage_wallet::{SyncCommand, Transaction, insert_transaction, is_fully_signed};
+use sage_wallet::{
+    SyncCommand, Transaction, Wallet, WalletError, insert_transaction, is_fully_signed,
+    parse_vault_spend_bundle, sign_with_secret_keys,
+};
 
 use crate::{Error, Result, Sage};
 
@@ -11,18 +14,54 @@ impl Sage {
     ) -> Result<SpendBundle> {
         let wallet = self.wallet()?;
 
-        let master_sk = self.master_secret_key(&wallet)?;
+        self.sign_with(
+            &wallet,
+            SpendBundle::new(coin_spends, Signature::default()),
+            partial,
+        )
+        .await
+    }
 
-        let spend_bundle = wallet
-            .sign_transaction(
-                SpendBundle::new(coin_spends, Signature::default()),
-                &AggSigConstants::new(self.network().agg_sig_me()),
-                master_sk,
-                partial,
-            )
-            .await?;
+    /// Signs a spend bundle with the wallet's keys: a BLS wallet's derived keys, or the keys of a
+    /// vault's signers.
+    ///
+    /// A vault's custody signs over its whole transaction, so what the vault spend does is checked
+    /// first with clear signing. A spend that changes the vault's custody or melts it is refused,
+    /// since nothing Sage makes through this path does either.
+    pub(crate) async fn sign_with(
+        &self,
+        wallet: &Wallet,
+        spend_bundle: SpendBundle,
+        partial: bool,
+    ) -> Result<SpendBundle> {
+        let agg_sig_constants = AggSigConstants::new(self.network().agg_sig_me());
 
-        Ok(spend_bundle)
+        let Some(launcher_id) = wallet.vault_launcher_id() else {
+            let master_sk = self.master_secret_key(wallet)?;
+
+            return Ok(wallet
+                .sign_transaction(spend_bundle, &agg_sig_constants, master_sk, partial)
+                .await?);
+        };
+
+        if let Some(summary) = parse_vault_spend_bundle(&spend_bundle.coin_spends, launcher_id)?
+            && summary.changes_custody()
+        {
+            return Err(WalletError::VaultCustodyChange.into());
+        }
+
+        let secret_keys = self.vault_signer_secret_keys(wallet.fingerprint)?;
+
+        if secret_keys.is_empty() && !partial {
+            return Err(Error::NoVaultSigners);
+        }
+
+        Ok(sign_with_secret_keys(
+            spend_bundle,
+            &agg_sig_constants,
+            &secret_keys,
+            partial,
+        )?)
     }
 
     pub(crate) fn is_fully_signed(

@@ -14,6 +14,7 @@
   "import_vault_config": true,
   "rebuild_vault_config": true,
   "find_vault": true,
+  "mint_vault": true,
   "delete_wallet": false,
   "delete_database": false,
   "rename_wallet": false,

@@ -419,6 +419,7 @@ impl Sage {
         ));
 
         wallet.set_transaction_expiration(self.wallet_config.defaults.transaction_expiration());
+        wallet.set_vault_signer_keys(self.vault_signer_public_keys(fingerprint)?);
 
         self.wallet = Some(wallet.clone());
         self.unit = Unit {
@@ -735,16 +736,55 @@ impl Sage {
             .is_some_and(|wallet| matches!(wallet.kind, WalletKind::Watch))
     }
 
-    /// Whether the open wallet is a vault, which can't sign yet.
+    /// The public keys of the keychain keys which sign for a vault wallet. Empty for other kinds.
+    pub(crate) fn vault_signer_public_keys(&self, fingerprint: u32) -> Result<Vec<PublicKey>> {
+        let Some(ConfigWalletKind::Vault { signers, .. }) =
+            self.wallet_entry(fingerprint).map(|wallet| &wallet.kind)
+        else {
+            return Ok(Vec::new());
+        };
+
+        let mut keys = Vec::new();
+
+        for &signer in signers {
+            if let Some(public_key) = self.keychain.extract_public_key(signer)? {
+                keys.push(public_key);
+            }
+        }
+
+        Ok(keys)
+    }
+
+    /// The secret keys of the keychain keys which sign for a vault wallet. A signer whose secret
+    /// key isn't stored is skipped.
+    pub(crate) fn vault_signer_secret_keys(&self, fingerprint: u32) -> Result<Vec<SecretKey>> {
+        let Some(ConfigWalletKind::Vault { signers, .. }) =
+            self.wallet_entry(fingerprint).map(|wallet| &wallet.kind)
+        else {
+            return Ok(Vec::new());
+        };
+
+        let mut keys = Vec::new();
+
+        for &signer in signers {
+            if let (_mnemonic, Some(secret_key)) = self.keychain.extract_secrets(signer, b"")? {
+                keys.push(secret_key);
+            }
+        }
+
+        Ok(keys)
+    }
+
+    /// Whether the open wallet is a vault.
     pub fn is_vault(&self) -> bool {
         self.wallet
             .as_ref()
             .is_some_and(|wallet| matches!(wallet.kind, WalletKind::Vault { .. }))
     }
 
-    /// The secret key that signs for the wallet. Watch wallets never have one, and cold BLS
-    /// wallets only have their public key. Vaults sign with their signers' keys, which isn't
-    /// supported yet.
+    /// The secret key that signs for a BLS wallet. Watch wallets never have one, and cold BLS
+    /// wallets only have their public key. Vaults sign with their signers' keys instead, which
+    /// [`Sage::sign`] uses, but they can't sign with a single key.
     pub(crate) fn master_secret_key(&self, wallet: &Wallet) -> Result<SecretKey> {
         match wallet.kind {
             WalletKind::Bls { .. } => {}

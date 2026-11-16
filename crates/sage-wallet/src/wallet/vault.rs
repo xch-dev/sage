@@ -1,0 +1,427 @@
+#[cfg(test)]
+mod tests;
+
+use std::collections::HashMap;
+
+use chia_wallet_sdk::{
+    chia::puzzle_types::{EveProof, LineageProof, Memos, Proof, offer::SettlementPaymentsSolution},
+    clvm_utils::TreeHash,
+    driver::{
+        Delta, Finished, InnerPuzzleSpend, MipsSpend, MofN, SpendKind, VAULT_AMOUNT,
+        VAULT_MESSAGE_MODE, Vault, VaultInfo, mips_puzzle_hash,
+    },
+    prelude::*,
+    types::puzzles::BlsMember,
+};
+use sage_database::{
+    ConditionsOrSingleton, P2Puzzle, VaultConfig, VaultLayout, VaultMember, VaultSigners,
+    VaultState,
+};
+
+use crate::{
+    WalletError, WalletKind, build_vault, member_puzzle_hash, signers_hash, signers_inner_hash,
+    vault_hashes,
+};
+
+use super::Wallet;
+
+/// The shortest recovery timelock Sage mints a vault with. A recovery that this wallet didn't start
+/// has to be noticed and cancelled before it expires, so it can't be too short.
+pub const MIN_RECOVERY_TIMELOCK: u64 = 60 * 60;
+
+/// The hardened BLS derivation path purpose of vault custody keys, which are derived from a
+/// wallet's master key as `m/12381'/8444'/12'/index'`. The other purposes Chia uses are 0 to 6, so
+/// this doesn't overlap with them. Deriving the custody key means the mnemonic the user already
+/// backed up also backs it up.
+pub const VAULT_CUSTODY_KEY_PURPOSE: u32 = 12;
+
+/// Derives a vault custody key from a wallet's master secret key.
+pub fn vault_custody_key(master_sk: &SecretKey, index: u32) -> SecretKey {
+    master_sk
+        .derive_hardened(12381)
+        .derive_hardened(8444)
+        .derive_hardened(VAULT_CUSTODY_KEY_PURPOSE)
+        .derive_hardened(index)
+}
+
+/// A vault mint, which is confirmed once the transaction that creates its launcher is.
+#[derive(Debug, Clone)]
+pub struct VaultMint {
+    pub launcher_id: Bytes32,
+    pub coin_spends: Vec<CoinSpend>,
+}
+
+/// A vault's current coin and the config that rebuilds its custody, which a spend recreates.
+#[derive(Debug, Clone)]
+pub struct SpendableVault {
+    pub vault: Vault,
+    pub config: VaultConfig,
+}
+
+impl Wallet {
+    /// The launcher id of the vault, if this is a vault wallet.
+    pub fn vault_launcher_id(&self) -> Option<Bytes32> {
+        match self.kind {
+            WalletKind::Vault { launcher_id } => Some(launcher_id),
+            WalletKind::Bls { .. } | WalletKind::Watch => None,
+        }
+    }
+
+    /// Mints a vault with the config from this wallet's XCH, with its CHIP-0043 memo in the launcher
+    /// solution, so that it can be imported from its launcher id alone.
+    pub async fn mint_vault(
+        &self,
+        config: &VaultConfig,
+        fee: u64,
+    ) -> Result<VaultMint, WalletError> {
+        if !matches!(self.kind, WalletKind::Bls { .. }) {
+            return Err(WalletError::VaultMintNotSupported);
+        }
+
+        let mut ctx = SpendContext::new();
+        let built = build_vault(&mut ctx, config)?;
+
+        let actions = [Action::fee(fee)];
+        let mut deltas = Deltas::from_actions(&actions);
+        *deltas.update(Id::Xch) += Delta::new(0, VAULT_AMOUNT);
+        deltas.set_needed(Id::Xch);
+
+        let mut spends = self.prepare_spends_for_selection(&mut ctx, &[]).await?;
+        self.select_spends_for_deltas(&mut ctx, &mut spends, deltas.clone(), &[])
+            .await?;
+        spends.apply(&mut ctx, &actions)?;
+
+        let (source, launcher) = spends.xch.create_launcher(VAULT_AMOUNT)?;
+        let (parent_conditions, vault) =
+            launcher.mint_vault(&mut ctx, built.hashes.custody_hash, built.memo_list)?;
+
+        match &mut spends.xch.items[source].kind {
+            SpendKind::Conditions(spend) => spend.add_conditions(parent_conditions),
+            SpendKind::Settlement(_) => return Err(DriverError::CannotEmitConditions.into()),
+        }
+
+        self.complete_spends(&mut ctx, &deltas, spends).await?;
+
+        Ok(VaultMint {
+            launcher_id: vault.info.launcher_id,
+            coin_spends: ctx.take(),
+        })
+    }
+
+    /// The vault's current coin and config, if it can be spent now.
+    ///
+    /// The vault's custody members sign over its coin id, so a vault can only have one
+    /// unconfirmed spend at a time. A spend made while another is pending would spend the same
+    /// coin, so it's refused until the pending one confirms.
+    pub async fn spendable_vault(&self) -> Result<SpendableVault, WalletError> {
+        let Some(launcher_id) = self.vault_launcher_id() else {
+            return Err(WalletError::VaultSpendNotSupported);
+        };
+
+        let status = self
+            .db
+            .vault_status(launcher_id)
+            .await?
+            .ok_or(WalletError::VaultNotSynced)?;
+
+        match status.state {
+            VaultState::Unsynced => return Err(WalletError::VaultNotSynced),
+            VaultState::Melted => return Err(WalletError::VaultMelted),
+            VaultState::RecoveryPending { .. } => return Err(WalletError::VaultRecoveryPending),
+            VaultState::Active => {}
+        }
+
+        let Some(row) = status.coin else {
+            return Err(WalletError::VaultNotSynced);
+        };
+
+        if row.created_height.is_none() || row.spent_height.is_some() {
+            return Err(WalletError::VaultSpendPending);
+        }
+
+        if self.db.is_coin_spend_pending(row.coin.coin_id()).await? {
+            return Err(WalletError::VaultSpendPending);
+        }
+
+        let config = match status.config.map(|config| config.layout) {
+            Some(VaultLayout::Custody(config)) => config,
+            Some(VaultLayout::Recovery(_)) => return Err(WalletError::VaultRecoveryPending),
+            None => return Err(WalletError::VaultConfigUnknown),
+        };
+
+        let custody_hash = vault_hashes(&config)?.custody_hash;
+
+        if row.custody_hash != Some(custody_hash.into()) {
+            return Err(WalletError::VaultConfigUnknown);
+        }
+
+        let proof = self.vault_lineage_proof(launcher_id, row.coin).await?;
+
+        Ok(SpendableVault {
+            vault: Vault::new(row.coin, proof, VaultInfo::new(launcher_id, custody_hash)),
+            config,
+        })
+    }
+
+    /// The lineage proof of a vault coin, from its parent in the vault's lineage, or from its
+    /// launcher if it's the eve coin.
+    async fn vault_lineage_proof(
+        &self,
+        launcher_id: Bytes32,
+        coin: Coin,
+    ) -> Result<Proof, WalletError> {
+        if coin.parent_coin_info == launcher_id {
+            let launcher = self
+                .db
+                .coin_by_id(launcher_id)
+                .await?
+                .ok_or(WalletError::MissingCoin(launcher_id))?;
+
+            return Ok(Proof::Eve(EveProof {
+                parent_parent_coin_info: launcher.parent_coin_info,
+                parent_amount: launcher.amount,
+            }));
+        }
+
+        let parent = self
+            .db
+            .vault_coins(launcher_id)
+            .await?
+            .into_iter()
+            .find(|row| row.coin.coin_id() == coin.parent_coin_info)
+            .ok_or(WalletError::MissingCoin(coin.parent_coin_info))?;
+
+        let parent_inner_puzzle_hash = parent
+            .custody_hash
+            .ok_or(WalletError::MissingCoin(coin.parent_coin_info))?;
+
+        Ok(Proof::Lineage(LineageProof {
+            parent_parent_coin_info: parent.coin.parent_coin_info,
+            parent_inner_puzzle_hash,
+            parent_amount: parent.coin.amount,
+        }))
+    }
+
+    /// Spends the vault's coins with the conditions that the action system decided on. Each coin
+    /// outputs its conditions through a delegated spend, which the vault approves by sending it a
+    /// message, and the vault is recreated with the same custody. Conditions that no coin could
+    /// output, such as the fee of a transaction that only spends the vault, are output by the
+    /// vault itself.
+    pub(super) fn spend_vault_coins(
+        &self,
+        ctx: &mut SpendContext,
+        spends: Spends<Finished>,
+        p2_puzzles: &HashMap<Bytes32, P2Puzzle>,
+        vault: &SpendableVault,
+    ) -> Result<Outputs, WalletError> {
+        let mut vault_conditions = spends.unplaced_conditions.clone();
+        let mut coin_spends = HashMap::new();
+
+        for (asset, kind) in spends.unspent() {
+            let spend = match kind {
+                SpendKind::Conditions(spend) => {
+                    let delegated_spend = ctx.delegated_spend(spend.finish())?;
+                    let delegated_puzzle_hash = ctx.tree_hash(delegated_spend.puzzle);
+                    let coin_id = ctx.alloc(&asset.coin().coin_id())?;
+
+                    vault_conditions = vault_conditions.send_message(
+                        VAULT_MESSAGE_MODE,
+                        delegated_puzzle_hash.to_vec().into(),
+                        vec![coin_id],
+                    );
+
+                    let custody_hash = vault.vault.info.custody_hash.into();
+                    let amount = vault.vault.coin.amount;
+
+                    match p2_puzzles.get(&asset.p2_puzzle_hash()) {
+                        Some(P2Puzzle::P2Singleton(p2))
+                            if p2.launcher_id == vault.vault.info.launcher_id =>
+                        {
+                            p2.spend(ctx, custody_hash, amount, delegated_spend)?
+                        }
+                        Some(P2Puzzle::P2ConditionsOrSingleton(ConditionsOrSingleton {
+                            p2,
+                            ..
+                        })) if p2.launcher_id == vault.vault.info.launcher_id => {
+                            p2.p2_singleton_spend(ctx, custody_hash, amount, delegated_spend)?
+                        }
+                        Some(P2Puzzle::External) => return Err(WalletError::WatchOnly),
+                        _ => return Err(DriverError::MissingKey.into()),
+                    }
+                }
+                SpendKind::Settlement(spend) => SettlementLayer
+                    .construct_spend(ctx, SettlementPaymentsSolution::new(spend.finish()))?,
+            };
+
+            coin_spends.insert(asset.coin().coin_id(), spend);
+        }
+
+        let outputs = spends.spend(ctx, coin_spends)?;
+
+        self.spend_vault(ctx, vault, vault_conditions)?;
+
+        Ok(outputs)
+    }
+
+    /// Spends the vault singleton with its custody, outputting the conditions and recreating it
+    /// with the same custody and amount.
+    pub fn spend_vault(
+        &self,
+        ctx: &mut SpendContext,
+        vault: &SpendableVault,
+        conditions: Conditions,
+    ) -> Result<(), WalletError> {
+        let amount = vault.vault.coin.amount;
+
+        let conditions = conditions
+            .create_coin(vault.vault.info.custody_hash.into(), amount, Memos::None)
+            .assert_my_amount(amount);
+
+        let delegated_spend = ctx.delegated_spend(conditions)?;
+
+        let hashes = vault_hashes(&vault.config)?;
+
+        let mips_spend = custody_mips_spend(
+            ctx,
+            &vault.config.custody,
+            hashes.recovery_member_hash,
+            delegated_spend,
+            &self.vault_signer_keys(),
+        )?;
+
+        vault.vault.spend(ctx, &mips_spend)?;
+
+        Ok(())
+    }
+}
+
+/// The spend of a vault's custody puzzle down its custody side, with the delegated spend.
+///
+/// If the vault has a recovery side, its top level is a 1 of 2 of `[custody, recovery]`, whose
+/// right side is `recovery_member_hash`. Otherwise its custody is the top level.
+///
+/// Members whose keys are in `signer_keys` are preferred, so that a vault with more custody members
+/// than its threshold is signed by the ones this wallet holds.
+pub fn custody_mips_spend(
+    ctx: &mut SpendContext,
+    custody: &VaultSigners,
+    recovery_member_hash: Option<TreeHash>,
+    delegated_spend: Spend,
+    signer_keys: &[PublicKey],
+) -> Result<MipsSpend, WalletError> {
+    let mut spend = MipsSpend::new(delegated_spend);
+
+    let side_hash = if let Some(recovery_member_hash) = recovery_member_hash {
+        let custody_member_hash = signers_hash(custody, vec![])?;
+
+        let custody_hash = mips_puzzle_hash(
+            0,
+            vec![],
+            MofN::new(1, vec![custody_member_hash, recovery_member_hash]).inner_puzzle_hash(),
+            true,
+        );
+
+        spend.members.insert(
+            custody_hash,
+            InnerPuzzleSpend::m_of_n(
+                0,
+                vec![],
+                1,
+                vec![custody_member_hash, recovery_member_hash],
+            ),
+        );
+
+        custody_member_hash
+    } else {
+        mips_puzzle_hash(0, vec![], signers_inner_hash(custody), true)
+    };
+
+    if let [member] = custody.members.as_slice() {
+        let member_spend = member_spend(ctx, *member)?;
+        spend
+            .members
+            .insert(side_hash, InnerPuzzleSpend::new(0, vec![], member_spend));
+        return Ok(spend);
+    }
+
+    let mut member_hashes: Vec<(TreeHash, VaultMember)> = custody
+        .members
+        .iter()
+        .map(|&member| {
+            (
+                mips_puzzle_hash(0, vec![], member_puzzle_hash(member), false),
+                member,
+            )
+        })
+        .collect();
+
+    member_hashes.sort_by_key(|(hash, _)| *hash);
+
+    spend.members.insert(
+        side_hash,
+        InnerPuzzleSpend::m_of_n(
+            0,
+            vec![],
+            custody.threshold,
+            member_hashes.iter().map(|(hash, _)| *hash).collect(),
+        ),
+    );
+
+    // The members whose keys are held come first, then the others which could be signed for
+    // elsewhere.
+    let mut selected: Vec<&(TreeHash, VaultMember)> = member_hashes
+        .iter()
+        .filter(|(_, member)| is_signer(*member, signer_keys))
+        .collect();
+
+    selected.extend(
+        member_hashes.iter().filter(|(_, member)| {
+            !is_signer(*member, signer_keys) && member_spend_supported(*member)
+        }),
+    );
+
+    if selected.len() < custody.threshold {
+        return Err(WalletError::VaultMemberNotSupported);
+    }
+
+    for &(hash, member) in selected.into_iter().take(custody.threshold) {
+        let member_spend = member_spend(ctx, member)?;
+        spend
+            .members
+            .insert(hash, InnerPuzzleSpend::new(0, vec![], member_spend));
+    }
+
+    Ok(spend)
+}
+
+fn is_signer(member: VaultMember, signer_keys: &[PublicKey]) -> bool {
+    matches!(
+        member,
+        VaultMember::Bls { public_key, fast_forward: false } if signer_keys.contains(&public_key)
+    )
+}
+
+fn member_spend_supported(member: VaultMember) -> bool {
+    matches!(
+        member,
+        VaultMember::Bls {
+            fast_forward: false,
+            ..
+        }
+    )
+}
+
+/// The spend of a custody member. Only BLS members which sign over the vault's coin id are
+/// supported, and they sign the delegated puzzle hash with `AGG_SIG_ME`, so their solution is nil.
+fn member_spend(ctx: &mut SpendContext, member: VaultMember) -> Result<Spend, WalletError> {
+    match member {
+        VaultMember::Bls {
+            public_key,
+            fast_forward: false,
+        } => {
+            let puzzle = ctx.curry(BlsMember::new(public_key))?;
+            Ok(Spend::new(puzzle, NodePtr::NIL))
+        }
+        _ => Err(WalletError::VaultMemberNotSupported),
+    }
+}

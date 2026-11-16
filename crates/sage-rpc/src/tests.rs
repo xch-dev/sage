@@ -1,6 +1,7 @@
 mod contacts;
 mod keys;
 mod recipients;
+mod vault_mint;
 mod vault_wallets;
 mod wallets;
 mod watch_wallets;

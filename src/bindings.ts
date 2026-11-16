@@ -59,6 +59,9 @@ async rebuildVaultConfig(req: RebuildVaultConfig) : Promise<RebuildVaultConfigRe
 async findVault(req: FindVault) : Promise<FindVaultResponse> {
     return await TAURI_INVOKE("find_vault", { req });
 },
+async mintVault(req: MintVault) : Promise<MintVaultResponse> {
+    return await TAURI_INVOKE("mint_vault", { req });
+},
 async deleteWallet(req: DeleteWallet) : Promise<DeleteWalletResponse> {
     return await TAURI_INVOKE("delete_wallet", { req });
 },
@@ -3095,6 +3098,69 @@ summary: TransactionSummary;
  * Coin spends in the transaction
  */
 coin_spends: CoinSpendJson[] }
+/**
+ * Mint a new vault, funded by the open BLS wallet
+ */
+export type MintVault = { 
+/**
+ * Display name for the vault wallet
+ */
+name: string; 
+/**
+ * Optional emoji identifier
+ */
+emoji?: string | null; 
+/**
+ * The fingerprint of a keychain key with a secret key to use as the custody key. If it isn't
+ * given, a custody key is derived from the open wallet's key, so its mnemonic backs it up
+ */
+custody_fingerprint?: number | null; 
+/**
+ * The recovery key's mnemonic, such as one from `generate_mnemonic`
+ */
+recovery_mnemonic?: string | null; 
+/**
+ * The fingerprint of a keychain key with a secret key to use as the recovery key, instead of
+ * a mnemonic
+ */
+recovery_fingerprint?: number | null; 
+/**
+ * How long a recovery takes before it can be finished, in seconds. It must be at least an
+ * hour, so that a recovery this wallet didn't start can be cancelled in time
+ */
+recovery_timelock: number; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to sign and submit the mint, and add the vault wallet
+ */
+auto_submit?: boolean }
+/**
+ * Response with the mint transaction and the vault's launcher id
+ */
+export type MintVaultResponse = { 
+/**
+ * The vault's launcher id, as a `vault1` id
+ */
+launcher_id: string; 
+/**
+ * The fingerprint of the new vault wallet, once the mint is submitted
+ */
+fingerprint: number | null; 
+/**
+ * The fingerprints of the custody and recovery keys
+ */
+custody_fingerprint: number; recovery_fingerprint: number; 
+/**
+ * Transaction summary
+ */
+summary: TransactionSummary; 
+/**
+ * Coin spends in the transaction
+ */
+coin_spends: CoinSpendJson[] }
 export type Network = { name: string; ticker: string; prefix?: string | null; precision: number; network_id?: string | null; default_port: number; genesis_challenge: string; agg_sig_me?: string | null; dns_introducers: string[]; peer_introducers: string[]; inherit?: InheritedNetwork | null; 
 /**
  * Overrides the XCHandles deployment for this network. When unset, the deployment
@@ -3385,6 +3451,22 @@ export type PendingTransferStatus =
  * Pending transfers couldn't be checked right now
  */
 "unavailable"
+/**
+ * A vault mint that hasn't been confirmed yet.
+ */
+export type PendingVaultMint = { 
+/**
+ * The BLS wallet that funded the mint, whose database has the pending transaction.
+ */
+funding_fingerprint: number; 
+/**
+ * The id of the mint transaction.
+ */
+transaction_id: string; 
+/**
+ * When the mint transaction expires, after which it can't be confirmed anymore, if it does.
+ */
+expires_at?: number | null }
 /**
  * Perform database maintenance operations
  */
@@ -4141,7 +4223,12 @@ declared_fee?: Amount; inputs: TransactionInput[];
  * The handle recipients of the transaction, and the verified addresses they were
  * resolved to
  */
-handles?: HandleRecord[] }
+handles?: HandleRecord[]; 
+/**
+ * What the open vault's spend in the transaction does, checked with clear signing, if the
+ * open wallet is a vault and the transaction spends it
+ */
+vault?: VaultSpendRecord | null }
 /**
  * Transfer DIDs to a new address
  */
@@ -4436,7 +4523,12 @@ config: VaultConfigRecord | null;
 /**
  * The keychain keys that sign for the vault
  */
-signers: VaultSignerRecord[] }
+signers: VaultSignerRecord[]; 
+/**
+ * Whether the vault was minted by this wallet, and the mint hasn't been found on chain yet.
+ * If the mint fails, the vault wallet is removed
+ */
+minting?: boolean }
 /**
  * A vault's recovery keys, which identify the recovery side of a vault without memos
  */
@@ -4471,6 +4563,36 @@ recovery: boolean }
  * The members of a vault's custody or recovery, of which `threshold` must sign
  */
 export type VaultSignersRecord = { threshold: number; members: VaultMemberRecord[] }
+/**
+ * What a vault spend does, checked with clear signing before the vault's custody signs it
+ */
+export type VaultSpendRecord = { 
+/**
+ * The vault's launcher id, as a vault bech32m id
+ */
+launcher_id: string; 
+/**
+ * Whether clear signing could verify what the spend does. If not, `error` says why, and the
+ * vault won't sign it
+ */
+verified: boolean; error: string | null; 
+/**
+ * Whether the spend recreates the vault with a different custody, which Sage refuses to sign
+ */
+custody_changed: boolean; 
+/**
+ * Whether the spend melts the vault, which Sage refuses to sign
+ */
+melted: boolean; 
+/**
+ * The fee that the vault and the spends it approves reserve
+ */
+reserved_fee: Amount; 
+/**
+ * XCH that leaves the vault's spends without being accounted for, which would be left as
+ * an extra fee
+ */
+unaccounted_xch: Amount }
 export type VaultState = 
 /**
  * None of the vault's coins have been synced yet
@@ -4537,7 +4659,12 @@ export type Wallet =
  * A vault, and the fingerprints of the keychain keys that sign for it as custody or recovery
  * members. A vault without signers is read-only.
  */
-{ type: "vault"; launcher_id: string; signers: number[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
+{ type: "vault"; launcher_id: string; signers: number[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null; 
+/**
+ * The transaction that mints a vault wallet's vault, until the vault is found on chain. If
+ * the mint fails, the wallet is removed.
+ */
+vault_mint?: PendingVaultMint | null }
 export type WalletDefaults = { delta_sync: boolean; 
 /**
  * How many seconds after a transaction is created that it can no longer be confirmed, or 0

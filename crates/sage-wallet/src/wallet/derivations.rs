@@ -86,6 +86,11 @@ impl Wallet {
         Ok(p2_puzzle_hashes)
     }
 
+    /// Whether the wallet's addresses are derived from a key, rather than being fixed.
+    pub fn derives_addresses(&self) -> bool {
+        matches!(self.kind, WalletKind::Bls { .. })
+    }
+
     pub async fn change_p2_puzzle_hash(&self) -> Result<Bytes32, WalletError> {
         if let Some(change_p2_puzzle_hash) = self.change_p2_puzzle_hash {
             return Ok(change_p2_puzzle_hash);

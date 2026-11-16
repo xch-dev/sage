@@ -386,7 +386,7 @@ async fn test_import_vault_by_launcher_id() -> Result<()> {
         }
     );
 
-    // Vaults can't spend yet.
+    // Without an attached signer, the vault can't sign.
     let error = app
         .send_xch(SendXch {
             address: expected,
@@ -399,8 +399,8 @@ async fn test_import_vault_by_launcher_id() -> Result<()> {
             confirmed_handles: Vec::new(),
         })
         .await
-        .expect_err("vaults can't spend yet");
-    assert!(error.to_string().contains("vault"), "{error}");
+        .expect_err("the vault has no signers");
+    assert!(error.to_string().contains("sign for this vault"), "{error}");
 
     // The same vault can't be imported twice.
     let error = app

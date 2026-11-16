@@ -161,6 +161,7 @@ pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseInt
             emoji: None,
             change_address: None,
             kind: WalletKind::Bls,
+            vault_mint: None,
         });
     }
 
