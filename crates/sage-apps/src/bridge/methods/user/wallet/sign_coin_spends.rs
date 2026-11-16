@@ -124,6 +124,7 @@ pub enum WalletSignCoinSpendsApprovalAssetKind {
     Nft,
     Did,
     Option,
+    Vault,
 }
 
 impl From<AssetKind> for WalletSignCoinSpendsApprovalAssetKind {
@@ -133,6 +134,7 @@ impl From<AssetKind> for WalletSignCoinSpendsApprovalAssetKind {
             AssetKind::Nft => Self::Nft,
             AssetKind::Did => Self::Did,
             AssetKind::Option => Self::Option,
+            AssetKind::Vault => Self::Vault,
         }
     }
 }

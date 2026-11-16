@@ -59,6 +59,27 @@ pub fn parse_option_id(input: String) -> Result<Bytes32> {
     Ok(address.puzzle_hash)
 }
 
+/// Parses a vault's launcher id, either as a `vault` bech32m id or as hex.
+pub fn parse_vault_id(input: String) -> Result<Bytes32> {
+    if input.starts_with("vault") {
+        let address = Address::decode(&input)?;
+
+        if address.prefix != "vault" {
+            return Err(Error::InvalidVaultId(input));
+        }
+
+        return Ok(address.puzzle_hash);
+    }
+
+    let stripped = input.strip_prefix("0x").unwrap_or(&input);
+
+    let launcher_id: [u8; 32] = hex::decode(stripped)?
+        .try_into()
+        .map_err(|_| Error::InvalidVaultId(input.clone()))?;
+
+    Ok(launcher_id.into())
+}
+
 pub fn parse_collection_id(input: String) -> Result<Bytes32> {
     let address = Address::decode(&input)?;
 
@@ -168,6 +189,8 @@ pub fn parse_any_asset_id(input: String) -> Result<Bytes32> {
         parse_did_id(input)?
     } else if input.starts_with("option") {
         parse_option_id(input)?
+    } else if input.starts_with("vault") {
+        parse_vault_id(input)?
     } else {
         // Assume it's a CAT token (hex string)
         parse_asset_id(input)?
@@ -211,5 +234,27 @@ mod tests {
         let result = parse_signature_message(input.to_string()).unwrap();
         let expected = Bytes::from(hex::decode(input).unwrap());
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_parse_vault_id() {
+        let launcher_id = Bytes32::new([7; 32]);
+        let encoded = Address::new(launcher_id, "vault".to_string())
+            .encode()
+            .unwrap();
+
+        assert!(encoded.starts_with("vault1"));
+        assert_eq!(parse_vault_id(encoded.clone()).unwrap(), launcher_id);
+        assert_eq!(parse_any_asset_id(encoded).unwrap(), launcher_id);
+
+        let hex = hex::encode(launcher_id);
+        assert_eq!(parse_vault_id(hex.clone()).unwrap(), launcher_id);
+        assert_eq!(parse_vault_id(format!("0x{hex}")).unwrap(), launcher_id);
+
+        let nft = Address::new(launcher_id, "nft".to_string())
+            .encode()
+            .unwrap();
+        assert!(parse_vault_id(nft).is_err());
+        assert!(parse_vault_id("abcd".to_string()).is_err());
     }
 }
