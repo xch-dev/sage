@@ -157,26 +157,26 @@ pub async fn set_rpc_run_on_startup(
 #[command]
 #[specta]
 pub async fn get_rpc_port(state: State<'_, AppState>) -> Result<u16> {
-    Ok(state.lock().await.config.rpc.port)
+    Ok(state.read().await.config.rpc.port)
 }
 
 #[command]
 #[specta]
 pub async fn set_rpc_port(state: State<'_, AppState>, port: u16) -> Result<()> {
-    state.lock().await.set_rpc_port(port)?;
+    state.write().await.set_rpc_port(port)?;
     Ok(())
 }
 
 #[command]
 #[specta]
 pub async fn get_log_level(state: State<'_, AppState>) -> Result<String> {
-    Ok(state.lock().await.config.global.log_level.clone())
+    Ok(state.read().await.config.global.log_level.clone())
 }
 
 #[command]
 #[specta]
 pub async fn set_log_level(state: State<'_, AppState>, level: String) -> Result<()> {
-    state.lock().await.set_log_level(&level)?;
+    state.write().await.set_log_level(&level)?;
     Ok(())
 }
 

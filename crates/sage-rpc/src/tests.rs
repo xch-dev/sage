@@ -1941,7 +1941,7 @@ async fn test_thumbnail_of_requested_nft() -> Result<()> {
     let data_hash = Bytes32::new([1; 32]);
     let png = vec![1, 2, 3];
     {
-        let wallet = app.sage.lock().await.wallet()?;
+        let wallet = app.sage.read().await.wallet()?;
         let mut tx = wallet.db.tx().await?;
         tx.insert_file(data_hash).await?;
         tx.insert_resized_image(data_hash, ResizedImageKind::Thumbnail, png)
