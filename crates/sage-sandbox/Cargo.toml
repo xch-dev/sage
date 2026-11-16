@@ -5,7 +5,6 @@ edition = "2024"
 license = "Apache-2.0"
 description = "A throwaway Sage backend on a simulated chain, for testing the UI in a browser."
 authors = ["Rigidity <me@rigidnetwork.com>"]
-homepage = "https://github.com/rigidity/sage"
 repository = "https://github.com/rigidity/sage"
 readme = { workspace = true }
 keywords = { workspace = true }
