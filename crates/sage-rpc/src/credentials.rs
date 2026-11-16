@@ -62,6 +62,9 @@ pub struct CredentialCapability {
     pub key: WalletCapability,
     pub label: String,
     pub description: String,
+    pub category: String,
+    pub approval: bool,
+    pub methods: Vec<String>,
 }
 
 pub fn credential_capabilities() -> Vec<CredentialCapability> {
@@ -75,31 +78,29 @@ pub fn credential_capabilities() -> Vec<CredentialCapability> {
                 key,
                 label: definition.label.into(),
                 description: definition.description.into(),
+                category: sage_permissions::RPC_POLICIES
+                    .iter()
+                    .find(|p| p.capability == Some(key))
+                    .unwrap()
+                    .category
+                    .into(),
+                approval: sage_permissions::RPC_POLICIES
+                    .iter()
+                    .any(|p| p.capability == Some(key) && p.approval),
+                methods: sage_permissions::RPC_POLICIES
+                    .iter()
+                    .filter(|p| p.capability == Some(key))
+                    .map(|p| p.method.into())
+                    .collect(),
             }
         })
         .collect()
 }
 
 pub fn credential_capability_supported(cap: WalletCapability) -> bool {
-    use WalletCapability::*;
-    matches!(
-        cap,
-        WalletGetWallet
-            | WalletGetSyncStatus
-            | WalletGetVersion
-            | WalletGetXchUsdPrice
-            | WalletCheckAddress
-            | WalletResolveHandle
-            | WalletGetHandles
-            | WalletGetContacts
-            | WalletGetDerivations
-            | WalletGetSpendableCoinCount
-            | WalletGetCoinsByIds
-            | WalletGetCoins
-            | WalletGetPendingTransactions
-            | WalletGetTransaction
-            | WalletGetTransactions
-    )
+    sage_permissions::RPC_POLICIES
+        .iter()
+        .any(|policy| policy.capability == Some(cap))
 }
 
 impl ConnectionGrant {
@@ -116,7 +117,7 @@ impl ConnectionGrant {
                 .iter()
                 .any(|cap| !credential_capability_supported(*cap))
         {
-            bail!("Select supported read permissions");
+            bail!("Select supported RPC permissions");
         }
         if let WalletScope::SelectedWallets { fingerprints } = &self.wallet_scope {
             if fingerprints.is_empty() || fingerprints.len() > 100 {
@@ -144,17 +145,17 @@ impl ConnectionGrant {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-struct StoredCredential {
-    info: CredentialInfo,
+pub(crate) struct StoredCredential {
+    pub(crate) info: CredentialInfo,
     token_hash: String,
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct StoredCredentials {
+pub(crate) struct StoredCredentials {
     version: u32,
     enabled: bool,
     port: u16,
-    credentials: Vec<StoredCredential>,
+    pub(crate) credentials: Vec<StoredCredential>,
 }
 
 #[derive(Clone)]
@@ -163,16 +164,17 @@ struct Pending {
     secret_hash: String,
     decision: Option<Option<ConnectionGrant>>,
 }
-struct StoreState {
-    saved: StoredCredentials,
+pub(crate) struct StoreState {
+    pub(crate) saved: StoredCredentials,
     pending: HashMap<String, Pending>,
+    pub(crate) operations: HashMap<String, crate::operation_approvals::PendingOperation>,
     attempts: VecDeque<u64>,
 }
 
 #[derive(Clone)]
 pub struct CredentialStore {
     path: PathBuf,
-    state: Arc<Mutex<StoreState>>,
+    pub(crate) state: Arc<Mutex<StoreState>>,
 }
 impl std::fmt::Debug for CredentialStore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -186,7 +188,7 @@ pub fn credential_now() -> u64 {
         .unwrap_or_default()
         .as_secs()
 }
-fn random_hex(bytes: usize) -> String {
+pub(crate) fn random_hex(bytes: usize) -> String {
     let mut value = vec![0u8; bytes];
     OsRng.fill_bytes(&mut value);
     hex::encode(value)
@@ -221,6 +223,7 @@ impl CredentialStore {
             state: Arc::new(Mutex::new(StoreState {
                 saved,
                 pending: HashMap::new(),
+                operations: HashMap::new(),
                 attempts: VecDeque::new(),
             })),
         })
@@ -296,6 +299,9 @@ impl CredentialStore {
         next.credentials.retain(|record| record.info.id != id);
         self.save(&next)?;
         state.saved = next;
+        state
+            .operations
+            .retain(|_, pending| pending.review.credential_id != id);
         Ok(())
     }
     pub fn rotate(&self, id: &str) -> Result<IssuedCredential> {
@@ -311,6 +317,9 @@ impl CredentialStore {
         let credential = record.info.clone();
         self.save(&next)?;
         state.saved = next;
+        state
+            .operations
+            .retain(|_, pending| pending.review.credential_id != id);
         Ok(IssuedCredential { credential, token })
     }
     pub fn caller(&self, token: &str) -> Result<Caller> {
@@ -433,11 +442,23 @@ impl CredentialStore {
         }
     }
     pub fn cancel_pairings(&self) {
-        self.state.lock().unwrap().pending.clear();
+        let mut state = self.state.lock().unwrap();
+        state.pending.clear();
+        state.operations.clear();
     }
 }
 
 impl crate::RpcAuthenticator for CredentialStore {
+    fn request_approval(
+        &self,
+        request: crate::RpcApprovalRequest,
+    ) -> Result<
+        tokio::sync::oneshot::Receiver<Result<sage_permissions::ApprovalBinding, String>>,
+        String,
+    > {
+        self.enqueue_operation(request)
+    }
+
     fn authenticate(&self, headers: &axum::http::HeaderMap) -> std::result::Result<Caller, String> {
         let token = headers
             .get("authorization")

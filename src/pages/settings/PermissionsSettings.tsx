@@ -1,4 +1,9 @@
 import {
+  ConnectionsSettings,
+  matchesCredential,
+} from '@/components/connections/ConnectionsSettings';
+import { useConnections } from '@/contexts/ConnectionsContext';
+import {
   commands,
   type AppPermissionReview,
   type AppPermissionReviews,
@@ -18,7 +23,6 @@ import { platform } from '@tauri-apps/plugin-os';
 import type { SessionTypes } from '@walletconnect/types';
 import {
   AppWindowIcon,
-  BotIcon,
   ChevronDownIcon,
   GlobeIcon,
   RefreshCwIcon,
@@ -36,6 +40,7 @@ import { Link } from 'react-router-dom';
 type Category = 'all' | 'apps' | 'external' | 'agents';
 
 export function PermissionsSettings() {
+  const connections = useConnections();
   const { sessions } = useWalletConnect();
   const isMobile = platform() === 'ios' || platform() === 'android';
   const [category, setCategory] = useState<Category>('all');
@@ -128,15 +133,21 @@ export function PermissionsSettings() {
     [t`Full-access RPC certificate`, t`Full wallet access`, 'RPC'].some(
       (value) => value.toLowerCase().includes(query),
     );
-  const externalCount = activeSessions.length + (isMobile ? 0 : 1);
+  const credentials = connections?.view?.credentials ?? [];
+  const agentCount = credentials.filter((c) => c.grant.kind === 'agent').length;
+  const externalCount =
+    activeSessions.length +
+    (isMobile ? 0 : 1) +
+    credentials.filter((c) => c.grant.kind === 'service').length;
   const count = (kind: Category): number | null =>
     kind === 'agents'
-      ? 0
+      ? agentCount
       : kind === 'external'
         ? externalCount
         : apps === null
           ? null
-          : apps.apps.length + (kind === 'all' ? externalCount : 0);
+          : apps.apps.length +
+            (kind === 'all' ? externalCount + agentCount : 0);
   const tabs: { id: Category; label: string }[] = [
     { id: 'all', label: t`All` },
     { id: 'apps', label: t`Apps` },
@@ -145,21 +156,28 @@ export function PermissionsSettings() {
   ];
 
   const content = (kind: Category) => {
-    if (kind === 'agents')
-      return (
-        <Empty
-          icon={<BotIcon />}
-          title={t`No agent connections yet`}
-          description={t`Agent connections are not available in this build. Their granted permissions will appear here when supported.`}
-        />
-      );
     const includeApps = kind === 'all' || kind === 'apps';
     const includeExternal = kind === 'all' || kind === 'external';
+    const hasCredentials = credentials.some(
+      (c) =>
+        (kind === 'all' ||
+          (kind === 'agents' && c.grant.kind === 'agent') ||
+          (kind === 'external' && c.grant.kind === 'service')) &&
+        matchesCredential(c, query),
+    );
     const hasResults =
+      hasCredentials ||
       (includeApps && visibleApps.length > 0) ||
       (includeExternal && (visibleSessions.length > 0 || showRpc));
     return (
       <div className='space-y-3'>
+        {!isMobile && (
+          <ConnectionsSettings
+            category={kind}
+            query={query}
+            wallets={wallets}
+          />
+        )}
         {includeApps && isMobile && (
           <p className='text-sm text-muted-foreground'>
             <Trans>Sage Apps are available on desktop.</Trans>
@@ -230,7 +248,11 @@ export function PermissionsSettings() {
           <Empty
             icon={<ShieldCheckIcon />}
             title={
-              query ? t`No matching permissions` : t`No connections to review`
+              query
+                ? t`No matching permissions`
+                : kind === 'agents'
+                  ? t`No agent connections yet`
+                  : t`No connections to review`
             }
             description={
               query

@@ -3,7 +3,9 @@
 use sage::Sage;
 use sage_api::{self as api, wallet_connect::*};
 use sage_api_macro::impl_endpoints;
-use sage_permissions::{ApprovalBinding, Caller, WalletCapability as Cap};
+use sage_permissions::{
+    ApprovalBinding, Caller, CallerId, RpcScope, WalletCapability as Cap, rpc_policy,
+};
 use serde::Serialize;
 use serde_json::Value;
 use tokio::sync::MutexGuard;
@@ -137,16 +139,41 @@ impl<'a> RpcSession<'a> {
         method: &str,
         result: T,
     ) -> sage::Result<T> {
+        if method == "get_wallets" {
+            if let Some(caller) = &self.caller {
+                let mut value = serde_json::to_value(result).map_err(denied)?;
+                if let Some(wallets) = value.get_mut("wallets").and_then(Value::as_array_mut) {
+                    wallets.retain(|wallet| {
+                        wallet
+                            .get("fingerprint")
+                            .and_then(Value::as_u64)
+                            .and_then(|fp| u32::try_from(fp).ok())
+                            .is_some_and(|fp| caller.wallet_scope.allows(fp))
+                    });
+                }
+                return serde_json::from_value(value).map_err(denied);
+            }
+        }
         if self.caller.is_none()
             || !matches!(
                 method,
-                "resolve_handle" | "get_handle" | "get_contacts" | "lookup_address_contacts"
+                "resolve_handle"
+                    | "get_handle"
+                    | "get_contacts"
+                    | "get_contact"
+                    | "lookup_address_contacts"
+                    | "export_contacts"
             )
         {
             return Ok(result);
         }
         let mut value = serde_json::to_value(result).map_err(denied)?;
-        redact_private_history(&mut value);
+        redact_private_history(
+            &mut value,
+            self.caller
+                .as_ref()
+                .is_some_and(|c| matches!(c.id, CallerId::App(_))),
+        );
         serde_json::from_value(value).map_err(denied)
     }
 
@@ -171,11 +198,87 @@ impl<'a> RpcSession<'a> {
         Ok(())
     }
 
+    pub(crate) fn network_context(&self) -> sage::Result<(String, String)> {
+        let network = self.sage.network();
+        Ok((
+            network.name.clone(),
+            serde_json::to_string(&network).map_err(denied)?,
+        ))
+    }
+
+    /// Preflight without consuming approval; called while the Sage lock is held.
+    pub(crate) fn preflight_rpc(
+        &mut self,
+        method: &str,
+        body: &Value,
+    ) -> sage::Result<(bool, Option<u32>)> {
+        let caller = self
+            .caller
+            .as_ref()
+            .ok_or_else(|| denied("Scoped caller required"))?;
+        let policy = rpc_policy(method).ok_or_else(|| denied("Unknown RPC method"))?;
+        let capability = policy
+            .capability
+            .ok_or_else(|| denied("This RPC method requires owner credentials"))?;
+        caller.require(capability).map_err(denied)?;
+        let fingerprint = match policy.scope {
+            RpcScope::Global | RpcScope::WalletList => None,
+            RpcScope::ActiveWallet => Some(
+                caller
+                    .require_wallet(self.sage.config.global.fingerprint)
+                    .map_err(denied)?,
+            ),
+            RpcScope::TargetWallet => {
+                let selected = body
+                    .get("fingerprint")
+                    .and_then(Value::as_u64)
+                    .map(u32::try_from)
+                    .transpose()
+                    .map_err(denied)?;
+                Some(
+                    caller
+                        .require_wallet(selected.or(self.sage.config.global.fingerprint))
+                        .map_err(denied)?,
+                )
+            }
+        };
+        if method == "get_handles" {
+            if body.get("refresh").and_then(Value::as_bool) == Some(true) {
+                caller.require(Cap::WalletResolveHandle).map_err(denied)?;
+            }
+            if body.get("filter").and_then(Value::as_str) == Some("contacts") {
+                caller.require(Cap::WalletGetContacts).map_err(denied)?;
+            }
+        }
+        Ok((policy.approval, fingerprint))
+    }
+
+    fn authorize_rpc(&mut self, method: &str, body: &Value) -> sage::Result<()> {
+        let (needs_approval, fingerprint) = self.preflight_rpc(method, body)?;
+        if needs_approval {
+            let caller = self.caller.as_ref().unwrap();
+            self.approval
+                .take()
+                .ok_or_else(|| denied("GUI approval is required"))?
+                .validate(
+                    &caller.id,
+                    &request_binding(method, body)?,
+                    fingerprint,
+                    now_ms()?,
+                )
+                .map_err(denied)?;
+        }
+        Ok(())
+    }
+
     fn authorize(&mut self, method: &str, body: &impl Serialize) -> sage::Result<()> {
         let Some(caller) = &self.caller else {
             return Ok(());
         };
         let body = serde_json::to_value(body).map_err(denied)?;
+        if !matches!(caller.id, CallerId::App(_)) && rpc_policy(method).is_some() {
+            return self.authorize_rpc(method, &body);
+        }
         let fingerprint = caller
             .require_wallet(self.sage.config.global.fingerprint)
             .map_err(denied)?;
@@ -295,11 +398,11 @@ fn now_ms() -> sage::Result<u64> {
     u64::try_from(now).map_err(denied)
 }
 
-fn request_binding(method: &str, body: &impl Serialize) -> sage::Result<String> {
+pub(crate) fn request_binding(method: &str, body: &impl Serialize) -> sage::Result<String> {
     serde_json::to_string(&(method, serde_json::to_value(body).map_err(denied)?)).map_err(denied)
 }
 
-fn redact_private_history(value: &mut Value) {
+fn redact_private_history(value: &mut Value, mask_contact_ids: bool) {
     match value {
         Value::Object(object) => {
             let is_contact = object.contains_key("recipient") && object.contains_key("name");
@@ -309,15 +412,17 @@ fn redact_private_history(value: &mut Value) {
                     "previous_address" | "last_sent_address" | "changed_from"
                 ) {
                     *value = Value::Null;
-                } else if is_contact && key == "id" {
+                } else if mask_contact_ids && is_contact && key == "id" {
                     // Contact IDs are host-only mutation handles, not part of a read grant.
                     *value = Value::from(0);
                 } else {
-                    redact_private_history(value);
+                    redact_private_history(value, mask_contact_ids);
                 }
             }
         }
-        Value::Array(values) => values.iter_mut().for_each(redact_private_history),
+        Value::Array(values) => values
+            .iter_mut()
+            .for_each(|v| redact_private_history(v, mask_contact_ids)),
         _ => {}
     }
 }
@@ -515,7 +620,7 @@ mod tests {
     #[test]
     fn scoped_responses_remove_contact_ids_and_handle_history() {
         let mut value = serde_json::json!({"contacts": [{"id": 42, "name": "Alice", "recipient": "@alice", "resolution": {"address": "current", "previous_address": "old", "last_sent_address": "paid", "changed_from": "old"}}]});
-        redact_private_history(&mut value);
+        redact_private_history(&mut value, true);
         assert_eq!(value["contacts"][0]["id"], 0);
         assert_eq!(value["contacts"][0]["resolution"]["address"], "current");
         assert!(value["contacts"][0]["resolution"]["last_sent_address"].is_null());
@@ -612,7 +717,7 @@ mod http_tests {
                 .await
                 .unwrap()
                 .status(),
-            StatusCode::UNAUTHORIZED
+            StatusCode::OK
         );
         sage.lock().await.config.global.fingerprint = Some(7);
         *auth.0.lock().unwrap() = None;
@@ -632,5 +737,135 @@ mod http_tests {
                 .status(),
             StatusCode::OK
         );
+    }
+}
+
+#[cfg(test)]
+mod full_rpc_tests {
+    use super::*;
+    use sage_permissions::{RPC_POLICIES, WalletScope};
+    use tokio::sync::Mutex;
+
+    fn agent(capabilities: Vec<Cap>) -> Caller {
+        Caller {
+            id: CallerId::Agent("agent".into()),
+            capabilities: capabilities.into_iter().collect(),
+            wallet_scope: WalletScope::SelectedWallets {
+                fingerprints: vec![7],
+            },
+        }
+    }
+    #[tokio::test]
+    async fn all_rpc_policies_enforce_grants_scope_and_owner_boundary() {
+        let root = tempfile::tempdir().unwrap();
+        let mut sage = Sage::new(root.path(), true);
+        sage.config.global.fingerprint = Some(7);
+        let sage = Mutex::new(sage);
+        for policy in RPC_POLICIES {
+            let mut session = RpcSession::scoped(
+                sage.lock().await,
+                agent(policy.capability.into_iter().collect()),
+                String::new(),
+                None,
+            );
+            let result = session.preflight_rpc(policy.method, &serde_json::json!({}));
+            assert_eq!(
+                result.is_ok(),
+                policy.capability.is_some(),
+                "{}",
+                policy.method
+            );
+            if let Ok((approval, _)) = result {
+                assert_eq!(approval, policy.approval, "{}", policy.method);
+            }
+            drop(session);
+            let mut ungranted =
+                RpcSession::scoped(sage.lock().await, agent(vec![]), String::new(), None);
+            assert!(
+                ungranted
+                    .preflight_rpc(policy.method, &serde_json::json!({}))
+                    .is_err(),
+                "{}",
+                policy.method
+            );
+        }
+        sage.lock().await.config.global.fingerprint = None;
+        let mut global = RpcSession::scoped(
+            sage.lock().await,
+            agent(vec![
+                Cap::WalletGetVersion,
+                Cap::WalletGetNfts,
+                Cap::WalletGetWallet,
+            ]),
+            String::new(),
+            None,
+        );
+        assert!(
+            global
+                .preflight_rpc("get_version", &serde_json::json!({}))
+                .is_ok()
+        );
+        assert!(
+            global
+                .preflight_rpc("get_nfts", &serde_json::json!({}))
+                .is_err()
+        );
+        assert!(
+            global
+                .preflight_rpc("get_wallet", &serde_json::json!({"fingerprint":7}))
+                .is_ok()
+        );
+        assert!(
+            global
+                .preflight_rpc("get_wallet", &serde_json::json!({"fingerprint":8}))
+                .is_err()
+        );
+    }
+    #[tokio::test]
+    async fn rpc_approval_binds_payload_wallet_and_can_execute_only_once() {
+        let root = tempfile::tempdir().unwrap();
+        let mut sage = Sage::new(root.path(), true);
+        sage.config.global.fingerprint = Some(7);
+        let sage = Mutex::new(sage);
+        let body = serde_json::json!({"address":"recipient", "amount":"123", "fee":"1"});
+        for (fp, input, expected) in [
+            (Some(7), body.clone(), true),
+            (Some(8), body.clone(), false),
+            (Some(7), serde_json::json!({"amount":"999"}), false),
+        ] {
+            sage.lock().await.config.global.fingerprint = fp;
+            let caller = agent(vec![Cap::WalletSendCat]);
+            let approval = ApprovalBinding::new(
+                caller.id.clone(),
+                request_binding("send_cat", &body).unwrap(),
+                Some(7),
+                u64::MAX,
+            );
+            let mut session =
+                RpcSession::scoped(sage.lock().await, caller, String::new(), Some(approval));
+            assert_eq!(session.authorize("send_cat", &input).is_ok(), expected);
+            assert!(session.authorize("send_cat", &input).is_err());
+        }
+    }
+    #[tokio::test]
+    async fn wallet_list_respects_scope_and_rpc_contact_ids_remain_usable() {
+        let root = tempfile::tempdir().unwrap();
+        let sage = Mutex::new(Sage::new(root.path(), true));
+        let session = RpcSession::scoped(
+            sage.lock().await,
+            agent(vec![Cap::WalletGetWallets]),
+            String::new(),
+            None,
+        );
+        let result: Value = session
+            .filter_response(
+                "get_wallets",
+                serde_json::json!({"wallets":[{"fingerprint":7},{"fingerprint":8}]}),
+            )
+            .unwrap();
+        assert_eq!(result["wallets"], serde_json::json!([{"fingerprint":7}]));
+        let contact: Value = session.filter_response("get_contact", serde_json::json!({"id":1,"recipient":"address","name":"Friend","previous_address":"private"})).unwrap();
+        assert_eq!(contact["id"], 1);
+        assert!(contact["previous_address"].is_null());
     }
 }

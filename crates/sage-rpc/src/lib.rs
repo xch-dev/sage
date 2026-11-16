@@ -1,3 +1,5 @@
+mod operation_approvals;
+pub use operation_approvals::{OperationReview, RpcApprovalRequest};
 mod cert_verifier;
 mod credentials;
 mod openapi;
@@ -43,7 +45,7 @@ struct AppState {
 
 impl_endpoints! {
     (repeat async fn endpoint(State(state): State<AppState>, headers: HeaderMap, Json(req): Json<sage_api::Endpoint>) -> Response {
-        let mut session = match state.session(&headers).await {
+        let mut session = match state.session(&headers, endpoint_string, &req).await {
             Ok(session) => session,
             Err(error) => return handle::<()>(Err(error)),
         };
@@ -156,6 +158,15 @@ pub fn make_router(sage: Arc<Mutex<Sage>>) -> Router {
 /// Sage lock, so it must not try to acquire that lock again.
 pub trait RpcAuthenticator: std::fmt::Debug + Send + Sync {
     fn authenticate(&self, headers: &HeaderMap) -> Result<sage_permissions::Caller, String>;
+    fn request_approval(
+        &self,
+        _request: RpcApprovalRequest,
+    ) -> Result<
+        tokio::sync::oneshot::Receiver<Result<sage_permissions::ApprovalBinding, String>>,
+        String,
+    > {
+        Err("This transport has no approval presenter".into())
+    }
 }
 
 /// Build a restricted RPC listener. Missing/invalid credentials fail closed; there is no
@@ -172,16 +183,67 @@ pub fn make_scoped_router(
 }
 
 impl AppState {
-    async fn session(&self, headers: &HeaderMap) -> sage::Result<RpcSession<'_>> {
+    async fn session(
+        &self,
+        headers: &HeaderMap,
+        method: &str,
+        request: &impl Serialize,
+    ) -> sage::Result<RpcSession<'_>> {
         let sage = self.sage.lock().await;
-        match &self.authenticator {
-            None => Ok(RpcSession::owner(sage)),
-            Some(authenticator) => {
-                let caller = authenticator
-                    .authenticate(headers)
-                    .map_err(sage::Error::PermissionDenied)?;
-                Ok(RpcSession::scoped(sage, caller, String::new(), None))
-            }
+        let Some(authenticator) = &self.authenticator else {
+            return Ok(RpcSession::owner(sage));
+        };
+        let caller = authenticator
+            .authenticate(headers)
+            .map_err(sage::Error::PermissionDenied)?;
+        let caller_id = caller.id.clone();
+        let body = serde_json::to_value(request)
+            .map_err(|e| sage::Error::PermissionDenied(e.to_string()))?;
+        let mut session = RpcSession::scoped(sage, caller, String::new(), None);
+        let (approval, fingerprint) = session.preflight_rpc(method, &body)?;
+        if !approval {
+            return Ok(session);
         }
+        let (network_name, network_context) = session.network_context()?;
+        // Never hold the wallet mutex while the user reviews a request.
+        let pending = authenticator
+            .request_approval(RpcApprovalRequest {
+                caller: caller_id.clone(),
+                method: method.into(),
+                body,
+                fingerprint,
+                network: network_name,
+            })
+            .map_err(sage::Error::PermissionDenied)?;
+        drop(session);
+        let binding = tokio::time::timeout(std::time::Duration::from_secs(300), pending)
+            .await
+            .map_err(|_| sage::Error::PermissionDenied("Approval timed out".into()))?
+            .map_err(|_| sage::Error::PermissionDenied("Approval canceled".into()))?
+            .map_err(sage::Error::PermissionDenied)?;
+        let sage = self.sage.lock().await;
+        let caller = authenticator
+            .authenticate(headers)
+            .map_err(sage::Error::PermissionDenied)?;
+        if caller.id != caller_id {
+            return Err(sage::Error::PermissionDenied(
+                "Caller changed during approval".into(),
+            ));
+        }
+        // Authorization rechecks current grants and the bound wallet/payload during execution.
+        if serde_json::to_string(&sage.network())
+            .map_err(|e| sage::Error::PermissionDenied(e.to_string()))?
+            != network_context
+        {
+            return Err(sage::Error::PermissionDenied(
+                "Network changed during approval".into(),
+            ));
+        }
+        Ok(RpcSession::scoped(
+            sage,
+            caller,
+            String::new(),
+            Some(binding),
+        ))
     }
 }

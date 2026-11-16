@@ -57,17 +57,22 @@ authentication fails. The resolver runs under the Sage lock and must not acquire
 lock itself. A token store can implement it without depending on Apps. Request headers
 are inputs to authentication, not declarations of identity or permissions.
 
-The scoped HTTP router has no approval presenter and rejects approval-required calls.
-An in-process host adapter can use `RpcSession` and the shared approval primitives to
-present a GUI request, then execute its approved payload. `ApprovalBinding::new` and
+The dedicated credential listener supplies a host approval presenter for scoped HTTP
+writes. A bare scoped router without a presenter rejects approval-required calls.
+An in-process host adapter can also use `RpcSession` and the shared approval primitives
+to present a GUI request, then execute its approved payload. `ApprovalBinding::new` and
 `RpcSession::bind_approved_request` are trusted host APIs, not client RPC endpoints.
 
-This change does not add an MCP server, agent credential management or an agent GUI
-approval presenter. Those can be built on the shared layer in a subsequent stage.
+The desktop Permissions screen manages scoped service and agent credentials and
+presents initial pairing requests. See [Scoped RPC](scoped-rpc.md) for creation,
+rotation, revocation and the pairing protocol. The opt-in local HTTPS listener
+authenticates bearer tokens against their current stored grants on every request.
+This does not add an MCP server. RPC operation confirmation is a separate, one-time
+approval bound to the exact parameters, caller, wallet and current network context.
 
 ## Apps extends the shared model
 
-`sage-permissions::WalletCapability` contains only shared wallet operations and their
+`sage-permissions::WalletCapability` contains shared RPC operations and their
 security properties. `Caller` accepts only these grants. Apps owns its bridge and system
 capabilities, runtime subscriptions, storage permissions, network whitelist, and the
 App-specific flags controlling manifest requests and permission presentation.
@@ -83,3 +88,14 @@ Apps validates the combined policy, including its network whitelist and external
 capabilities, so an inherited secret-access grant cannot be combined with Apps-specific
 external access. This rule remains enforced even though network permissions do not enter
 the wallet caller's grant set.
+
+
+## RPC-wide catalog
+
+`RPC_POLICIES` classifies every HTTP endpoint with a grantable capability or an
+owner-only restriction, its global/active-wallet/target-wallet/list scope, category,
+and confirmation requirement. A coverage test compares the catalog against
+`sage-api/endpoints.json`, so new endpoints cannot silently escape classification.
+Services and agents use this full catalog. Apps preserves its bridge contract and
+projects only the subset it exposes; shared RPC capabilities do not automatically
+become callable through the Apps bridge. Administrative HTTP methods remain owner-only.

@@ -12,3 +12,6 @@ pub use wallet_scope::*;
 
 mod authorization;
 pub use authorization::*;
+
+mod rpc_policy;
+pub use rpc_policy::*;

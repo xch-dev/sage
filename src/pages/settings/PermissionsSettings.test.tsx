@@ -32,6 +32,7 @@ vi.mock('@/lib/apps/openAppUpdate', () => ({
 vi.mock('@/hooks/useErrors', () => ({
   useErrors: () => ({ addError: vi.fn() }),
 }));
+vi.mock('theme-o-rama', () => ({ useTheme: () => ({ currentTheme: null }) }));
 vi.mock('@tauri-apps/plugin-os', () => ({ platform: () => 'macos' }));
 vi.mock('@/hooks/useWalletConnect', () => ({
   useWalletConnect: () => ({
@@ -153,6 +154,11 @@ it('filters categories and searches permission keys', async () => {
   );
   expect(screen.getByText('No matching permissions')).toBeTruthy();
   tab(/^Agents/);
+  expect(screen.getByText('No matching permissions')).toBeTruthy();
+  fireEvent.change(
+    screen.getByRole('textbox', { name: 'Search permissions' }),
+    { target: { value: '' } },
+  );
   expect(screen.getByText('No agent connections yet')).toBeTruthy();
 });
 

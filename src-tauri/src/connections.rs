@@ -31,6 +31,8 @@ pub struct ConnectionsView {
     pub credentials: Vec<CredentialInfo>,
     pub pending: Vec<PairingInfo>,
     pub capabilities: Vec<CredentialCapability>,
+    pub operations: Vec<sage_rpc::OperationReview>,
+    pub owner_only_methods: Vec<String>,
 }
 fn internal(error: impl std::fmt::Display) -> crate::error::Error {
     std::io::Error::other(error.to_string()).into()
@@ -106,6 +108,12 @@ pub async fn connections_review(state: State<'_, Connections>) -> Result<Connect
         credentials: store.map_or_else(Vec::new, CredentialStore::list),
         pending: store.map_or_else(Vec::new, |store| store.pending(credential_now())),
         capabilities: credential_capabilities(),
+        operations: store.map_or_else(Vec::new, CredentialStore::operations),
+        owner_only_methods: sage_permissions::RPC_POLICIES
+            .iter()
+            .filter(|p| p.capability.is_none())
+            .map(|p| p.method.into())
+            .collect(),
     })
 }
 
@@ -192,5 +200,21 @@ pub async fn connections_decide_pairing(
         .await
         .store()?
         .decide(&id, grant, credential_now())
+        .map_err(internal)
+}
+
+#[command]
+#[specta]
+pub async fn connections_decide_operation(
+    state: State<'_, Connections>,
+    id: String,
+    approved: bool,
+) -> Result<()> {
+    state
+        .0
+        .lock()
+        .await
+        .store()?
+        .decide_operation(&id, approved)
         .map_err(internal)
 }

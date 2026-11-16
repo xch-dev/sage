@@ -195,6 +195,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
         .error_handling(ErrorHandlingMode::Throw)
         .commands(sage_commands![
             connections::connections_review,
+            connections::connections_decide_operation,
             connections::connections_set_server,
             connections::connections_create,
             connections::connections_revoke,

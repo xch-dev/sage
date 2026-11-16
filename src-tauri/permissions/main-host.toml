@@ -4,6 +4,7 @@ description = "Allows the main Sage webview to call Sage host commands."
 commands.allow = [
     "initialize",
     "connections_review",
+    "connections_decide_operation",
     "connections_set_server",
     "connections_create",
     "connections_revoke",
