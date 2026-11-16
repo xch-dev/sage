@@ -5,14 +5,22 @@ import { bech32m } from 'bech32';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getNftMetadataUpdater = vi.fn();
-const getRequestedNftThumbnail = vi.fn();
+const getNftThumbnail = vi.fn();
+let emitSyncEvent: (type: string) => void = () => undefined;
 
 vi.mock('@/bindings', () => ({
   commands: {
     getNftMetadataUpdater: (...args: unknown[]) =>
       getNftMetadataUpdater(...args),
-    getRequestedNftThumbnail: (...args: unknown[]) =>
-      getRequestedNftThumbnail(...args),
+    getNftThumbnail: (...args: unknown[]) => getNftThumbnail(...args),
+  },
+  events: {
+    syncEvent: {
+      listen: (handler: (event: { payload: { type: string } }) => void) => {
+        emitSyncEvent = (type) => handler({ payload: { type } });
+        return Promise.resolve(() => undefined);
+      },
+    },
   },
 }));
 
@@ -46,7 +54,7 @@ async function settle() {
 
 beforeEach(() => {
   vi.useFakeTimers();
-  getRequestedNftThumbnail.mockResolvedValue({ thumbnail: null });
+  getNftThumbnail.mockResolvedValue({ thumbnail: null });
 });
 
 afterEach(() => {
@@ -170,28 +178,38 @@ describe('useRequestedNft', () => {
     rerender(<Probe id='not an nft' />);
     expect(screen.getByTestId('status').textContent).toBe('invalid');
   });
-  it('shows the thumbnail once it loads, without holding up the lookup', async () => {
+  it("shows the thumbnail the wallet has for the NFT's data", async () => {
     getNftMetadataUpdater.mockResolvedValue({
       metadata_updater_kind: 'default',
       name: 'Cool NFT',
     });
-    let finishThumbnail: (value: unknown) => void = () => undefined;
-    getRequestedNftThumbnail.mockReturnValue(
-      new Promise((resolve) => {
-        finishThumbnail = resolve;
-      }),
-    );
+    getNftThumbnail.mockResolvedValue({ thumbnail: 'AQID' });
 
     render(<Probe id={nftId} />);
     await settle();
 
+    expect(getNftThumbnail).toHaveBeenCalledWith({ nft_id: nftId });
+    expect(screen.getByTestId('thumbnail').textContent).toBe(
+      'data:image/png;base64,AQID',
+    );
+  });
+
+  it('shows the thumbnail once the wallet has downloaded the data', async () => {
+    getNftMetadataUpdater.mockResolvedValue({
+      metadata_updater_kind: 'default',
+      name: 'Cool NFT',
+    });
+
+    render(<Probe id={nftId} />);
+    await settle();
     expect(screen.getByTestId('status').textContent).toBe('found');
     expect(screen.getByTestId('thumbnail').textContent).toBe('');
-    expect(getRequestedNftThumbnail).toHaveBeenCalledWith({ nft_id: nftId });
 
+    getNftThumbnail.mockResolvedValue({ thumbnail: 'AQID' });
     await act(async () => {
-      finishThumbnail({ thumbnail: 'AQID' });
+      emitSyncEvent('nft_data');
     });
+
     expect(screen.getByTestId('thumbnail').textContent).toBe(
       'data:image/png;base64,AQID',
     );
@@ -206,7 +224,7 @@ describe('useRequestedNft', () => {
     render(<Probe id={nftId} />);
     await settle();
 
-    expect(getRequestedNftThumbnail).not.toHaveBeenCalled();
+    expect(getNftThumbnail).not.toHaveBeenCalled();
   });
 
   it('keeps a found NFT when its thumbnail fails to load', async () => {
@@ -214,7 +232,7 @@ describe('useRequestedNft', () => {
       metadata_updater_kind: 'default',
       name: 'Cool NFT',
     });
-    getRequestedNftThumbnail.mockRejectedValue(new Error('offline'));
+    getNftThumbnail.mockRejectedValue(new Error('no wallet'));
 
     render(<Probe id={nftId} />);
     await settle();
@@ -223,7 +241,7 @@ describe('useRequestedNft', () => {
     expect(screen.getByTestId('thumbnail').textContent).toBe('');
   });
 
-  it('ignores a thumbnail that loads after the ID changed', async () => {
+  it("doesn't show the previous NFT's thumbnail after the ID changed", async () => {
     getNftMetadataUpdater
       .mockResolvedValueOnce({
         metadata_updater_kind: 'default',
@@ -233,24 +251,20 @@ describe('useRequestedNft', () => {
         metadata_updater_kind: 'default',
         name: 'Second',
       });
-    let finishFirst: (value: unknown) => void = () => undefined;
-    getRequestedNftThumbnail
-      .mockReturnValueOnce(
-        new Promise((resolve) => {
-          finishFirst = resolve;
-        }),
-      )
-      .mockResolvedValueOnce({ thumbnail: null });
+    getNftThumbnail.mockImplementation(({ nft_id }: { nft_id: string }) =>
+      Promise.resolve({ thumbnail: nft_id === otherNftId ? 'AQID' : null }),
+    );
 
     const { rerender } = render(<Probe id={otherNftId} />);
     await settle();
+    expect(screen.getByTestId('thumbnail').textContent).toBe(
+      'data:image/png;base64,AQID',
+    );
+
     rerender(<Probe id={nftId} />);
+    expect(screen.getByTestId('thumbnail').textContent).toBe('');
     await settle();
     expect(screen.getByTestId('name').textContent).toBe('Second');
-
-    await act(async () => {
-      finishFirst({ thumbnail: 'AQID' });
-    });
     expect(screen.getByTestId('thumbnail').textContent).toBe('');
   });
 });

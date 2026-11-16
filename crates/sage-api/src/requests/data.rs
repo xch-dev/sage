@@ -911,33 +911,6 @@ pub struct GetNftMetadataUpdaterResponse {
     pub name: Option<String>,
 }
 
-/// Get the thumbnail of an NFT that isn't in the wallet
-#[cfg_attr(
-    feature = "openapi",
-    crate::openapi_attr(
-        tag = "NFTs",
-        description = "Retrieve the thumbnail of an NFT that isn't in the wallet, such as one requested in an offer. Look the NFT up with get_nft_metadata_updater first. The thumbnail comes from the wallet if it has one, and otherwise from MintGarden on mainnet and testnet11."
-    )
-)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct GetRequestedNftThumbnail {
-    /// NFT launcher ID
-    pub nft_id: String,
-}
-
-/// Response with the thumbnail of an NFT that isn't in the wallet
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "NFTs"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct GetRequestedNftThumbnailResponse {
-    /// Base64-encoded PNG thumbnail, or null if there isn't one
-    #[cfg_attr(feature = "openapi", schema(nullable = true))]
-    pub thumbnail: Option<String>,
-}
-
 /// Get NFT data file
 #[cfg_attr(
     feature = "openapi",

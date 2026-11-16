@@ -1,8 +1,8 @@
 import { commands, NftUpdaterKind } from '@/bindings';
-import { nftUri } from '@/lib/nftUri';
 import { isValidAddress } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { useDebounce } from './useDebounce';
+import { useNftThumbnails } from './useOwnedNft';
 
 export type NftLookup =
   | { status: 'idle' }
@@ -14,7 +14,10 @@ export type NftLookup =
       /** Null until the NFT's metadata has been downloaded. */
       name: string | null;
       kind: NftUpdaterKind;
-      /** Null while it loads, or if there isn't one. */
+      /**
+       * Null until the wallet has downloaded the NFT's data, which it does
+       * for a looked-up NFT as it does for its own.
+       */
       thumbnail: string | null;
     };
 
@@ -46,28 +49,11 @@ export function useRequestedNft(nftId: string): NftLookup {
       .getNftMetadataUpdater({ nft_id: debounced })
       .then(({ metadata_updater_kind: kind, name }) => {
         if (cancelled) return;
-        if (kind === null) {
-          setLookup({ status: 'missing' });
-          return;
-        }
-
-        setLookup({ status: 'found', name, kind, thumbnail: null });
-
-        // The thumbnail can take a while to come from MintGarden, so it's
-        // loaded once the NFT is found rather than holding that up. It needs
-        // the NFT's info, which the lookup above saves to the wallet.
-        commands
-          .getRequestedNftThumbnail({ nft_id: debounced })
-          .then(({ thumbnail }) => {
-            if (cancelled || thumbnail === null) return;
-            setLookup((current) =>
-              current.status === 'found'
-                ? { ...current, thumbnail: nftUri('image/png', thumbnail) }
-                : current,
-            );
-          })
-          // Without a thumbnail, the preview keeps its placeholder.
-          .catch(() => undefined);
+        setLookup(
+          kind === null
+            ? { status: 'missing' }
+            : { status: 'found', name, kind, thumbnail: null },
+        );
       })
       .catch(() => {
         if (!cancelled) setLookup({ status: 'missing' });
@@ -78,6 +64,12 @@ export function useRequestedNft(nftId: string): NftLookup {
     };
   }, [debounced]);
 
+  // Looking the NFT up saves it, and the wallet then downloads its data and
+  // makes a thumbnail in the background. This refreshes as that finishes.
+  const thumbnails = useNftThumbnails(
+    lookup.status === 'found' ? [debounced] : [],
+  );
+
   // An empty or malformed ID needs no lookup, so it's shown straight away
   // rather than after the debounce. A valid ID that's still being typed
   // hasn't been checked yet.
@@ -85,6 +77,10 @@ export function useRequestedNft(nftId: string): NftLookup {
     if (!trimmed) return { status: 'idle' };
     if (!isValidAddress(trimmed, 'nft')) return { status: 'invalid' };
     return { status: 'loading' };
+  }
+
+  if (lookup.status === 'found') {
+    return { ...lookup, thumbnail: thumbnails[debounced] ?? null };
   }
 
   return lookup;
