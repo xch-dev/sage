@@ -250,7 +250,7 @@ pub struct SetDeltaSyncOverride {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Addresses",
-        description = "Set an address that a wallet's change is sent to, instead of one of its own derived addresses, or clear it. For a BLS wallet, it's also returned as the receive address.",
+        description = "Set an address that a wallet's change is sent to, instead of one of its own derived addresses, or clear it. For a BLS wallet, it's also returned as the receive address. The address isn't validated first, and an invalid one stops the wallet from opening until it's cleared.",
         response_type = "EmptyResponse"
     )
 )]

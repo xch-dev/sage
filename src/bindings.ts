@@ -2068,7 +2068,8 @@ fingerprint: number }
  */
 export type GetSecretKeyResponse = { 
 /**
- * Secret key information, or null if only the public key is stored
+ * Secret key information, or null if the key isn't in the keychain or only its public key is
+ * stored
  */
 secrets: SecretKeyInfo | null }
 /**

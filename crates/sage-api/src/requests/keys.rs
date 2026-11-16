@@ -470,7 +470,8 @@ pub struct GetSecretKey {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetSecretKeyResponse {
-    /// Secret key information, or null if only the public key is stored
+    /// Secret key information, or null if the key isn't in the keychain or only its public key is
+    /// stored
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub secrets: Option<SecretKeyInfo>,
 }
@@ -556,7 +557,7 @@ pub struct GetUserThemeResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Themes",
-        description = "Save the theme in the off-chain metadata of an NFT in the active wallet, so it can be selected. The NFT's metadata must already be downloaded; otherwise nothing is saved, though no error is returned."
+        description = "Save the theme in the off-chain metadata of an NFT in the active wallet, so it can be selected. If the NFT isn't in the wallet or its metadata hasn't been downloaded, nothing is saved, though no error is returned."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -12,7 +12,7 @@ use super::TransactionResponse;
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Create and sign an offer of assets from the active wallet in exchange for requested assets, optionally with an expiration. Unless auto_import is false, the offer is saved and its coins are locked while it's active."
+        description = "Create and sign an offer of assets from the active wallet in exchange for requested assets, optionally with an expiration. Unless auto_import is false, the offer is saved and its coins are locked while it's active. With pre_split_fee, a transaction splitting the coins is submitted right away if they need splitting, and the offer is always saved, staying pending until that transaction confirms."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]

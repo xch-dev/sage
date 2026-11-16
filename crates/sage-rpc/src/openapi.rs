@@ -103,7 +103,8 @@ pub fn generate_openapi() -> OpenApi {
                  **Transactions**: Endpoints that create a transaction return a summary of it and \
                  its unsigned coin spends. With `auto_submit` set, it's also signed and submitted \
                  to the network. Otherwise, it can be signed with `sign_coin_spends` and submitted \
-                 with `submit_transaction`.",
+                 with `submit_transaction`. Coins aren't reserved until a transaction is submitted, so \
+                 transactions built before then may select the same coins.",
             ))
             .build(),
         paths_builder.build(),

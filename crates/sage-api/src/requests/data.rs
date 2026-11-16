@@ -210,7 +210,7 @@ pub struct GetVersionResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Coins",
-        description = "Check whether all of the given coins can still be spent: they belong to the active wallet, are unspent, aren't in a pending transaction, and aren't a clawback or option that can't be spent yet. Coins locked in an open offer still count as spendable. Returns false for an empty list."
+        description = "Check whether all of the given coins can still be spent: they belong to the active wallet, are unspent, aren't in a pending transaction, and aren't a clawback or option that can't be spent yet. Coins locked in an open offer still count as spendable. Returns false for an empty list, or one with a repeated coin ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
