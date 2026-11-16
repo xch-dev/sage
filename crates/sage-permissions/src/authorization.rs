@@ -8,6 +8,7 @@ use crate::{WalletCapability, WalletScope, wallet_capability_definition};
 pub enum CallerId {
     App(String),
     Agent(String),
+    Service(String),
 }
 
 /// Effective grants resolved by the host for one invocation. Resolve again on every request,

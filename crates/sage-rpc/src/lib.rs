@@ -1,7 +1,11 @@
 mod cert_verifier;
+mod credentials;
 mod openapi;
 mod rustls_config;
+mod scoped_server;
 mod session;
+pub use credentials::*;
+pub use scoped_server::*;
 
 pub use session::RpcSession;
 
