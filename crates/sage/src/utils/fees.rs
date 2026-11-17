@@ -79,19 +79,16 @@ impl CostRules {
         // Without a height, the cost is the higher of the costs on either side of the 3.0 hard
         // fork, as `spend_bundle_cost` prices it. The fee is the same on both sides.
         let fork_height = self.constants.hard_fork2_height;
-        let (cost, conditions) = match self.height {
-            Some(height) => {
-                let conditions = conditions(height)?;
-                (conditions.cost, conditions)
-            }
-            None => {
-                let after = conditions(fork_height)?;
-                let before = match fork_height.checked_sub(1) {
-                    Some(height) => conditions(height)?.cost,
-                    None => after.cost,
-                };
-                (before.max(after.cost), after)
-            }
+        let (cost, conditions) = if let Some(height) = self.height {
+            let conditions = conditions(height)?;
+            (conditions.cost, conditions)
+        } else {
+            let after = conditions(fork_height)?;
+            let before = match fork_height.checked_sub(1) {
+                Some(height) => conditions(height)?.cost,
+                None => after.cost,
+            };
+            (before.max(after.cost), after)
         };
 
         Ok((cost, paid_fee(&conditions)?))
