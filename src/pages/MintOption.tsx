@@ -257,15 +257,18 @@ export function MintOption() {
           </div>
         </div>
 
-        <div className='flex flex-col space-y-1.5 mt-4'>
-          <Label htmlFor='fee'>
-            <Trans>Network Fee</Trans>
-          </Label>
-          <FeeAmountInput
-            id='fee'
-            value={fee}
-            onValueChange={(values) => setFee(values.value)}
-          />
+        {/* The same columns as the cards above, so the fee is as wide as one of them. */}
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-screen-lg mt-4'>
+          <div className='flex flex-col space-y-1.5'>
+            <Label htmlFor='fee'>
+              <Trans>Network Fee</Trans>
+            </Label>
+            <FeeAmountInput
+              id='fee'
+              value={fee}
+              onValueChange={(values) => setFee(values.value)}
+            />
+          </div>
         </div>
 
         <div className='mt-5 flex gap-2'>
