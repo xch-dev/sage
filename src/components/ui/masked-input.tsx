@@ -373,7 +373,7 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
                   decimalScale={3}
                   allowNegative={false}
                   allowLeadingZeros={false}
-                  className={`h-7 w-12 rounded-sm border border-input bg-background px-1.5 text-right text-sm text-foreground focus:outline-none ${belowMinimum ? 'border-amber-500 text-amber-600 dark:text-amber-400' : ''}`}
+                  className={`h-7 w-12 rounded-sm border border-input bg-background px-1.5 text-left text-sm text-foreground focus:outline-none ${belowMinimum ? 'border-amber-500 text-amber-600 dark:text-amber-400' : ''}`}
                 />
                 <Trans>mojos/cost</Trans>
               </span>
