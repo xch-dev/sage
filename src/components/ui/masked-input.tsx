@@ -17,7 +17,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Trans } from '@lingui/react/macro';
-import { ArrowUpToLine } from 'lucide-react';
+import { ArrowUpToLine, PencilLine, Sparkles } from 'lucide-react';
+import { AUTO_FEE, getFeeRate, isAutoFee } from '@/lib/fees';
 
 interface MaskedInputProps extends NumericFormatProps<InputProps> {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -231,25 +232,51 @@ const IntegerInput = React.forwardRef<HTMLInputElement, IntegerInputProps>(
 
 IntegerInput.displayName = 'IntegerInput';
 
-// Fee input that uses the default fee value as initial value
+// Fee input that starts from the default fee. Unless `allowAuto` is false, it can
+// also be set to calculate the fee automatically, which gives it the value `AUTO_FEE`.
 interface FeeAmountInputProps extends Omit<TokenInputProps, 'value'> {
   value?: string;
   className?: string;
+  /** Whether the fee can be calculated automatically. */
+  allowAuto?: boolean;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onValueChange?: (
     values: {
       floatValue: number | undefined;
       value: string;
     },
-    // Absent when the input fills in the default fee.
+    // Absent when the input fills in the default fee or switches modes.
     sourceInfo?: SourceInfo,
   ) => void;
 }
 
 const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
-  ({ value, className, onChange, onValueChange, ...props }, ref) => {
-    const { fee: defaultFee } = useDefaultFee();
+  (
+    { value, className, allowAuto = true, onChange, onValueChange, ...props },
+    ref,
+  ) => {
+    const { fee: storedDefaultFee } = useDefaultFee();
+    const defaultFee =
+      !allowAuto && isAutoFee(storedDefaultFee) ? '' : storedDefaultFee;
     const hasSetInitialValue = React.useRef(false);
+    const feeRate = useFeeRate();
+
+    const setValue = React.useCallback(
+      (newValue: string) => {
+        if (onChange) {
+          onChange({
+            target: { value: newValue },
+          } as React.ChangeEvent<HTMLInputElement>);
+        }
+        if (onValueChange) {
+          onValueChange({
+            floatValue: isAutoFee(newValue) ? undefined : Number(newValue),
+            value: newValue,
+          });
+        }
+      },
+      [onChange, onValueChange],
+    );
 
     // Start from the default fee if the input first appears empty. Only on
     // mount: a value cleared later (by the user, or by its owner resetting
@@ -257,37 +284,121 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     React.useEffect(() => {
       if (hasSetInitialValue.current) return;
       hasSetInitialValue.current = true;
-      if (!value) {
-        if (onChange) {
-          onChange({
-            target: { value: defaultFee },
-          } as React.ChangeEvent<HTMLInputElement>);
-        }
-        if (onValueChange) {
-          onValueChange({ floatValue: Number(defaultFee), value: defaultFee });
-        }
+      if (!value && defaultFee) {
+        setValue(defaultFee);
       }
-    }, [defaultFee, onChange, onValueChange, value]);
+    }, [defaultFee, setValue, value]);
+
+    const currentValue = value ?? defaultFee;
+    const heightClass = className?.match(/\bh-\d+\b/)?.[0] || 'h-9';
+
+    const modeButton = (auto: boolean) => (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant='outline'
+              type='button'
+              className={`!border-l-0 !rounded-l-none flex-shrink-0 ${heightClass} w-10 px-0`}
+              onClick={() => setValue(auto ? '' : AUTO_FEE)}
+              aria-label={
+                auto
+                  ? t`Enter a custom fee`
+                  : t`Calculate the fee automatically`
+              }
+            >
+              {auto ? (
+                <PencilLine className='h-4 w-4' />
+              ) : (
+                <Sparkles className='h-4 w-4' />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {auto ? (
+              <Trans>Enter a custom fee</Trans>
+            ) : (
+              <Trans>Calculate the fee automatically</Trans>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+
+    if (allowAuto && isAutoFee(currentValue)) {
+      return (
+        <div className='flex'>
+          <div
+            role='status'
+            aria-label={t`Network fee is calculated automatically`}
+            className={`flex flex-1 min-w-0 items-center justify-between gap-2 rounded-md rounded-r-none border border-input bg-muted/40 px-3 text-sm ${heightClass}`}
+          >
+            <span className='flex items-center gap-1.5 truncate'>
+              <Sparkles className='h-3.5 w-3.5 shrink-0 text-muted-foreground' />
+              <Trans>Automatic</Trans>
+            </span>
+            {feeRate !== null && (
+              <span className='text-muted-foreground text-xs truncate'>
+                <Trans>{feeRate} mojos per cost</Trans>
+              </span>
+            )}
+          </div>
+          {modeButton(true)}
+        </div>
+      );
+    }
+
+    const input = (
+      <TokenAmountInput
+        aria-label={t`Network fee amount`}
+        {...props}
+        ref={ref}
+        value={isAutoFee(currentValue) ? '' : currentValue}
+        onChange={onChange}
+        onValueChange={onValueChange}
+        placeholder={t`Enter network fee`}
+        className={`pr-12 ${allowAuto ? '!rounded-r-none' : ''} ${className || ''}`}
+        ticker='xch'
+        precision={12}
+        hideMaxButton={true}
+      />
+    );
+
+    if (!allowAuto) {
+      return <div className='relative'>{input}</div>;
+    }
 
     return (
-      <div className='relative'>
-        <TokenAmountInput
-          aria-label={t`Network fee amount`}
-          {...props}
-          ref={ref}
-          value={value ?? defaultFee}
-          onChange={onChange}
-          onValueChange={onValueChange}
-          placeholder={t`Enter network fee`}
-          className={`pr-12 ${className || ''}`}
-          ticker='xch'
-          precision={12}
-          hideMaxButton={true}
-        />
+      <div className='flex'>
+        <div className='relative flex-1 min-w-0'>{input}</div>
+        {modeButton(false)}
       </div>
     );
   },
 );
+
+/** The fee rate automatic fees are priced at, once it's loaded. */
+function useFeeRate(): number | null {
+  const [feeRate, setFeeRate] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    getFeeRate()
+      .then((rate) => {
+        if (!cancelled) setFeeRate(rate);
+      })
+      .catch(() => {
+        // The rate is only shown as a hint, and the request that uses it reports the error.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return feeRate;
+}
 
 FeeAmountInput.displayName = 'FeeAmountInput';
 

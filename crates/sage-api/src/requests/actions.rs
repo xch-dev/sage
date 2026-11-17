@@ -49,6 +49,28 @@ pub struct GetXchUsdPriceResponse {
     pub usd: f64,
 }
 
+/// Get the fee rate to price transactions at
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "System",
+        description = "Get the fee rate, in mojos per cost, that the wallet recommends pricing transactions at. Pass it as `fee_per_cost` to have the fee calculated from the transaction's cost."
+    )
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetFeeRate {}
+
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System"))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetFeeRateResponse {
+    /// The recommended fee rate, in mojos per cost
+    pub fee_per_cost: f64,
+}
+
 /// Update a `CAT` token's metadata and visibility
 #[cfg_attr(
     feature = "openapi",

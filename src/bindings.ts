@@ -461,6 +461,9 @@ async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
 async getXchUsdPrice(req: GetXchUsdPrice) : Promise<GetXchUsdPriceResponse> {
     return await TAURI_INVOKE("get_xch_usd_price", { req });
 },
+async getFeeRate(req: GetFeeRate) : Promise<GetFeeRateResponse> {
+    return await TAURI_INVOKE("get_fee_rate", { req });
+},
 async appsEnterWorkspace() : Promise<null> {
     return await TAURI_INVOKE("apps_enter_workspace");
 },
@@ -597,6 +600,12 @@ uri: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Type of URI
  */
 kind: NftUriKind; 
@@ -687,6 +696,12 @@ did_id: string | null;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -710,6 +725,12 @@ max_coin_amount: Amount | null;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -747,6 +768,12 @@ max_coin_amount: Amount | null;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -782,6 +809,12 @@ did_id: string;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -829,6 +862,12 @@ amount: Amount;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to include the CAT hint
  */
 include_hint?: boolean; 
@@ -863,6 +902,12 @@ amount: Amount;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Optional memos
  */
 memos?: string[]; 
@@ -889,6 +934,12 @@ offer_id: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean; 
@@ -909,6 +960,12 @@ offer_ids: string[];
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean; 
@@ -928,6 +985,12 @@ option_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -960,6 +1023,12 @@ coin_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -1013,6 +1082,12 @@ coin_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -1133,6 +1208,12 @@ name: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -1146,6 +1227,11 @@ selected_coin_ids?: string[];
  * The list of actions to perform in the transaction
  */
 actions: Action[]; 
+/**
+ * Fee rate in mojos per cost. When set, a fee is added until the transaction's fee covers
+ * its cost at this rate, including the coins that pay it, on top of any fee actions
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -1271,6 +1357,12 @@ option_ids: string[];
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -1323,6 +1415,12 @@ coin_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -1576,6 +1674,15 @@ export type GetDidsResponse = {
  * List of DIDs
  */
 dids: DidRecord[] }
+/**
+ * Get the fee rate to price transactions at
+ */
+export type GetFeeRate = Record<string, never>
+export type GetFeeRateResponse = { 
+/**
+ * The recommended fee rate, in mojos per cost
+ */
+fee_per_cost: number }
 /**
  * Get the full verified details of an XCHandles handle
  */
@@ -2716,6 +2823,12 @@ revocable?: boolean;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -2938,6 +3051,12 @@ strike: OptionAsset;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -3082,6 +3201,12 @@ did_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -3555,6 +3680,12 @@ amount: Amount;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to include the CAT hint
  */
 include_hint?: boolean; 
@@ -3616,6 +3747,12 @@ amount: Amount;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Optional memos
  */
@@ -3889,6 +4026,12 @@ output_count: number;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -3926,6 +4069,12 @@ offer: string;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -3976,7 +4125,12 @@ fee: Amount;
  * The sum of the transaction's `RESERVE_FEE` conditions. When this differs from `fee`,
  * some of the fee isn't declared.
  */
-declared_fee?: Amount; inputs: TransactionInput[]; 
+declared_fee?: Amount; 
+/**
+ * The cost the mempool charges for the transaction, which its fee is priced against. It's
+ * only known for a complete transaction, so it's missing for one side of an offer.
+ */
+cost?: number | null; inputs: TransactionInput[]; 
 /**
  * The handle recipients of the transaction, and the verified addresses they were
  * resolved to
@@ -3998,6 +4152,12 @@ address: string;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Optional clawback timestamp
  */
@@ -4029,6 +4189,12 @@ address: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Optional clawback timestamp
  */
 clawback?: number | null; 
@@ -4058,6 +4224,12 @@ address: string;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Optional clawback timestamp
  */

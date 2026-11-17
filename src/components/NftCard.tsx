@@ -1,3 +1,4 @@
+import { AUTO_FEE, feeParams } from '@/lib/fees';
 import {
   commands,
   events,
@@ -11,7 +12,7 @@ import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { offersEnabled } from '@/lib/features';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
-import { cn, toMojos } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { useWallet } from '@/contexts/WalletContext';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -203,11 +204,11 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const onTransferSubmit = (address: string, fee: string) => {
     setIsTransferring(true);
     setTransferAddress(address);
-    withHandleConfirmation((confirmed_handles) =>
+    withHandleConfirmation(async (confirmed_handles) =>
       commands.transferNfts({
         nft_ids: [nft.launcher_id],
         address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
+        ...(await feeParams(fee, walletState.sync.unit.precision)),
         confirmed_handles,
       }),
     )
@@ -222,12 +223,14 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const onAssignSubmit = (profile: string | null, fee: string) => {
     setIsEditingProfile(true);
     setAssignedProfileId(profile);
-    commands
-      .assignNftsToDid({
-        nft_ids: [nft.launcher_id],
-        did_id: profile,
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.assignNftsToDid({
+          nft_ids: [nft.launcher_id],
+          did_id: profile,
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err) => {
         setIsEditingProfile(false);
@@ -239,11 +242,14 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const addUrlFormSchema = z.object({
     url: z.string().min(1, t`URL is required`),
     kind: z.string().min(1, t`Kind is required`),
-    fee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
+    fee: z.union([
+      z.literal(AUTO_FEE),
+      amount(walletState.sync.unit.precision).refine(
+        (amount) =>
+          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
+        t`Not enough funds to cover the fee`,
+      ),
+    ]),
   });
 
   const addUrlForm = useForm<z.infer<typeof addUrlFormSchema>>({
@@ -258,13 +264,15 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
     setIsAddingUrl(true);
     setAddedUrl(values.url);
     setAddedUrlKind(values.kind);
-    commands
-      .addNftUri({
-        nft_id: nft.launcher_id,
-        uri: values.url,
-        kind: values.kind as NftUriKind,
-        fee: toMojos(values.fee, walletState.sync.unit.precision),
-      })
+    feeParams(values.fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.addNftUri({
+          nft_id: nft.launcher_id,
+          uri: values.url,
+          kind: values.kind as NftUriKind,
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err) => {
         setIsAddingUrl(false);
@@ -275,12 +283,14 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
 
   const onBurnSubmit = (fee: string) => {
     setIsBurning(true);
-    commands
-      .transferNfts({
-        nft_ids: [nft.launcher_id],
-        address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.transferNfts({
+          nft_ids: [nft.launcher_id],
+          address: walletState.sync.burn_address,
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err) => {
         setIsBurning(false);

@@ -1,4 +1,5 @@
 mod contacts;
+mod fees;
 mod keys;
 mod locking;
 mod recipients;
@@ -344,6 +345,7 @@ async fn test_send_xch() -> Result<()> {
         clawback: None,
         auto_submit: true,
         coin_ids: None,
+        fee_per_cost: None,
     })
     .await?;
 
@@ -390,6 +392,7 @@ async fn test_summary_fee_includes_undeclared_fee() -> Result<()> {
             clawback: None,
             auto_submit: false,
             coin_ids: None,
+            fee_per_cost: None,
         })
         .await?;
 
@@ -498,6 +501,7 @@ async fn test_taken_offer_declares_its_fee() -> Result<()> {
             offer,
             fee: Amount::u64(20),
             auto_submit: false,
+            fee_per_cost: None,
         })
         .await?
         .summary;
@@ -606,6 +610,7 @@ async fn reused_cat_offers(
         clawback: None,
         auto_submit: true,
         coin_ids: None,
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -617,6 +622,7 @@ async fn reused_cat_offers(
         revocable: false,
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -693,6 +699,7 @@ async fn assert_only_second_offer_completed(
         offer: second.clone(),
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
     })
     .await?;
 
@@ -865,6 +872,7 @@ async fn test_send_xch_with_coin_ids() -> Result<()> {
         clawback: None,
         auto_submit: true,
         coin_ids: Some(coin_ids),
+        fee_per_cost: None,
     };
 
     let own = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
@@ -982,6 +990,7 @@ async fn test_pre_split_offer() -> Result<()> {
             fee: Amount::u64(0),
             auto_submit: false,
             coin_ids: None,
+            fee_per_cost: None,
         })
         .await
         .expect_err("a pending offer can't be cancelled on-chain");
@@ -1043,6 +1052,7 @@ async fn test_pre_split_cat_offer() -> Result<()> {
         revocable: false,
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -1610,6 +1620,7 @@ async fn mint_mutable_nft_named(app: &mut TestApp, display_name: &str) -> Result
         name: "Alice".to_string(),
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -1699,6 +1710,7 @@ async fn test_mutable_nft() -> Result<()> {
             fee: Amount::u64(0),
             kind: NftUriKind::Data,
             auto_submit: false,
+            fee_per_cost: None,
         })
         .await
         .expect_err("adding a URI to a mutable NFT must fail");
@@ -1722,6 +1734,7 @@ async fn test_mutable_nft() -> Result<()> {
             })],
             selected_coin_ids: vec![],
             auto_submit: false,
+            fee_per_cost: None,
         })
         .await
         .expect_err("adding a URI to a mutable NFT must fail");
@@ -1998,6 +2011,7 @@ async fn test_nft_metadata_updater_of_unspent_singleton() -> Result<()> {
         clawback: None,
         auto_submit: true,
         coin_ids: None,
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;

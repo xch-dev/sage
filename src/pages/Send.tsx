@@ -35,7 +35,8 @@ import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { expirationError, futureExpirationTimestamp } from '@/lib/expiration';
 import { xchandlesEnabled } from '@/lib/features';
-import { amount, positiveAmount } from '@/lib/formTypes';
+import { feeAmount, feeParams, isAutoFee } from '@/lib/fees';
+import { positiveAmount } from '@/lib/formTypes';
 import { validateRecipient, withHandleConfirmation } from '@/lib/handles';
 import {
   fromHexStrict,
@@ -156,7 +157,7 @@ export default function Send() {
             : true,
         'Amount exceeds spendable balance',
       ),
-      fee: amount(walletState.sync.unit.precision).optional(),
+      fee: feeAmount(walletState.sync.unit.precision),
       memo: z.string().optional(),
       memoMode: z.nativeEnum(MemoMode),
       clawbackEnabled: z.boolean().optional(),
@@ -240,28 +241,25 @@ export default function Send() {
     const address = values.address.trim();
 
     const amount = toMojos(values.amount.toString(), asset?.precision || 12);
-    const fee = toMojos(
-      values.fee?.toString() || '0',
-      walletState.sync.unit.precision,
-    );
+    const fee = feeParams(values.fee, walletState.sync.unit.precision);
 
     if (!assetId) {
       if (bulk) {
-        result = withHandleConfirmation((confirmed_handles) =>
+        result = withHandleConfirmation(async (confirmed_handles) =>
           commands.bulkSendXch({
             addresses: [...new Set(addressList(values.address))],
             amount,
-            fee,
+            ...(await fee),
             memos,
             confirmed_handles,
           }),
         );
       } else {
-        result = withHandleConfirmation((confirmed_handles) =>
+        result = withHandleConfirmation(async (confirmed_handles) =>
           commands.sendXch({
             address,
             amount,
-            fee,
+            ...(await fee),
             memos,
             clawback,
             confirmed_handles,
@@ -270,23 +268,23 @@ export default function Send() {
       }
     } else {
       if (bulk) {
-        result = withHandleConfirmation((confirmed_handles) =>
+        result = withHandleConfirmation(async (confirmed_handles) =>
           commands.bulkSendCat({
             asset_id: assetId ?? '',
             addresses: [...new Set(addressList(values.address))],
             amount,
-            fee,
+            ...(await fee),
             memos,
             confirmed_handles,
           }),
         );
       } else {
-        result = withHandleConfirmation((confirmed_handles) =>
+        result = withHandleConfirmation(async (confirmed_handles) =>
           commands.sendCat({
             asset_id: assetId ?? '',
             address,
             amount,
-            fee,
+            ...(await fee),
             memos,
             clawback,
             confirmed_handles,
@@ -436,7 +434,10 @@ export default function Send() {
                                   asset.selectable_balance,
                                   asset.precision,
                                 ).minus(
-                                  assetId === null ? form.watch('fee') || 0 : 0,
+                                  assetId === null &&
+                                    !isAutoFee(form.watch('fee'))
+                                    ? form.watch('fee') || 0
+                                    : 0,
                                 ),
                               ).toString()
                             : undefined

@@ -1,3 +1,4 @@
+import { feeParams } from '@/lib/fees';
 import { commands, NftRecord, TransactionResponse } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
@@ -5,7 +6,6 @@ import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { offersEnabled } from '@/lib/features';
-import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -126,11 +126,11 @@ export function MultiSelectActions({
   const onTransferSubmit = (address: string, fee: string) => {
     setIsTransferring(true);
     setTransferAddress(address);
-    withHandleConfirmation((confirmed_handles) =>
+    withHandleConfirmation(async (confirmed_handles) =>
       commands.transferNfts({
         nft_ids: selected,
         address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
+        ...(await feeParams(fee, walletState.sync.unit.precision)),
         confirmed_handles,
       }),
     )
@@ -145,12 +145,14 @@ export function MultiSelectActions({
   const onAssignSubmit = (profile: string | null, fee: string) => {
     setIsEditingProfile(true);
     setAssignedProfileId(profile);
-    commands
-      .assignNftsToDid({
-        nft_ids: selected,
-        did_id: profile,
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.assignNftsToDid({
+          nft_ids: selected,
+          did_id: profile,
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err: unknown) => {
         setIsEditingProfile(false);
@@ -161,12 +163,14 @@ export function MultiSelectActions({
 
   const onBurnSubmit = (fee: string) => {
     setIsBurning(true);
-    commands
-      .transferNfts({
-        nft_ids: selected,
-        address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.transferNfts({
+          nft_ids: selected,
+          address: walletState.sync.burn_address,
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err: unknown) => {
         setIsBurning(false);

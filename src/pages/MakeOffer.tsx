@@ -190,6 +190,7 @@ export function MakeOffer() {
               <div className='max-w-xs'>
                 <FeeAmountInput
                   id='fee'
+                  allowAuto={false}
                   value={state.fee}
                   onValueChange={(values, sourceInfo) => {
                     // A prop change only echoes the stored fee. Writing it back
@@ -301,6 +302,7 @@ export function MakeOffer() {
                 </Label>
                 <FeeAmountInput
                   id='pre-split-fee'
+                  allowAuto={false}
                   aria-label={t`Split fee`}
                   value={preSplitFee}
                   onValueChange={(values, sourceInfo) => {

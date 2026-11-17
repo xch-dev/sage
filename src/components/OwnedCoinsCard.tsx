@@ -1,3 +1,4 @@
+import { AUTO_FEE, feeParams } from '@/lib/fees';
 import CoinList from '@/components/CoinList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -266,11 +267,14 @@ export function OwnedCoinsCard({
   const [autoCombineOpen, setAutoCombineOpen] = useState(false);
 
   const combineFormSchema = z.object({
-    combineFee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
+    combineFee: z.union([
+      z.literal(AUTO_FEE),
+      amount(walletState.sync.unit.precision).refine(
+        (amount) =>
+          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
+        t`Not enough funds to cover the fee`,
+      ),
+    ]),
   });
 
   const combineForm = useForm<z.infer<typeof combineFormSchema>>({
@@ -278,18 +282,20 @@ export function OwnedCoinsCard({
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    const fee = toMojos(values.combineFee, walletState.sync.unit.precision);
+    const fee = feeParams(values.combineFee, walletState.sync.unit.precision);
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
       (record) => record.coin_id,
     );
 
-    commands
-      .combine({
-        coin_ids: coinIdsForRequest,
-        fee,
-      })
+    fee
+      .then((fees) =>
+        commands.combine({
+          coin_ids: coinIdsForRequest,
+          ...fees,
+        }),
+      )
       .then((result) => {
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
@@ -312,11 +318,14 @@ export function OwnedCoinsCard({
 
   const splitFormSchema = z.object({
     outputCount: z.number().int().min(2).max(4294967295),
-    splitFee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
+    splitFee: z.union([
+      z.literal(AUTO_FEE),
+      amount(walletState.sync.unit.precision).refine(
+        (amount) =>
+          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
+        t`Not enough funds to cover the fee`,
+      ),
+    ]),
   });
 
   const splitForm = useForm<z.infer<typeof splitFormSchema>>({
@@ -327,19 +336,21 @@ export function OwnedCoinsCard({
   });
 
   const onSplitSubmit = (values: z.infer<typeof splitFormSchema>) => {
-    const fee = toMojos(values.splitFee, walletState.sync.unit.precision);
+    const fee = feeParams(values.splitFee, walletState.sync.unit.precision);
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
       (record) => record.coin_id,
     );
 
-    commands
-      .split({
-        coin_ids: coinIdsForRequest,
-        output_count: values.outputCount,
-        fee,
-      })
+    fee
+      .then((fees) =>
+        commands.split({
+          coin_ids: coinIdsForRequest,
+          output_count: values.outputCount,
+          ...fees,
+        }),
+      )
       .then((result) => {
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
@@ -362,11 +373,14 @@ export function OwnedCoinsCard({
   };
 
   const autoCombineFormSchema = z.object({
-    autoCombineFee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
+    autoCombineFee: z.union([
+      z.literal(AUTO_FEE),
+      amount(walletState.sync.unit.precision).refine(
+        (amount) =>
+          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
+        t`Not enough funds to cover the fee`,
+      ),
+    ]),
     maxCoins: amount(0),
     maxCoinAmount: amount(asset.precision).optional(),
   });
@@ -382,23 +396,29 @@ export function OwnedCoinsCard({
   const onAutoCombineSubmit = (
     values: z.infer<typeof autoCombineFormSchema>,
   ) => {
-    const fee = toMojos(values.autoCombineFee, walletState.sync.unit.precision);
+    const fee = feeParams(
+      values.autoCombineFee,
+      walletState.sync.unit.precision,
+    );
     const maxCoins = values.maxCoins;
     const maxCoinAmount = values.maxCoinAmount
       ? toMojos(values.maxCoinAmount, asset.precision)
       : null;
 
-    (!asset?.asset_id
-      ? commands.autoCombineXch
-      : (...[req]: Parameters<typeof commands.autoCombineXch>) =>
-          commands.autoCombineCat({
-            ...req,
-            asset_id: asset?.asset_id ?? '',
-          }))({
-      max_coins: parseInt(toMojos(maxCoins, 0)),
-      max_coin_amount: maxCoinAmount,
-      fee,
-    })
+    fee
+      .then((fees) =>
+        (!asset?.asset_id
+          ? commands.autoCombineXch
+          : (...[req]: Parameters<typeof commands.autoCombineXch>) =>
+              commands.autoCombineCat({
+                ...req,
+                asset_id: asset?.asset_id ?? '',
+              }))({
+          max_coins: parseInt(toMojos(maxCoins, 0)),
+          max_coin_amount: maxCoinAmount,
+          ...fees,
+        }),
+      )
       .then(async (result) => {
         // Find coin records for the returned coin IDs
         const resultCoins = await commands.getCoinsByIds({

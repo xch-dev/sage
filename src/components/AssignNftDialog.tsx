@@ -26,6 +26,7 @@ import {
   FormMessage,
 } from './ui/form';
 import { FeeAmountInput } from './ui/masked-input';
+import { AUTO_FEE } from '@/lib/fees';
 import {
   Select,
   SelectContent,
@@ -53,11 +54,14 @@ export function AssignNftDialog({
 
   const schema = z.object({
     profile: z.string().min(1, t`Profile is required`),
-    fee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
+    fee: z.union([
+      z.literal(AUTO_FEE),
+      amount(walletState.sync.unit.precision).refine(
+        (amount) =>
+          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
+        t`Not enough funds to cover the fee`,
+      ),
+    ]),
   });
 
   const form = useForm<z.infer<typeof schema>>({

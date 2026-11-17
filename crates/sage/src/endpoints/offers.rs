@@ -25,9 +25,10 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::{debug, warn};
 
 use crate::{
-    ConfirmationInfo, Error, ExtractedNftData, Result, Sage, encode_nft_updater_kind,
-    extract_nft_data, json_bundle, offer_expiration, parse_amount, parse_asset_id, parse_coin_ids,
-    parse_did_id, parse_hash, parse_nft_id, parse_offer_id, parse_option_id, selectable_coin_ids,
+    ConfirmationInfo, Error, ExtractedNftData, Result, Sage, build_with_fee,
+    encode_nft_updater_kind, extract_nft_data, json_bundle, offer_expiration, parse_amount,
+    parse_asset_id, parse_coin_ids, parse_did_id, parse_hash, parse_nft_id, parse_offer_id,
+    parse_option_id, selectable_coin_ids,
 };
 
 /// An offer that's ready to be saved to the wallet.
@@ -277,7 +278,9 @@ impl Sage {
             ));
         }
 
-        let taken = wallet.take_offer(offer, fee).await?;
+        let taken = build_with_fee!(self, fee, req.fee_per_cost, |fee| wallet
+            .take_offer(offer.clone(), fee)
+            .await?);
 
         let master_sk = self.master_secret_key(&wallet)?;
 
@@ -916,7 +919,9 @@ impl Sage {
 
         let offer = decode_offer(&row.encoded_offer)?;
         let fee_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
-        let coin_spends = wallet.cancel_offers(vec![offer], fee, fee_coin_ids).await?;
+        let coin_spends = build_with_fee!(self, fee, req.fee_per_cost, |fee| wallet
+            .cancel_offers(vec![offer.clone()], fee, fee_coin_ids.clone())
+            .await?);
 
         self.transact(coin_spends, req.auto_submit, &spends).await
     }
@@ -954,9 +959,9 @@ impl Sage {
             .ok_or_else(|| Error::InvalidAmount("fee times offer count overflows".to_string()))?;
 
         let fee_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
-        let coin_spends = wallet
-            .cancel_offers(offers, total_fee, fee_coin_ids)
-            .await?;
+        let coin_spends = build_with_fee!(self, total_fee, req.fee_per_cost, |fee| wallet
+            .cancel_offers(offers.clone(), fee, fee_coin_ids.clone())
+            .await?);
 
         self.transact(coin_spends, req.auto_submit, &spends).await
     }

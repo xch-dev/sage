@@ -50,6 +50,7 @@ pub(super) fn send(
         auto_submit,
         coin_ids: None,
         confirmed_handles,
+        fee_per_cost: None,
     }
 }
 
@@ -341,6 +342,7 @@ async fn test_bulk_send_reports_each_recipient() -> Result<()> {
         memos: vec![],
         auto_submit: false,
         confirmed_handles: vec![],
+        fee_per_cost: None,
     };
 
     let error = app
@@ -475,6 +477,7 @@ async fn test_offer_with_pending_handle_transfer() -> Result<()> {
         offer: offer.clone(),
         fee: Amount::u64(0),
         auto_submit: false,
+        fee_per_cost: None,
     };
 
     // The handle can't be checked, so the offer can't be taken.
@@ -564,6 +567,7 @@ async fn test_offer_nft_named_like_a_handle_is_not_a_claim() -> Result<()> {
         offer,
         fee: Amount::u64(0),
         auto_submit: false,
+        fee_per_cost: None,
     })
     .await?;
 

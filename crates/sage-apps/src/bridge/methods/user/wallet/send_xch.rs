@@ -100,6 +100,7 @@ impl From<WalletSendXchParams> for SendXch {
             auto_submit: true,
             coin_ids: None,
             confirmed_handles: Vec::new(),
+            fee_per_cost: None,
         }
     }
 }

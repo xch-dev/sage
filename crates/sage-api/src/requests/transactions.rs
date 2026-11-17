@@ -22,6 +22,12 @@ pub struct SendXch {
     pub amount: Amount,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Optional memos
     #[serde(default)]
     pub memos: Vec<String>,
@@ -63,6 +69,12 @@ pub struct BulkSendXch {
     pub amount: Amount,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Optional memos
     #[serde(default)]
     pub memos: Vec<String>,
@@ -94,6 +106,12 @@ pub struct Combine {
     pub coin_ids: Vec<String>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -119,6 +137,12 @@ pub struct Split {
     pub output_count: u32,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -144,6 +168,12 @@ pub struct AutoCombineXch {
     pub max_coin_amount: Option<Amount>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -185,6 +215,12 @@ pub struct AutoCombineCat {
     pub max_coin_amount: Option<Amount>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -230,6 +266,12 @@ pub struct IssueCat {
     pub revocable: bool,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -257,6 +299,12 @@ pub struct SendCat {
     pub amount: Amount,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to include the CAT hint
     #[serde(default = "yes")]
     #[cfg_attr(feature = "openapi", schema(default = true))]
@@ -304,6 +352,12 @@ pub struct BulkSendCat {
     pub amount: Amount,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to include the CAT hint
     #[serde(default = "yes")]
     #[cfg_attr(feature = "openapi", schema(default = true))]
@@ -343,6 +397,12 @@ pub struct MultiSend {
     pub payments: Vec<Payment>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -390,6 +450,12 @@ pub struct CreateDid {
     pub name: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -414,6 +480,12 @@ pub struct BulkMintNfts {
     pub did_id: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -506,6 +578,12 @@ pub struct TransferNfts {
     pub address: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Optional clawback timestamp
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
@@ -540,6 +618,12 @@ pub struct AddNftUri {
     pub uri: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Type of URI
     pub kind: NftUriKind,
     /// Whether to automatically submit the transaction
@@ -580,6 +664,12 @@ pub struct AssignNftsToDid {
     pub did_id: Option<String>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -605,6 +695,12 @@ pub struct TransferDids {
     pub address: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Optional clawback timestamp
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
@@ -637,6 +733,12 @@ pub struct NormalizeDids {
     pub did_ids: Vec<String>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -676,6 +778,12 @@ pub struct MintOption {
     pub strike: OptionAsset,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -713,6 +821,12 @@ pub struct ExerciseOptions {
     pub option_ids: Vec<String>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -736,6 +850,12 @@ pub struct CancelOptions {
     pub option_ids: Vec<String>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -761,6 +881,12 @@ pub struct TransferOptions {
     pub address: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Optional clawback timestamp
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
@@ -793,6 +919,12 @@ pub struct FinalizeClawback {
     pub coin_ids: Vec<String>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -816,6 +948,12 @@ pub struct ClaimClawback {
     pub coin_ids: Vec<String>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]

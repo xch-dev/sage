@@ -147,6 +147,7 @@ async fn alice_with_assets(app: &mut TestApp) -> Result<(u32, Holdings, Vec<Stri
         revocable: false,
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -170,6 +171,7 @@ async fn alice_with_assets(app: &mut TestApp) -> Result<(u32, Holdings, Vec<Stri
         },
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -209,6 +211,7 @@ async fn alice_with_nft_apart(app: &mut TestApp) -> Result<(u32, Holdings, Strin
         clawback: None,
         auto_submit: true,
         confirmed_handles: Vec::new(),
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -350,6 +353,7 @@ async fn watch_wallets_are_read_only() -> Result<()> {
             clawback: None,
             auto_submit: false,
             coin_ids: None,
+            fee_per_cost: None,
         })
         .await
         .expect_err("watch wallets can't send");
@@ -360,6 +364,7 @@ async fn watch_wallets_are_read_only() -> Result<()> {
             name: "Watch".to_string(),
             fee: Amount::u64(0),
             auto_submit: false,
+            fee_per_cost: None,
         })
         .await
         .expect_err("watch wallets can't create DIDs");
@@ -409,6 +414,7 @@ async fn watch_wallets_are_read_only() -> Result<()> {
         clawback: None,
         auto_submit: false,
         coin_ids: None,
+        fee_per_cost: None,
     })
     .await?;
 

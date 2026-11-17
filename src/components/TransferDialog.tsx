@@ -32,6 +32,7 @@ import {
   FormMessage,
 } from './ui/form';
 import { FeeAmountInput } from './ui/masked-input';
+import { AUTO_FEE } from '@/lib/fees';
 
 export interface TransferDialogProps {
   title: string;
@@ -57,11 +58,14 @@ export function TransferDialog({
         (address) => !isHandleInput(address) || isValidHandle(address),
         t`Invalid handle`,
       ),
-    fee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
+    fee: z.union([
+      z.literal(AUTO_FEE),
+      amount(walletState.sync.unit.precision).refine(
+        (amount) =>
+          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
+        t`Not enough funds to cover the fee`,
+      ),
+    ]),
   });
 
   const form = useForm<z.infer<typeof schema>>({

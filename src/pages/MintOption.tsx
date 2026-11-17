@@ -1,3 +1,4 @@
+import { feeParams, isAutoFee } from '@/lib/fees';
 import { commands, TokenRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { MintOptionConfirmation } from '@/components/confirmations/MintOptionConfirmation.tsx';
@@ -97,25 +98,27 @@ export function MintOption() {
       return;
     }
 
-    commands
-      .mintOption({
-        fee: toMojos(fee, walletState.sync.unit.precision),
-        underlying: {
-          asset_id: underlyingAssetId,
-          amount: toMojos(
-            underlyingAmount,
-            underlyingAssetId === null ? walletState.sync.unit.precision : 3,
-          ),
-        },
-        strike: {
-          asset_id: strikeAssetId,
-          amount: toMojos(
-            strikeAmount,
-            strikeAssetId === null ? walletState.sync.unit.precision : 3,
-          ),
-        },
-        expiration_seconds: expirationSeconds,
-      })
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.mintOption({
+          ...fees,
+          underlying: {
+            asset_id: underlyingAssetId,
+            amount: toMojos(
+              underlyingAmount,
+              underlyingAssetId === null ? walletState.sync.unit.precision : 3,
+            ),
+          },
+          strike: {
+            asset_id: strikeAssetId,
+            amount: toMojos(
+              strikeAmount,
+              strikeAssetId === null ? walletState.sync.unit.precision : 3,
+            ),
+          },
+          expiration_seconds: expirationSeconds,
+        }),
+      )
       .then((response) => {
         setMintedExpirationSeconds(expirationSeconds);
         setResponse(response);
@@ -193,7 +196,11 @@ export function MintOption() {
                               underlyingAsset.selectable_balance,
                               underlyingAsset.precision,
                             ),
-                          ).minus(underlyingAssetId === null ? fee || 0 : 0),
+                          ).minus(
+                            underlyingAssetId === null && !isAutoFee(fee)
+                              ? fee || 0
+                              : 0,
+                          ),
                         ).toString()
                       : undefined
                   }
@@ -256,6 +263,7 @@ export function MintOption() {
           </Label>
           <FeeAmountInput
             id='fee'
+            value={fee}
             onValueChange={(values) => setFee(values.value)}
           />
         </div>

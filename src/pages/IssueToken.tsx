@@ -1,3 +1,4 @@
+import { feeAmount, feeParams } from '@/lib/fees';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import Header from '@/components/Header';
@@ -16,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
-import { amount, positiveAmount } from '@/lib/formTypes';
+import { positiveAmount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -40,7 +41,7 @@ export default function IssueToken() {
     name: z.string().min(1, t`Name is required`),
     ticker: z.string().min(1, t`Ticker is required`),
     amount: positiveAmount(3),
-    fee: amount(walletState.sync.unit.precision).optional(),
+    fee: feeAmount(walletState.sync.unit.precision),
     revocable: z.boolean(),
   });
 
@@ -52,17 +53,16 @@ export default function IssueToken() {
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    commands
-      .issueCat({
-        name: values.name,
-        ticker: values.ticker,
-        amount: toMojos(values.amount.toString(), 3),
-        revocable: values.revocable,
-        fee: toMojos(
-          values.fee?.toString() || '0',
-          walletState.sync.unit.precision,
-        ),
-      })
+    feeParams(values.fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.issueCat({
+          name: values.name,
+          ticker: values.ticker,
+          amount: toMojos(values.amount.toString(), 3),
+          revocable: values.revocable,
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch(addError);
   };

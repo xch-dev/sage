@@ -25,6 +25,7 @@ import {
   FormMessage,
 } from './ui/form';
 import { FeeAmountInput } from './ui/masked-input';
+import { AUTO_FEE } from '@/lib/fees';
 
 export interface FeeOnlyDialogProps {
   title: string;
@@ -45,11 +46,14 @@ export function FeeOnlyDialog({
   const walletState = useWalletState();
 
   const schema = z.object({
-    fee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
+    fee: z.union([
+      z.literal(AUTO_FEE),
+      amount(walletState.sync.unit.precision).refine(
+        (amount) =>
+          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
+        t`Not enough funds to cover the fee`,
+      ),
+    ]),
   });
 
   const form = useForm<z.infer<typeof schema>>({

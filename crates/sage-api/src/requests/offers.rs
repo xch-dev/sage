@@ -106,6 +106,12 @@ pub struct TakeOffer {
     pub offer: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -373,6 +379,12 @@ pub struct CancelOffer {
     pub offer_id: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -402,6 +414,12 @@ pub struct CancelOffers {
     pub offer_ids: Vec<String>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]

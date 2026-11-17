@@ -108,6 +108,14 @@ export default function ConfirmationDialog({
   const fee = BigNumber(response?.summary.fee || 0);
   const handles = response?.summary.handles ?? [];
   const isHighFee = fee.isGreaterThan(1000_000_000); // Adjust threshold as needed
+  const cost = response?.summary.cost ?? null;
+  // The rate the fee pays for the transaction's cost, which is what decides whether the
+  // mempool and farmers accept it.
+  const feePerCost =
+    cost !== null && cost > 0 && !fee.isZero()
+      ? fee.dividedBy(cost).decimalPlaces(2, BigNumber.ROUND_DOWN)
+      : null;
+  const feeRateLabel = feePerCost?.toString();
 
   const json =
     response === null
@@ -592,7 +600,7 @@ export default function ConfirmationDialog({
             <span>
               <Trans>Transaction Fee</Trans>
             </span>
-            <span>
+            <span className='text-right'>
               {fee.isZero() ? (
                 '-'
               ) : (
@@ -604,6 +612,11 @@ export default function ConfirmationDialog({
                   })}{' '}
                   {ticker}
                 </>
+              )}
+              {feePerCost !== null && (
+                <span className='block text-xs'>
+                  <Trans>{feeRateLabel} mojos per cost</Trans>
+                </span>
               )}
             </span>
           </div>

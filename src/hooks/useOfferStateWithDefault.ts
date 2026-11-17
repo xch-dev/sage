@@ -1,3 +1,4 @@
+import { isAutoFee } from '@/lib/fees';
 import { OfferState, useOfferState } from '@/state';
 import { useCallback, useMemo } from 'react';
 import { useDefaultFee } from './useDefaultFee';
@@ -28,7 +29,8 @@ export default function useOfferStateWithDefault() {
         expiration: expiry.enabled ? expiry : null,
         splitNftOffers: false,
         preSplit: splitByDefault,
-        preSplitFee: defaultFee,
+        // Offers pay an entered fee, since their cost isn't known until they're taken.
+        preSplitFee: isAutoFee(defaultFee) ? '' : defaultFee,
       },
     [expiry, offerState, splitByDefault, defaultFee],
   );
