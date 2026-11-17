@@ -456,6 +456,7 @@ async fn test_offer_with_pending_handle_transfer() -> Result<()> {
             coin_ids: None,
             confirmed_handles: vec![],
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
         })
         .await?
         .offer;
@@ -551,6 +552,7 @@ async fn test_offer_nft_named_like_a_handle_is_not_a_claim() -> Result<()> {
             coin_ids: None,
             confirmed_handles: vec![],
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
         })
         .await?
         .offer;

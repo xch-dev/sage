@@ -185,14 +185,19 @@ impl Sage {
             offer: unsigned,
             split_coin_spends,
         } = if let Some(split_fee) = req.pre_split_fee {
-            wallet
-                .make_pre_split_offer(
-                    offered,
-                    requested,
-                    req.expires_at_second,
-                    parse_amount(split_fee)?,
-                )
-                .await?
+            build_with_fee!(
+                self,
+                parse_amount(split_fee)?,
+                req.pre_split_fee_per_cost,
+                |fee| wallet
+                    .make_pre_split_offer(
+                        offered.clone(),
+                        requested.clone(),
+                        req.expires_at_second,
+                        fee,
+                    )
+                    .await?
+            )
         } else {
             PreSplitOffer {
                 offer: wallet

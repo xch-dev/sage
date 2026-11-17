@@ -2973,7 +2973,14 @@ confirmed_handles?: HandleConfirmation[];
  * that transaction is confirmed, so it shouldn't be shared before then. If the coins are
  * already the exact amounts, nothing is split.
  */
-pre_split_fee?: Amount | null }
+pre_split_fee?: Amount | null; 
+/**
+ * Fee rate for the transaction that splits the coins, in mojos per cost. When set, its fee
+ * is raised until it covers that transaction's cost at this rate, and `pre_split_fee` is
+ * the least it pays. The offer's own fee is always `fee`, since an offer's cost isn't
+ * known until it's taken.
+ */
+pre_split_fee_per_cost?: number | null }
 /**
  * Response with created offer
  */

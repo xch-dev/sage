@@ -48,6 +48,7 @@ fn offer(auto_import: bool) -> MakeOffer {
         auto_import,
         coin_ids: None,
         pre_split_fee: None,
+        pre_split_fee_per_cost: None,
     }
 }
 

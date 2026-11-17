@@ -489,6 +489,7 @@ async fn test_taken_offer_declares_its_fee() -> Result<()> {
             auto_import: false,
             coin_ids: None,
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
         })
         .await?
         .offer;
@@ -552,6 +553,7 @@ async fn test_offer_not_completed_by_another_offer_of_the_same_coin() -> Result<
             auto_import: false,
             coin_ids: Some(vec![coin_id.to_string()]),
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
         })
         .await
     };
@@ -667,6 +669,7 @@ async fn reused_cat_offers(
             auto_import: false,
             coin_ids: Some(vec![cat_coin_id.to_string(), xch_coin_id.to_string()]),
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
         })
         .await
     };
@@ -911,6 +914,7 @@ async fn test_send_xch_with_coin_ids() -> Result<()> {
     app.make_offer(MakeOffer {
         confirmed_handles: Vec::new(),
         pre_split_fee: None,
+        pre_split_fee_per_cost: None,
         requested_assets: vec![OfferAmount {
             asset_id: None,
             hidden_puzzle_hash: None,
@@ -966,6 +970,7 @@ async fn test_pre_split_offer() -> Result<()> {
             auto_import: false,
             coin_ids: None,
             pre_split_fee: Some(Amount::u64(10)),
+            pre_split_fee_per_cost: None,
         })
         .await?;
 
@@ -1082,6 +1087,7 @@ async fn test_pre_split_cat_offer() -> Result<()> {
             auto_import: false,
             coin_ids: None,
             pre_split_fee: Some(Amount::u64(10)),
+            pre_split_fee_per_cost: None,
         })
         .await?;
 
@@ -1759,6 +1765,7 @@ async fn test_mutable_nft() -> Result<()> {
         .make_offer(MakeOffer {
             confirmed_handles: Vec::new(),
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
             requested_assets: vec![xch.clone()],
             offered_assets: vec![nft_amount.clone()],
             fee: Amount::u64(0),
@@ -1792,6 +1799,7 @@ async fn test_mutable_nft() -> Result<()> {
         .make_offer(MakeOffer {
             confirmed_handles: Vec::new(),
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
             requested_assets: vec![nft_amount],
             offered_assets: vec![xch],
             fee: Amount::u64(0),
@@ -1880,6 +1888,7 @@ async fn test_requested_mutable_nft() -> Result<()> {
         .make_offer(MakeOffer {
             confirmed_handles: Vec::new(),
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
             requested_assets: vec![OfferAmount {
                 asset_id: Some(nft_id.clone()),
                 hidden_puzzle_hash: None,

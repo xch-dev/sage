@@ -1,16 +1,20 @@
+use std::borrow::Cow;
+
 use chia_wallet_sdk::{
-    chia::consensus::consensus_constants::ConsensusConstants,
+    chia::consensus::{
+        consensus_constants::ConsensusConstants, owned_conditions::OwnedSpendBundleConditions,
+    },
     driver::{MIN_FEE_PER_COST, spend_bundle_conditions, spend_bundle_cost},
     prelude::*,
 };
 use sage_config::InheritedNetwork;
-use sage_wallet::TakenOffer;
+use sage_wallet::{PreSplitOffer, TakenOffer};
 
 use crate::{Error, Result, Sage};
 
 /// The most times a transaction is rebuilt to find a fee that covers its cost. Each rebuild
-/// raises the fee to cover the cost of the previous attempt, and the cost only grows when the
-/// higher fee needs another coin, so it normally settles within two or three attempts.
+/// raises the fee by what the previous attempt was missing, and the fee never goes down, so it
+/// normally settles within two or three attempts.
 const MAX_FEE_ATTEMPTS: usize = 8;
 
 /// The fee rate, in mojos per cost, that a transaction is priced at when the wallet calculates
@@ -21,31 +25,41 @@ pub const RECOMMENDED_FEE_PER_COST: u64 = MIN_FEE_PER_COST;
 /// A transaction built by [`build_with_fee`], which can be priced from its coin spends.
 pub(crate) trait PricedTransaction {
     /// Every coin spend of the transaction as it will be submitted, so that its cost and the
-    /// fee it pays can be calculated.
-    fn priced_coin_spends(&self) -> Vec<CoinSpend>;
+    /// fee it pays can be calculated. It's empty if there's no transaction to pay for.
+    fn priced_coin_spends(&self) -> Cow<'_, [CoinSpend]>;
 }
 
 impl PricedTransaction for Vec<CoinSpend> {
-    fn priced_coin_spends(&self) -> Vec<CoinSpend> {
-        self.clone()
+    fn priced_coin_spends(&self) -> Cow<'_, [CoinSpend]> {
+        Cow::Borrowed(self)
     }
 }
 
 impl<T> PricedTransaction for (Vec<CoinSpend>, T) {
-    fn priced_coin_spends(&self) -> Vec<CoinSpend> {
-        self.0.clone()
+    fn priced_coin_spends(&self) -> Cow<'_, [CoinSpend]> {
+        Cow::Borrowed(&self.0)
     }
 }
 
 /// A taken offer is submitted together with the maker's spends, which pay for part of the cost
 /// and may pay part of the fee.
 impl PricedTransaction for TakenOffer {
-    fn priced_coin_spends(&self) -> Vec<CoinSpend> {
-        [
-            self.offer.spend_bundle().coin_spends.clone(),
-            self.spend_bundle.coin_spends.clone(),
-        ]
-        .concat()
+    fn priced_coin_spends(&self) -> Cow<'_, [CoinSpend]> {
+        Cow::Owned(
+            [
+                self.offer.spend_bundle().coin_spends.as_slice(),
+                self.spend_bundle.coin_spends.as_slice(),
+            ]
+            .concat(),
+        )
+    }
+}
+
+/// Only the transaction that splits an offer's coins is priced, since the offer's own cost
+/// isn't known until it's taken. If nothing needed splitting, there's nothing to pay for.
+impl PricedTransaction for PreSplitOffer {
+    fn priced_coin_spends(&self) -> Cow<'_, [CoinSpend]> {
+        Cow::Borrowed(self.split_coin_spends.as_deref().unwrap_or_default())
     }
 }
 
@@ -60,25 +74,27 @@ pub(crate) struct CostRules {
 impl CostRules {
     /// The cost the mempool charges for the coin spends, and the fee they pay.
     fn price(&self, coin_spends: &[CoinSpend]) -> Result<(u64, u64)> {
-        let cost = spend_bundle_cost(coin_spends, self.constants, self.height)?;
+        let conditions = |height| spend_bundle_conditions(coin_spends, self.constants, height);
 
-        // The fee doesn't depend on the height, so it's read with the rules after the 3.0 hard
-        // fork when the height isn't known.
-        let conditions = spend_bundle_conditions(
-            coin_spends,
-            self.constants,
-            self.height.unwrap_or(self.constants.hard_fork2_height),
-        )?;
+        // Without a height, the cost is the higher of the costs on either side of the 3.0 hard
+        // fork, as `spend_bundle_cost` prices it. The fee is the same on both sides.
+        let fork_height = self.constants.hard_fork2_height;
+        let (cost, conditions) = match self.height {
+            Some(height) => {
+                let conditions = conditions(height)?;
+                (conditions.cost, conditions)
+            }
+            None => {
+                let after = conditions(fork_height)?;
+                let before = match fork_height.checked_sub(1) {
+                    Some(height) => conditions(height)?.cost,
+                    None => after.cost,
+                };
+                (before.max(after.cost), after)
+            }
+        };
 
-        let fee = conditions
-            .removal_amount
-            .checked_sub(conditions.addition_amount)
-            .and_then(|fee| u64::try_from(fee).ok())
-            .ok_or_else(|| {
-                Error::InvalidAmount("the transaction creates more than it spends".to_string())
-            })?;
-
-        Ok((cost, fee))
+        Ok((cost, paid_fee(&conditions)?))
     }
 
     /// The cost the mempool charges for the coin spends, or `None` if they aren't a complete
@@ -86,6 +102,18 @@ impl CostRules {
     pub(crate) fn cost(&self, coin_spends: &[CoinSpend]) -> Option<u64> {
         spend_bundle_cost(coin_spends, self.constants, self.height).ok()
     }
+}
+
+/// The fee a transaction pays: the value of the coins it spends minus the value of those it
+/// creates.
+fn paid_fee(conditions: &OwnedSpendBundleConditions) -> Result<u64> {
+    conditions
+        .removal_amount
+        .checked_sub(conditions.addition_amount)
+        .and_then(|fee| u64::try_from(fee).ok())
+        .ok_or_else(|| {
+            Error::InvalidAmount("the transaction creates more than it spends".to_string())
+        })
 }
 
 /// Returns the fee, in mojos, for a transaction with the given cost at the given rate in mojos
@@ -185,7 +213,13 @@ impl FeePricer {
             return Ok(true);
         };
 
-        let (cost, paid) = rules.price(&transaction.priced_coin_spends())?;
+        let coin_spends = transaction.priced_coin_spends();
+
+        if coin_spends.is_empty() {
+            return Ok(true);
+        }
+
+        let (cost, paid) = rules.price(&coin_spends)?;
         let needed = fee_for_cost(cost, fee_per_cost);
 
         if paid >= needed {
@@ -214,8 +248,9 @@ impl FeePricer {
 /// pays: the transaction is rebuilt with a higher fee until the fee it pays, including any fee
 /// already paid by spends it doesn't add (such as the maker's side of an offer), covers its cost
 /// at `$fee_per_cost` mojos per cost. Adding a coin to pay the fee raises the cost, so this
-/// normally takes two or three attempts. The fee only grows between attempts, so the coins
-/// selected only grow and the attempts settle.
+/// normally takes two or three attempts. The fee only grows between attempts, and the loop
+/// stops at the first attempt whose fee covers its cost. Since a higher fee can change which
+/// coins are selected, that fee can be a little more than the final coins need.
 ///
 /// It's a macro rather than a function taking an async closure, since the futures of async
 /// closures that borrow aren't `Send`, which the RPC server needs.
