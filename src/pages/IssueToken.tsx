@@ -1,4 +1,3 @@
-import { feeAmount, feeParams } from '@/lib/fees';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import Header from '@/components/Header';
@@ -17,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
+import { feeAmount, feeParams } from '@/lib/fees';
 import { positiveAmount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';

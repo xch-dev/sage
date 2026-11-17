@@ -1,4 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const getFeeRate = vi.hoisted(() => vi.fn());
+
+vi.mock('../bindings', () => ({ commands: { getFeeRate } }));
+
 import {
   AUTO_FEE,
   autoFee,
@@ -21,7 +26,7 @@ describe('automatic fees', () => {
   it('reads the rate an automatic fee was given', () => {
     expect(autoFeeRate(AUTO_FEE)).toBeNull();
     expect(autoFeeRate(autoFeeAtRate('7.5'))).toBe('7.5');
-    expect(autoFeeRate(autoFeeAtRate(''))).toBe('');
+    expect(autoFeeRate(autoFeeAtRate(''))).toBeNull();
   });
 
   it('accepts a missing or valid rate, and rejects anything else', () => {
@@ -46,5 +51,41 @@ describe('automatic fees', () => {
       fee: '0',
       fee_per_cost: null,
     });
+  });
+});
+
+describe('the recommended rate', () => {
+  const rates = { fee_per_cost: 5, minimum_fee_per_cost: 5 };
+
+  beforeEach(() => {
+    // The rates are cached by the module, so each test starts from a fresh copy of it.
+    vi.resetModules();
+    getFeeRate.mockReset();
+  });
+
+  it('prices an automatic fee at the recommended rate', async () => {
+    getFeeRate.mockResolvedValue(rates);
+    const fees = await import('./fees');
+
+    await expect(fees.feeParams(fees.AUTO_FEE, 12)).resolves.toEqual({
+      fee: '0',
+      fee_per_cost: 5,
+    });
+    await expect(fees.feeParams(fees.autoFeeAtRate(''), 12)).resolves.toEqual({
+      fee: '0',
+      fee_per_cost: 5,
+    });
+    expect(getFeeRate).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches the rates again after a failure', async () => {
+    getFeeRate
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(rates);
+    const fees = await import('./fees');
+
+    await expect(fees.getFeeRates()).rejects.toThrow('offline');
+    await expect(fees.getFeeRates()).resolves.toEqual(rates);
+    expect(getFeeRate).toHaveBeenCalledTimes(2);
   });
 });

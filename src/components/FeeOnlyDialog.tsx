@@ -1,9 +1,8 @@
-import { amount } from '@/lib/formTypes';
+import { feeWithinBalance } from '@/lib/fees';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import BigNumber from 'bignumber.js';
 import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -25,7 +24,6 @@ import {
   FormMessage,
 } from './ui/form';
 import { FeeAmountInput } from './ui/masked-input';
-import { autoFee } from '@/lib/fees';
 
 export interface FeeOnlyDialogProps {
   title: string;
@@ -46,14 +44,10 @@ export function FeeOnlyDialog({
   const walletState = useWalletState();
 
   const schema = z.object({
-    fee: z.union([
-      autoFee,
-      amount(walletState.sync.unit.precision).refine(
-        (amount) =>
-          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-        t`Not enough funds to cover the fee`,
-      ),
-    ]),
+    fee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
+    ),
   });
 
   const form = useForm<z.infer<typeof schema>>({

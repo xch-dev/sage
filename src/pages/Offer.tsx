@@ -1,4 +1,3 @@
-import { feeParams } from '@/lib/fees';
 import {
   commands,
   OfferHandleNft,
@@ -23,6 +22,7 @@ import { FeeAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
+import { feeParams } from '@/lib/fees';
 import { resolveOfferData } from '@/lib/offerData';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';

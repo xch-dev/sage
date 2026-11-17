@@ -1,4 +1,3 @@
-import { feeParams, isAutoFee } from '@/lib/fees';
 import { commands, TokenRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { MintOptionConfirmation } from '@/components/confirmations/MintOptionConfirmation.tsx';
@@ -18,6 +17,7 @@ import {
   expirationError,
   futureExpirationTimestamp,
 } from '@/lib/expiration';
+import { feeParams, isAutoFee } from '@/lib/fees';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';

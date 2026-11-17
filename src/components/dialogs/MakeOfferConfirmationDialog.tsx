@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useFeeRates } from '@/hooks/useFeeRates';
+import { autoFeeRate, isAutoFee } from '@/lib/fees';
 import { marketplaces } from '@/lib/marketplaces';
 import { isMutableNft, mutableNftLabel } from '@/lib/nftUpdater';
 import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
@@ -419,6 +421,11 @@ export function MakeOfferConfirmationDialog({
   setEnabledMarketplaces,
 }: MakeOfferConfirmationDialogProps) {
   const [xchToken, setXchToken] = useState<TokenRecord | null>(null);
+  const feeRates = useFeeRates();
+  // An automatic split fee is calculated when the offer is made, at this rate.
+  const splitFeeRate = isAutoFee(preSplitFee)
+    ? (autoFeeRate(preSplitFee) ?? feeRates?.fee_per_cost?.toString())
+    : undefined;
 
   useEffect(() => {
     const fetchXchToken = async () => {
@@ -612,14 +619,28 @@ export function MakeOfferConfirmationDialog({
               </h3>
               <p className='text-sm'>
                 <Trans>Split Fee:</Trans>{' '}
-                <NumberFormat
-                  value={preSplitFee || '0'}
-                  minimumFractionDigits={2}
-                  maximumFractionDigits={xchToken?.precision ?? 12}
-                />{' '}
-                {xchToken
-                  ? getAssetDisplayName(xchToken.name, xchToken.ticker, 'token')
-                  : 'XCH'}
+                {isAutoFee(preSplitFee) ? (
+                  splitFeeRate ? (
+                    <Trans>Automatic, {splitFeeRate} mojos per cost</Trans>
+                  ) : (
+                    <Trans>Automatic</Trans>
+                  )
+                ) : (
+                  <>
+                    <NumberFormat
+                      value={preSplitFee || '0'}
+                      minimumFractionDigits={2}
+                      maximumFractionDigits={xchToken?.precision ?? 12}
+                    />{' '}
+                    {xchToken
+                      ? getAssetDisplayName(
+                          xchToken.name,
+                          xchToken.ticker,
+                          'token',
+                        )
+                      : 'XCH'}
+                  </>
+                )}
               </p>
               <p className='text-xs text-muted-foreground'>
                 <Trans>

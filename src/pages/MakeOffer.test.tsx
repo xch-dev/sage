@@ -256,6 +256,16 @@ describe('MakeOffer settings', () => {
     expect(dialog.props?.preSplitFee).toBe('0.001');
   });
 
+  it('splits coins by default with an automatic fee', () => {
+    renderPage();
+
+    expect(toggle('Split coins first').getAttribute('aria-checked')).toBe(
+      'true',
+    );
+    // The split is a complete transaction, so its fee can be calculated from its cost.
+    expect(dialog.props?.preSplitFee).toBe('auto');
+  });
+
   it("doesn't split coins when the setting is off", () => {
     localStorage.setItem('default-offer-split', 'false');
     renderPage();

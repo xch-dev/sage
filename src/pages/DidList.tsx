@@ -1,4 +1,3 @@
-import { feeParams } from '@/lib/fees';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { DidConfirmation } from '@/components/confirmations/DidConfirmation';
 import Container from '@/components/Container';
@@ -30,6 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useDids } from '@/hooks/useDids';
+import { feeParams } from '@/lib/fees';
 import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
 import { useWallet } from '@/contexts/WalletContext';

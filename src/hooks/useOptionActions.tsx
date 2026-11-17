@@ -1,9 +1,9 @@
-import { feeParams } from '@/lib/fees';
 import { commands, OptionRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { OptionConfirmation } from '@/components/confirmations/OptionConfirmation';
 import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import { TransferDialog } from '@/components/TransferDialog';
+import { feeParams } from '@/lib/fees';
 import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
 import { useWalletState } from '@/state';

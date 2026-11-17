@@ -1,4 +1,3 @@
-import { autoFee, feeParams } from '@/lib/fees';
 import {
   commands,
   events,
@@ -10,7 +9,7 @@ import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { offersEnabled } from '@/lib/features';
-import { amount } from '@/lib/formTypes';
+import { feeParams, feeWithinBalance } from '@/lib/fees';
 import { nftUri } from '@/lib/nftUri';
 import { cn } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -19,7 +18,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import BigNumber from 'bignumber.js';
 import {
   Copy,
   EyeIcon,
@@ -242,14 +240,10 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const addUrlFormSchema = z.object({
     url: z.string().min(1, t`URL is required`),
     kind: z.string().min(1, t`Kind is required`),
-    fee: z.union([
-      autoFee,
-      amount(walletState.sync.unit.precision).refine(
-        (amount) =>
-          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-        t`Not enough funds to cover the fee`,
-      ),
-    ]),
+    fee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
+    ),
   });
 
   const addUrlForm = useForm<z.infer<typeof addUrlFormSchema>>({

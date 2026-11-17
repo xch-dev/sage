@@ -1,4 +1,3 @@
-import { feeAmount, feeParams } from '@/lib/fees';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { CreateProfileConfirmation } from '@/components/confirmations/CreateProfileConfirmation';
 import Header from '@/components/Header';
@@ -14,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { FeeAmountInput } from '@/components/ui/masked-input';
 import { useErrors } from '@/hooks/useErrors';
+import { feeAmount, feeParams } from '@/lib/fees';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';

@@ -197,9 +197,15 @@ impl TestApp {
     }
 
     async fn setup_bls(&mut self, balance: u64) -> Result<u32> {
+        let coins = if balance > 0 { vec![balance] } else { vec![] };
+        self.setup_bls_coins(&coins).await
+    }
+
+    /// Imports a new wallet that starts with a coin of each of the given amounts.
+    async fn setup_bls_coins(&mut self, amounts: &[u64]) -> Result<u32> {
         let mnemonic = Mnemonic::from_entropy(&self.rng.r#gen::<[u8; 16]>())?;
 
-        if balance > 0 {
+        if !amounts.is_empty() {
             let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(
                 master_to_wallet_unhardened(&master_sk, 0)
@@ -209,10 +215,12 @@ impl TestApp {
 
             self.sim.lock().await.create_block();
 
-            self.sim
-                .lock()
-                .await
-                .new_coin(p2_puzzle_hash.into(), balance);
+            for &amount in amounts {
+                self.sim
+                    .lock()
+                    .await
+                    .new_coin(p2_puzzle_hash.into(), amount);
+            }
         }
 
         let fingerprint = self

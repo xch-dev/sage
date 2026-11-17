@@ -1,13 +1,11 @@
-import { autoFee, feeParams, isAutoFee } from '@/lib/fees';
 import { commands, OfferRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { CancelOfferConfirmation } from '@/components/confirmations/CancelOfferConfirmation';
 import { useErrors } from '@/hooks/useErrors';
-import { amount } from '@/lib/formTypes';
+import { feeParams, feeWithinBalance, isAutoFee } from '@/lib/fees';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
-import BigNumber from 'bignumber.js';
 import { ReactNode, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -37,14 +35,10 @@ export function CancelOffersFlow({
   const [pending, setPending] = useState(false);
 
   const schema = z.object({
-    fee: z.union([
-      autoFee,
-      amount(walletState.sync.unit.precision).refine(
-        (amount) =>
-          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-        t`Not enough funds to cover the fee`,
-      ),
-    ]),
+    fee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
+    ),
   });
 
   const form = useForm<z.infer<typeof schema>>({

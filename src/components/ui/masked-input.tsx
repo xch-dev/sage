@@ -1,4 +1,6 @@
 import { useDefaultFee } from '@/hooks/useDefaultFee';
+import { useFeeRates } from '@/hooks/useFeeRates';
+import { AUTO_FEE, autoFeeAtRate, autoFeeRate, isAutoFee } from '@/lib/fees';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import * as React from 'react';
@@ -23,14 +25,6 @@ import {
   Sparkles,
   TriangleAlert,
 } from 'lucide-react';
-import {
-  AUTO_FEE,
-  autoFeeAtRate,
-  autoFeeRate,
-  getFeeRates,
-  isAutoFee,
-} from '@/lib/fees';
-import { GetFeeRateResponse } from '@/bindings';
 
 interface MaskedInputProps extends NumericFormatProps<InputProps> {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -283,7 +277,10 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
         }
         if (onValueChange) {
           onValueChange({
-            floatValue: isAutoFee(newValue) ? undefined : Number(newValue),
+            floatValue:
+              isAutoFee(newValue) || newValue === ''
+                ? undefined
+                : Number(newValue),
             value: newValue,
           });
         }
@@ -341,8 +338,14 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     if (allowAuto && isAutoFee(currentValue)) {
       const rate = autoFeeRate(currentValue);
       const recommended = feeRates ? String(feeRates.fee_per_cost) : '';
+      // What's typed in the rate input, which can be empty while it's edited. Plain `AUTO_FEE`
+      // shows the recommended rate.
+      const enteredRate =
+        currentValue === AUTO_FEE
+          ? recommended
+          : currentValue.slice(AUTO_FEE.length + 1);
       const effectiveRate =
-        rate !== null && rate !== '' ? Number(rate) : feeRates?.fee_per_cost;
+        rate !== null ? Number(rate) : feeRates?.fee_per_cost;
       const belowMinimum =
         feeRates !== null &&
         effectiveRate !== undefined &&
@@ -363,7 +366,7 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
               <span className='flex items-center gap-1 text-muted-foreground text-xs'>
                 <NumericFormat
                   aria-label={t`Fee rate in mojos per cost`}
-                  value={rate ?? recommended}
+                  value={enteredRate}
                   placeholder={recommended}
                   onValueChange={(values, sourceInfo) => {
                     if (sourceInfo.source === 'prop') return;
@@ -424,31 +427,6 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     );
   },
 );
-
-/** The recommended and minimum fee rates, once they're loaded. */
-function useFeeRates(): GetFeeRateResponse | null {
-  const [feeRates, setFeeRates] = React.useState<GetFeeRateResponse | null>(
-    null,
-  );
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    getFeeRates()
-      .then((rates) => {
-        if (!cancelled) setFeeRates(rates);
-      })
-      .catch(() => {
-        // The rates are only shown as hints, and the request that uses them reports the error.
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return feeRates;
-}
 
 FeeAmountInput.displayName = 'FeeAmountInput';
 

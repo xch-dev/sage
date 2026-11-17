@@ -10,8 +10,8 @@ import {
 import { LoadingButton } from '@/components/ui/loading-button';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import { useFeeRates } from '@/hooks/useFeeRates';
 import { useWallet } from '@/contexts/WalletContext';
-import { getFeeRates } from '@/lib/fees';
 import { IDENTITY_SIGNATURE, stringifySpendBundle } from '@/lib/spendBundle';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -84,17 +84,8 @@ export default function ConfirmationDialog({
   const [signature, setSignature] = useState<string | null>(null);
   const [jsonCopied, setJsonCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('summary');
-  const [minimumFeePerCost, setMinimumFeePerCost] = useState<number | null>(
-    null,
-  );
-
-  useEffect(() => {
-    getFeeRates()
-      .then((rates) => setMinimumFeePerCost(rates.minimum_fee_per_cost))
-      .catch(() => {
-        // Without the minimum, a low fee just isn't warned about.
-      });
-  }, []);
+  // Without the minimum, a low fee just isn't warned about.
+  const minimumFeePerCost = useFeeRates()?.minimum_fee_per_cost ?? null;
 
   useEffect(() => {
     if (response !== null && 'spend_bundle' in response) {

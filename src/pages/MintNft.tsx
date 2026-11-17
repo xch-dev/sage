@@ -1,4 +1,3 @@
-import { feeAmount, feeParams } from '@/lib/fees';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { HandleResolution } from '@/components/HandleResolution';
 import {
@@ -31,6 +30,7 @@ import {
 import { useDids } from '@/hooks/useDids';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { feeAmount, feeParams } from '@/lib/fees';
 import { amount } from '@/lib/formTypes';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';

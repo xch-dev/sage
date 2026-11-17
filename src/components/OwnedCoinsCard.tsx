@@ -1,4 +1,3 @@
-import { autoFee, feeParams } from '@/lib/fees';
 import CoinList from '@/components/CoinList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +24,7 @@ import {
 } from '@/hooks/useCoinPageSize';
 import { useErrors } from '@/hooks/useErrors';
 import { useNetwork } from '@/hooks/useNetwork';
+import { feeParams, feeWithinBalance } from '@/lib/fees';
 import { amount } from '@/lib/formTypes';
 import { fromMojos, toMojos } from '@/lib/utils';
 import { useWallet } from '@/contexts/WalletContext';
@@ -267,14 +267,10 @@ export function OwnedCoinsCard({
   const [autoCombineOpen, setAutoCombineOpen] = useState(false);
 
   const combineFormSchema = z.object({
-    combineFee: z.union([
-      autoFee,
-      amount(walletState.sync.unit.precision).refine(
-        (amount) =>
-          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-        t`Not enough funds to cover the fee`,
-      ),
-    ]),
+    combineFee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
+    ),
   });
 
   const combineForm = useForm<z.infer<typeof combineFormSchema>>({
@@ -318,14 +314,10 @@ export function OwnedCoinsCard({
 
   const splitFormSchema = z.object({
     outputCount: z.number().int().min(2).max(4294967295),
-    splitFee: z.union([
-      autoFee,
-      amount(walletState.sync.unit.precision).refine(
-        (amount) =>
-          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-        t`Not enough funds to cover the fee`,
-      ),
-    ]),
+    splitFee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
+    ),
   });
 
   const splitForm = useForm<z.infer<typeof splitFormSchema>>({
@@ -373,14 +365,10 @@ export function OwnedCoinsCard({
   };
 
   const autoCombineFormSchema = z.object({
-    autoCombineFee: z.union([
-      autoFee,
-      amount(walletState.sync.unit.precision).refine(
-        (amount) =>
-          BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-        t`Not enough funds to cover the fee`,
-      ),
-    ]),
+    autoCombineFee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
+    ),
     maxCoins: amount(0),
     maxCoinAmount: amount(asset.precision).optional(),
   });

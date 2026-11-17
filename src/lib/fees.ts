@@ -1,3 +1,4 @@
+import { t } from '@lingui/core/macro';
 import BigNumber from 'bignumber.js';
 import { z } from 'zod';
 import { commands, GetFeeRateResponse } from '../bindings';
@@ -21,7 +22,9 @@ export function autoFeeAtRate(rate: string): string {
 }
 
 /** Whether a fee input's value calculates the fee, at the recommended or a chosen rate. */
-export function isAutoFee(fee: string | number | null | undefined): boolean {
+export function isAutoFee(
+  fee: string | number | null | undefined,
+): fee is string {
   return (
     typeof fee === 'string' &&
     (fee === AUTO_FEE || fee.startsWith(AUTO_FEE_PREFIX))
@@ -32,9 +35,10 @@ export function isAutoFee(fee: string | number | null | undefined): boolean {
  * The rate an automatic fee was given, as it was entered, or `null` for the recommended rate.
  */
 export function autoFeeRate(fee: string): string | null {
-  return fee.startsWith(AUTO_FEE_PREFIX)
+  const rate = fee.startsWith(AUTO_FEE_PREFIX)
     ? fee.slice(AUTO_FEE_PREFIX.length)
-    : null;
+    : '';
+  return rate === '' ? null : rate;
 }
 
 function isValidRate(rate: string): boolean {
@@ -46,12 +50,28 @@ function isValidRate(rate: string): boolean {
 export const autoFee = z.string().refine((fee) => {
   if (!isAutoFee(fee)) return false;
   const rate = autoFeeRate(fee);
-  return rate === null || rate === '' || isValidRate(rate);
+  return rate === null || isValidRate(rate);
 }, 'Enter a valid fee rate');
 
 /** A fee input's value: an automatic fee, or an amount in the network's unit. */
 export const feeAmount = (precision: number) =>
   z.union([autoFee, amount(precision)]).optional();
+
+/**
+ * A required fee input's value: an automatic fee, or an amount in the network's unit that the
+ * selectable balance covers.
+ */
+export const feeWithinBalance = (
+  precision: number,
+  selectableBalance: string | number,
+) =>
+  z.union([
+    autoFee,
+    amount(precision).refine(
+      (amount) => BigNumber(selectableBalance).gte(amount || 0),
+      t`Not enough funds to cover the fee`,
+    ),
+  ]);
 
 let feeRates: Promise<GetFeeRateResponse> | null = null;
 
@@ -83,15 +103,13 @@ export async function feeParams(
   fee: string | number | null | undefined,
   precision: number,
 ): Promise<FeeParams> {
-  if (typeof fee === 'string' && isAutoFee(fee)) {
+  if (isAutoFee(fee)) {
     const rate = autoFeeRate(fee);
 
     return {
       fee: '0',
       fee_per_cost:
-        rate === null || rate === ''
-          ? (await getFeeRates()).fee_per_cost
-          : Number(rate),
+        rate === null ? (await getFeeRates()).fee_per_cost : Number(rate),
     };
   }
 

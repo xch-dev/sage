@@ -302,7 +302,6 @@ export function MakeOffer() {
                 </Label>
                 <FeeAmountInput
                   id='pre-split-fee'
-                  allowAuto={false}
                   aria-label={t`Split fee`}
                   value={preSplitFee}
                   onValueChange={(values, sourceInfo) => {

@@ -1,4 +1,3 @@
-import { FeeParams, feeParams } from '@/lib/fees';
 import CoinList from '@/components/CoinList';
 import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import {
 } from '@/hooks/useCoinPageSize';
 import { useErrors } from '@/hooks/useErrors';
 import { useNetwork } from '@/hooks/useNetwork';
+import { FeeParams, feeParams } from '@/lib/fees';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';

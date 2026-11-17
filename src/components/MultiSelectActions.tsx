@@ -1,7 +1,7 @@
-import { feeParams } from '@/lib/fees';
 import { commands, NftRecord, TransactionResponse } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
+import { feeParams } from '@/lib/fees';
 import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
