@@ -32,7 +32,7 @@ import {
   FormMessage,
 } from './ui/form';
 import { FeeAmountInput } from './ui/masked-input';
-import { AUTO_FEE } from '@/lib/fees';
+import { autoFee } from '@/lib/fees';
 
 export interface TransferDialogProps {
   title: string;
@@ -59,7 +59,7 @@ export function TransferDialog({
         t`Invalid handle`,
       ),
     fee: z.union([
-      z.literal(AUTO_FEE),
+      autoFee,
       amount(walletState.sync.unit.precision).refine(
         (amount) =>
           BigNumber(walletState.sync.selectable_balance).gte(amount || 0),

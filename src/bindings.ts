@@ -1682,7 +1682,13 @@ export type GetFeeRateResponse = {
 /**
  * The recommended fee rate, in mojos per cost
  */
-fee_per_cost: number }
+fee_per_cost: number; 
+/**
+ * The lowest fee rate, in mojos per cost, at which a transaction is admitted to a full
+ * mempool and included in blocks by farmers that enforce a minimum fee. A transaction
+ * paying less may never be confirmed.
+ */
+minimum_fee_per_cost: number }
 /**
  * Get the full verified details of an XCHandles handle
  */

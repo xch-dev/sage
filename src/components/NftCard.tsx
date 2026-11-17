@@ -1,4 +1,4 @@
-import { AUTO_FEE, feeParams } from '@/lib/fees';
+import { autoFee, feeParams } from '@/lib/fees';
 import {
   commands,
   events,
@@ -243,7 +243,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
     url: z.string().min(1, t`URL is required`),
     kind: z.string().min(1, t`Kind is required`),
     fee: z.union([
-      z.literal(AUTO_FEE),
+      autoFee,
       amount(walletState.sync.unit.precision).refine(
         (amount) =>
           BigNumber(walletState.sync.selectable_balance).gte(amount || 0),

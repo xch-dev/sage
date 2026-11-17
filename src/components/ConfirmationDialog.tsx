@@ -11,6 +11,7 @@ import { LoadingButton } from '@/components/ui/loading-button';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { useWallet } from '@/contexts/WalletContext';
+import { getFeeRates } from '@/lib/fees';
 import { IDENTITY_SIGNATURE, stringifySpendBundle } from '@/lib/spendBundle';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -83,6 +84,17 @@ export default function ConfirmationDialog({
   const [signature, setSignature] = useState<string | null>(null);
   const [jsonCopied, setJsonCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('summary');
+  const [minimumFeePerCost, setMinimumFeePerCost] = useState<number | null>(
+    null,
+  );
+
+  useEffect(() => {
+    getFeeRates()
+      .then((rates) => setMinimumFeePerCost(rates.minimum_fee_per_cost))
+      .catch(() => {
+        // Without the minimum, a low fee just isn't warned about.
+      });
+  }, []);
 
   useEffect(() => {
     if (response !== null && 'spend_bundle' in response) {
@@ -112,10 +124,15 @@ export default function ConfirmationDialog({
   // The rate the fee pays for the transaction's cost, which is what decides whether the
   // mempool and farmers accept it.
   const feePerCost =
-    cost !== null && cost > 0 && !fee.isZero()
+    cost !== null && cost > 0
       ? fee.dividedBy(cost).decimalPlaces(2, BigNumber.ROUND_DOWN)
       : null;
   const feeRateLabel = feePerCost?.toString();
+  const minimumRateLabel = minimumFeePerCost?.toString();
+  const isLowFee =
+    feePerCost !== null &&
+    minimumFeePerCost !== null &&
+    feePerCost.isLessThan(minimumFeePerCost);
 
   const json =
     response === null
@@ -209,6 +226,22 @@ export default function ConfirmationDialog({
                     <AlertDescription>
                       <Trans>
                         Fee exceeds recommended maximum of 0.001 {ticker}
+                      </Trans>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {isLowFee && (
+                  <Alert variant='warning' className='mb-3'>
+                    <AlertCircleIcon className='h-4 w-4' aria-hidden='true' />
+                    <AlertTitle>
+                      <Trans>Low Transaction Fee</Trans>
+                    </AlertTitle>
+                    <AlertDescription>
+                      <Trans>
+                        The fee pays {feeRateLabel} mojos per cost, below the
+                        minimum of {minimumRateLabel}. The transaction may never
+                        be confirmed.
                       </Trans>
                     </AlertDescription>
                   </Alert>
@@ -613,7 +646,7 @@ export default function ConfirmationDialog({
                   {ticker}
                 </>
               )}
-              {feePerCost !== null && (
+              {feePerCost !== null && !fee.isZero() && (
                 <span className='block text-xs'>
                   <Trans>{feeRateLabel} mojos per cost</Trans>
                 </span>

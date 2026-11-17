@@ -1,4 +1,4 @@
-import { AUTO_FEE, feeParams } from '@/lib/fees';
+import { autoFee, feeParams } from '@/lib/fees';
 import CoinList from '@/components/CoinList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -268,7 +268,7 @@ export function OwnedCoinsCard({
 
   const combineFormSchema = z.object({
     combineFee: z.union([
-      z.literal(AUTO_FEE),
+      autoFee,
       amount(walletState.sync.unit.precision).refine(
         (amount) =>
           BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
@@ -319,7 +319,7 @@ export function OwnedCoinsCard({
   const splitFormSchema = z.object({
     outputCount: z.number().int().min(2).max(4294967295),
     splitFee: z.union([
-      z.literal(AUTO_FEE),
+      autoFee,
       amount(walletState.sync.unit.precision).refine(
         (amount) =>
           BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
@@ -374,7 +374,7 @@ export function OwnedCoinsCard({
 
   const autoCombineFormSchema = z.object({
     autoCombineFee: z.union([
-      z.literal(AUTO_FEE),
+      autoFee,
       amount(walletState.sync.unit.precision).refine(
         (amount) =>
           BigNumber(walletState.sync.selectable_balance).gte(amount || 0),

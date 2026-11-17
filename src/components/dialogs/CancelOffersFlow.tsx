@@ -1,4 +1,4 @@
-import { AUTO_FEE, feeParams, isAutoFee } from '@/lib/fees';
+import { autoFee, feeParams, isAutoFee } from '@/lib/fees';
 import { commands, OfferRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { CancelOfferConfirmation } from '@/components/confirmations/CancelOfferConfirmation';
@@ -38,7 +38,7 @@ export function CancelOffersFlow({
 
   const schema = z.object({
     fee: z.union([
-      z.literal(AUTO_FEE),
+      autoFee,
       amount(walletState.sync.unit.precision).refine(
         (amount) =>
           BigNumber(walletState.sync.selectable_balance).gte(amount || 0),

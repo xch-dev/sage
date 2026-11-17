@@ -17,8 +17,20 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Trans } from '@lingui/react/macro';
-import { ArrowUpToLine, PencilLine, Sparkles } from 'lucide-react';
-import { AUTO_FEE, getFeeRate, isAutoFee } from '@/lib/fees';
+import {
+  ArrowUpToLine,
+  PencilLine,
+  Sparkles,
+  TriangleAlert,
+} from 'lucide-react';
+import {
+  AUTO_FEE,
+  autoFeeAtRate,
+  autoFeeRate,
+  getFeeRates,
+  isAutoFee,
+} from '@/lib/fees';
+import { GetFeeRateResponse } from '@/bindings';
 
 interface MaskedInputProps extends NumericFormatProps<InputProps> {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -233,7 +245,8 @@ const IntegerInput = React.forwardRef<HTMLInputElement, IntegerInputProps>(
 IntegerInput.displayName = 'IntegerInput';
 
 // Fee input that starts from the default fee. Unless `allowAuto` is false, it can
-// also be set to calculate the fee automatically, which gives it the value `AUTO_FEE`.
+// also be set to calculate the fee automatically from the transaction's cost, at the
+// recommended rate (`AUTO_FEE`) or one the user enters (see `autoFeeAtRate`).
 interface FeeAmountInputProps extends Omit<TokenInputProps, 'value'> {
   value?: string;
   className?: string;
@@ -259,7 +272,7 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     const defaultFee =
       !allowAuto && isAutoFee(storedDefaultFee) ? '' : storedDefaultFee;
     const hasSetInitialValue = React.useRef(false);
-    const feeRate = useFeeRate();
+    const feeRates = useFeeRates();
 
     const setValue = React.useCallback(
       (newValue: string) => {
@@ -326,24 +339,58 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     );
 
     if (allowAuto && isAutoFee(currentValue)) {
+      const rate = autoFeeRate(currentValue);
+      const recommended = feeRates ? String(feeRates.fee_per_cost) : '';
+      const effectiveRate =
+        rate !== null && rate !== '' ? Number(rate) : feeRates?.fee_per_cost;
+      const belowMinimum =
+        feeRates !== null &&
+        effectiveRate !== undefined &&
+        effectiveRate < feeRates.minimum_fee_per_cost;
+      const minimumRate = feeRates?.minimum_fee_per_cost;
+
       return (
-        <div className='flex'>
-          <div
-            role='status'
-            aria-label={t`Network fee is calculated automatically`}
-            className={`flex flex-1 min-w-0 items-center justify-between gap-2 rounded-md rounded-r-none border border-input bg-muted/40 px-3 text-sm ${heightClass}`}
-          >
-            <span className='flex items-center gap-1.5 truncate'>
-              <Sparkles className='h-3.5 w-3.5 shrink-0 text-muted-foreground' />
-              <Trans>Automatic</Trans>
-            </span>
-            {feeRate !== null && (
-              <span className='text-muted-foreground text-xs truncate'>
-                <Trans>{feeRate} mojos per cost</Trans>
+        <div>
+          <div className='flex'>
+            <div
+              className={`flex flex-1 min-w-0 items-center justify-between gap-2 rounded-md rounded-r-none border border-input bg-muted/40 pl-3 pr-2 text-sm ${heightClass}`}
+            >
+              <span className='flex items-center gap-1.5 truncate'>
+                <Sparkles className='h-3.5 w-3.5 shrink-0 text-muted-foreground' />
+                <Trans>Auto</Trans>
               </span>
-            )}
+              <span className='flex items-center gap-1 text-muted-foreground text-xs'>
+                <NumericFormat
+                  aria-label={t`Fee rate in mojos per cost`}
+                  value={rate ?? recommended}
+                  placeholder={recommended}
+                  onValueChange={(values, sourceInfo) => {
+                    if (sourceInfo.source === 'prop') return;
+                    setValue(autoFeeAtRate(values.value));
+                  }}
+                  onKeyDown={props.onKeyDown}
+                  decimalScale={3}
+                  allowNegative={false}
+                  allowLeadingZeros={false}
+                  className={`w-10 rounded-sm border border-transparent bg-transparent px-1 text-right text-sm text-foreground hover:border-input focus:border-input focus:bg-background focus:outline-none ${belowMinimum ? 'text-amber-600 dark:text-amber-400' : ''}`}
+                />
+                <Trans>mojos/cost</Trans>
+              </span>
+            </div>
+            {modeButton(true)}
           </div>
-          {modeButton(true)}
+          {belowMinimum && (
+            <p
+              role='alert'
+              className='mt-1.5 flex items-start gap-1 text-xs text-amber-600 dark:text-amber-400'
+            >
+              <TriangleAlert className='mt-px h-3.5 w-3.5 shrink-0' />
+              <Trans>
+                Below the minimum of {minimumRate} mojos per cost. The
+                transaction may never be confirmed.
+              </Trans>
+            </p>
+          )}
         </div>
       );
     }
@@ -377,19 +424,21 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
   },
 );
 
-/** The fee rate automatic fees are priced at, once it's loaded. */
-function useFeeRate(): number | null {
-  const [feeRate, setFeeRate] = React.useState<number | null>(null);
+/** The recommended and minimum fee rates, once they're loaded. */
+function useFeeRates(): GetFeeRateResponse | null {
+  const [feeRates, setFeeRates] = React.useState<GetFeeRateResponse | null>(
+    null,
+  );
 
   React.useEffect(() => {
     let cancelled = false;
 
-    getFeeRate()
-      .then((rate) => {
-        if (!cancelled) setFeeRate(rate);
+    getFeeRates()
+      .then((rates) => {
+        if (!cancelled) setFeeRates(rates);
       })
       .catch(() => {
-        // The rate is only shown as a hint, and the request that uses it reports the error.
+        // The rates are only shown as hints, and the request that uses them reports the error.
       });
 
     return () => {
@@ -397,7 +446,7 @@ function useFeeRate(): number | null {
     };
   }, []);
 
-  return feeRate;
+  return feeRates;
 }
 
 FeeAmountInput.displayName = 'FeeAmountInput';

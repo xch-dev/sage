@@ -69,6 +69,10 @@ pub struct GetFeeRate {}
 pub struct GetFeeRateResponse {
     /// The recommended fee rate, in mojos per cost
     pub fee_per_cost: f64,
+    /// The lowest fee rate, in mojos per cost, at which a transaction is admitted to a full
+    /// mempool and included in blocks by farmers that enforce a minimum fee. A transaction
+    /// paying less may never be confirmed.
+    pub minimum_fee_per_cost: f64,
 }
 
 /// Update a `CAT` token's metadata and visibility

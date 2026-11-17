@@ -3,6 +3,7 @@ use chia_wallet_sdk::{
         bls::master_to_wallet_hardened_intermediate,
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
+    driver::MIN_FEE_PER_COST,
     prelude::*,
 };
 use sage_api::{
@@ -262,10 +263,11 @@ impl Sage {
 
     /// The fee rate is fixed for now. It's the minimum that gets a transaction into blocks
     /// and into a full mempool, rather than an estimate of what the market is paying.
+    #[allow(clippy::cast_precision_loss)]
     pub fn get_fee_rate(&self, _req: GetFeeRate) -> Result<GetFeeRateResponse> {
-        #[allow(clippy::cast_precision_loss)]
-        let fee_per_cost = RECOMMENDED_FEE_PER_COST as f64;
-
-        Ok(GetFeeRateResponse { fee_per_cost })
+        Ok(GetFeeRateResponse {
+            fee_per_cost: RECOMMENDED_FEE_PER_COST as f64,
+            minimum_fee_per_cost: MIN_FEE_PER_COST as f64,
+        })
     }
 }

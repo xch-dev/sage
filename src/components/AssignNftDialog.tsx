@@ -26,7 +26,7 @@ import {
   FormMessage,
 } from './ui/form';
 import { FeeAmountInput } from './ui/masked-input';
-import { AUTO_FEE } from '@/lib/fees';
+import { autoFee } from '@/lib/fees';
 import {
   Select,
   SelectContent,
@@ -55,7 +55,7 @@ export function AssignNftDialog({
   const schema = z.object({
     profile: z.string().min(1, t`Profile is required`),
     fee: z.union([
-      z.literal(AUTO_FEE),
+      autoFee,
       amount(walletState.sync.unit.precision).refine(
         (amount) =>
           BigNumber(walletState.sync.selectable_balance).gte(amount || 0),

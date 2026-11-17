@@ -31,8 +31,10 @@ async fn fee_covers_cost_at_rate() -> Result<()> {
     app.wait_for_coins().await;
 
     let address = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
-    let rate = app.get_fee_rate(GetFeeRate {}).await?.fee_per_cost;
+    let rates = app.get_fee_rate(GetFeeRate {}).await?;
+    let rate = rates.fee_per_cost;
     assert!((rate - 5.0).abs() < f64::EPSILON);
+    assert!(rates.minimum_fee_per_cost <= rate);
 
     let mut request = send(address, 1_000, 0, Some(rate));
     request.auto_submit = true;
