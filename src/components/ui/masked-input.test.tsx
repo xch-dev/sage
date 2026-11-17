@@ -13,7 +13,7 @@ vi.mock('@/hooks/useFeeRates', () => ({
   useFeeRates: () => ({ fee_per_cost: 5, minimum_fee_per_cost: 5 }),
 }));
 
-import { FeeAmountInput } from './masked-input';
+import { FeeAmountInput, TokenAmountInput } from './masked-input';
 
 beforeAll(() => {
   i18n.loadAndActivate({ locale: 'en', messages: {} });
@@ -136,5 +136,56 @@ describe('FeeAmountInput with an automatic fee', () => {
       floatValue: undefined,
       value: 'auto',
     });
+  });
+});
+
+describe('TokenAmountInput', () => {
+  function renderAmount(props: {
+    wholeBalance?: boolean;
+    onWholeBalanceChange?: (whole: boolean) => void;
+    onValueChange?: () => void;
+  }) {
+    return render(
+      <I18nProvider i18n={i18n}>
+        <TokenAmountInput
+          aria-label='Amount'
+          value=''
+          maxValue='10'
+          ticker='xch'
+          {...props}
+        />
+      </I18nProvider>,
+    );
+  }
+
+  it('fills in the maximum without a whole balance option', () => {
+    const onValueChange = vi.fn();
+    renderAmount({ onValueChange });
+
+    fireEvent.click(screen.getByLabelText('Use maximum spendable balance'));
+    expect(onValueChange).toHaveBeenCalledWith(
+      expect.objectContaining({ value: '10' }),
+    );
+  });
+
+  it('switches to the whole balance instead of filling in an amount', () => {
+    const onValueChange = vi.fn();
+    const onWholeBalanceChange = vi.fn();
+    renderAmount({ onValueChange, onWholeBalanceChange });
+
+    fireEvent.click(screen.getByLabelText('Use maximum spendable balance'));
+    expect(onWholeBalanceChange).toHaveBeenCalledWith(true);
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it('says the whole balance is sent minus the fee, and can go back', () => {
+    const onWholeBalanceChange = vi.fn();
+    renderAmount({ wholeBalance: true, onWholeBalanceChange });
+
+    expect(screen.getByText('Balance minus fee')).toBeTruthy();
+    expect(screen.queryByLabelText('Amount')).toBeNull();
+
+    fireEvent.click(screen.getByLabelText('Enter an amount instead'));
+    expect(onWholeBalanceChange).toHaveBeenCalledWith(false);
   });
 });

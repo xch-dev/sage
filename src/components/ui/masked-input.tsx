@@ -24,6 +24,7 @@ import {
   PencilLine,
   Sparkles,
   TriangleAlert,
+  X,
 } from 'lucide-react';
 
 interface MaskedInputProps extends NumericFormatProps<InputProps> {
@@ -86,6 +87,16 @@ interface TokenInputProps extends MaskedInputProps {
   maxValue?: string;
   maxButtonClassName?: string;
   hideMaxButton?: boolean;
+  /**
+   * Whether the input stands for the whole balance, less a fee that's only known once the
+   * transaction is built, rather than an amount.
+   */
+  wholeBalance?: boolean;
+  /**
+   * If set, the max button switches the input to the whole balance instead of filling in the
+   * maximum amount, and this is called when it's switched on or off.
+   */
+  onWholeBalanceChange?: (wholeBalance: boolean) => void;
 }
 
 const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
@@ -96,6 +107,8 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
       maxValue,
       maxButtonClassName,
       hideMaxButton = false,
+      wholeBalance = false,
+      onWholeBalanceChange,
       onChange,
       onValueChange,
       ...props
@@ -105,6 +118,10 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
     const walletState = useWalletState();
 
     const handleMaxClick = () => {
+      if (onWholeBalanceChange) {
+        onWholeBalanceChange(true);
+        return;
+      }
       if (!maxValue) return;
       if (onChange) {
         onChange({
@@ -154,6 +171,42 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
       );
     }
 
+    if (wholeBalance) {
+      return (
+        <div className='flex'>
+          <div
+            role='status'
+            aria-label={t`Your entire balance, minus the network fee`}
+            title={t`Your entire balance, minus the network fee`}
+            className={`flex flex-1 min-w-0 items-center gap-1.5 rounded-md rounded-r-none border border-input bg-muted/40 px-3 text-sm ${heightClass}`}
+          >
+            <ArrowUpToLine className='h-3.5 w-3.5 shrink-0 text-muted-foreground' />
+            <span className='truncate'>
+              <Trans>Balance minus fee</Trans>
+            </span>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='outline'
+                  type='button'
+                  className={`!border-l-0 !rounded-l-none flex-shrink-0 ${heightClass} w-10 px-0 ${maxButtonClassName || ''}`}
+                  onClick={() => onWholeBalanceChange?.(false)}
+                  aria-label={t`Enter an amount instead`}
+                >
+                  <X className='h-4 w-4' />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <Trans>Enter an amount instead</Trans>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      );
+    }
+
     return (
       <div className='flex'>
         <div className='relative flex-1'>
@@ -186,7 +239,7 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
                 tabIndex={-1}
                 className={`!border-l-0 !rounded-l-none flex-shrink-0 ${heightClass} w-10 px-0 ${maxButtonClassName || ''}`}
                 onClick={handleMaxClick}
-                disabled={!maxValue}
+                disabled={!maxValue && !onWholeBalanceChange}
                 aria-label={t`Use maximum spendable balance`}
               >
                 <ArrowUpToLine className='h-4 w-4' />

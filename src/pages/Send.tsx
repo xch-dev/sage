@@ -86,6 +86,7 @@ export default function Send() {
   const [currentMemo, setCurrentMemo] = useState<Memo | undefined>(undefined);
 
   const [bulk, setBulk] = useState(false);
+  const [wholeBalance, setWholeBalance] = useState(false);
 
   const ticker = asset?.ticker || 'CAT';
 
@@ -202,6 +203,38 @@ export default function Send() {
   });
   const memoMode = form.watch('memoMode') || MemoMode.Text;
 
+  // Only an XCH send to one recipient can be the whole balance, since that's the asset the
+  // fee is paid in.
+  const canSendWholeBalance = assetId === null && !bulk && asset !== null;
+  const sendingWholeBalance = wholeBalance && canSendWholeBalance;
+  const wholeBalanceAmount = asset
+    ? toDecimal(asset.selectable_balance, asset.precision)
+    : '';
+
+  // The amount field holds the balance while the whole balance is being sent, so that it
+  // validates, and follows the balance if it changes.
+  useEffect(() => {
+    if (sendingWholeBalance) {
+      form.setValue('amount', wholeBalanceAmount, { shouldValidate: true });
+    }
+  }, [form, sendingWholeBalance, wholeBalanceAmount]);
+
+  // Switching to a bulk send leaves an amount to fill in for each recipient.
+  useEffect(() => {
+    if (bulk && wholeBalance) {
+      setWholeBalance(false);
+      form.setValue('amount', '', { shouldValidate: false });
+    }
+  }, [bulk, wholeBalance, form]);
+
+  const changeWholeBalance = (whole: boolean) => {
+    setWholeBalance(whole);
+
+    if (!whole) {
+      form.setValue('amount', '', { shouldValidate: false });
+    }
+  };
+
   const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
     (scanResValue) => {
       form.setValue('address', scanResValue);
@@ -258,7 +291,11 @@ export default function Send() {
         result = withHandleConfirmation(async (confirmed_handles) =>
           commands.sendXch({
             address,
-            amount,
+            // The whole balance is sent with the fee taken out of it, since the fee isn't
+            // known until the transaction is built.
+            amount:
+              sendingWholeBalance && asset ? asset.selectable_balance : amount,
+            deduct_fee: sendingWholeBalance,
             ...(await fee),
             memos,
             clawback,
@@ -426,6 +463,10 @@ export default function Send() {
                           asset?.precision ?? (assetId === null ? 12 : 3)
                         }
                         className='pr-12'
+                        wholeBalance={sendingWholeBalance}
+                        onWholeBalanceChange={
+                          canSendWholeBalance ? changeWholeBalance : undefined
+                        }
                         maxValue={
                           asset
                             ? BigNumber.max(
