@@ -1,4 +1,4 @@
-import { commands, TokenRecord, TransactionResponse } from '@/bindings';
+import { commands, events, TokenRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { MintOptionConfirmation } from '@/components/confirmations/MintOptionConfirmation.tsx';
 import Container from '@/components/Container';
@@ -12,12 +12,13 @@ import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { useErrors } from '@/hooks/useErrors';
 import { useNowSeconds } from '@/hooks/useNowSeconds';
+import { useWholeBalance } from '@/hooks/useWholeBalance';
 import {
   Expiration,
   expirationError,
   futureExpirationTimestamp,
 } from '@/lib/expiration';
-import { feeParams, isAutoFee } from '@/lib/fees';
+import { feeParams } from '@/lib/fees';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -27,7 +28,10 @@ import { AlertCircleIcon, HandCoins, Handshake } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-/** The mojo the option itself is made of, which minting spends on top of the underlying. */
+/**
+ * The mojo the option itself is made of, which minting spends on top of the underlying. It's
+ * `OPTION_AMOUNT` in `sage-wallet`.
+ */
 const OPTION_MOJOS = 1;
 
 export function MintOption() {
@@ -48,7 +52,6 @@ export function MintOption() {
     string | null | undefined
   >();
   const [underlyingAmount, setUnderlyingAmount] = useState('');
-  const [wholeBalance, setWholeBalance] = useState(false);
   // The underlying amount the minted option locks up, for the confirmation.
   const [mintedUnderlyingAmount, setMintedUnderlyingAmount] = useState('');
 
@@ -67,16 +70,32 @@ export function MintOption() {
   );
   const [strikeAsset, setStrikeAsset] = useState<TokenRecord | null>(null);
 
-  // Fetch token details when asset IDs change
+  // Fetch token details when asset IDs change, and keep the underlying balance current, since
+  // the whole of it can be locked up.
   useEffect(() => {
-    if (underlyingAssetId !== undefined) {
+    if (underlyingAssetId === undefined) {
+      setUnderlyingAsset(null);
+      return;
+    }
+
+    const update = () =>
       commands
         .getToken({ asset_id: underlyingAssetId })
         .then((res) => setUnderlyingAsset(res.token))
         .catch(() => setUnderlyingAsset(null));
-    } else {
-      setUnderlyingAsset(null);
-    }
+
+    update();
+
+    const unlisten = events.syncEvent.listen((event) => {
+      const type = event.payload.type;
+      if (type === 'coin_state' || type === 'puzzle_batch_synced') {
+        update();
+      }
+    });
+
+    return () => {
+      unlisten.then((u) => u());
+    };
   }, [underlyingAssetId]);
 
   useEffect(() => {
@@ -91,30 +110,11 @@ export function MintOption() {
   }, [strikeAssetId]);
 
   // Only an XCH underlying can be the whole balance, since that's the asset the fee is paid in.
-  const canLockWholeBalance =
-    underlyingAssetId === null &&
-    underlyingAsset !== null &&
-    BigNumber(underlyingAsset.selectable_balance).gt(0);
-  const lockingWholeBalance = wholeBalance && canLockWholeBalance;
-  const wholeBalanceAmount = underlyingAsset
-    ? toDecimal(underlyingAsset.selectable_balance, underlyingAsset.precision)
-    : '';
-
-  // The amount holds the balance while the whole balance is locked up, so that the form can
-  // be submitted, and follows the balance if it changes.
-  useEffect(() => {
-    if (lockingWholeBalance) {
-      setUnderlyingAmount(wholeBalanceAmount);
-    }
-  }, [lockingWholeBalance, wholeBalanceAmount]);
-
-  const changeWholeBalance = (whole: boolean) => {
-    setWholeBalance(whole);
-
-    if (!whole) {
-      setUnderlyingAmount('');
-    }
-  };
+  const wholeBalance = useWholeBalance({
+    asset: underlyingAsset,
+    enabled: underlyingAssetId === null,
+    setAmount: setUnderlyingAmount,
+  });
 
   const mint = useCallback(() => {
     if (underlyingAssetId === undefined || strikeAssetId === undefined) {
@@ -135,15 +135,13 @@ export function MintOption() {
     // The whole balance is locked up with the fee, and the option's own mojo, taken out of it,
     // since the fee isn't known until the transaction is built.
     const underlyingMojos =
-      lockingWholeBalance && underlyingAsset
-        ? BigNumber(underlyingAsset.selectable_balance).toFixed()
-        : toMojos(underlyingAmount, precision);
+      wholeBalance.mojos ?? toMojos(underlyingAmount, precision);
 
     feeParams(fee, walletState.sync.unit.precision)
       .then((fees) =>
         commands.mintOption({
           ...fees,
-          deduct_fee: lockingWholeBalance,
+          deduct_fee: wholeBalance.active,
           underlying: {
             asset_id: underlyingAssetId,
             amount: underlyingMojos,
@@ -161,7 +159,7 @@ export function MintOption() {
       .then((response) => {
         setMintedExpirationSeconds(expirationSeconds);
         setMintedUnderlyingAmount(
-          lockingWholeBalance
+          wholeBalance.active
             ? toDecimal(
                 BigNumber(underlyingMojos)
                   .minus(response.summary.fee)
@@ -179,8 +177,8 @@ export function MintOption() {
     fee,
     underlyingAssetId,
     underlyingAmount,
-    underlyingAsset,
-    lockingWholeBalance,
+    wholeBalance.mojos,
+    wholeBalance.active,
     strikeAssetId,
     strikeAmount,
     walletState.sync.unit.precision,
@@ -224,7 +222,7 @@ export function MintOption() {
                   onChange={(value) => {
                     setUnderlyingAssetId(value);
                     setUnderlyingAmount('');
-                    setWholeBalance(false);
+                    wholeBalance.reset();
                   }}
                   className='!rounded-r-none'
                   hideZeroBalance={true}
@@ -240,25 +238,16 @@ export function MintOption() {
                     setUnderlyingAmount(values.value);
                   }}
                   precision={underlyingAssetId === null ? 12 : 3}
-                  wholeBalance={lockingWholeBalance}
-                  onWholeBalanceChange={
-                    canLockWholeBalance ? changeWholeBalance : undefined
-                  }
+                  wholeBalance={wholeBalance.active}
+                  onWholeBalanceChange={wholeBalance.onWholeBalanceChange}
+                  // An XCH underlying is locked up as the whole balance minus the fee instead,
+                  // so the fee doesn't need taking out here.
                   maxValue={
                     underlyingAsset
-                      ? BigNumber.max(
-                          0,
-                          BigNumber(
-                            toDecimal(
-                              underlyingAsset.selectable_balance,
-                              underlyingAsset.precision,
-                            ),
-                          ).minus(
-                            underlyingAssetId === null && !isAutoFee(fee)
-                              ? fee || 0
-                              : 0,
-                          ),
-                        ).toString()
+                      ? toDecimal(
+                          underlyingAsset.selectable_balance,
+                          underlyingAsset.precision,
+                        )
                       : undefined
                   }
                 />

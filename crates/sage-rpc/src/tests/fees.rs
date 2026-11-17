@@ -511,3 +511,53 @@ async fn option_locks_up_the_whole_balance_minus_the_fee() -> Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn fee_is_only_deducted_from_an_xch_underlying() -> Result<()> {
+    let mut app = TestApp::new().await?;
+    let alice = app.setup_bls(BALANCE).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    app.issue_cat(IssueCat {
+        name: "Underlying".to_string(),
+        ticker: "UND".to_string(),
+        amount: Amount::u64(1_000),
+        revocable: false,
+        fee: Amount::u64(0),
+        fee_per_cost: None,
+        auto_submit: true,
+    })
+    .await?;
+    app.wait_for_coins().await;
+
+    let asset_id = app.get_cats(GetCats {}).await?.cats[0].asset_id.clone();
+
+    let expiration_seconds = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)?
+        .as_secs()
+        + 86_400;
+
+    // The fee is paid in XCH, so it can't come out of a CAT amount.
+    let error = app
+        .mint_option(MintOption {
+            expiration_seconds,
+            underlying: OptionAsset {
+                asset_id,
+                amount: Amount::u64(1_000),
+            },
+            strike: OptionAsset {
+                asset_id: None,
+                amount: Amount::u64(10),
+            },
+            fee: Amount::u64(0),
+            fee_per_cost: Some(5.0),
+            deduct_fee: true,
+            auto_submit: false,
+        })
+        .await
+        .expect_err("the fee can't be deducted from a CAT");
+    assert!(error.to_string().contains("XCH underlying"), "{error}");
+
+    Ok(())
+}
