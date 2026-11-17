@@ -354,6 +354,7 @@ async fn test_send_xch() -> Result<()> {
         auto_submit: true,
         coin_ids: None,
         fee_per_cost: None,
+        deduct_fee: false,
     })
     .await?;
 
@@ -401,6 +402,7 @@ async fn test_summary_fee_includes_undeclared_fee() -> Result<()> {
             auto_submit: false,
             coin_ids: None,
             fee_per_cost: None,
+            deduct_fee: false,
         })
         .await?;
 
@@ -621,6 +623,7 @@ async fn reused_cat_offers(
         auto_submit: true,
         coin_ids: None,
         fee_per_cost: None,
+        deduct_fee: false,
     })
     .await?;
     app.wait_for_coins().await;
@@ -884,6 +887,7 @@ async fn test_send_xch_with_coin_ids() -> Result<()> {
         auto_submit: true,
         coin_ids: Some(coin_ids),
         fee_per_cost: None,
+        deduct_fee: false,
     };
 
     let own = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
@@ -2029,6 +2033,7 @@ async fn test_nft_metadata_updater_of_unspent_singleton() -> Result<()> {
         auto_submit: true,
         coin_ids: None,
         fee_per_cost: None,
+        deduct_fee: false,
     })
     .await?;
     app.wait_for_coins().await;

@@ -6,8 +6,8 @@ use chia_wallet_sdk::{driver::spend_bundle_cost, prelude::*};
 use sage::{rust_bundle, rust_spend};
 use sage_api::{
     Action as ApiAction, Amount, CoinSpendJson, CreateTransaction, FeeAction, GetCats, GetFeeRate,
-    GetSyncStatus, Id as ApiId, IssueCat, Login, MakeOffer, OfferAmount, SendAction, SendXch,
-    TakeOffer, TransactionSummary,
+    GetOptions, GetSyncStatus, Id as ApiId, IssueCat, Login, MakeOffer, MintOption, OfferAmount,
+    OptionAsset, OptionFilter, OptionSortMode, SendAction, SendXch, TakeOffer, TransactionSummary,
 };
 
 use super::TestApp;
@@ -22,6 +22,7 @@ fn send(address: String, amount: u64, fee: u64, fee_per_cost: Option<f64>) -> Se
         amount: Amount::u64(amount),
         fee: Amount::u64(fee),
         fee_per_cost,
+        deduct_fee: false,
         memos: vec![],
         clawback: None,
         auto_submit: false,
@@ -397,6 +398,116 @@ async fn pre_split_transaction_is_priced() -> Result<()> {
         (5 * 1_000_000..5 * 50_000_000).contains(&split_fee),
         "split fee {split_fee}"
     );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn whole_balance_is_sent_minus_the_fee() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    // A balance in several coins, so that sending all of it spends every one.
+    let coin = 1_000_000_000;
+    let alice = app.setup_bls_coins(&[coin, coin, coin]).await?;
+    let bob = app.setup_bls(0).await?;
+    let bob_address = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let balance = selectable_balance(&app).await?;
+    assert_eq!(balance, 3 * coin);
+
+    // Without taking the fee out, the whole balance leaves nothing to pay it with.
+    assert!(
+        app.send_xch(send(bob_address.clone(), balance, 0, Some(5.0)))
+            .await
+            .is_err()
+    );
+
+    let mut request = send(bob_address, balance, 0, Some(5.0));
+    request.deduct_fee = true;
+    request.auto_submit = true;
+    let response = app.send_xch(request).await?;
+    assert_eq!(response.coin_spends.len(), 3);
+    assert_priced(&app, &response.summary, &response.coin_spends).await?;
+    let fee = fee(&response.summary);
+
+    app.wait_for_coins().await;
+    assert_eq!(selectable_balance(&app).await?, 0);
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
+    assert_eq!(selectable_balance(&app).await?, balance - fee);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn deducted_fee_must_leave_something_to_send() -> Result<()> {
+    let mut app = TestApp::new().await?;
+    let alice = app.setup_bls(BALANCE).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let address = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
+
+    // The amount is less than the fee at 5 mojos per cost.
+    let mut request = send(address, 1_000, 0, Some(5.0));
+    request.deduct_fee = true;
+    assert!(app.send_xch(request).await.is_err());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn option_locks_up_the_whole_balance_minus_the_fee() -> Result<()> {
+    let mut app = TestApp::new().await?;
+    let alice = app.setup_bls(BALANCE).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let expiration_seconds = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)?
+        .as_secs()
+        + 86_400;
+
+    let response = app
+        .mint_option(MintOption {
+            expiration_seconds,
+            underlying: OptionAsset {
+                asset_id: None,
+                amount: Amount::u64(BALANCE),
+            },
+            strike: OptionAsset {
+                asset_id: None,
+                amount: Amount::u64(10),
+            },
+            fee: Amount::u64(0),
+            fee_per_cost: Some(5.0),
+            deduct_fee: true,
+            auto_submit: true,
+        })
+        .await?;
+    assert_priced(&app, &response.summary, &response.coin_spends).await?;
+
+    app.wait_for_coins().await;
+
+    // Everything went to the option's underlying coin and the fee.
+    assert_eq!(selectable_balance(&app).await?, 0);
+    let options = app
+        .get_options(GetOptions {
+            offset: 0,
+            limit: 10,
+            sort_mode: OptionSortMode::Name,
+            ascending: true,
+            find_value: None,
+            include_hidden: true,
+            filter: OptionFilter::Owned,
+        })
+        .await?
+        .options;
+    assert_eq!(options.len(), 1);
 
     Ok(())
 }

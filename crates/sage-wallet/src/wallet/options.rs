@@ -55,6 +55,10 @@ impl OptionExercise {
     }
 }
 
+/// The amount of the singleton that represents an option, which minting it spends on top of
+/// the underlying amount.
+pub const OPTION_AMOUNT: u64 = 1;
+
 impl Wallet {
     pub async fn mint_option(
         &self,
@@ -89,7 +93,7 @@ impl Wallet {
                         underlying_id,
                         mint.underlying_type.amount(),
                         mint.strike_type,
-                        1,
+                        OPTION_AMOUNT,
                     ),
                 ],
             )

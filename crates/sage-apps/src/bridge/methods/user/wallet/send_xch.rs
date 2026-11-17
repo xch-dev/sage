@@ -101,6 +101,7 @@ impl From<WalletSendXchParams> for SendXch {
             coin_ids: None,
             confirmed_handles: Vec::new(),
             fee_per_cost: None,
+            deduct_fee: false,
         }
     }
 }

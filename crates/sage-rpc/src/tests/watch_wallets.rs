@@ -172,6 +172,7 @@ async fn alice_with_assets(app: &mut TestApp) -> Result<(u32, Holdings, Vec<Stri
         fee: Amount::u64(0),
         auto_submit: true,
         fee_per_cost: None,
+        deduct_fee: false,
     })
     .await?;
     app.wait_for_coins().await;
@@ -354,6 +355,7 @@ async fn watch_wallets_are_read_only() -> Result<()> {
             auto_submit: false,
             coin_ids: None,
             fee_per_cost: None,
+            deduct_fee: false,
         })
         .await
         .expect_err("watch wallets can't send");
@@ -415,6 +417,7 @@ async fn watch_wallets_are_read_only() -> Result<()> {
         auto_submit: false,
         coin_ids: None,
         fee_per_cost: None,
+        deduct_fee: false,
     })
     .await?;
 

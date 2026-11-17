@@ -113,6 +113,19 @@ fn paid_fee(conditions: &OwnedSpendBundleConditions) -> Result<u64> {
         })
 }
 
+/// What's left of `amount` once `fee` is taken out of it, for a transaction whose fee is
+/// deducted from the amount it sends.
+pub(crate) fn amount_after_fee(amount: u64, fee: u64) -> Result<u64> {
+    amount
+        .checked_sub(fee)
+        .filter(|&amount| amount > 0)
+        .ok_or_else(|| {
+            Error::InvalidAmount(format!(
+                "the amount of {amount} mojos doesn't cover the fee of {fee} mojos"
+            ))
+        })
+}
+
 /// Returns the fee, in mojos, for a transaction with the given cost at the given rate in mojos
 /// per cost, rounded up.
 fn fee_for_cost(cost: u64, fee_per_cost: f64) -> u64 {
@@ -271,6 +284,13 @@ pub(crate) use build_with_fee;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_amount_after_fee() {
+        assert_eq!(amount_after_fee(1_000, 300).ok(), Some(700));
+        assert!(amount_after_fee(1_000, 1_000).is_err());
+        assert!(amount_after_fee(1_000, 1_001).is_err());
+    }
 
     #[test]
     fn test_fee_for_cost_rounds_up() {

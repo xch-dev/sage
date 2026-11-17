@@ -3070,6 +3070,12 @@ fee: Amount;
  */
 fee_per_cost?: number | null; 
 /**
+ * Take the fee, and the mojo the option itself is made of, out of the underlying amount,
+ * which must be XCH, so that minting spends exactly the underlying amount given. Use it to
+ * lock up a whole balance when the fee isn't known until the transaction is built
+ */
+deduct_fee?: boolean; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -3766,6 +3772,12 @@ fee: Amount;
  * least it pays
  */
 fee_per_cost?: number | null; 
+/**
+ * Take the fee out of `amount`, so that `amount` is what leaves the wallet in total and
+ * the recipient gets the rest. Use it to send a whole balance when the fee isn't known
+ * until the transaction is built
+ */
+deduct_fee?: boolean; 
 /**
  * Optional memos
  */

@@ -17,14 +17,14 @@ use sage_api::{
 };
 use sage_assets::fetch_uris_without_hash;
 use sage_database::{Asset, AssetKind};
-use sage_wallet::{MultiSendPayment, SpendGuard, WalletNftMint, WalletOptionMint};
+use sage_wallet::{MultiSendPayment, OPTION_AMOUNT, SpendGuard, WalletNftMint, WalletOptionMint};
 use tokio::time::timeout;
 
 use crate::{
-    ConfirmationInfo, Error, ResolvedRecipients, Result, Sage, build_with_fee, json_bundle,
-    json_spend, parse_amount, parse_asset_id, parse_coin_ids, parse_did_id, parse_hash,
-    parse_memos, parse_nft_id, parse_option_id, parse_signature, rust_bundle, rust_spend,
-    selectable_coin_ids,
+    ConfirmationInfo, Error, ResolvedRecipients, Result, Sage, amount_after_fee, build_with_fee,
+    json_bundle, json_spend, parse_amount, parse_asset_id, parse_coin_ids, parse_did_id,
+    parse_hash, parse_memos, parse_nft_id, parse_option_id, parse_signature, rust_bundle,
+    rust_spend, selectable_coin_ids,
 };
 
 impl Sage {
@@ -40,15 +40,23 @@ impl Sage {
         let memos = parse_memos(req.memos)?;
         let selected_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
 
-        let coin_spends = build_with_fee!(self, fee, req.fee_per_cost, |fee| wallet
-            .send_xch_with_coins(
-                vec![(puzzle_hash, amount)],
-                fee,
-                memos.clone(),
-                req.clawback,
-                selected_coin_ids.clone(),
-            )
-            .await?);
+        let coin_spends = build_with_fee!(self, fee, req.fee_per_cost, |fee| {
+            let amount = if req.deduct_fee {
+                amount_after_fee(amount, fee)?
+            } else {
+                amount
+            };
+
+            wallet
+                .send_xch_with_coins(
+                    vec![(puzzle_hash, amount)],
+                    fee,
+                    memos.clone(),
+                    req.clawback,
+                    selected_coin_ids.clone(),
+                )
+                .await?
+        });
         self.transact_with(coin_spends, req.auto_submit, info, &spends)
             .await
     }
@@ -506,16 +514,34 @@ impl Sage {
         let underlying_type = self.parse_option_asset(req.underlying).await?;
         let strike_type = self.parse_option_asset(req.strike).await?;
 
-        let (coin_spends, option) = build_with_fee!(self, fee, req.fee_per_cost, |fee| wallet
-            .mint_option(
-                WalletOptionMint {
-                    expiration_seconds: req.expiration_seconds,
-                    underlying_type,
-                    strike_type,
+        // The fee can only come out of the underlying amount if it's paid in the same asset.
+        if req.deduct_fee && !matches!(underlying_type, OptionType::Xch { .. }) {
+            return Err(Error::InvalidAmount(
+                "the fee can only be deducted from an XCH underlying amount".to_string(),
+            ));
+        }
+
+        let (coin_spends, option) = build_with_fee!(self, fee, req.fee_per_cost, |fee| {
+            // The option's own singleton comes out of the amount too, so that the whole amount
+            // is what minting spends.
+            let underlying_type = match underlying_type {
+                OptionType::Xch { amount } if req.deduct_fee => OptionType::Xch {
+                    amount: amount_after_fee(amount, fee.saturating_add(OPTION_AMOUNT))?,
                 },
-                fee,
-            )
-            .await?);
+                underlying_type => underlying_type,
+            };
+
+            wallet
+                .mint_option(
+                    WalletOptionMint {
+                        expiration_seconds: req.expiration_seconds,
+                        underlying_type,
+                        strike_type,
+                    },
+                    fee,
+                )
+                .await?
+        });
 
         let response = self.transact(coin_spends, req.auto_submit, &spends).await?;
 

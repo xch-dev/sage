@@ -51,6 +51,7 @@ pub(super) fn send(
         coin_ids: None,
         confirmed_handles,
         fee_per_cost: None,
+        deduct_fee: false,
     }
 }
 

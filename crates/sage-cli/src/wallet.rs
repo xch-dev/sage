@@ -225,6 +225,7 @@ async fn send(client: &Client, args: SendArgs, json: bool) -> Result<()> {
                 amount: Amount::u64(amount),
                 fee: Amount::u64(fee),
                 fee_per_cost: None,
+                deduct_fee: false,
                 memos,
                 clawback: None,
                 coin_ids: None,

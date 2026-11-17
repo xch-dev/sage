@@ -28,6 +28,7 @@ fn send(address: &str, auto_submit: bool) -> SendXch {
         auto_submit,
         coin_ids: None,
         fee_per_cost: None,
+        deduct_fee: false,
     }
 }
 

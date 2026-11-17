@@ -28,6 +28,12 @@ pub struct SendXch {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub fee_per_cost: Option<f64>,
+    /// Take the fee out of `amount`, so that `amount` is what leaves the wallet in total and
+    /// the recipient gets the rest. Use it to send a whole balance when the fee isn't known
+    /// until the transaction is built
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub deduct_fee: bool,
     /// Optional memos
     #[serde(default)]
     pub memos: Vec<String>,
@@ -784,6 +790,12 @@ pub struct MintOption {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub fee_per_cost: Option<f64>,
+    /// Take the fee, and the mojo the option itself is made of, out of the underlying amount,
+    /// which must be XCH, so that minting spends exactly the underlying amount given. Use it to
+    /// lock up a whole balance when the fee isn't known until the transaction is built
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub deduct_fee: bool,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
