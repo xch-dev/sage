@@ -89,7 +89,7 @@ impl BridgeMethod for WalletGetAssetBalance {
         let mut spendable = 0_u128;
         let mut spendable_coin_count = 0_u32;
         let mut offset = 0_u32;
-        let sage = tools.app_state.lock().await;
+        let sage = tools.app_state.read().await;
 
         loop {
             let coins = sage

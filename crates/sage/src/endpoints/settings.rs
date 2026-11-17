@@ -135,11 +135,11 @@ impl Sage {
         Ok(SetNetworkOverrideResponse {})
     }
 
-    pub fn get_networks(&mut self, _req: GetNetworks) -> Result<GetNetworksResponse> {
+    pub fn get_networks(&self, _req: GetNetworks) -> Result<GetNetworksResponse> {
         Ok(self.network_list.clone())
     }
 
-    pub fn get_network(&mut self, _req: GetNetwork) -> Result<GetNetworkResponse> {
+    pub fn get_network(&self, _req: GetNetwork) -> Result<GetNetworkResponse> {
         let network = self.network();
 
         Ok(GetNetworkResponse {
@@ -177,10 +177,7 @@ impl Sage {
         Ok(SetDeltaSyncOverrideResponse {})
     }
 
-    pub fn get_selected_theme(
-        &mut self,
-        _req: GetSelectedTheme,
-    ) -> Result<GetSelectedThemeResponse> {
+    pub fn get_selected_theme(&self, _req: GetSelectedTheme) -> Result<GetSelectedThemeResponse> {
         Ok(GetSelectedThemeResponse {
             theme: self.config.global.theme.clone(),
         })

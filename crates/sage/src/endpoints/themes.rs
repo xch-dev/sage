@@ -1,4 +1,4 @@
-use crate::{Result, Sage};
+use crate::{Result, Sage, write_atomic};
 use sage_api::{
     DeleteUserTheme, DeleteUserThemeResponse, GetNftData, GetUserTheme, GetUserThemeResponse,
     GetUserThemes, GetUserThemesResponse, SaveUserTheme, SaveUserThemeResponse,
@@ -93,7 +93,9 @@ impl Sage {
 
             let theme_json = serde_json::to_string_pretty(&theme_data)
                 .map_err(|_| crate::Error::InvalidThemeJson)?;
-            fs::write(&theme_json_path, theme_json).await?;
+            // Requests run concurrently, so a theme that's read while it's saved again must
+            // never be seen half written.
+            write_atomic(&theme_json_path, theme_json)?;
         }
 
         Ok(SaveUserThemeResponse {})

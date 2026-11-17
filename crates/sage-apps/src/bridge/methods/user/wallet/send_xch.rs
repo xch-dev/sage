@@ -120,7 +120,7 @@ async fn execute_send_xch(
 
     let result = tools
         .app_state
-        .lock()
+        .read()
         .await
         .send_xch(request)
         .await
@@ -195,7 +195,7 @@ impl BridgeMethod for WalletSendXch {
         {
             let result = tools
                 .app_state
-                .lock()
+                .read()
                 .await
                 .resolve_handle(ResolveHandle {
                     handle: summary.address.trim().to_string(),

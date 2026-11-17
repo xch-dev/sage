@@ -7,7 +7,10 @@ use sage_wallet::SyncEvent;
 #[cfg(not(mobile))]
 use tauri::Manager;
 use tauri::{AppHandle, Emitter};
-use tokio::{sync::Mutex, task::JoinHandle};
+use tokio::{
+    sync::{Mutex, RwLock},
+    task::JoinHandle,
+};
 
 use crate::error;
 
@@ -16,7 +19,9 @@ pub struct Initialized(pub Mutex<Option<error::Result<()>>>);
 
 pub struct RpcTask(pub Mutex<Option<JoinHandle<anyhow::Result<()>>>>);
 
-pub type AppState = Arc<Mutex<Sage>>;
+/// Endpoints that only read `Sage` share it, and run at the same time. Spends are kept from
+/// conflicting by the wallet's spend lock, rather than by this lock.
+pub type AppState = Arc<RwLock<Sage>>;
 
 pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
     let mut receiver = sage.initialize().await?;

@@ -17,9 +17,7 @@ use sage_api::{
     },
 };
 use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, DeserializePrimitive, P2Puzzle};
-use sage_wallet::{
-    Status, SyncCommand, Transaction, WalletError, insert_transaction, submit_to_peers,
-};
+use sage_wallet::{Status, WalletError, submit_to_peers};
 use tracing::{debug, info, warn};
 
 use crate::{
@@ -255,6 +253,7 @@ impl Sage {
         // TODO: Should this be the normal way of sending transactions?
 
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
         let spend_bundle = rust_bundle(req.spend_bundle)?;
         let peers = self.peer_state.lock().await.peers();
 
@@ -264,28 +263,7 @@ impl Sage {
 
         match submit_to_peers(&peers, spend_bundle.clone()).await? {
             Status::Pending(status) => {
-                let peer = self
-                    .peer_state
-                    .lock()
-                    .await
-                    .acquire_peer()
-                    .ok_or(Error::NoPeers)?;
-
-                let subscriptions = insert_transaction(
-                    &wallet.db,
-                    &peer,
-                    wallet.genesis_challenge,
-                    spend_bundle.name(),
-                    Transaction::from_coin_spends(spend_bundle.coin_spends)?,
-                    spend_bundle.aggregated_signature,
-                )
-                .await?;
-
-                self.command_sender
-                    .send(SyncCommand::SubscribeCoins {
-                        coin_ids: subscriptions,
-                    })
-                    .await?;
+                self.submit_unchecked(spend_bundle, &spends).await?;
 
                 info!("Successfully submitted and inserted transaction {transaction_id}");
 

@@ -31,7 +31,7 @@ impl BridgeMethod for WalletGetWallet {
     ) -> BridgeHandleResult {
         let _params: WalletGetWalletParams = parse_optional_params(self, request)?;
 
-        let sage = tools.app_state.lock().await;
+        let sage = tools.app_state.read().await;
         let (result, _) = current_scoped_wallet(&ctx, &sage)?;
 
         Ok(Box::new(result))

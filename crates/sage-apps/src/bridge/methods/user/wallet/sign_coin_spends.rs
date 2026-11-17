@@ -262,7 +262,7 @@ impl BridgeMethod for WalletSignCoinSpends {
 
         let summary = tools
             .app_state
-            .lock()
+            .read()
             .await
             .view_coin_spends(params.preview_request())
             .await
@@ -293,7 +293,7 @@ impl BridgeMethod for WalletSignCoinSpends {
 
         let response = tools
             .app_state
-            .lock()
+            .read()
             .await
             .sign_coin_spends(params.into_request())
             .await

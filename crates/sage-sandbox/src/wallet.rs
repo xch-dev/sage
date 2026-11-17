@@ -15,7 +15,7 @@ use sage_api::{GetSyncStatus, ImportWallet, SyncEvent as ApiEvent};
 use sage_wallet::{SyncCommand, SyncEvent};
 use serde::Serialize;
 use tokio::{
-    sync::{Mutex, broadcast},
+    sync::{RwLock, broadcast},
     time::timeout,
 };
 use tracing::info;
@@ -52,7 +52,7 @@ pub async fn start_wallets(
 #[derive(Debug)]
 pub struct SandboxWallet {
     pub info: WalletInfo,
-    pub sage: Arc<Mutex<Sage>>,
+    pub sage: Arc<RwLock<Sage>>,
     pub events: broadcast::Sender<ApiEvent>,
 }
 
@@ -170,7 +170,7 @@ impl SandboxWallet {
                 mnemonic: mnemonic.to_string(),
                 address,
             },
-            sage: Arc::new(Mutex::new(sage)),
+            sage: Arc::new(RwLock::new(sage)),
             events,
         })
     }

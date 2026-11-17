@@ -18,8 +18,8 @@ use sage_database::{
     OfferSortColumn, OfferStatus, OfferedAsset, OffersPageParams, ParsedNftMetadata,
 };
 use sage_wallet::{
-    Offered, PreSplitOffer, Requested, RequestedCat, SyncCommand, TakenOffer, Transaction, Wallet,
-    WalletError, aggregate_offers, insert_transaction, sort_offer,
+    Offered, PreSplitOffer, Requested, RequestedCat, SpendGuard, TakenOffer, Wallet, WalletError,
+    aggregate_offers, sort_offer,
 };
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::{debug, warn};
@@ -50,6 +50,7 @@ struct AssetToOffer {
 impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
 
         let selected_coin_ids = parse_coin_ids(req.coin_ids.unwrap_or_default())?;
 
@@ -223,19 +224,17 @@ impl Sage {
             // the database writes for afterwards.
             let prepared = self.prepare_offer_import(encoded_offer.clone()).await?;
 
-            self.submit_unchecked(split).await?;
+            self.submit_unchecked(split, &spends).await?;
 
             if let Some(prepared) = prepared {
-                self.insert_offer(prepared, OfferStatus::Pending).await?;
+                self.insert_offer(prepared, OfferStatus::Pending, &spends)
+                    .await?;
             }
 
             Some(hex::encode(transaction_id))
         } else {
             if req.auto_import {
-                self.import_offer(ImportOffer {
-                    offer: encoded_offer.clone(),
-                })
-                .await?;
+                self.save_offer(encoded_offer.clone(), &spends).await?;
             }
 
             None
@@ -253,6 +252,7 @@ impl Sage {
 
     pub async fn take_offer(&self, req: TakeOffer) -> Result<TakeOfferResponse> {
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
 
         let offer = decode_offer(&req.offer)?;
         let fee = parse_amount(req.fee)?;
@@ -301,28 +301,7 @@ impl Sage {
         );
 
         if req.auto_submit {
-            let peer = self
-                .peer_state
-                .lock()
-                .await
-                .acquire_peer()
-                .ok_or(Error::NoPeers)?;
-
-            let subscriptions = insert_transaction(
-                &wallet.db,
-                &peer,
-                wallet.genesis_challenge,
-                spend_bundle.name(),
-                Transaction::from_coin_spends(spend_bundle.coin_spends.clone())?,
-                spend_bundle.aggregated_signature.clone(),
-            )
-            .await?;
-
-            self.command_sender
-                .send(SyncCommand::SubscribeCoins {
-                    coin_ids: subscriptions,
-                })
-                .await?;
+            self.submit_unchecked(spend_bundle.clone(), &spends).await?;
         }
 
         let json_bundle = json_bundle(&spend_bundle);
@@ -405,13 +384,26 @@ impl Sage {
     pub async fn import_offer(&self, req: ImportOffer) -> Result<ImportOfferResponse> {
         let offer_id = sort_offer(decode_offer(&req.offer)?).name();
 
-        if let Some(prepared) = self.prepare_offer_import(req.offer).await? {
-            self.insert_offer(prepared, OfferStatus::Active).await?;
-        }
+        // Saving the offer locks its coins, which mustn't happen to a coin that another
+        // request has selected for a transaction it hasn't submitted yet.
+        let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
+
+        self.save_offer(req.offer, &spends).await?;
 
         Ok(ImportOfferResponse {
             offer_id: hex::encode(offer_id),
         })
+    }
+
+    /// Saves an offer to the wallet as active, unless it's already there.
+    async fn save_offer(&self, encoded_offer: String, spends: &SpendGuard<'_>) -> Result<()> {
+        if let Some(prepared) = self.prepare_offer_import(encoded_offer).await? {
+            self.insert_offer(prepared, OfferStatus::Active, spends)
+                .await?;
+        }
+
+        Ok(())
     }
 
     /// Looks up everything needed to save an offer to the wallet, which is done separately so
@@ -652,7 +644,12 @@ impl Sage {
         }))
     }
 
-    async fn insert_offer(&self, prepared: PreparedOffer, status: OfferStatus) -> Result<()> {
+    async fn insert_offer(
+        &self,
+        prepared: PreparedOffer,
+        status: OfferStatus,
+        _spends: &SpendGuard<'_>,
+    ) -> Result<()> {
         let wallet = self.wallet()?;
         let offer_id = prepared.row.offer_id;
 
@@ -905,6 +902,7 @@ impl Sage {
 
     pub async fn cancel_offer(&self, req: CancelOffer) -> Result<CancelOfferResponse> {
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
         let offer_id = parse_offer_id(req.offer_id)?;
         let fee = parse_amount(req.fee)?;
 
@@ -920,11 +918,12 @@ impl Sage {
         let fee_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
         let coin_spends = wallet.cancel_offers(vec![offer], fee, fee_coin_ids).await?;
 
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn cancel_offers(&self, req: CancelOffers) -> Result<CancelOffersResponse> {
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
 
         let offer_ids = req
@@ -959,7 +958,7 @@ impl Sage {
             .cancel_offers(offers, total_fee, fee_coin_ids)
             .await?;
 
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 }
 
