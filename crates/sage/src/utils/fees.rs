@@ -4,7 +4,7 @@ use chia_wallet_sdk::{
     chia::consensus::{
         consensus_constants::ConsensusConstants, owned_conditions::OwnedSpendBundleConditions,
     },
-    driver::{MIN_FEE_PER_COST, spend_bundle_conditions, spend_bundle_cost},
+    driver::{MIN_FEE_PER_COST, spend_bundle_conditions},
     prelude::*,
 };
 use sage_config::InheritedNetwork;
@@ -77,7 +77,7 @@ impl CostRules {
         let conditions = |height| spend_bundle_conditions(coin_spends, self.constants, height);
 
         // Without a height, the cost is the higher of the costs on either side of the 3.0 hard
-        // fork, as `spend_bundle_cost` prices it. The fee is the same on both sides.
+        // fork, as the SDK's `spend_bundle_cost` prices it. The fee is the same on both sides.
         let fork_height = self.constants.hard_fork2_height;
         let (cost, conditions) = if let Some(height) = self.height {
             let conditions = conditions(height)?;
@@ -95,9 +95,9 @@ impl CostRules {
     }
 
     /// The cost the mempool charges for the coin spends, or `None` if they aren't a complete
-    /// transaction, such as one side of an offer.
+    /// transaction, such as one side of an offer. It's the cost the fee is priced against.
     pub(crate) fn cost(&self, coin_spends: &[CoinSpend]) -> Option<u64> {
-        spend_bundle_cost(coin_spends, self.constants, self.height).ok()
+        self.price(coin_spends).ok().map(|(cost, _)| cost)
     }
 }
 

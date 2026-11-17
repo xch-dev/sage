@@ -341,9 +341,7 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
       // What's typed in the rate input, which can be empty while it's edited. Plain `AUTO_FEE`
       // shows the recommended rate.
       const enteredRate =
-        currentValue === AUTO_FEE
-          ? recommended
-          : currentValue.slice(AUTO_FEE.length + 1);
+        currentValue === AUTO_FEE ? recommended : (rate ?? '');
       const effectiveRate =
         rate !== null ? Number(rate) : feeRates?.fee_per_cost;
       const belowMinimum =

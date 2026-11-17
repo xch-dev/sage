@@ -278,14 +278,17 @@ export function OwnedCoinsCard({
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    const fee = feeParams(values.combineFee, walletState.sync.unit.precision);
+    const feeFields = feeParams(
+      values.combineFee,
+      walletState.sync.unit.precision,
+    );
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
       (record) => record.coin_id,
     );
 
-    fee
+    feeFields
       .then((fees) =>
         commands.combine({
           coin_ids: coinIdsForRequest,
@@ -328,14 +331,17 @@ export function OwnedCoinsCard({
   });
 
   const onSplitSubmit = (values: z.infer<typeof splitFormSchema>) => {
-    const fee = feeParams(values.splitFee, walletState.sync.unit.precision);
+    const feeFields = feeParams(
+      values.splitFee,
+      walletState.sync.unit.precision,
+    );
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
       (record) => record.coin_id,
     );
 
-    fee
+    feeFields
       .then((fees) =>
         commands.split({
           coin_ids: coinIdsForRequest,
@@ -384,7 +390,7 @@ export function OwnedCoinsCard({
   const onAutoCombineSubmit = (
     values: z.infer<typeof autoCombineFormSchema>,
   ) => {
-    const fee = feeParams(
+    const feeFields = feeParams(
       values.autoCombineFee,
       walletState.sync.unit.precision,
     );
@@ -393,7 +399,7 @@ export function OwnedCoinsCard({
       ? toMojos(values.maxCoinAmount, asset.precision)
       : null;
 
-    fee
+    feeFields
       .then((fees) =>
         (!asset?.asset_id
           ? commands.autoCombineXch

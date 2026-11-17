@@ -1,4 +1,4 @@
-import { AUTO_FEE, isAutoFee } from '@/lib/fees';
+import { AUTO_FEE, isAutoFee, isValidAutoFee } from '@/lib/fees';
 import * as React from 'react';
 import { useLocalStorage } from 'usehooks-ts';
 
@@ -7,7 +7,7 @@ export interface DefaultFee {
 }
 
 const isValidFee = (value: string): boolean => {
-  if (isAutoFee(value)) return true;
+  if (isAutoFee(value)) return isValidAutoFee(value);
   const num = parseFloat(value);
   return !isNaN(num) && num >= 0;
 };

@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { i18n } from '@lingui/core';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getFeeRate = vi.hoisted(() => vi.fn());
 
@@ -6,13 +7,18 @@ vi.mock('../bindings', () => ({ commands: { getFeeRate } }));
 
 import {
   AUTO_FEE,
-  autoFee,
   autoFeeAtRate,
   autoFeeRate,
   feeAmount,
   feeParams,
+  feeWithinBalance,
   isAutoFee,
+  isValidAutoFee,
 } from './fees';
+
+beforeAll(() => {
+  i18n.loadAndActivate({ locale: 'en', messages: {} });
+});
 
 describe('automatic fees', () => {
   it('tells automatic fees from amounts', () => {
@@ -30,11 +36,12 @@ describe('automatic fees', () => {
   });
 
   it('accepts a missing or valid rate, and rejects anything else', () => {
-    expect(autoFee.safeParse(AUTO_FEE).success).toBe(true);
-    expect(autoFee.safeParse(autoFeeAtRate('')).success).toBe(true);
-    expect(autoFee.safeParse(autoFeeAtRate('2')).success).toBe(true);
-    expect(autoFee.safeParse(autoFeeAtRate('abc')).success).toBe(false);
-    expect(autoFee.safeParse(autoFeeAtRate('-1')).success).toBe(false);
+    expect(isValidAutoFee(AUTO_FEE)).toBe(true);
+    expect(isValidAutoFee(autoFeeAtRate(''))).toBe(true);
+    expect(isValidAutoFee(autoFeeAtRate('2'))).toBe(true);
+    expect(isValidAutoFee(autoFeeAtRate('abc'))).toBe(false);
+    expect(isValidAutoFee(autoFeeAtRate('-1'))).toBe(false);
+    expect(feeAmount(12).safeParse(autoFeeAtRate('abc')).success).toBe(false);
     expect(feeAmount(12).safeParse('0.001').success).toBe(true);
   });
 
@@ -87,5 +94,20 @@ describe('the recommended rate', () => {
     await expect(fees.getFeeRates()).rejects.toThrow('offline');
     await expect(fees.getFeeRates()).resolves.toEqual(rates);
     expect(getFeeRate).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('fee validation', () => {
+  it('reports why an entered amount is invalid', () => {
+    const schema = feeWithinBalance(12, '1');
+
+    expect(schema.safeParse(AUTO_FEE).success).toBe(true);
+    expect(schema.safeParse('0.5').success).toBe(true);
+
+    const tooMuch = schema.safeParse('5');
+    expect(tooMuch.success).toBe(false);
+    expect(tooMuch.error?.issues.map((issue) => issue.message)).toEqual([
+      'Not enough funds to cover the fee',
+    ]);
   });
 });

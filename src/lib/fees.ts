@@ -46,16 +46,39 @@ function isValidRate(rate: string): boolean {
   return value.isFinite() && value.isGreaterThanOrEqualTo(0);
 }
 
-/** A fee input's value that calculates the fee, with a valid rate if one was given. */
-export const autoFee = z.string().refine((fee) => {
+/** Whether an automatic fee's rate, if it was given one, is a valid rate. */
+export function isValidAutoFee(fee: string): boolean {
   if (!isAutoFee(fee)) return false;
   const rate = autoFeeRate(fee);
   return rate === null || isValidRate(rate);
-}, 'Enter a valid fee rate');
+}
+
+/**
+ * A fee input's value: an automatic fee with a valid rate, or a value `amountSchema` accepts.
+ * The two are checked separately, rather than as a union, so that an invalid amount reports
+ * its own message instead of a generic one.
+ */
+const feeSchema = (amountSchema: z.ZodType<string>) =>
+  z.string().superRefine((fee, ctx) => {
+    if (isAutoFee(fee)) {
+      if (!isValidAutoFee(fee)) {
+        ctx.addIssue({ code: 'custom', message: t`Enter a valid fee rate` });
+      }
+      return;
+    }
+
+    const result = amountSchema.safeParse(fee);
+
+    if (!result.success) {
+      for (const issue of result.error.issues) {
+        ctx.addIssue({ code: 'custom', message: issue.message });
+      }
+    }
+  });
 
 /** A fee input's value: an automatic fee, or an amount in the network's unit. */
 export const feeAmount = (precision: number) =>
-  z.union([autoFee, amount(precision)]).optional();
+  feeSchema(amount(precision)).optional();
 
 /**
  * A required fee input's value: an automatic fee, or an amount in the network's unit that the
@@ -65,13 +88,12 @@ export const feeWithinBalance = (
   precision: number,
   selectableBalance: string | number,
 ) =>
-  z.union([
-    autoFee,
+  feeSchema(
     amount(precision).refine(
       (amount) => BigNumber(selectableBalance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
-  ]);
+  );
 
 let feeRates: Promise<GetFeeRateResponse> | null = null;
 

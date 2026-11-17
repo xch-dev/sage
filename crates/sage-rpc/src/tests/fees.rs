@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 use chia_wallet_sdk::{driver::spend_bundle_cost, prelude::*};
+use sage::{rust_bundle, rust_spend};
 use sage_api::{
     Action as ApiAction, Amount, CoinSpendJson, CreateTransaction, FeeAction, GetCats, GetFeeRate,
     GetSyncStatus, Id as ApiId, IssueCat, Login, MakeOffer, OfferAmount, SendAction, SendXch,
@@ -34,22 +35,6 @@ fn xch(amount: u64) -> OfferAmount {
         hidden_puzzle_hash: None,
         amount: Amount::u64(amount),
     }
-}
-
-fn hex_bytes(value: &str) -> Result<Vec<u8>> {
-    Ok(hex::decode(value.trim_start_matches("0x"))?)
-}
-
-fn coin_spend(json: &CoinSpendJson) -> Result<CoinSpend> {
-    Ok(CoinSpend::new(
-        Coin::new(
-            Bytes32::try_from(hex_bytes(&json.coin.parent_coin_info)?)?,
-            Bytes32::try_from(hex_bytes(&json.coin.puzzle_hash)?)?,
-            json.coin.amount.to_u64().expect("coin amount fits in u64"),
-        ),
-        hex_bytes(&json.puzzle_reveal)?.into(),
-        hex_bytes(&json.solution)?.into(),
-    ))
 }
 
 /// The cost of the coin spends as the mempool charges it, worked out here rather than taken
@@ -86,8 +71,9 @@ async fn assert_priced(
 ) -> Result<u64> {
     let coin_spends = coin_spends
         .iter()
-        .map(coin_spend)
-        .collect::<Result<Vec<_>>>()?;
+        .cloned()
+        .map(rust_spend)
+        .collect::<Result<Vec<_>, _>>()?;
     let cost = independent_cost(app, &coin_spends).await?;
     let needed = cost * 5;
 
@@ -271,12 +257,7 @@ async fn taking_an_offer_counts_the_maker_fee() -> Result<()> {
     assert_eq!(fee(&summary), 1_000_000_000);
 
     let response = app.take_offer(take(stingy)).await?;
-    let coin_spends = response
-        .spend_bundle
-        .coin_spends
-        .iter()
-        .map(coin_spend)
-        .collect::<Result<Vec<_>>>()?;
+    let coin_spends = rust_bundle(response.spend_bundle)?.coin_spends;
     let cost = independent_cost(&app, &coin_spends).await?;
     let paid = fee(&response.summary);
     assert_eq!(response.summary.cost, Some(cost));
@@ -406,11 +387,16 @@ async fn pre_split_transaction_is_priced() -> Result<()> {
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
 
+    assert!(change > 0, "the split never confirmed");
     let split_fee = BALANCE - 300 - 50 - change;
 
-    // A split is a standard spend creating a few coins, which costs millions, so the fee at 5
-    // mojos per cost is in the tens of millions.
-    assert!(split_fee > 5 * 1_000_000, "split fee {split_fee}");
+    // A split is one standard spend creating a few coins, which costs a few million to a few
+    // tens of millions, so at 5 mojos per cost its fee is within these bounds. Ignoring the
+    // rate would leave it at 0, and a much higher rate would go over.
+    assert!(
+        (5 * 1_000_000..5 * 50_000_000).contains(&split_fee),
+        "split fee {split_fee}"
+    );
 
     Ok(())
 }
