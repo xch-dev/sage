@@ -178,6 +178,28 @@ describe('TokenAmountInput', () => {
     expect(onValueChange).not.toHaveBeenCalled();
   });
 
+  it("can't be switched to the whole balance without a balance", () => {
+    const onWholeBalanceChange = vi.fn();
+    render(
+      <I18nProvider i18n={i18n}>
+        <TokenAmountInput
+          aria-label='Amount'
+          value=''
+          maxValue='0'
+          ticker='xch'
+          onWholeBalanceChange={onWholeBalanceChange}
+        />
+      </I18nProvider>,
+    );
+
+    const max = screen.getByLabelText(
+      'Use maximum spendable balance',
+    ) as HTMLButtonElement;
+    expect(max.disabled).toBe(true);
+    fireEvent.click(max);
+    expect(onWholeBalanceChange).not.toHaveBeenCalled();
+  });
+
   it('says the whole balance is sent minus the fee, and can go back', () => {
     const onWholeBalanceChange = vi.fn();
     renderAmount({ wholeBalance: true, onWholeBalanceChange });

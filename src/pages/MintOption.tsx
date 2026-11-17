@@ -92,7 +92,9 @@ export function MintOption() {
 
   // Only an XCH underlying can be the whole balance, since that's the asset the fee is paid in.
   const canLockWholeBalance =
-    underlyingAssetId === null && underlyingAsset !== null;
+    underlyingAssetId === null &&
+    underlyingAsset !== null &&
+    BigNumber(underlyingAsset.selectable_balance).gt(0);
   const lockingWholeBalance = wholeBalance && canLockWholeBalance;
   const wholeBalanceAmount = underlyingAsset
     ? toDecimal(underlyingAsset.selectable_balance, underlyingAsset.precision)

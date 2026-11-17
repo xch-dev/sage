@@ -117,6 +117,9 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
   ) => {
     const walletState = useWalletState();
 
+    // There's nothing to fill in, or to send all of, without a balance.
+    const hasBalance = maxValue !== undefined && Number(maxValue) > 0;
+
     const handleMaxClick = () => {
       if (onWholeBalanceChange) {
         onWholeBalanceChange(true);
@@ -239,7 +242,7 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
                 tabIndex={-1}
                 className={`!border-l-0 !rounded-l-none flex-shrink-0 ${heightClass} w-10 px-0 ${maxButtonClassName || ''}`}
                 onClick={handleMaxClick}
-                disabled={!maxValue && !onWholeBalanceChange}
+                disabled={!hasBalance}
                 aria-label={t`Use maximum spendable balance`}
               >
                 <ArrowUpToLine className='h-4 w-4' />

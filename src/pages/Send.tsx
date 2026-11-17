@@ -205,7 +205,11 @@ export default function Send() {
 
   // Only an XCH send to one recipient can be the whole balance, since that's the asset the
   // fee is paid in.
-  const canSendWholeBalance = assetId === null && !bulk && asset !== null;
+  const canSendWholeBalance =
+    assetId === null &&
+    !bulk &&
+    asset !== null &&
+    BigNumber(asset.selectable_balance).gt(0);
   const sendingWholeBalance = wholeBalance && canSendWholeBalance;
   const wholeBalanceAmount = asset
     ? toDecimal(asset.selectable_balance, asset.precision)
