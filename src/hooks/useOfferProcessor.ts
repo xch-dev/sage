@@ -1,6 +1,7 @@
 import { commands, MakeOfferResponse, OfferAmount } from '@/bindings';
 import { useBiometric } from '@/hooks/useBiometric';
 import { futureExpirationTimestamp } from '@/lib/expiration';
+import { feeParams } from '@/lib/fees';
 import { toMojos } from '@/lib/utils';
 import { OfferState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -81,10 +82,6 @@ export function useOfferProcessor({
       (offerState.fee || '0').toString(),
       walletState.sync.unit.precision,
     );
-    const pre_split_fee =
-      preSplitFee === null
-        ? null
-        : toMojos(preSplitFee || '0', walletState.sync.unit.precision);
 
     const createdOffer = (data: MakeOfferResponse): CreatedOffer => ({
       offer: data.offer,
@@ -93,6 +90,15 @@ export function useOfferProcessor({
     });
 
     try {
+      // The coin splitting transaction is complete on its own, so its fee can be calculated
+      // from its cost, unlike the offer's.
+      const preSplit =
+        preSplitFee === null
+          ? null
+          : await feeParams(preSplitFee, walletState.sync.unit.precision);
+      const pre_split_fee = preSplit?.fee ?? null;
+      const pre_split_fee_per_cost = preSplit?.fee_per_cost ?? null;
+
       if (
         splitNftOffers &&
         offerState.offered.nfts.filter((n) => n).length > 1
@@ -134,6 +140,7 @@ export function useOfferProcessor({
             fee,
             expires_at_second: expiresAtSecond,
             pre_split_fee,
+            pre_split_fee_per_cost,
           });
           if (!isCancelled.current) {
             newOffers.push(createdOffer(data));
@@ -175,6 +182,7 @@ export function useOfferProcessor({
           fee,
           expires_at_second: expiresAtSecond,
           pre_split_fee,
+          pre_split_fee_per_cost,
         });
         if (!isCancelled.current) {
           setCreatedOffers([createdOffer(data)]);

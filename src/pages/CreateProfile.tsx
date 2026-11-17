@@ -13,8 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { FeeAmountInput } from '@/components/ui/masked-input';
 import { useErrors } from '@/hooks/useErrors';
-import { amount } from '@/lib/formTypes';
-import { toMojos } from '@/lib/utils';
+import { feeAmount, feeParams } from '@/lib/fees';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -34,7 +33,7 @@ export default function CreateProfile() {
 
   const formSchema = z.object({
     name: z.string().min(1, t`Name is required`),
-    fee: amount(walletState.sync.unit.precision).optional(),
+    fee: feeAmount(walletState.sync.unit.precision),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -42,14 +41,13 @@ export default function CreateProfile() {
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    commands
-      .createDid({
-        name: values.name,
-        fee: toMojos(
-          values.fee?.toString() || '0',
-          walletState.sync.unit.precision,
-        ),
-      })
+    feeParams(values.fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.createDid({
+          name: values.name,
+          ...fees,
+        }),
+      )
       .then((data) => setResponse(data))
       .catch(addError);
   };

@@ -20,6 +20,8 @@ interface DialogProps {
 }
 
 const dialog = vi.hoisted(() => ({ props: null as DialogProps | null }));
+// Whether each fee input, by its label, allows an automatic fee.
+const feeInputs = vi.hoisted(() => new Map<string, boolean>());
 const progress = vi.hoisted(() => ({
   clearOfferState: null as ((offers: string[]) => void) | null,
 }));
@@ -43,6 +45,7 @@ vi.mock('@/components/ui/masked-input', () => ({
   // Named like the real input, which defaults to "Network fee amount".
   FeeAmountInput: (props: {
     'aria-label'?: string;
+    allowAuto?: boolean;
     value?: string;
     onValueChange?: (
       values: { value: string },
@@ -81,6 +84,7 @@ beforeAll(() => {
 // Like react-number-format, reports a change when the value prop changes.
 function MockFeeInput(props: {
   'aria-label'?: string;
+  allowAuto?: boolean;
   value?: string;
   onValueChange?: (
     values: { value: string },
@@ -89,6 +93,8 @@ function MockFeeInput(props: {
 }) {
   const { value = '', onValueChange } = props;
   const previous = useRef(value);
+  const label = props['aria-label'] ?? 'Network fee amount';
+  feeInputs.set(label, props.allowAuto ?? true);
 
   useEffect(() => {
     if (previous.current === value) return;
@@ -98,7 +104,7 @@ function MockFeeInput(props: {
 
   return (
     <input
-      aria-label={props['aria-label'] ?? 'Network fee amount'}
+      aria-label={label}
       value={value}
       onChange={(e) =>
         onValueChange?.({ value: e.target.value }, { source: 'event' })
@@ -111,6 +117,7 @@ afterEach(() => {
   cleanup();
   useOfferState.setState(null);
   dialog.props = null;
+  feeInputs.clear();
   localStorage.clear();
 });
 
@@ -189,6 +196,14 @@ describe('MakeOffer settings', () => {
     expect(dialog.props?.preSplitFee).toBe('');
   });
 
+  it("only lets the split fee be automatic, since an offer's cost isn't known", () => {
+    renderWithOfferedNfts(1);
+    fireEvent.click(toggle('Split coins first'));
+
+    expect(feeInputs.get('Network fee amount')).toBe(false);
+    expect(feeInputs.get('Split fee')).toBe(true);
+  });
+
   it("doesn't count an NFT row that hasn't been filled in", () => {
     renderWithOfferedNfts(['nft0', '']);
 
@@ -254,6 +269,16 @@ describe('MakeOffer settings', () => {
       '0.001',
     );
     expect(dialog.props?.preSplitFee).toBe('0.001');
+  });
+
+  it('splits coins by default with an automatic fee', () => {
+    renderPage();
+
+    expect(toggle('Split coins first').getAttribute('aria-checked')).toBe(
+      'true',
+    );
+    // The split is a complete transaction, so its fee can be calculated from its cost.
+    expect(dialog.props?.preSplitFee).toBe('auto');
   });
 
   it("doesn't split coins when the setting is off", () => {

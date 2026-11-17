@@ -19,6 +19,11 @@ pub struct CreateTransaction {
     pub selected_coin_ids: Vec<String>,
     /// The list of actions to perform in the transaction
     pub actions: Vec<Action>,
+    /// Fee rate in mojos per cost. When set, a fee is added until the transaction's fee covers
+    /// its cost at this rate, including the coins that pay it, on top of any fee actions
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]

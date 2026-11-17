@@ -1,4 +1,5 @@
 mod contacts;
+mod fees;
 mod keys;
 mod locking;
 mod recipients;
@@ -196,9 +197,15 @@ impl TestApp {
     }
 
     async fn setup_bls(&mut self, balance: u64) -> Result<u32> {
+        let coins = if balance > 0 { vec![balance] } else { vec![] };
+        self.setup_bls_coins(&coins).await
+    }
+
+    /// Imports a new wallet that starts with a coin of each of the given amounts.
+    async fn setup_bls_coins(&mut self, amounts: &[u64]) -> Result<u32> {
         let mnemonic = Mnemonic::from_entropy(&self.rng.r#gen::<[u8; 16]>())?;
 
-        if balance > 0 {
+        if !amounts.is_empty() {
             let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(
                 master_to_wallet_unhardened(&master_sk, 0)
@@ -208,10 +215,12 @@ impl TestApp {
 
             self.sim.lock().await.create_block();
 
-            self.sim
-                .lock()
-                .await
-                .new_coin(p2_puzzle_hash.into(), balance);
+            for &amount in amounts {
+                self.sim
+                    .lock()
+                    .await
+                    .new_coin(p2_puzzle_hash.into(), amount);
+            }
         }
 
         let fingerprint = self
@@ -344,6 +353,8 @@ async fn test_send_xch() -> Result<()> {
         clawback: None,
         auto_submit: true,
         coin_ids: None,
+        fee_per_cost: None,
+        deduct_fee: false,
     })
     .await?;
 
@@ -390,6 +401,8 @@ async fn test_summary_fee_includes_undeclared_fee() -> Result<()> {
             clawback: None,
             auto_submit: false,
             coin_ids: None,
+            fee_per_cost: None,
+            deduct_fee: false,
         })
         .await?;
 
@@ -486,6 +499,7 @@ async fn test_taken_offer_declares_its_fee() -> Result<()> {
             auto_import: false,
             coin_ids: None,
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
         })
         .await?
         .offer;
@@ -498,6 +512,7 @@ async fn test_taken_offer_declares_its_fee() -> Result<()> {
             offer,
             fee: Amount::u64(20),
             auto_submit: false,
+            fee_per_cost: None,
         })
         .await?
         .summary;
@@ -548,6 +563,7 @@ async fn test_offer_not_completed_by_another_offer_of_the_same_coin() -> Result<
             auto_import: false,
             coin_ids: Some(vec![coin_id.to_string()]),
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
         })
         .await
     };
@@ -606,6 +622,8 @@ async fn reused_cat_offers(
         clawback: None,
         auto_submit: true,
         coin_ids: None,
+        fee_per_cost: None,
+        deduct_fee: false,
     })
     .await?;
     app.wait_for_coins().await;
@@ -617,6 +635,7 @@ async fn reused_cat_offers(
         revocable: false,
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -661,6 +680,7 @@ async fn reused_cat_offers(
             auto_import: false,
             coin_ids: Some(vec![cat_coin_id.to_string(), xch_coin_id.to_string()]),
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
         })
         .await
     };
@@ -693,6 +713,7 @@ async fn assert_only_second_offer_completed(
         offer: second.clone(),
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
     })
     .await?;
 
@@ -865,6 +886,8 @@ async fn test_send_xch_with_coin_ids() -> Result<()> {
         clawback: None,
         auto_submit: true,
         coin_ids: Some(coin_ids),
+        fee_per_cost: None,
+        deduct_fee: false,
     };
 
     let own = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
@@ -903,6 +926,7 @@ async fn test_send_xch_with_coin_ids() -> Result<()> {
     app.make_offer(MakeOffer {
         confirmed_handles: Vec::new(),
         pre_split_fee: None,
+        pre_split_fee_per_cost: None,
         requested_assets: vec![OfferAmount {
             asset_id: None,
             hidden_puzzle_hash: None,
@@ -958,6 +982,7 @@ async fn test_pre_split_offer() -> Result<()> {
             auto_import: false,
             coin_ids: None,
             pre_split_fee: Some(Amount::u64(10)),
+            pre_split_fee_per_cost: None,
         })
         .await?;
 
@@ -982,6 +1007,7 @@ async fn test_pre_split_offer() -> Result<()> {
             fee: Amount::u64(0),
             auto_submit: false,
             coin_ids: None,
+            fee_per_cost: None,
         })
         .await
         .expect_err("a pending offer can't be cancelled on-chain");
@@ -1043,6 +1069,7 @@ async fn test_pre_split_cat_offer() -> Result<()> {
         revocable: false,
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -1072,6 +1099,7 @@ async fn test_pre_split_cat_offer() -> Result<()> {
             auto_import: false,
             coin_ids: None,
             pre_split_fee: Some(Amount::u64(10)),
+            pre_split_fee_per_cost: None,
         })
         .await?;
 
@@ -1610,6 +1638,7 @@ async fn mint_mutable_nft_named(app: &mut TestApp, display_name: &str) -> Result
         name: "Alice".to_string(),
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -1699,6 +1728,7 @@ async fn test_mutable_nft() -> Result<()> {
             fee: Amount::u64(0),
             kind: NftUriKind::Data,
             auto_submit: false,
+            fee_per_cost: None,
         })
         .await
         .expect_err("adding a URI to a mutable NFT must fail");
@@ -1722,6 +1752,7 @@ async fn test_mutable_nft() -> Result<()> {
             })],
             selected_coin_ids: vec![],
             auto_submit: false,
+            fee_per_cost: None,
         })
         .await
         .expect_err("adding a URI to a mutable NFT must fail");
@@ -1746,6 +1777,7 @@ async fn test_mutable_nft() -> Result<()> {
         .make_offer(MakeOffer {
             confirmed_handles: Vec::new(),
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
             requested_assets: vec![xch.clone()],
             offered_assets: vec![nft_amount.clone()],
             fee: Amount::u64(0),
@@ -1779,6 +1811,7 @@ async fn test_mutable_nft() -> Result<()> {
         .make_offer(MakeOffer {
             confirmed_handles: Vec::new(),
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
             requested_assets: vec![nft_amount],
             offered_assets: vec![xch],
             fee: Amount::u64(0),
@@ -1867,6 +1900,7 @@ async fn test_requested_mutable_nft() -> Result<()> {
         .make_offer(MakeOffer {
             confirmed_handles: Vec::new(),
             pre_split_fee: None,
+            pre_split_fee_per_cost: None,
             requested_assets: vec![OfferAmount {
                 asset_id: Some(nft_id.clone()),
                 hidden_puzzle_hash: None,
@@ -1998,6 +2032,8 @@ async fn test_nft_metadata_updater_of_unspent_singleton() -> Result<()> {
         clawback: None,
         auto_submit: true,
         coin_ids: None,
+        fee_per_cost: None,
+        deduct_fee: false,
     })
     .await?;
     app.wait_for_coins().await;

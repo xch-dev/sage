@@ -182,6 +182,7 @@ macro_rules! sage_commands {
             commands::get_logs,
             commands::is_asset_owned,
             commands::get_xch_usd_price,
+            commands::get_fee_rate,
             $($extra_command)*
         ]
     };

@@ -3,9 +3,9 @@ import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { OptionConfirmation } from '@/components/confirmations/OptionConfirmation';
 import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import { TransferDialog } from '@/components/TransferDialog';
+import { feeParams } from '@/lib/fees';
 import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
-import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -64,10 +64,10 @@ export function useOptionActions(updateOptions: () => void) {
       submit(
         { action: 'exercise', option: selectedOption },
         setExerciseOpen,
-        () =>
+        async () =>
           commands.exerciseOptions({
             option_ids: [selectedOption.launcher_id],
-            fee: toMojos(fee, walletState.sync.unit.precision),
+            ...(await feeParams(fee, walletState.sync.unit.precision)),
           }),
       );
     },
@@ -77,11 +77,14 @@ export function useOptionActions(updateOptions: () => void) {
   const onCancelSubmit = useCallback(
     (fee: string) => {
       if (!selectedOption) return;
-      submit({ action: 'cancel', option: selectedOption }, setCancelOpen, () =>
-        commands.cancelOptions({
-          option_ids: [selectedOption.launcher_id],
-          fee: toMojos(fee, walletState.sync.unit.precision),
-        }),
+      submit(
+        { action: 'cancel', option: selectedOption },
+        setCancelOpen,
+        async () =>
+          commands.cancelOptions({
+            option_ids: [selectedOption.launcher_id],
+            ...(await feeParams(fee, walletState.sync.unit.precision)),
+          }),
       );
     },
     [selectedOption, walletState.sync.unit.precision, submit],
@@ -94,11 +97,11 @@ export function useOptionActions(updateOptions: () => void) {
         { action: 'transfer', option: selectedOption, address },
         setTransferOpen,
         () =>
-          withHandleConfirmation((confirmed_handles) =>
+          withHandleConfirmation(async (confirmed_handles) =>
             commands.transferOptions({
               option_ids: [selectedOption.launcher_id],
               address,
-              fee: toMojos(fee, walletState.sync.unit.precision),
+              ...(await feeParams(fee, walletState.sync.unit.precision)),
               confirmed_handles,
             }),
           ),
@@ -110,12 +113,15 @@ export function useOptionActions(updateOptions: () => void) {
   const onBurnSubmit = useCallback(
     (fee: string) => {
       if (!selectedOption) return;
-      submit({ action: 'burn', option: selectedOption }, setBurnOpen, () =>
-        commands.transferOptions({
-          option_ids: [selectedOption.launcher_id],
-          address: walletState.sync.burn_address,
-          fee: toMojos(fee, walletState.sync.unit.precision),
-        }),
+      submit(
+        { action: 'burn', option: selectedOption },
+        setBurnOpen,
+        async () =>
+          commands.transferOptions({
+            option_ids: [selectedOption.launcher_id],
+            address: walletState.sync.burn_address,
+            ...(await feeParams(fee, walletState.sync.unit.precision)),
+          }),
       );
     },
     [

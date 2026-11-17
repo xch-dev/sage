@@ -497,7 +497,11 @@ function EditableFee({
       </div>
       <div className='flex items-center gap-2 mt-1'>
         <div className='flex-1'>
-          <FeeAmountInput value={feeValue} onValueChange={handleFeeChange} />
+          <FeeAmountInput
+            allowAuto={false}
+            value={feeValue}
+            onValueChange={handleFeeChange}
+          />
         </div>
         <Button
           variant='ghost'

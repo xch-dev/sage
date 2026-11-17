@@ -33,9 +33,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { useWholeBalance } from '@/hooks/useWholeBalance';
 import { expirationError, futureExpirationTimestamp } from '@/lib/expiration';
 import { xchandlesEnabled } from '@/lib/features';
-import { amount, positiveAmount } from '@/lib/formTypes';
+import { feeAmount, feeParams, isAutoFee } from '@/lib/fees';
+import { positiveAmount } from '@/lib/formTypes';
 import { validateRecipient, withHandleConfirmation } from '@/lib/handles';
 import {
   fromHexStrict,
@@ -156,7 +158,7 @@ export default function Send() {
             : true,
         'Amount exceeds spendable balance',
       ),
-      fee: amount(walletState.sync.unit.precision).optional(),
+      fee: feeAmount(walletState.sync.unit.precision),
       memo: z.string().optional(),
       memoMode: z.nativeEnum(MemoMode),
       clawbackEnabled: z.boolean().optional(),
@@ -201,6 +203,20 @@ export default function Send() {
   });
   const memoMode = form.watch('memoMode') || MemoMode.Text;
 
+  const setAmount = useCallback(
+    (amount: string) =>
+      form.setValue('amount', amount, { shouldValidate: amount !== '' }),
+    [form],
+  );
+
+  // Only an XCH send to one recipient can be the whole balance, since that's the asset the
+  // fee is paid in.
+  const wholeBalance = useWholeBalance({
+    asset,
+    enabled: assetId === null && !bulk,
+    setAmount,
+  });
+
   const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
     (scanResValue) => {
       form.setValue('address', scanResValue);
@@ -240,28 +256,28 @@ export default function Send() {
     const address = values.address.trim();
 
     const amount = toMojos(values.amount.toString(), asset?.precision || 12);
-    const fee = toMojos(
-      values.fee?.toString() || '0',
-      walletState.sync.unit.precision,
-    );
+    const fee = feeParams(values.fee, walletState.sync.unit.precision);
 
     if (!assetId) {
       if (bulk) {
-        result = withHandleConfirmation((confirmed_handles) =>
+        result = withHandleConfirmation(async (confirmed_handles) =>
           commands.bulkSendXch({
             addresses: [...new Set(addressList(values.address))],
             amount,
-            fee,
+            ...(await fee),
             memos,
             confirmed_handles,
           }),
         );
       } else {
-        result = withHandleConfirmation((confirmed_handles) =>
+        result = withHandleConfirmation(async (confirmed_handles) =>
           commands.sendXch({
             address,
-            amount,
-            fee,
+            // The whole balance is sent with the fee taken out of it, since the fee isn't
+            // known until the transaction is built.
+            amount: wholeBalance.mojos ?? amount,
+            deduct_fee: wholeBalance.active,
+            ...(await fee),
             memos,
             clawback,
             confirmed_handles,
@@ -270,23 +286,23 @@ export default function Send() {
       }
     } else {
       if (bulk) {
-        result = withHandleConfirmation((confirmed_handles) =>
+        result = withHandleConfirmation(async (confirmed_handles) =>
           commands.bulkSendCat({
             asset_id: assetId ?? '',
             addresses: [...new Set(addressList(values.address))],
             amount,
-            fee,
+            ...(await fee),
             memos,
             confirmed_handles,
           }),
         );
       } else {
-        result = withHandleConfirmation((confirmed_handles) =>
+        result = withHandleConfirmation(async (confirmed_handles) =>
           commands.sendCat({
             asset_id: assetId ?? '',
             address,
             amount,
-            fee,
+            ...(await fee),
             memos,
             clawback,
             confirmed_handles,
@@ -428,6 +444,8 @@ export default function Send() {
                           asset?.precision ?? (assetId === null ? 12 : 3)
                         }
                         className='pr-12'
+                        wholeBalance={wholeBalance.active}
+                        onWholeBalanceChange={wholeBalance.onWholeBalanceChange}
                         maxValue={
                           asset
                             ? BigNumber.max(
@@ -436,7 +454,10 @@ export default function Send() {
                                   asset.selectable_balance,
                                   asset.precision,
                                 ).minus(
-                                  assetId === null ? form.watch('fee') || 0 : 0,
+                                  assetId === null &&
+                                    !isAutoFee(form.watch('fee'))
+                                    ? form.watch('fee') || 0
+                                    : 0,
                                 ),
                               ).toString()
                             : undefined

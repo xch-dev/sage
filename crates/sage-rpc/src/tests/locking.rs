@@ -88,6 +88,8 @@ async fn concurrent_rpc_sends_dont_select_the_same_coin() -> Result<()> {
         clawback: None,
         auto_submit: true,
         coin_ids: None,
+        fee_per_cost: None,
+        deduct_fee: false,
     };
 
     let (first, second) = timeout(WAIT, async {

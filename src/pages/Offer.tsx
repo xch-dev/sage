@@ -22,8 +22,8 @@ import { FeeAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
+import { feeParams } from '@/lib/fees';
 import { resolveOfferData } from '@/lib/offerData';
-import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -117,7 +117,7 @@ export function Offer() {
     try {
       const result = await commands.takeOffer({
         offer: resolvedOffer,
-        fee: toMojos(fee || '0', walletState.sync.unit.precision),
+        ...(await feeParams(fee, walletState.sync.unit.precision)),
       });
       setResponse(result);
     } catch (error) {
@@ -146,6 +146,7 @@ export function Offer() {
                     <FeeAmountInput
                       id='fee'
                       className='pr-12'
+                      value={fee}
                       onValueChange={(values) => setFee(values.value)}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {

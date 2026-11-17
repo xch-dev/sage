@@ -3,13 +3,14 @@ use chia_wallet_sdk::{
         bls::master_to_wallet_hardened_intermediate,
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
+    driver::MIN_FEE_PER_COST,
     prelude::*,
 };
 use sage_api::{
-    GetXchUsdPrice, GetXchUsdPriceResponse, IncreaseDerivationIndex,
-    IncreaseDerivationIndexResponse, RedownloadNft, RedownloadNftResponse, ResyncCat,
-    ResyncCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse, UpdateNft,
-    UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse, UpdateOption,
+    GetFeeRate, GetFeeRateResponse, GetXchUsdPrice, GetXchUsdPriceResponse,
+    IncreaseDerivationIndex, IncreaseDerivationIndexResponse, RedownloadNft, RedownloadNftResponse,
+    ResyncCat, ResyncCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse,
+    UpdateNft, UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse, UpdateOption,
     UpdateOptionResponse,
 };
 use sage_assets::{DexieCat, XchUsdPrice};
@@ -17,8 +18,8 @@ use sage_database::{Asset, AssetKind, Derivation};
 use sage_wallet::{SyncCommand, WalletError, WalletKind};
 
 use crate::{
-    Error, Result, Sage, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
-    parse_option_id,
+    Error, RECOMMENDED_FEE_PER_COST, Result, Sage, parse_asset_id, parse_collection_id,
+    parse_did_id, parse_nft_id, parse_option_id,
 };
 
 impl Sage {
@@ -258,5 +259,15 @@ impl Sage {
         let price = XchUsdPrice::fetch().await?;
 
         Ok(GetXchUsdPriceResponse { usd: price.usd })
+    }
+
+    /// The fee rate is fixed for now. It's the minimum that gets a transaction into blocks
+    /// and into a full mempool, rather than an estimate of what the market is paying.
+    #[allow(clippy::cast_precision_loss)]
+    pub fn get_fee_rate(&self, _req: GetFeeRate) -> Result<GetFeeRateResponse> {
+        Ok(GetFeeRateResponse {
+            fee_per_cost: RECOMMENDED_FEE_PER_COST as f64,
+            minimum_fee_per_cost: MIN_FEE_PER_COST as f64,
+        })
     }
 }

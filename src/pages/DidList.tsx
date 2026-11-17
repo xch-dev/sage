@@ -29,9 +29,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useDids } from '@/hooks/useDids';
+import { feeParams } from '@/lib/fees';
 import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
-import { toMojos } from '@/lib/utils';
 import { useWallet } from '@/contexts/WalletContext';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -166,11 +166,11 @@ function Profile({ did, updateDids }: ProfileProps) {
   const onTransferSubmit = (address: string, fee: string) => {
     setIsTransferring(true);
     setTransferAddress(address);
-    withHandleConfirmation((confirmed_handles) =>
+    withHandleConfirmation(async (confirmed_handles) =>
       commands.transferDids({
         did_ids: [did.launcher_id],
         address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
+        ...(await feeParams(fee, walletState.sync.unit.precision)),
         confirmed_handles,
       }),
     )
@@ -184,12 +184,14 @@ function Profile({ did, updateDids }: ProfileProps) {
 
   const onBurnSubmit = (fee: string) => {
     setIsBurning(true);
-    commands
-      .transferDids({
-        did_ids: [did.launcher_id],
-        address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.transferDids({
+          did_ids: [did.launcher_id],
+          address: walletState.sync.burn_address,
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err) => {
         setIsBurning(false);
@@ -200,11 +202,13 @@ function Profile({ did, updateDids }: ProfileProps) {
 
   const onNormalizeSubmit = (fee: string) => {
     setIsNormalizing(true);
-    commands
-      .normalizeDids({
-        did_ids: [did.launcher_id],
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.normalizeDids({
+          did_ids: [did.launcher_id],
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err) => {
         setIsNormalizing(false);

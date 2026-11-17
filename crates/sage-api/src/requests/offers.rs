@@ -54,6 +54,13 @@ pub struct MakeOffer {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub pre_split_fee: Option<Amount>,
+    /// Fee rate for the transaction that splits the coins, in mojos per cost. When set, its fee
+    /// is raised until it covers that transaction's cost at this rate, and `pre_split_fee` is
+    /// the least it pays. The offer's own fee is always `fee`, since an offer's cost isn't
+    /// known until it's taken.
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub pre_split_fee_per_cost: Option<f64>,
 }
 
 /// Asset amount in an offer
@@ -106,6 +113,12 @@ pub struct TakeOffer {
     pub offer: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -373,6 +386,12 @@ pub struct CancelOffer {
     pub offer_id: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -402,6 +421,12 @@ pub struct CancelOffers {
     pub offer_ids: Vec<String>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]

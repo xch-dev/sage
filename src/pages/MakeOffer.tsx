@@ -190,6 +190,7 @@ export function MakeOffer() {
               <div className='max-w-xs'>
                 <FeeAmountInput
                   id='fee'
+                  allowAuto={false}
                   value={state.fee}
                   onValueChange={(values, sourceInfo) => {
                     // A prop change only echoes the stored fee. Writing it back

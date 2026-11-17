@@ -27,6 +27,8 @@ fn send(address: &str, auto_submit: bool) -> SendXch {
         clawback: None,
         auto_submit,
         coin_ids: None,
+        fee_per_cost: None,
+        deduct_fee: false,
     }
 }
 
@@ -47,6 +49,7 @@ fn offer(auto_import: bool) -> MakeOffer {
         auto_import,
         coin_ids: None,
         pre_split_fee: None,
+        pre_split_fee_per_cost: None,
     }
 }
 
@@ -221,6 +224,7 @@ async fn send_doesnt_select_a_coin_a_concurrent_take_spends() -> Result<()> {
                 offer: encoded,
                 fee: Amount::u64(0),
                 auto_submit: true,
+                fee_per_cost: None,
             })),
             Box::pin(sage.send_xch(send(&address, true))),
         )
