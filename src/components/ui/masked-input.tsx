@@ -352,8 +352,9 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
       return (
         <div>
           <div className='flex'>
-            <div
-              className={`flex flex-1 min-w-0 items-center justify-between gap-2 rounded-md rounded-r-none border border-input bg-muted/40 pl-3 pr-2 text-sm ${heightClass}`}
+            {/* A label, so that clicking anywhere in the box edits the rate. */}
+            <label
+              className={`flex flex-1 min-w-0 cursor-text items-center justify-between gap-2 rounded-md rounded-r-none border border-input bg-muted/40 pl-3 pr-1.5 text-sm focus-within:ring-1 focus-within:ring-ring ${heightClass}`}
             >
               <span className='flex items-center gap-1.5 truncate'>
                 <Sparkles className='h-3.5 w-3.5 shrink-0 text-muted-foreground' />
@@ -372,11 +373,11 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
                   decimalScale={3}
                   allowNegative={false}
                   allowLeadingZeros={false}
-                  className={`w-10 rounded-sm border border-transparent bg-transparent px-1 text-right text-sm text-foreground hover:border-input focus:border-input focus:bg-background focus:outline-none ${belowMinimum ? 'text-amber-600 dark:text-amber-400' : ''}`}
+                  className={`h-7 w-12 rounded-sm border border-input bg-background px-1.5 text-right text-sm text-foreground focus:outline-none ${belowMinimum ? 'border-amber-500 text-amber-600 dark:text-amber-400' : ''}`}
                 />
                 <Trans>mojos/cost</Trans>
               </span>
-            </div>
+            </label>
             {modeButton(true)}
           </div>
           {belowMinimum && (
