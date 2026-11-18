@@ -84,15 +84,17 @@ export function AutoFeeInput({
           className={`flex flex-1 min-w-0 items-center justify-between gap-1 rounded-md rounded-r-none border border-input bg-muted/40 pr-1.5 text-sm focus-within:ring-1 focus-within:ring-ring ${heightClass}`}
         >
           <Select value={tier ?? CUSTOM_RATE} onValueChange={selectSpeed}>
+            {/* The speed is never cut off; the rate beside it gives way instead. */}
             <SelectTrigger
               aria-label={t`Fee speed`}
-              className='h-full w-auto min-w-0 gap-1 border-0 bg-transparent pl-3 pr-1 shadow-none focus:ring-0'
+              className='h-full w-auto shrink-0 gap-1 border-0 bg-transparent pl-3 pr-1 shadow-none focus:ring-0'
             >
-              <div className='flex min-w-0 items-center gap-1.5'>
-                <Sparkles className='h-3.5 w-3.5 shrink-0 text-muted-foreground' />
-                <span className='truncate'>
-                  {tier !== null ? feeTierLabel(tier) : t`Custom`}
-                </span>
+              <div className='flex items-center gap-1.5'>
+                {/* A custom rate has its input to show it's automatic, and needs the room. */}
+                {tier !== null && (
+                  <Sparkles className='h-3.5 w-3.5 shrink-0 text-muted-foreground' />
+                )}
+                <span>{tier !== null ? feeTierLabel(tier) : t`Custom`}</span>
               </div>
             </SelectTrigger>
             <SelectContent className='min-w-[15rem]'>
@@ -138,14 +140,14 @@ export function AutoFeeInput({
           </Select>
           {tier !== null ? (
             <span
-              className='shrink-0 whitespace-nowrap text-xs text-muted-foreground'
+              className='min-w-0 truncate text-xs text-muted-foreground'
               aria-label={t`Fee rate in mojos per cost`}
             >
               {shownRate !== null ? <Trans>{shownRate} mojos/cost</Trans> : '…'}
             </span>
           ) : (
             // A label, so that clicking the unit edits the rate too.
-            <label className='flex shrink-0 cursor-text items-center gap-1 text-xs text-muted-foreground'>
+            <label className='flex min-w-0 cursor-text items-center gap-1 text-xs text-muted-foreground'>
               <NumericFormat
                 aria-label={t`Fee rate in mojos per cost`}
                 value={enteredRate ?? ''}
@@ -158,9 +160,11 @@ export function AutoFeeInput({
                 decimalScale={3}
                 allowNegative={false}
                 allowLeadingZeros={false}
-                className={`h-7 w-12 rounded-sm border border-input bg-background px-1.5 text-left text-sm text-foreground focus:outline-none ${belowMinimum ? 'border-amber-500 text-amber-600 dark:text-amber-400' : ''}`}
+                className={`h-7 w-12 min-w-0 shrink rounded-sm border border-input bg-background px-1.5 text-left text-sm text-foreground focus:outline-none ${belowMinimum ? 'border-amber-500 text-amber-600 dark:text-amber-400' : ''}`}
               />
-              <Trans>mojos/cost</Trans>
+              <span className='shrink-0 whitespace-nowrap'>
+                <Trans>mojos/cost</Trans>
+              </span>
             </label>
           )}
         </div>
