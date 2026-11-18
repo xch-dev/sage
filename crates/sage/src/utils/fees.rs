@@ -217,14 +217,17 @@ fn fee_tiers(response: &GetFeeEstimateResponse) -> Vec<FeeTier> {
 }
 
 impl Sage {
-    /// The fee tiers estimated by the network's Coinset API, or none for a network that Coinset
-    /// doesn't serve, or if the estimate can't be fetched. Tests never use the real Coinset API.
+    /// The fee tiers estimated by the network's Coinset API, or by [`Sage::fee_estimator`] if
+    /// it's set. There are none for a network that Coinset doesn't serve, or if the estimate
+    /// can't be fetched. Tests never use the real Coinset API.
     pub(crate) async fn fee_tiers(&self) -> Vec<FeeTier> {
-        if self.test {
+        let client = if let Some(client) = &self.fee_estimator {
+            client.clone()
+        } else if self.test {
             return Vec::new();
-        }
-
-        let Some(client) = coinset_client(self.network()) else {
+        } else if let Some(client) = coinset_client(self.network()) {
+            client
+        } else {
             return Vec::new();
         };
 

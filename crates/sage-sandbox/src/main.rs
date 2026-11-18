@@ -8,6 +8,7 @@ mod bridge;
 mod endpoints;
 mod error;
 mod events;
+mod fee_estimates;
 mod wallet;
 
 #[cfg(test)]
@@ -17,6 +18,7 @@ pub use bridge::*;
 pub use endpoints::*;
 pub use error::*;
 pub use events::*;
+pub use fee_estimates::*;
 pub use wallet::*;
 
 use std::{fs, net::SocketAddr, path::PathBuf};
@@ -66,7 +68,7 @@ async fn main() -> Result<()> {
 
     fs::create_dir_all(&data_dir)?;
 
-    // Bind first, so that the wallets can be pointed at the bridge's XCHandles stand-in.
+    // Bind first, so that the wallets can be pointed at the bridge's stand-ins for other APIs.
     let listener = TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], cli.port)))
         .await
         .with_context(|| format!("failed to bind the bridge to port {}", cli.port))?;

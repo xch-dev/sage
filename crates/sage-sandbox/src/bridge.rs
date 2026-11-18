@@ -8,7 +8,7 @@ use std::{collections::HashMap, convert::Infallible, path::Path as FsPath, sync:
 
 use axum::{
     Json, Router,
-    extract::{Path, State, rejection::JsonRejection},
+    extract::{FromRef, Path, State, rejection::JsonRejection},
     http::StatusCode,
     response::{
         IntoResponse, Response,
@@ -27,24 +27,34 @@ use tokio::{
     sync::broadcast::{self, error::RecvError},
 };
 
-use crate::{BridgeError, SandboxWallet, WalletInfo, call_endpoint, start_wallets};
+use crate::{
+    BridgeError, FeeEstimates, FeeEstimatesState, SandboxWallet, WalletInfo, call_endpoint,
+    fee_estimates, get_fee_estimate, set_fee_estimates, start_wallets,
+};
 
 #[derive(Debug, Clone)]
 struct BridgeState {
     wallets: Arc<HashMap<String, SandboxWallet>>,
     /// The wallets' details in startup order, for `GET /`.
     infos: Arc<Vec<WalletInfo>>,
+    fee_estimates: FeeEstimatesState,
 }
 
-/// Starts the wallets, pointed at the XCHandles stand-in that `listener` will serve, and returns
-/// the bridge to serve on it along with the wallets' details.
+impl FromRef<BridgeState> for FeeEstimatesState {
+    fn from_ref(state: &BridgeState) -> Self {
+        state.fee_estimates.clone()
+    }
+}
+
+/// Starts the wallets, pointed at the stand-ins for the XCHandles and Coinset APIs that `listener`
+/// will serve, and returns the bridge to serve on it along with the wallets' details.
 pub async fn start_bridge(
     data_dir: &FsPath,
     sim: &PeerSimulator,
     listener: &TcpListener,
 ) -> anyhow::Result<(Router, Vec<WalletInfo>)> {
-    let xchandles_url = format!("http://{}/xchandles", listener.local_addr()?);
-    let wallets = start_wallets(data_dir, sim, &xchandles_url).await?;
+    let bridge_url = format!("http://{}", listener.local_addr()?);
+    let wallets = start_wallets(data_dir, sim, &bridge_url).await?;
     let infos = wallets.iter().map(|wallet| wallet.info.clone()).collect();
 
     Ok((bridge_router(wallets), infos))
@@ -62,9 +72,12 @@ fn bridge_router(wallets: Vec<SandboxWallet>) -> Router {
         .route("/:wallet/invoke/:command", post(invoke))
         .route("/:wallet/events", get(events))
         .route("/xchandles/*path", any(xchandles))
+        .route("/coinset/get_fee_estimate", post(get_fee_estimate))
+        .route("/fee-estimates", get(fee_estimates).post(set_fee_estimates))
         .with_state(BridgeState {
             wallets: Arc::new(wallets),
             infos: Arc::new(infos),
+            fee_estimates: FeeEstimatesState::new(Some(FeeEstimates::default())),
         })
 }
 
@@ -237,7 +250,7 @@ async fn xchandles() -> Response {
         .into_response()
 }
 
-fn bad_request(error: BridgeError) -> Response {
+pub(crate) fn bad_request(error: BridgeError) -> Response {
     (StatusCode::BAD_REQUEST, Json(error)).into_response()
 }
 
