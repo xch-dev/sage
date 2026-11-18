@@ -101,7 +101,7 @@ Economy 2 mojos per cost, which Sage raises to the minimum of 5. Both wallets sh
 # Read them.
 curl -s "$bridge/fee-estimates"
 
-# Change them, in mojos per cost.
+# Change them, in mojos per cost, to a hundredth.
 curl -s -X POST "$bridge/fee-estimates" -H 'content-type: application/json' \
   -d '{"fast": 48.15, "standard": 12.5, "economy": 6}'
 

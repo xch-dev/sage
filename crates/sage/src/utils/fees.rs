@@ -221,13 +221,13 @@ impl Sage {
     /// it's set. There are none for a network that Coinset doesn't serve, or if the estimate
     /// can't be fetched. Tests never use the real Coinset API.
     pub(crate) async fn fee_tiers(&self) -> Vec<FeeTier> {
-        let client = if let Some(client) = &self.fee_estimator {
-            client.clone()
-        } else if self.test {
-            return Vec::new();
-        } else if let Some(client) = coinset_client(self.network()) {
-            client
-        } else {
+        let client = match &self.fee_estimator {
+            Some(client) => Some(client.clone()),
+            None if self.test => None,
+            None => coinset_client(self.network()),
+        };
+
+        let Some(client) = client else {
             return Vec::new();
         };
 

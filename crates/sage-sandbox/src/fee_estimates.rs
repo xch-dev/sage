@@ -51,14 +51,17 @@ impl FeeEstimates {
 
 /// The estimates the stand-in gives, shared by every wallet since they're on the same chain.
 /// `None` means it has none, as when Coinset fails, so every speed pays the recommended rate.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct FeeEstimatesState(Arc<RwLock<Option<FeeEstimates>>>);
 
-impl FeeEstimatesState {
-    pub fn new(estimates: Option<FeeEstimates>) -> Self {
-        Self(Arc::new(RwLock::new(estimates)))
+impl Default for FeeEstimatesState {
+    /// The default estimates, rather than none.
+    fn default() -> Self {
+        Self(Arc::new(RwLock::new(Some(FeeEstimates::default()))))
     }
+}
 
+impl FeeEstimatesState {
     fn get(&self) -> Option<FeeEstimates> {
         *self.0.read().unwrap_or_else(PoisonError::into_inner)
     }
@@ -81,16 +84,11 @@ pub async fn get_fee_estimate(
 ) -> Json<GetFeeEstimateResponse> {
     let estimates = state.get();
 
-    #[allow(
-        clippy::cast_precision_loss,
-        clippy::cast_possible_truncation,
-        clippy::cast_sign_loss
-    )]
     let fees = estimates.map(|estimates| {
         request
             .target_times
             .iter()
-            .map(|&target_time| (estimates.rate(target_time) * request.cost as f64).ceil() as u64)
+            .map(|&target_time| fee_at_rate(request.cost, estimates.rate(target_time)))
             .collect()
     });
 
@@ -107,6 +105,15 @@ pub async fn get_fee_estimate(
         full_node_synced: Some(true),
         last_tx_block_height: None,
     })
+}
+
+/// The fee for `cost` at `rate` mojos per cost, in whole hundredths of a mojo per cost. Floats
+/// can land just above a whole mojo, such as 5.11 times 50,000,000, which would then be shown a
+/// hundredth higher than the rate that was set.
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+fn fee_at_rate(cost: u64, rate: f64) -> u64 {
+    let hundredths = (rate * 100.0).round() as u64;
+    u64::try_from(u128::from(cost) * u128::from(hundredths) / 100).unwrap_or(u64::MAX)
 }
 
 /// Returns the estimates the stand-in gives, or `null` if they're turned off.
@@ -127,7 +134,7 @@ pub async fn set_fee_estimates(
     if let Some(estimates) = estimates
         && [estimates.fast, estimates.standard, estimates.economy]
             .iter()
-            .any(|rate| !rate.is_finite() || *rate < 0.0)
+            .any(|rate| *rate < 0.0)
     {
         return bad_request(BridgeError::api(
             "Fee estimates must be rates of at least 0 mojos per cost",

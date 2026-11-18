@@ -28,8 +28,8 @@ use tokio::{
 };
 
 use crate::{
-    BridgeError, FeeEstimates, FeeEstimatesState, SandboxWallet, WalletInfo, call_endpoint,
-    fee_estimates, get_fee_estimate, set_fee_estimates, start_wallets,
+    BridgeError, FeeEstimatesState, SandboxWallet, WalletInfo, call_endpoint, fee_estimates,
+    get_fee_estimate, set_fee_estimates, start_wallets,
 };
 
 #[derive(Debug, Clone)]
@@ -77,7 +77,7 @@ fn bridge_router(wallets: Vec<SandboxWallet>) -> Router {
         .with_state(BridgeState {
             wallets: Arc::new(wallets),
             infos: Arc::new(infos),
-            fee_estimates: FeeEstimatesState::new(Some(FeeEstimates::default())),
+            fee_estimates: FeeEstimatesState::default(),
         })
 }
 

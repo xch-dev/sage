@@ -453,6 +453,17 @@ async fn test_fee_tiers_come_from_the_fee_estimates_stand_in() -> Result<()> {
     assert_eq!(bridge.fee_tier_rates("alice").await, [48.15, 12.5, 6.0]);
     assert_eq!(bridge.fee_tier_rates("bob").await, [48.15, 12.5, 6.0]);
 
+    // Shown as they were set, rather than rounded up past a float's error.
+    let (status, body) = bridge
+        .request(
+            "POST",
+            "/fee-estimates",
+            Some(json!({ "fast": 8.13, "standard": 5.11, "economy": 5 })),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(bridge.fee_tier_rates("alice").await, [8.13, 5.11, 5.0]);
+
     // Without estimates, there are no tiers, as when Coinset can't be reached.
     let (status, _) = bridge
         .request("POST", "/fee-estimates", Some(Value::Null))
@@ -473,6 +484,8 @@ async fn test_fee_estimates_stand_in_rejects_invalid_rates() -> Result<()> {
 
     for estimates in [
         json!({ "fast": -1, "standard": 10, "economy": 5 }),
+        json!({ "fast": 20, "standard": -1, "economy": 5 }),
+        json!({ "fast": 20, "standard": 10, "economy": -1 }),
         json!({ "fast": 20, "standard": 10 }),
         json!({ "fast": 20, "standard": 10, "economy": 5, "slow": 1 }),
     ] {
