@@ -179,6 +179,16 @@ describe('the recommended rate', () => {
     expect(getFeeRate).toHaveBeenCalledTimes(2);
   });
 
+  it('fetches the rates again once they are cleared', async () => {
+    getFeeRate.mockResolvedValue(rates);
+    const fees = await import('./fees');
+
+    await fees.getFeeRates();
+    fees.clearFeeRates();
+    await fees.getFeeRates();
+    expect(getFeeRate).toHaveBeenCalledTimes(2);
+  });
+
   it('keeps newer rates when a stale request fails', async () => {
     vi.useFakeTimers();
     let failStale: (error: Error) => void = () => undefined;

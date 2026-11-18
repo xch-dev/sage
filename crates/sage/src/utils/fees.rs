@@ -35,7 +35,15 @@ const FEE_TIERS: [(FeeTierName, u64); 3] = [
 ];
 
 /// The target times of [`FEE_TIERS`], in the same order.
-const FEE_TIER_TARGET_TIMES: [u64; 3] = [FEE_TIERS[0].1, FEE_TIERS[1].1, FEE_TIERS[2].1];
+const FEE_TIER_TARGET_TIMES: [u64; FEE_TIERS.len()] = {
+    let mut target_times = [0; FEE_TIERS.len()];
+    let mut i = 0;
+    while i < FEE_TIERS.len() {
+        target_times[i] = FEE_TIERS[i].1;
+        i += 1;
+    }
+    target_times
+};
 
 /// The cost that fee estimates are requested for, which is about that of a typical
 /// transaction. An estimate is a fee for this cost, so it's divided by it to get a rate.
@@ -229,7 +237,10 @@ impl Sage {
                 if tiers.is_empty() {
                     warn!(
                         "Coinset didn't estimate fees: {}",
-                        response.error.as_deref().unwrap_or("not synced")
+                        response
+                            .error
+                            .as_deref()
+                            .unwrap_or("not synced, or an unexpected response")
                     );
                 }
 
@@ -437,6 +448,14 @@ mod tests {
             [60, 300, 3600]
         );
         assert_eq!(rates(&tiers), [20.0, 10.0, 6.0]);
+    }
+
+    #[test]
+    fn test_fee_tiers_without_a_sync_status() {
+        // A response that doesn't say whether the node is synced is still used.
+        let mut response = estimate([1_000_000_000, 500_000_000, 300_000_000], None);
+        response.full_node_synced = None;
+        assert_eq!(rates(&fee_tiers(&response)), [20.0, 10.0, 6.0]);
     }
 
     #[test]

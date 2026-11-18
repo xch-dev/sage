@@ -1,4 +1,4 @@
-import { FeeTierName, GetFeeRateResponse } from '@/bindings';
+import { FeeTierName } from '@/bindings';
 import {
   Select,
   SelectContent,
@@ -6,6 +6,7 @@ import {
   SelectSeparator,
   SelectTrigger,
 } from '@/components/ui/select';
+import { useFeeRates } from '@/hooks/useFeeRates';
 import {
   autoFeeAtRate,
   autoFeeAtTier,
@@ -30,7 +31,6 @@ const CUSTOM_RATE = 'custom';
 interface AutoFeeInputProps {
   /** An automatic fee, at a tier or a rate the user enters (see `isAutoFee`). */
   value: string;
-  feeRates: GetFeeRateResponse | null;
   onValueChange: (value: string) => void;
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
   heightClass: string;
@@ -44,12 +44,12 @@ interface AutoFeeInputProps {
  */
 export function AutoFeeInput({
   value,
-  feeRates,
   onValueChange,
   onKeyDown,
   heightClass,
   modeButton,
 }: AutoFeeInputProps) {
+  const feeRates = useFeeRates();
   const tier = autoFeeTier(value);
   // What's typed in the rate input, which can be empty while it's edited.
   const enteredRate = autoFeeRate(value);
@@ -61,8 +61,8 @@ export function AutoFeeInput({
     minimumRate !== undefined &&
     effectiveRate < minimumRate;
   // Without estimates, such as on a network that Coinset doesn't serve, every tier pays the
-  // recommended rate.
-  const estimated = (feeRates?.tiers.length ?? 0) > 0;
+  // recommended rate. Until the rates load, it isn't known yet.
+  const unestimated = feeRates !== null && feeRates.tiers.length === 0;
   const shownRate = effectiveRate !== null ? formatRate(effectiveRate) : null;
   const tierRate = (name: FeeTierName) =>
     feeRates ? formatRate(tierFeeRate(feeRates, name)) : null;
@@ -103,7 +103,7 @@ export function AutoFeeInput({
                     <span className='flex flex-col'>
                       <span>{feeTierLabel(name)}</span>
                       <span className='text-xs text-muted-foreground'>
-                        {estimated ? feeTierTime(name) : t`Recommended rate`}
+                        {unestimated ? t`Recommended rate` : feeTierTime(name)}
                         {rate !== null && (
                           <>
                             {' · '}
@@ -126,7 +126,7 @@ export function AutoFeeInput({
                   </span>
                 </span>
               </SelectItem>
-              {feeRates !== null && !estimated && (
+              {unestimated && (
                 <p className='max-w-[15rem] px-2 pb-1.5 pt-1 text-xs text-muted-foreground'>
                   <Trans>
                     Fee estimates aren&apos;t available, so every speed pays the

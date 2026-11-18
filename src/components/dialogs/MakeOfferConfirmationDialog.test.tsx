@@ -110,6 +110,15 @@ describe('MakeOfferConfirmationDialog split fee', () => {
     expect(onConfirm).toHaveBeenCalledWith('auto:standard');
   });
 
+  it('shows and confirms an entered rate as it was entered', () => {
+    rates.current = { fee_per_cost: 5, minimum_fee_per_cost: 5, tiers: [] };
+    const onConfirm = renderDialog('auto:5.123');
+
+    expect(splitFee()).toBe('Automatic, 5.123 mojos per cost');
+    confirm();
+    expect(onConfirm).toHaveBeenCalledWith('auto:5.123');
+  });
+
   it('confirms a split fee amount as it is', () => {
     const onConfirm = renderDialog('0.0001');
 

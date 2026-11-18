@@ -16,6 +16,7 @@ import { useFeeRates } from '@/hooks/useFeeRates';
 import {
   autoFeeAtRate,
   autoFeeRateFor,
+  autoFeeTier,
   formatRate,
   isAutoFee,
 } from '@/lib/fees';
@@ -435,8 +436,14 @@ export function MakeOfferConfirmationDialog({
   const splitFeeRate = isAutoFee(preSplitFee)
     ? autoFeeRateFor(preSplitFee, feeRates)
     : null;
+  // A tier's rate is shown as it's paid; one that was entered is shown as it was entered.
+  const splitFeeTier = isAutoFee(preSplitFee) ? autoFeeTier(preSplitFee) : null;
   const shownSplitFeeRate =
-    splitFeeRate !== null ? formatRate(splitFeeRate) : null;
+    splitFeeRate === null
+      ? null
+      : splitFeeTier !== null
+        ? formatRate(splitFeeRate)
+        : String(splitFeeRate);
 
   useEffect(() => {
     const fetchXchToken = async () => {
@@ -456,7 +463,9 @@ export function MakeOfferConfirmationDialog({
 
   const handleConfirm = () => {
     onConfirm(
-      splitFeeRate !== null ? autoFeeAtRate(String(splitFeeRate)) : preSplitFee,
+      splitFeeTier !== null && shownSplitFeeRate !== null
+        ? autoFeeAtRate(shownSplitFeeRate)
+        : preSplitFee,
     );
     onOpenChange(false);
   };

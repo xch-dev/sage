@@ -17,13 +17,19 @@ vi.mock('@/state', () => ({
   useWalletState: () => ({ sync: { unit: { ticker: 'XCH' } } }),
 }));
 
-const feeRates = vi.hoisted(() => ({
-  current: {
-    fee_per_cost: 5,
-    minimum_fee_per_cost: 5,
-    tiers: [] as { name: string; target_time: number; fee_per_cost: number }[],
-  },
-}));
+interface FeeRates {
+  fee_per_cost: number;
+  minimum_fee_per_cost: number;
+  tiers: { name: string; target_time: number; fee_per_cost: number }[];
+}
+
+const RECOMMENDED: FeeRates = {
+  fee_per_cost: 5,
+  minimum_fee_per_cost: 5,
+  tiers: [],
+};
+
+const feeRates = vi.hoisted(() => ({ current: null as FeeRates | null }));
 
 const ESTIMATED_TIERS = [
   { name: 'fast', target_time: 60, fee_per_cost: 12.5 },
@@ -47,7 +53,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  feeRates.current = { ...feeRates.current, tiers: ESTIMATED_TIERS };
+  feeRates.current = { ...RECOMMENDED, tiers: ESTIMATED_TIERS };
 });
 
 afterEach(() => {
@@ -151,7 +157,7 @@ describe('FeeAmountInput with an automatic fee', () => {
   });
 
   it('pays the recommended rate at every tier without estimates', () => {
-    feeRates.current = { ...feeRates.current, tiers: [] };
+    feeRates.current = RECOMMENDED;
     renderFee('auto:fast', vi.fn());
 
     expect(
@@ -160,6 +166,25 @@ describe('FeeAmountInput with an automatic fee', () => {
 
     openSpeeds();
     expect(screen.getByText(/Fee estimates aren't available/)).toBeTruthy();
+    // No tier is said to be faster than another.
+    expect(screen.getAllByText('Recommended rate · 5 mojos/cost')).toHaveLength(
+      3,
+    );
+    expect(screen.queryByText(/About a minute/)).toBeNull();
+  });
+
+  it("doesn't say there are no estimates before the rates load", () => {
+    feeRates.current = null;
+    renderFee('auto:fast', vi.fn());
+
+    expect(
+      screen.getByLabelText('Fee rate in mojos per cost').textContent,
+    ).toBe('…');
+
+    openSpeeds();
+    expect(screen.getByText('About a minute')).toBeTruthy();
+    expect(screen.queryByText(/Recommended rate/)).toBeNull();
+    expect(screen.queryByText(/Fee estimates aren't available/)).toBeNull();
   });
 
   it('lists every tier with its rate, and picks one', () => {
@@ -188,6 +213,25 @@ describe('FeeAmountInput with an automatic fee', () => {
       floatValue: undefined,
       value: 'auto:12.5',
     });
+  });
+
+  it('keeps a custom rate when Custom is picked again', () => {
+    const onValueChange = vi.fn();
+    renderFee('auto:5.123', onValueChange);
+
+    openSpeeds();
+    fireEvent.click(screen.getByRole('option', { name: /Custom rate/ }));
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it('suggests the recommended rate while a custom rate is empty', () => {
+    renderFee('auto:', vi.fn());
+
+    const rate = screen.getByLabelText(
+      'Fee rate in mojos per cost',
+    ) as HTMLInputElement;
+    expect(rate.value).toBe('');
+    expect(rate.placeholder).toBe('5');
   });
 
   it('edits a custom rate', () => {

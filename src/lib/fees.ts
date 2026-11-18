@@ -13,7 +13,7 @@ export const FEE_TIERS: readonly FeeTierName[] = [
 ];
 
 /** The tier an automatic fee is at unless the user picks another one. */
-export const DEFAULT_FEE_TIER: FeeTierName = 'standard';
+const DEFAULT_FEE_TIER: FeeTierName = 'standard';
 
 const AUTO_FEE_PREFIX = 'auto:';
 
@@ -214,6 +214,14 @@ export function getFeeRates(): Promise<GetFeeRateResponse> {
   }
 
   return feeRates.promise;
+}
+
+/**
+ * Forgets the fetched fee rates, so that they're fetched again for the network that's now
+ * active, rather than another network's estimates being used until they go stale.
+ */
+export function clearFeeRates() {
+  feeRates = null;
 }
 
 export interface FeeParams {

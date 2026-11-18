@@ -1,5 +1,4 @@
 import { useDefaultFee } from '@/hooks/useDefaultFee';
-import { useFeeRates } from '@/hooks/useFeeRates';
 import { AUTO_FEE, isAutoFee } from '@/lib/fees';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -318,7 +317,6 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     const defaultFee =
       !allowAuto && isAutoFee(storedDefaultFee) ? '' : storedDefaultFee;
     const hasSetInitialValue = React.useRef(false);
-    const feeRates = useFeeRates();
 
     const setValue = React.useCallback(
       (newValue: string) => {
@@ -399,7 +397,6 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
       return (
         <AutoFeeInput
           value={currentValue}
-          feeRates={feeRates}
           onValueChange={setValue}
           onKeyDown={props.onKeyDown}
           heightClass={heightClass}
