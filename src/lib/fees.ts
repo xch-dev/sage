@@ -54,6 +54,35 @@ export function isAutoFee(
   );
 }
 
+/** A tier's name as it's shown. */
+export function feeTierLabel(tier: FeeTierName): string {
+  switch (tier) {
+    case 'fast':
+      return t`Fast`;
+    case 'standard':
+      return t`Standard`;
+    case 'economy':
+      return t`Economy`;
+  }
+}
+
+/** How long a transaction paying a tier's estimated rate is expected to take to confirm. */
+export function feeTierTime(tier: FeeTierName): string {
+  switch (tier) {
+    case 'fast':
+      return t`About a minute`;
+    case 'standard':
+      return t`About 5 minutes`;
+    case 'economy':
+      return t`Within an hour`;
+  }
+}
+
+/** A rate in mojos per cost as it's shown, to at most two decimal places. */
+export function formatRate(rate: number): string {
+  return BigNumber(rate).decimalPlaces(2, BigNumber.ROUND_UP).toString();
+}
+
 function isFeeTier(value: string): value is FeeTierName {
   return (FEE_TIERS as readonly string[]).includes(value);
 }

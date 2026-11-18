@@ -17,6 +17,7 @@ interface DialogProps {
   fee: string;
   splitNftOffers: boolean;
   preSplitFee: string | null;
+  onConfirm: (preSplitFee: string | null) => void;
 }
 
 const dialog = vi.hoisted(() => ({ props: null as DialogProps | null }));
@@ -24,6 +25,7 @@ const dialog = vi.hoisted(() => ({ props: null as DialogProps | null }));
 const feeInputs = vi.hoisted(() => new Map<string, boolean>());
 const progress = vi.hoisted(() => ({
   clearOfferState: null as ((offers: string[]) => void) | null,
+  preSplitFee: undefined as string | null | undefined,
 }));
 
 vi.mock('@/bindings', () => ({
@@ -68,8 +70,10 @@ vi.mock('@/components/dialogs/MakeOfferConfirmationDialog', () => ({
 vi.mock('@/components/dialogs/OfferCreationProgressDialog', () => ({
   OfferCreationProgressDialog: (props: {
     clearOfferState: (offers: string[]) => void;
+    preSplitFee: string | null;
   }) => {
     progress.clearOfferState = props.clearOfferState;
+    progress.preSplitFee = props.preSplitFee;
     return null;
   },
 }));
@@ -279,6 +283,14 @@ describe('MakeOffer settings', () => {
     );
     // The split is a complete transaction, so its fee can be calculated from its cost.
     expect(dialog.props?.preSplitFee).toBe('auto:standard');
+  });
+
+  it('makes the offer with the split fee as it was confirmed', () => {
+    renderPage();
+
+    // The confirmation fixes an automatic fee at the rate it showed.
+    act(() => dialog.props?.onConfirm('auto:48.15'));
+    expect(progress.preSplitFee).toBe('auto:48.15');
   });
 
   it("doesn't split coins when the setting is off", () => {

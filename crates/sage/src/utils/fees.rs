@@ -4,13 +4,13 @@ use chia_wallet_sdk::{
     chia::consensus::{
         consensus_constants::ConsensusConstants, owned_conditions::OwnedSpendBundleConditions,
     },
-    coinset::{ChiaRpcClient, CoinsetClient, GetFeeEstimateResponse},
+    coinset::{ChiaRpcClient, GetFeeEstimateResponse},
     driver::{MIN_FEE_PER_COST, spend_bundle_conditions},
     prelude::*,
 };
 use sage_api::{FeeTier, FeeTierName};
 use sage_config::InheritedNetwork;
-use sage_wallet::{PreSplitOffer, TakenOffer};
+use sage_wallet::{PreSplitOffer, TakenOffer, coinset_client};
 use tokio::time::timeout;
 use tracing::warn;
 
@@ -33,6 +33,9 @@ const FEE_TIERS: [(FeeTierName, u64); 3] = [
     (FeeTierName::Standard, 5 * 60),
     (FeeTierName::Economy, 60 * 60),
 ];
+
+/// The target times of [`FEE_TIERS`], in the same order.
+const FEE_TIER_TARGET_TIMES: [u64; 3] = [FEE_TIERS[0].1, FEE_TIERS[1].1, FEE_TIERS[2].1];
 
 /// The cost that fee estimates are requested for, which is about that of a typical
 /// transaction. An estimate is a fee for this cost, so it's divided by it to get a rate.
@@ -165,11 +168,9 @@ fn fee_for_cost(cost: u64, fee_per_cost: f64) -> u64 {
 /// tier's. Rates are rounded up to a hundredth of a
 /// mojo per cost, so they're shown as they're paid.
 fn fee_tiers(response: &GetFeeEstimateResponse) -> Vec<FeeTier> {
-    let target_times = FEE_TIERS.map(|(_, target_time)| target_time);
-
     if !response.success
         || response.full_node_synced == Some(false)
-        || response.target_times != target_times
+        || response.target_times != FEE_TIER_TARGET_TIMES
         || response.estimates.len() != FEE_TIERS.len()
     {
         return Vec::new();
@@ -188,9 +189,11 @@ fn fee_tiers(response: &GetFeeEstimateResponse) -> Vec<FeeTier> {
         .zip(&response.estimates)
         .rev()
         .map(|(&(name, target_time), &estimate)| {
+            // Rounded up in whole mojos rather than as a float, where a rate of exactly 5.11
+            // can be 511.00000000000006 hundredths and round up to 5.12.
+            let hundredths = estimate.div_ceil(FEE_ESTIMATE_COST / 100);
             #[allow(clippy::cast_precision_loss)]
-            let rate = estimate as f64 / FEE_ESTIMATE_COST as f64;
-            let fee_per_cost = ((rate.max(floor) * 100.0).ceil() / 100.0).max(floor);
+            let fee_per_cost = (hundredths as f64 / 100.0).max(floor);
             floor = fee_per_cost;
 
             FeeTier {
@@ -213,14 +216,11 @@ impl Sage {
             return Vec::new();
         }
 
-        let client = match self.network().same_chain_as() {
-            Some(InheritedNetwork::Mainnet) => CoinsetClient::mainnet(),
-            Some(InheritedNetwork::Testnet11) => CoinsetClient::testnet11(),
-            None => return Vec::new(),
+        let Some(client) = coinset_client(self.network()) else {
+            return Vec::new();
         };
 
-        let target_times = FEE_TIERS.map(|(_, target_time)| target_time).to_vec();
-        let request = client.get_fee_estimate(FEE_ESTIMATE_COST, target_times);
+        let request = client.get_fee_estimate(FEE_ESTIMATE_COST, FEE_TIER_TARGET_TIMES.to_vec());
 
         match timeout(FEE_ESTIMATE_TIMEOUT, request).await {
             Ok(Ok(response)) => {
@@ -402,7 +402,7 @@ mod tests {
     fn estimate(estimates: [u64; 3], current_fee_rate: Option<f64>) -> GetFeeEstimateResponse {
         GetFeeEstimateResponse {
             estimates: estimates.to_vec(),
-            target_times: FEE_TIERS.map(|(_, target_time)| target_time).to_vec(),
+            target_times: FEE_TIER_TARGET_TIMES.to_vec(),
             current_fee_rate,
             mempool_size: None,
             mempool_max_size: None,
@@ -458,6 +458,10 @@ mod tests {
 
         let tiers = fee_tiers(&estimate([300_000_001, 0, 0], None));
         assert_eq!(rates(&tiers), [6.01, 5.0, 5.0]);
+
+        // A rate that's already a whole hundredth isn't rounded up past it.
+        let tiers = fee_tiers(&estimate([402_500_000, 255_500_000, 0], None));
+        assert_eq!(rates(&tiers), [8.05, 5.11, 5.0]);
     }
 
     #[test]

@@ -13,7 +13,12 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useFeeRates } from '@/hooks/useFeeRates';
-import { autoFeeRateFor, isAutoFee } from '@/lib/fees';
+import {
+  autoFeeAtRate,
+  autoFeeRateFor,
+  formatRate,
+  isAutoFee,
+} from '@/lib/fees';
 import { marketplaces } from '@/lib/marketplaces';
 import { isMutableNft, mutableNftLabel } from '@/lib/nftUpdater';
 import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
@@ -29,7 +34,11 @@ import { ScrollArea } from '../ui/scroll-area';
 interface MakeOfferConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  /**
+   * Called with the split fee to pay. An automatic one is at the rate shown, rather than
+   * whatever the tier's rate is by the time the offer is made.
+   */
+  onConfirm: (preSplitFee: string | null) => void;
   offerState: OfferState;
   splitNftOffers: boolean;
   fee: string;
@@ -424,8 +433,10 @@ export function MakeOfferConfirmationDialog({
   const feeRates = useFeeRates();
   // An automatic split fee is calculated when the offer is made, at this rate.
   const splitFeeRate = isAutoFee(preSplitFee)
-    ? autoFeeRateFor(preSplitFee, feeRates)?.toString()
-    : undefined;
+    ? autoFeeRateFor(preSplitFee, feeRates)
+    : null;
+  const shownSplitFeeRate =
+    splitFeeRate !== null ? formatRate(splitFeeRate) : null;
 
   useEffect(() => {
     const fetchXchToken = async () => {
@@ -444,7 +455,9 @@ export function MakeOfferConfirmationDialog({
   }, [open]);
 
   const handleConfirm = () => {
-    onConfirm();
+    onConfirm(
+      splitFeeRate !== null ? autoFeeAtRate(String(splitFeeRate)) : preSplitFee,
+    );
     onOpenChange(false);
   };
 
@@ -620,8 +633,8 @@ export function MakeOfferConfirmationDialog({
               <p className='text-sm'>
                 <Trans>Split Fee:</Trans>{' '}
                 {isAutoFee(preSplitFee) ? (
-                  splitFeeRate ? (
-                    <Trans>Automatic, {splitFeeRate} mojos per cost</Trans>
+                  shownSplitFeeRate !== null ? (
+                    <Trans>Automatic, {shownSplitFeeRate} mojos per cost</Trans>
                   ) : (
                     <Trans>Automatic</Trans>
                   )

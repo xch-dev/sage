@@ -108,7 +108,13 @@ export function MakeOffer() {
     setIsConfirmDialogOpen(true);
   };
 
-  const handleConfirm = () => {
+  // The split fee as it was confirmed, with an automatic one fixed at the rate it was shown at.
+  const [confirmedPreSplitFee, setConfirmedPreSplitFee] = useState<
+    string | null
+  >(null);
+
+  const handleConfirm = (fee: string | null) => {
+    setConfirmedPreSplitFee(fee);
     setIsProgressDialogOpen(true);
   };
 
@@ -350,7 +356,7 @@ export function MakeOffer() {
           onOpenChange={handleProgressDialogClose}
           offerState={state}
           splitNftOffers={splitNftOffers}
-          preSplitFee={isPreSplitting ? preSplitFee : null}
+          preSplitFee={confirmedPreSplitFee}
           enabledMarketplaces={enabledMarketplaces}
           clearOfferState={() => {
             setState(null);

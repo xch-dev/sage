@@ -159,9 +159,7 @@ describe('FeeAmountInput with an automatic fee', () => {
     ).toBe('5 mojos/cost');
 
     openSpeeds();
-    expect(
-      screen.getByText(/Fee estimates aren't available on this network/),
-    ).toBeTruthy();
+    expect(screen.getByText(/Fee estimates aren't available/)).toBeTruthy();
   });
 
   it('lists every tier with its rate, and picks one', () => {

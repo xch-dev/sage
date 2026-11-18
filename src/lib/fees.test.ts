@@ -178,6 +178,38 @@ describe('the recommended rate', () => {
     await expect(fees.getFeeRates()).resolves.toEqual(rates);
     expect(getFeeRate).toHaveBeenCalledTimes(2);
   });
+
+  it('keeps newer rates when a stale request fails', async () => {
+    vi.useFakeTimers();
+    let failStale: (error: Error) => void = () => undefined;
+    getFeeRate
+      .mockReturnValueOnce(
+        new Promise((_, reject) => {
+          failStale = reject;
+        }),
+      )
+      .mockResolvedValueOnce(rates);
+    const fees = await import('./fees');
+
+    const stale = fees.getFeeRates();
+    vi.advanceTimersByTime(fees.FEE_RATES_MAX_AGE_MS);
+    await expect(fees.getFeeRates()).resolves.toEqual(rates);
+
+    failStale(new Error('offline'));
+    await expect(stale).rejects.toThrow('offline');
+
+    // The newer rates are still cached, so they aren't fetched a third time.
+    await expect(fees.getFeeRates()).resolves.toEqual(rates);
+    expect(getFeeRate).toHaveBeenCalledTimes(2);
+  });
+
+  it('formats a rate to at most two decimal places, rounding up', async () => {
+    const fees = await import('./fees');
+
+    expect(fees.formatRate(5)).toBe('5');
+    expect(fees.formatRate(48.15)).toBe('48.15');
+    expect(fees.formatRate(5.001)).toBe('5.01');
+  });
 });
 
 describe('fee validation', () => {
