@@ -48,7 +48,7 @@ while the sandbox is running.
   simulator. Each wallet starts with 100 TXCH in ten 10 TXCH coins. Their mnemonics are fixed, so
   fingerprints and addresses are the same on every run.
 - A bridge (`crates/sage-sandbox`) that serves both backends over plain HTTP in place of Tauri's IPC,
-  and stands in for the XCHandles API.
+  and stands in for the XCHandles API and Coinset's fee estimates.
 - Vite, with `src/sandbox/install.ts` injected ahead of the app. It sends every Tauri command to the
   bridge, forwards sync events to the app, and gives the plugins the UI uses browser stand-ins. Vite
   only injects it in sandbox mode, so it never ships in a build.
@@ -90,6 +90,26 @@ curl -s -X POST "$bridge/bob/invoke/issue_cat" -H 'content-type: application/jso
 
 `GET <bridge>/` lists the wallets, and `GET <bridge>/<wallet>/events` streams that wallet's
 `sync-event` payloads as server-sent events.
+
+## Fee estimates
+
+The simulator has no mempool, so the automatic fee's speeds are priced with made-up estimates that
+the bridge serves in place of Coinset's. They start as a busy mempool: Fast 20, Standard 10 and
+Economy 2 mojos per cost, which Sage raises to the minimum of 5. Both wallets share them.
+
+```bash
+# Read them.
+curl -s "$bridge/fee-estimates"
+
+# Change them, in mojos per cost, to a hundredth.
+curl -s -X POST "$bridge/fee-estimates" -H 'content-type: application/json' \
+  -d '{"fast": 48.15, "standard": 12.5, "economy": 6}'
+
+# Turn them off, to see the fallback when there are no estimates: every speed pays 5.
+curl -s -X POST "$bridge/fee-estimates" -H 'content-type: application/json' -d 'null'
+```
+
+The UI keeps fee rates for up to a minute, so reload the page to see a change at once.
 
 ## Inspecting the page
 

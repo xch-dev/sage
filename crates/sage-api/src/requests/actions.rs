@@ -54,7 +54,7 @@ pub struct GetXchUsdPriceResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "System",
-        description = "Get the fee rate, in mojos per cost, that the wallet recommends pricing transactions at. Pass it as `fee_per_cost` to have the fee calculated from the transaction's cost."
+        description = "Get the fee rate, in mojos per cost, that the wallet recommends pricing transactions at, and on mainnet and testnet11 the rates Coinset estimates are needed to be confirmed within a minute, five minutes and an hour. Pass one as `fee_per_cost` to have the fee calculated from the transaction's cost."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -63,16 +63,47 @@ pub struct GetXchUsdPriceResponse {
 pub struct GetFeeRate {}
 
 #[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System"))]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetFeeRateResponse {
-    /// The recommended fee rate, in mojos per cost
+    /// The recommended fee rate, in mojos per cost, used when there's no estimate to go by
     pub fee_per_cost: f64,
     /// The lowest fee rate, in mojos per cost, at which a transaction is admitted to a full
     /// mempool and included in blocks by farmers that enforce a minimum fee. A transaction
     /// paying less may never be confirmed.
     pub minimum_fee_per_cost: f64,
+    /// The fee rates estimated to get a transaction confirmed within each tier's target time,
+    /// fastest first. It's empty if the network has no Coinset API to estimate them with, or
+    /// the estimate couldn't be fetched.
+    pub tiers: Vec<FeeTier>,
+}
+
+/// A fee rate estimated to get a transaction confirmed within a target time
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct FeeTier {
+    /// Which tier this is
+    pub name: FeeTierName,
+    /// How long, in seconds, a transaction paying this rate is expected to take to confirm
+    pub target_time: u64,
+    /// The fee rate, in mojos per cost. It's never below the minimum fee rate.
+    pub fee_per_cost: f64,
+}
+
+/// A tier of fee rates, by how quickly the transaction is confirmed
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum FeeTierName {
+    /// Within about a minute
+    Fast,
+    /// Within about five minutes
+    Standard,
+    /// Within about an hour
+    Economy,
 }
 
 /// Update a `CAT` token's metadata and visibility

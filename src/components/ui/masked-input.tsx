@@ -1,6 +1,5 @@
 import { useDefaultFee } from '@/hooks/useDefaultFee';
-import { useFeeRates } from '@/hooks/useFeeRates';
-import { AUTO_FEE, autoFeeAtRate, autoFeeRate, isAutoFee } from '@/lib/fees';
+import { AUTO_FEE, isAutoFee } from '@/lib/fees';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import * as React from 'react';
@@ -10,6 +9,7 @@ import {
   SourceInfo,
 } from 'react-number-format';
 import { toast } from 'react-toastify';
+import { AutoFeeInput } from './auto-fee-input';
 import { Input, InputProps } from './input';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,13 +19,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Trans } from '@lingui/react/macro';
-import {
-  ArrowUpToLine,
-  PencilLine,
-  Sparkles,
-  TriangleAlert,
-  X,
-} from 'lucide-react';
+import { ArrowUpToLine, PencilLine, Sparkles, X } from 'lucide-react';
 
 interface MaskedInputProps extends NumericFormatProps<InputProps> {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -296,7 +290,8 @@ IntegerInput.displayName = 'IntegerInput';
 
 // Fee input that starts from the default fee. Unless `allowAuto` is false, it can
 // also be set to calculate the fee automatically from the transaction's cost, at the
-// recommended rate (`AUTO_FEE`) or one the user enters (see `autoFeeAtRate`).
+// rate estimated for a tier (see `autoFeeAtTier`) or one the user enters (see
+// `autoFeeAtRate`).
 interface FeeAmountInputProps extends Omit<TokenInputProps, 'value'> {
   value?: string;
   className?: string;
@@ -322,7 +317,6 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     const defaultFee =
       !allowAuto && isAutoFee(storedDefaultFee) ? '' : storedDefaultFee;
     const hasSetInitialValue = React.useRef(false);
-    const feeRates = useFeeRates();
 
     const setValue = React.useCallback(
       (newValue: string) => {
@@ -366,7 +360,15 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
               variant='outline'
               type='button'
               className={`!border-l-0 !rounded-l-none flex-shrink-0 ${heightClass} w-10 px-0`}
-              onClick={() => setValue(auto ? '' : AUTO_FEE)}
+              onClick={() =>
+                setValue(
+                  auto
+                    ? ''
+                    : isAutoFee(storedDefaultFee)
+                      ? storedDefaultFee
+                      : AUTO_FEE,
+                )
+              }
               aria-label={
                 auto
                   ? t`Enter a custom fee`
@@ -392,64 +394,14 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     );
 
     if (allowAuto && isAutoFee(currentValue)) {
-      const rate = autoFeeRate(currentValue);
-      const recommended = feeRates ? String(feeRates.fee_per_cost) : '';
-      // What's typed in the rate input, which can be empty while it's edited. Plain `AUTO_FEE`
-      // shows the recommended rate.
-      const enteredRate =
-        currentValue === AUTO_FEE ? recommended : (rate ?? '');
-      const effectiveRate =
-        rate !== null ? Number(rate) : feeRates?.fee_per_cost;
-      const belowMinimum =
-        feeRates !== null &&
-        effectiveRate !== undefined &&
-        effectiveRate < feeRates.minimum_fee_per_cost;
-      const minimumRate = feeRates?.minimum_fee_per_cost;
-
       return (
-        <div>
-          <div className='flex'>
-            {/* A label, so that clicking anywhere in the box edits the rate. */}
-            <label
-              className={`flex flex-1 min-w-0 cursor-text items-center justify-between gap-2 rounded-md rounded-r-none border border-input bg-muted/40 pl-3 pr-1.5 text-sm focus-within:ring-1 focus-within:ring-ring ${heightClass}`}
-            >
-              <span className='flex items-center gap-1.5 truncate'>
-                <Sparkles className='h-3.5 w-3.5 shrink-0 text-muted-foreground' />
-                <Trans>Auto</Trans>
-              </span>
-              <span className='flex items-center gap-1 text-muted-foreground text-xs'>
-                <NumericFormat
-                  aria-label={t`Fee rate in mojos per cost`}
-                  value={enteredRate}
-                  placeholder={recommended}
-                  onValueChange={(values, sourceInfo) => {
-                    if (sourceInfo.source === 'prop') return;
-                    setValue(autoFeeAtRate(values.value));
-                  }}
-                  onKeyDown={props.onKeyDown}
-                  decimalScale={3}
-                  allowNegative={false}
-                  allowLeadingZeros={false}
-                  className={`h-7 w-12 rounded-sm border border-input bg-background px-1.5 text-left text-sm text-foreground focus:outline-none ${belowMinimum ? 'border-amber-500 text-amber-600 dark:text-amber-400' : ''}`}
-                />
-                <Trans>mojos/cost</Trans>
-              </span>
-            </label>
-            {modeButton(true)}
-          </div>
-          {belowMinimum && (
-            <p
-              role='alert'
-              className='mt-1.5 flex items-start gap-1 text-xs text-amber-600 dark:text-amber-400'
-            >
-              <TriangleAlert className='mt-px h-3.5 w-3.5 shrink-0' />
-              <Trans>
-                Below the minimum of {minimumRate} mojos per cost. The
-                transaction may never be confirmed.
-              </Trans>
-            </p>
-          )}
-        </div>
+        <AutoFeeInput
+          value={currentValue}
+          onValueChange={setValue}
+          onKeyDown={props.onKeyDown}
+          heightClass={heightClass}
+          modeButton={modeButton(true)}
+        />
       );
     }
 

@@ -7,6 +7,7 @@ use chia_wallet_sdk::{
         bls::master_to_wallet_unhardened,
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
+    coinset::CoinsetClient,
     prelude::*,
     test::PeerSimulator,
 };
@@ -31,18 +32,18 @@ const STARTING_COINS: usize = 10;
 /// The amount of each starting coin, in mojos. This is 10 XCH.
 const STARTING_COIN_AMOUNT: u64 = 10_000_000_000_000;
 
-/// Starts every sandbox wallet, each with its data in a folder of `data_dir` named after it.
+/// Starts every sandbox wallet, each with its data in a folder of `data_dir` named after it, and
+/// pointed at the stand-ins for other APIs that the bridge at `bridge_url` serves.
 pub async fn start_wallets(
     data_dir: &Path,
     sim: &PeerSimulator,
-    xchandles_url: &str,
+    bridge_url: &str,
 ) -> Result<Vec<SandboxWallet>> {
     let mut wallets = Vec::new();
 
     for (name, seed) in WALLETS {
-        wallets.push(
-            SandboxWallet::start(name, seed, &data_dir.join(name), sim, xchandles_url).await?,
-        );
+        wallets
+            .push(SandboxWallet::start(name, seed, &data_dir.join(name), sim, bridge_url).await?);
     }
 
     Ok(wallets)
@@ -72,7 +73,7 @@ impl SandboxWallet {
         seed: u8,
         dir: &Path,
         sim: &PeerSimulator,
-        xchandles_url: &str,
+        bridge_url: &str,
     ) -> Result<Self> {
         // A fixed mnemonic keeps fingerprints and addresses the same across runs.
         let mnemonic = Mnemonic::from_entropy(&[seed; 16])?;
@@ -98,6 +99,7 @@ impl SandboxWallet {
         sage.config.network.target_peers = 1;
         sage.config.network.discover_peers = false;
         sage.config.network.default_network = "testnet11".to_string();
+        sage.fee_estimator = Some(CoinsetClient::new(format!("{bridge_url}/coinset")));
 
         let mut receiver = sage
             .initialize()
@@ -110,7 +112,7 @@ impl SandboxWallet {
             network.drop_silent_peers = false;
 
             if let Some(mut config) = network.xchandles() {
-                config.api_url = xchandles_url.to_string();
+                config.api_url = format!("{bridge_url}/xchandles");
                 network.xchandles = Some(config);
             }
         }

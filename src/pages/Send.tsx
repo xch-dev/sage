@@ -487,7 +487,7 @@ export default function Send() {
                 )}
               />
 
-              <div className='col-span-2'>
+              <div className='sm:col-span-2'>
                 <div className='flex items-center justify-between mb-2'>
                   <FormLabel>
                     <Trans>Memo (optional)</Trans>
@@ -545,7 +545,7 @@ export default function Send() {
               </div>
 
               {!bulk && (
-                <div className='col-span-2'>
+                <div className='sm:col-span-2'>
                   <div className='flex flex-col gap-2'>
                     <div className='flex items-center gap-2'>
                       <Label htmlFor='clawbackEnabled'>

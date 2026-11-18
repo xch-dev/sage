@@ -1,14 +1,18 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, time::Duration};
 
 use chia_wallet_sdk::{
     chia::consensus::{
         consensus_constants::ConsensusConstants, owned_conditions::OwnedSpendBundleConditions,
     },
+    coinset::{ChiaRpcClient, GetFeeEstimateResponse},
     driver::{MIN_FEE_PER_COST, spend_bundle_conditions},
     prelude::*,
 };
+use sage_api::{FeeTier, FeeTierName};
 use sage_config::InheritedNetwork;
-use sage_wallet::{PreSplitOffer, TakenOffer};
+use sage_wallet::{PreSplitOffer, TakenOffer, coinset_client};
+use tokio::time::timeout;
+use tracing::warn;
 
 use crate::{Error, Result, Sage};
 
@@ -21,6 +25,32 @@ const MAX_FEE_ATTEMPTS: usize = 8;
 /// its fee. It's the minimum at which farmers that enforce a minimum block fee include it in a
 /// block, and a full mempool admits it.
 pub const RECOMMENDED_FEE_PER_COST: u64 = MIN_FEE_PER_COST;
+
+/// The fee tiers that Coinset estimates rates for, fastest first, with the time in seconds
+/// that a transaction paying each is expected to be confirmed within.
+const FEE_TIERS: [(FeeTierName, u64); 3] = [
+    (FeeTierName::Fast, 60),
+    (FeeTierName::Standard, 5 * 60),
+    (FeeTierName::Economy, 60 * 60),
+];
+
+/// The target times of [`FEE_TIERS`], in the same order.
+const FEE_TIER_TARGET_TIMES: [u64; FEE_TIERS.len()] = {
+    let mut target_times = [0; FEE_TIERS.len()];
+    let mut i = 0;
+    while i < FEE_TIERS.len() {
+        target_times[i] = FEE_TIERS[i].1;
+        i += 1;
+    }
+    target_times
+};
+
+/// The cost that fee estimates are requested for, which is about that of a typical
+/// transaction. An estimate is a fee for this cost, so it's divided by it to get a rate.
+const FEE_ESTIMATE_COST: u64 = 50_000_000;
+
+/// How long a request for fee estimates can take before the estimates are left out.
+const FEE_ESTIMATE_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// A transaction built by [`build_with_fee`], which can be priced from its coin spends.
 pub(crate) trait PricedTransaction {
@@ -138,7 +168,98 @@ fn fee_for_cost(cost: u64, fee_per_cost: f64) -> u64 {
     fee
 }
 
+/// The fee tiers for Coinset's estimates, or none if it isn't synced or didn't estimate every
+/// tier.
+///
+/// Each rate is at least the minimum fee rate, so a transaction paying it is included in blocks
+/// by farmers that enforce a minimum fee, and a faster tier's rate is never below a slower
+/// tier's. Rates are rounded up to a hundredth of a
+/// mojo per cost, so they're shown as they're paid.
+fn fee_tiers(response: &GetFeeEstimateResponse) -> Vec<FeeTier> {
+    if !response.success
+        || response.full_node_synced == Some(false)
+        || response.target_times != FEE_TIER_TARGET_TIMES
+        || response.estimates.len() != FEE_TIERS.len()
+    {
+        return Vec::new();
+    }
+
+    // `current_fee_rate` isn't used as a floor: it's the estimate for the next block, the
+    // same as the fastest tier's, rather than the least the mempool admits.
+    #[allow(clippy::cast_precision_loss)]
+    let minimum = MIN_FEE_PER_COST as f64;
+
+    // From the slowest tier to the fastest, so that each is at least the one before it.
+    let mut floor = minimum;
+
+    let mut tiers: Vec<FeeTier> = FEE_TIERS
+        .iter()
+        .zip(&response.estimates)
+        .rev()
+        .map(|(&(name, target_time), &estimate)| {
+            // Rounded up in whole mojos rather than as a float, where a rate of exactly 5.11
+            // can be 511.00000000000006 hundredths and round up to 5.12.
+            let hundredths = estimate.div_ceil(FEE_ESTIMATE_COST / 100);
+            #[allow(clippy::cast_precision_loss)]
+            let fee_per_cost = (hundredths as f64 / 100.0).max(floor);
+            floor = fee_per_cost;
+
+            FeeTier {
+                name,
+                target_time,
+                fee_per_cost,
+            }
+        })
+        .collect();
+
+    tiers.reverse();
+    tiers
+}
+
 impl Sage {
+    /// The fee tiers estimated by the network's Coinset API, or by [`Sage::fee_estimator`] if
+    /// it's set. There are none for a network that Coinset doesn't serve, or if the estimate
+    /// can't be fetched. Tests never use the real Coinset API.
+    pub(crate) async fn fee_tiers(&self) -> Vec<FeeTier> {
+        let client = match &self.fee_estimator {
+            Some(client) => Some(client.clone()),
+            None if self.test => None,
+            None => coinset_client(self.network()),
+        };
+
+        let Some(client) = client else {
+            return Vec::new();
+        };
+
+        let request = client.get_fee_estimate(FEE_ESTIMATE_COST, FEE_TIER_TARGET_TIMES.to_vec());
+
+        match timeout(FEE_ESTIMATE_TIMEOUT, request).await {
+            Ok(Ok(response)) => {
+                let tiers = fee_tiers(&response);
+
+                if tiers.is_empty() {
+                    warn!(
+                        "Coinset didn't estimate fees: {}",
+                        response
+                            .error
+                            .as_deref()
+                            .unwrap_or("not synced, or an unexpected response")
+                    );
+                }
+
+                tiers
+            }
+            Ok(Err(error)) => {
+                warn!("Couldn't fetch fee estimates from Coinset: {error}");
+                Vec::new()
+            }
+            Err(_) => {
+                warn!("Timed out fetching fee estimates from Coinset");
+                Vec::new()
+            }
+        }
+    }
+
     /// The rules a transaction created now is priced with. The cost depends on the height
     /// because the 3.0 hard fork changes it, so when no peak is known yet, the transaction is
     /// priced at the higher of the costs on either side of the fork.
@@ -290,6 +411,98 @@ mod tests {
         assert_eq!(amount_after_fee(1_000, 300).ok(), Some(700));
         assert!(amount_after_fee(1_000, 1_000).is_err());
         assert!(amount_after_fee(1_000, 1_001).is_err());
+    }
+
+    fn estimate(estimates: [u64; 3], current_fee_rate: Option<f64>) -> GetFeeEstimateResponse {
+        GetFeeEstimateResponse {
+            estimates: estimates.to_vec(),
+            target_times: FEE_TIER_TARGET_TIMES.to_vec(),
+            current_fee_rate,
+            mempool_size: None,
+            mempool_max_size: None,
+            full_node_synced: Some(true),
+            last_tx_block_height: None,
+            error: None,
+            success: true,
+        }
+    }
+
+    fn rates(tiers: &[FeeTier]) -> Vec<f64> {
+        tiers.iter().map(|tier| tier.fee_per_cost).collect()
+    }
+
+    #[test]
+    fn test_fee_tiers_use_the_estimates() {
+        let tiers = fee_tiers(&estimate([1_000_000_000, 500_000_000, 300_000_000], None));
+
+        assert_eq!(
+            tiers.iter().map(|tier| tier.name).collect::<Vec<_>>(),
+            [
+                FeeTierName::Fast,
+                FeeTierName::Standard,
+                FeeTierName::Economy
+            ]
+        );
+        assert_eq!(
+            tiers
+                .iter()
+                .map(|tier| tier.target_time)
+                .collect::<Vec<_>>(),
+            [60, 300, 3600]
+        );
+        assert_eq!(rates(&tiers), [20.0, 10.0, 6.0]);
+    }
+
+    #[test]
+    fn test_fee_tiers_without_a_sync_status() {
+        // A response that doesn't say whether the node is synced is still used.
+        let mut response = estimate([1_000_000_000, 500_000_000, 300_000_000], None);
+        response.full_node_synced = None;
+        assert_eq!(rates(&fee_tiers(&response)), [20.0, 10.0, 6.0]);
+    }
+
+    #[test]
+    fn test_fee_tiers_are_at_least_the_minimum() {
+        let tiers = fee_tiers(&estimate([100_000_000, 0, 0], Some(2.0)));
+        assert_eq!(rates(&tiers), [5.0, 5.0, 5.0]);
+
+        // As Coinset reports it, with the current rate the same as the fastest tier's, which
+        // doesn't raise the slower tiers.
+        let tiers = fee_tiers(&estimate([2_407_289_013, 69_315_967, 0], Some(48.1458)));
+        assert_eq!(rates(&tiers), [48.15, 5.0, 5.0]);
+    }
+
+    #[test]
+    fn test_fee_tiers_are_ordered_and_rounded_up() {
+        // A slower tier's estimate above a faster one's raises the faster one.
+        let tiers = fee_tiers(&estimate([400_000_000, 300_000_001, 600_000_000], None));
+        assert_eq!(rates(&tiers), [12.0, 12.0, 12.0]);
+
+        let tiers = fee_tiers(&estimate([300_000_001, 0, 0], None));
+        assert_eq!(rates(&tiers), [6.01, 5.0, 5.0]);
+
+        // A rate that's already a whole hundredth isn't rounded up past it.
+        let tiers = fee_tiers(&estimate([402_500_000, 255_500_000, 0], None));
+        assert_eq!(rates(&tiers), [8.05, 5.11, 5.0]);
+    }
+
+    #[test]
+    fn test_fee_tiers_without_an_estimate() {
+        let mut response = estimate([0, 0, 0], None);
+        response.full_node_synced = Some(false);
+        assert!(fee_tiers(&response).is_empty());
+
+        let mut response = estimate([0, 0, 0], None);
+        response.success = false;
+        assert!(fee_tiers(&response).is_empty());
+
+        let mut response = estimate([0, 0, 0], None);
+        response.estimates.pop();
+        assert!(fee_tiers(&response).is_empty());
+
+        let mut response = estimate([0, 0, 0], None);
+        response.target_times.reverse();
+        assert!(fee_tiers(&response).is_empty());
     }
 
     #[test]

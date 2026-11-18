@@ -90,7 +90,7 @@ export function TransactionSettings() {
       <SettingsSection title={t`Defaults`}>
         <SettingItem
           label={t`Default Fee`}
-          description={t`The default fee to use for transactions`}
+          description={t`The fee new transactions start with. An automatic fee pays the rate Coinset estimates for the speed you pick, or the recommended rate where there's no estimate. It can be changed for each transaction.`}
           control={
             <FeeAmountInput
               onValueChange={(values) =>

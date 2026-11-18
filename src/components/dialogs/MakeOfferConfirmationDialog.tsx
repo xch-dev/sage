@@ -13,7 +13,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useFeeRates } from '@/hooks/useFeeRates';
-import { autoFeeRate, isAutoFee } from '@/lib/fees';
+import {
+  autoFeeAtRate,
+  autoFeeRateFor,
+  autoFeeTier,
+  formatRate,
+  isAutoFee,
+} from '@/lib/fees';
 import { marketplaces } from '@/lib/marketplaces';
 import { isMutableNft, mutableNftLabel } from '@/lib/nftUpdater';
 import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
@@ -29,7 +35,11 @@ import { ScrollArea } from '../ui/scroll-area';
 interface MakeOfferConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  /**
+   * Called with the split fee to pay. An automatic one is at the rate shown, rather than
+   * whatever the tier's rate is by the time the offer is made.
+   */
+  onConfirm: (preSplitFee: string | null) => void;
   offerState: OfferState;
   splitNftOffers: boolean;
   fee: string;
@@ -424,8 +434,16 @@ export function MakeOfferConfirmationDialog({
   const feeRates = useFeeRates();
   // An automatic split fee is calculated when the offer is made, at this rate.
   const splitFeeRate = isAutoFee(preSplitFee)
-    ? (autoFeeRate(preSplitFee) ?? feeRates?.fee_per_cost?.toString())
-    : undefined;
+    ? autoFeeRateFor(preSplitFee, feeRates)
+    : null;
+  // A tier's rate is shown as it's paid; one that was entered is shown as it was entered.
+  const splitFeeTier = isAutoFee(preSplitFee) ? autoFeeTier(preSplitFee) : null;
+  const shownSplitFeeRate =
+    splitFeeRate === null
+      ? null
+      : splitFeeTier !== null
+        ? formatRate(splitFeeRate)
+        : String(splitFeeRate);
 
   useEffect(() => {
     const fetchXchToken = async () => {
@@ -444,7 +462,11 @@ export function MakeOfferConfirmationDialog({
   }, [open]);
 
   const handleConfirm = () => {
-    onConfirm();
+    onConfirm(
+      splitFeeTier !== null && shownSplitFeeRate !== null
+        ? autoFeeAtRate(shownSplitFeeRate)
+        : preSplitFee,
+    );
     onOpenChange(false);
   };
 
@@ -620,8 +642,8 @@ export function MakeOfferConfirmationDialog({
               <p className='text-sm'>
                 <Trans>Split Fee:</Trans>{' '}
                 {isAutoFee(preSplitFee) ? (
-                  splitFeeRate ? (
-                    <Trans>Automatic, {splitFeeRate} mojos per cost</Trans>
+                  shownSplitFeeRate !== null ? (
+                    <Trans>Automatic, {shownSplitFeeRate} mojos per cost</Trans>
                   ) : (
                     <Trans>Automatic</Trans>
                   )

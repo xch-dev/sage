@@ -8,6 +8,7 @@ import {
 } from './bindings';
 import { CustomError } from './contexts/ErrorContext';
 import { Expiration } from './lib/expiration';
+import { clearFeeRates } from './lib/fees';
 
 export interface WalletState {
   sync: GetSyncStatusResponse;
@@ -82,6 +83,7 @@ export function splitOfferNfts() {
 export function clearState() {
   useWalletState.setState(defaultState());
   useOfferState.setState(null);
+  clearFeeRates();
 }
 
 export async function fetchState() {

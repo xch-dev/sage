@@ -11,6 +11,7 @@ use std::{
 use chia_wallet_sdk::{
     chia::bls::master_to_wallet_unhardened_intermediate,
     client::{Connector, create_rustls_connector, load_ssl_cert},
+    coinset::CoinsetClient,
     prelude::*,
 };
 use indexmap::IndexMap;
@@ -61,6 +62,9 @@ pub struct Sage {
     pub http_client: reqwest::Client,
     /// The handle recipients of transactions which haven't been submitted yet.
     pub pending_handle_sends: Arc<std::sync::Mutex<PendingHandleSends>>,
+    /// Where fee estimates are fetched from in place of the network's Coinset API, such as the
+    /// sandbox's stand-in for it. It's used in tests too, which otherwise never fetch them.
+    pub fee_estimator: Option<CoinsetClient>,
     /// Whether the config and keychain can be saved. This is only the case once initialization
     /// has started, and stops if it fails, since the state in memory may then be incomplete.
     writable: bool,
@@ -82,6 +86,7 @@ impl Sage {
             test,
             http_client: reqwest::Client::new(),
             pending_handle_sends: Arc::default(),
+            fee_estimator: None,
             writable: false,
             data_dir_lock: None,
         }

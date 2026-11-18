@@ -126,6 +126,21 @@ impl TestBridge {
             .as_u64()
             .expect("balance isn't a number")
     }
+
+    /// The rate of each fee tier that `get_fee_rate` returns, fastest first.
+    async fn fee_tier_rates(&self, wallet: &str) -> Vec<f64> {
+        let (status, body) = self
+            .invoke(wallet, "get_fee_rate", json!({ "req": {} }))
+            .await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+
+        body["tiers"]
+            .as_array()
+            .expect("missing tiers")
+            .iter()
+            .map(|tier| tier["fee_per_cost"].as_f64().expect("rate isn't a number"))
+            .collect()
+    }
 }
 
 #[tokio::test]
@@ -411,6 +426,77 @@ async fn test_handle_lookups_reach_the_xchandles_stand_in() -> Result<()> {
         !body.to_string().contains("error sending request"),
         "the stand-in wasn't reached: {body}"
     );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_fee_tiers_come_from_the_fee_estimates_stand_in() -> Result<()> {
+    let bridge = TestBridge::start().await?;
+
+    // Economy's estimate is below the minimum, so it's raised to it.
+    assert_eq!(bridge.fee_tier_rates("alice").await, [20.0, 10.0, 5.0]);
+
+    let (status, body) = bridge.request("GET", "/fee-estimates", None).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["standard"].as_f64(), Some(10.0), "{body}");
+
+    // New estimates reach every wallet.
+    let (status, body) = bridge
+        .request(
+            "POST",
+            "/fee-estimates",
+            Some(json!({ "fast": 48.15, "standard": 12.5, "economy": 6 })),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(bridge.fee_tier_rates("alice").await, [48.15, 12.5, 6.0]);
+    assert_eq!(bridge.fee_tier_rates("bob").await, [48.15, 12.5, 6.0]);
+
+    // Shown as they were set, rather than rounded up past a float's error.
+    let (status, body) = bridge
+        .request(
+            "POST",
+            "/fee-estimates",
+            Some(json!({ "fast": 8.13, "standard": 5.11, "economy": 5 })),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(bridge.fee_tier_rates("alice").await, [8.13, 5.11, 5.0]);
+
+    // Without estimates, there are no tiers, as when Coinset can't be reached.
+    let (status, _) = bridge
+        .request("POST", "/fee-estimates", Some(Value::Null))
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(bridge.fee_tier_rates("alice").await.is_empty());
+
+    let (status, body) = bridge.request("GET", "/fee-estimates", None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body, Value::Null);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_fee_estimates_stand_in_rejects_invalid_rates() -> Result<()> {
+    let bridge = TestBridge::start().await?;
+
+    for estimates in [
+        json!({ "fast": -1, "standard": 10, "economy": 5 }),
+        json!({ "fast": 20, "standard": -1, "economy": 5 }),
+        json!({ "fast": 20, "standard": 10, "economy": -1 }),
+        json!({ "fast": 20, "standard": 10 }),
+        json!({ "fast": 20, "standard": 10, "economy": 5, "slow": 1 }),
+    ] {
+        let (status, body) = bridge
+            .request("POST", "/fee-estimates", Some(estimates.clone()))
+            .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{estimates}: {body}");
+    }
+
+    // The estimates are left as they were.
+    assert_eq!(bridge.fee_tier_rates("alice").await, [20.0, 10.0, 5.0]);
 
     Ok(())
 }

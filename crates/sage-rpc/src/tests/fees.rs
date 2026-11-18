@@ -114,6 +114,8 @@ async fn fee_covers_cost_at_rate() -> Result<()> {
     let rate = rates.fee_per_cost;
     assert!((rate - 5.0).abs() < f64::EPSILON);
     assert!((rates.minimum_fee_per_cost - 5.0).abs() < f64::EPSILON);
+    // Tests never ask Coinset, so there are no tiers to go by.
+    assert!(rates.tiers.is_empty());
 
     let mut request = send(address, 1_000, 0, Some(rate));
     request.auto_submit = true;

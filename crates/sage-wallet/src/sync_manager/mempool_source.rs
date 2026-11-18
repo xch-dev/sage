@@ -27,13 +27,19 @@ pub trait MempoolSource: Send + Sync {
     ) -> BoxFuture<'_, Result<Option<SpendBundle>, WalletError>>;
 }
 
-/// Looks up mempool transactions with the network's [Coinset](https://coinset.org) API, or
-/// returns `None` for a network that Coinset doesn't serve.
-pub fn coinset_mempool(network: &Network) -> Option<Arc<dyn MempoolSource>> {
-    let client = match network.same_chain_as()? {
+/// A client for the network's [Coinset](https://coinset.org) API, or `None` for a network that
+/// Coinset doesn't serve.
+pub fn coinset_client(network: &Network) -> Option<CoinsetClient> {
+    Some(match network.same_chain_as()? {
         InheritedNetwork::Mainnet => CoinsetClient::mainnet(),
         InheritedNetwork::Testnet11 => CoinsetClient::testnet11(),
-    };
+    })
+}
+
+/// Looks up mempool transactions with the network's Coinset API, or returns `None` for a
+/// network that Coinset doesn't serve.
+pub fn coinset_mempool(network: &Network) -> Option<Arc<dyn MempoolSource>> {
+    let client = coinset_client(network)?;
     Some(Arc::new(CoinsetMempool { client }))
 }
 
