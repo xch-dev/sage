@@ -1388,6 +1388,38 @@ export type FeeAction = {
  */
 amount: Amount }
 /**
+ * A fee rate estimated to get a transaction confirmed within a target time
+ */
+export type FeeTier = { 
+/**
+ * Which tier this is
+ */
+name: FeeTierName; 
+/**
+ * How long, in seconds, a transaction paying this rate is expected to take to confirm
+ */
+target_time: number; 
+/**
+ * The fee rate, in mojos per cost. It's never below the minimum fee rate.
+ */
+fee_per_cost: number }
+/**
+ * A tier of fee rates, by how quickly the transaction is confirmed
+ */
+export type FeeTierName = 
+/**
+ * Within about a minute
+ */
+"fast" | 
+/**
+ * Within about five minutes
+ */
+"standard" | 
+/**
+ * Within about an hour
+ */
+"economy"
+/**
  * Filter unlocked coins from a list
  */
 export type FilterUnlockedCoins = { 
@@ -1680,7 +1712,7 @@ dids: DidRecord[] }
 export type GetFeeRate = Record<string, never>
 export type GetFeeRateResponse = { 
 /**
- * The recommended fee rate, in mojos per cost
+ * The recommended fee rate, in mojos per cost, used when there's no estimate to go by
  */
 fee_per_cost: number; 
 /**
@@ -1688,7 +1720,13 @@ fee_per_cost: number;
  * mempool and included in blocks by farmers that enforce a minimum fee. A transaction
  * paying less may never be confirmed.
  */
-minimum_fee_per_cost: number }
+minimum_fee_per_cost: number; 
+/**
+ * The fee rates estimated to get a transaction confirmed within each tier's target time,
+ * fastest first. It's empty if the network has no Coinset API to estimate them with, or
+ * the estimate couldn't be fetched.
+ */
+tiers: FeeTier[] }
 /**
  * Get the full verified details of an XCHandles handle
  */

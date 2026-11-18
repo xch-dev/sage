@@ -278,7 +278,7 @@ describe('MakeOffer settings', () => {
       'true',
     );
     // The split is a complete transaction, so its fee can be calculated from its cost.
-    expect(dialog.props?.preSplitFee).toBe('auto');
+    expect(dialog.props?.preSplitFee).toBe('auto:standard');
   });
 
   it("doesn't split coins when the setting is off", () => {

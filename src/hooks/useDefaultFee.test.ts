@@ -15,12 +15,12 @@ function defaultFee() {
 
 describe('useDefaultFee', () => {
   it('calculates the fee automatically by default', () => {
-    expect(defaultFee()).toBe('auto');
+    expect(defaultFee()).toBe('auto:standard');
   });
 
   it("doesn't carry over the old default of 0, which is too low to confirm", () => {
     localStorage.setItem('defaultFee', JSON.stringify({ fee: '0' }));
-    expect(defaultFee()).toBe('auto');
+    expect(defaultFee()).toBe('auto:standard');
   });
 
   it('carries over a fee someone chose before', () => {
@@ -30,7 +30,7 @@ describe('useDefaultFee', () => {
 
   it('ignores an unreadable old default', () => {
     localStorage.setItem('defaultFee', '{not json');
-    expect(defaultFee()).toBe('auto');
+    expect(defaultFee()).toBe('auto:standard');
   });
 
   it('keeps a default set since, over the old one', () => {
@@ -40,5 +40,13 @@ describe('useDefaultFee', () => {
       JSON.stringify({ fee: 'auto:7' }),
     );
     expect(defaultFee()).toBe('auto:7');
+  });
+
+  it('keeps a tier chosen as the default', () => {
+    localStorage.setItem(
+      'defaultNetworkFee',
+      JSON.stringify({ fee: 'auto:economy' }),
+    );
+    expect(defaultFee()).toBe('auto:economy');
   });
 });

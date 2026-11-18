@@ -13,7 +13,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useFeeRates } from '@/hooks/useFeeRates';
-import { autoFeeRate, isAutoFee } from '@/lib/fees';
+import { autoFeeRateFor, isAutoFee } from '@/lib/fees';
 import { marketplaces } from '@/lib/marketplaces';
 import { isMutableNft, mutableNftLabel } from '@/lib/nftUpdater';
 import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
@@ -424,7 +424,7 @@ export function MakeOfferConfirmationDialog({
   const feeRates = useFeeRates();
   // An automatic split fee is calculated when the offer is made, at this rate.
   const splitFeeRate = isAutoFee(preSplitFee)
-    ? (autoFeeRate(preSplitFee) ?? feeRates?.fee_per_cost?.toString())
+    ? autoFeeRateFor(preSplitFee, feeRates)?.toString()
     : undefined;
 
   useEffect(() => {

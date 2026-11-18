@@ -261,13 +261,15 @@ impl Sage {
         Ok(GetXchUsdPriceResponse { usd: price.usd })
     }
 
-    /// The fee rate is fixed for now. It's the minimum that gets a transaction into blocks
-    /// and into a full mempool, rather than an estimate of what the market is paying.
+    /// The recommended rate is the minimum that gets a transaction into blocks and into a full
+    /// mempool. Where the network has a Coinset API, the tiers estimate what the market is
+    /// paying, and they're never below that minimum.
     #[allow(clippy::cast_precision_loss)]
-    pub fn get_fee_rate(&self, _req: GetFeeRate) -> Result<GetFeeRateResponse> {
+    pub async fn get_fee_rate(&self, _req: GetFeeRate) -> Result<GetFeeRateResponse> {
         Ok(GetFeeRateResponse {
             fee_per_cost: RECOMMENDED_FEE_PER_COST as f64,
             minimum_fee_per_cost: MIN_FEE_PER_COST as f64,
+            tiers: self.fee_tiers().await,
         })
     }
 }

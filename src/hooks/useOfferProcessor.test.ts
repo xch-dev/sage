@@ -51,6 +51,11 @@ async function makeOfferRequest(preSplitFee: string | null) {
   bindings.getFeeRate.mockResolvedValue({
     fee_per_cost: 5,
     minimum_fee_per_cost: 5,
+    tiers: [
+      { name: 'fast', target_time: 60, fee_per_cost: 12 },
+      { name: 'standard', target_time: 300, fee_per_cost: 8 },
+      { name: 'economy', target_time: 3600, fee_per_cost: 5 },
+    ],
   });
   bindings.makeOffer.mockResolvedValue({
     offer: 'offer1',
@@ -69,10 +74,10 @@ async function makeOfferRequest(preSplitFee: string | null) {
 }
 
 describe('useOfferProcessor', () => {
-  it('prices an automatic split fee at the recommended rate', async () => {
-    const request = await makeOfferRequest('auto');
+  it("prices an automatic split fee at its tier's rate", async () => {
+    const request = await makeOfferRequest('auto:standard');
     expect(request.pre_split_fee).toBe('0');
-    expect(request.pre_split_fee_per_cost).toBe(5);
+    expect(request.pre_split_fee_per_cost).toBe(8);
     // The offer's own fee is always an amount.
     expect(request.fee).toBe('1000000000');
   });
