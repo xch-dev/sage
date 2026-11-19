@@ -9,27 +9,65 @@ import {
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
+  Column,
   ColumnDef,
+  columnSizingFeature,
+  createSortedRowModel,
   flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
+  metaHelper,
   OnChangeFn,
   Row,
+  RowData,
   RowSelectionState,
+  rowSelectionFeature,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_basic,
+  sortFn_datetime,
+  sortFn_text,
   SortingState,
-  useReactTable,
+  Table as TanstackTable,
+  tableFeatures,
+  useTable,
 } from '@tanstack/react-table';
 
-// Add responsive property to column definition
-declare module '@tanstack/react-table' {
-  interface ColumnMeta<TData, TValue> {
+// Every table in the app shares these features. The sort functions are the
+// ones `sortFn: 'auto'` picks between, which v9 only resolves when registered.
+export const dataTableFeatures = tableFeatures({
+  columnSizingFeature,
+  rowSelectionFeature,
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns: {
+    alphanumeric: sortFn_alphanumeric,
+    basic: sortFn_basic,
+    datetime: sortFn_datetime,
+    text: sortFn_text,
+  },
+  columnMeta: metaHelper<{
     className?: string;
     cellClassName?: string;
-  }
-}
+  }>(),
+});
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[];
+export type DataTableFeatures = typeof dataTableFeatures;
+export type DataTableColumnDef<
+  TData extends RowData,
+  TValue = unknown,
+> = ColumnDef<DataTableFeatures, TData, TValue>;
+export type DataTableColumn<TData extends RowData, TValue = unknown> = Column<
+  DataTableFeatures,
+  TData,
+  TValue
+>;
+export type DataTableRow<TData extends RowData> = Row<DataTableFeatures, TData>;
+export type DataTableInstance<TData extends RowData> = TanstackTable<
+  DataTableFeatures,
+  TData
+>;
+
+interface DataTableProps<TData extends RowData> {
+  columns: DataTableColumnDef<TData>[];
   data: TData[];
   state?: {
     sorting?: SortingState;
@@ -38,7 +76,7 @@ interface DataTableProps<TData, TValue> {
   };
   onSortingChange?: OnChangeFn<SortingState>;
   onRowSelectionChange?: OnChangeFn<RowSelectionState>;
-  getRowStyles?: (row: Row<TData>) => {
+  getRowStyles?: (row: DataTableRow<TData>) => {
     className?: string;
     onClick?: () => void;
   };
@@ -48,7 +86,7 @@ interface DataTableProps<TData, TValue> {
   rowLabelPlural?: string;
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends RowData>({
   columns,
   data,
   state,
@@ -59,16 +97,15 @@ export function DataTable<TData, TValue>({
   showTotalRows = true,
   rowLabel = 'row',
   rowLabelPlural = 'rows',
-}: DataTableProps<TData, TValue>) {
-  const table = useReactTable({
+}: DataTableProps<TData>) {
+  const table = useTable({
+    features: dataTableFeatures,
     data,
     columns,
     state,
     onSortingChange,
     onRowSelectionChange,
     enableRowSelection: true,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getRowId: getRowId,
   });
 
@@ -112,7 +149,7 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && 'selected'}
                   {...getRowStyles?.(row)}
                 >
-                  {row.getVisibleCells().map((cell) => (
+                  {row.getAllCells().map((cell) => (
                     <TableCell
                       key={cell.id}
                       role='cell'

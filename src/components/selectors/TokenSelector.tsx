@@ -112,7 +112,7 @@ export function TokenSelector({
             revocation_address: token.revocation_address ?? null,
           }}
           size='md'
-          className='flex-shrink-0'
+          className='shrink-0'
         />
         <div className='flex flex-col min-w-0'>
           <span className='truncate' role='text'>

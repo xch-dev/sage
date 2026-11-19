@@ -76,7 +76,7 @@ export function AssignNftDialog({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handler)}
-            className='space-y-4 overflow-hidden p-[1px]'
+            className='space-y-4 overflow-hidden p-px'
           >
             <FormField
               control={form.control}
@@ -94,7 +94,7 @@ export function AssignNftDialog({
                       >
                         <SelectValue placeholder={t`Select profile`} />
                       </SelectTrigger>
-                      <SelectContent className='max-w-[var(--radix-select-trigger-width)]'>
+                      <SelectContent className='max-w-(--radix-select-trigger-width)'>
                         <SelectItem key='none' value='none'>
                           <Trans>None</Trans>
                         </SelectItem>

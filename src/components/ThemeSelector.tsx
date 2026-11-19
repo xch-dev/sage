@@ -1,3 +1,4 @@
+import { getLastUsedNonCoreTheme } from '@/lib/themeStorage';
 import { hasTag } from '@/lib/themes';
 import { Trans } from '@lingui/react/macro';
 import { Loader2 } from 'lucide-react';
@@ -121,13 +122,8 @@ export function ThemeSelector() {
 }
 
 export function ThemeSelectorSimple() {
-  const {
-    currentTheme,
-    setTheme,
-    availableThemes,
-    isLoading,
-    lastUsedNonCoreTheme,
-  } = useTheme();
+  const { currentTheme, setTheme, availableThemes, isLoading } = useTheme();
+  const lastUsedNonCoreTheme = getLastUsedNonCoreTheme();
 
   if (isLoading || !currentTheme) {
     return (

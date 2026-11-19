@@ -46,8 +46,7 @@ type RustLikeBridgeErrorResponse = {
 };
 
 type RustLikeBridgeResponse =
-  | RustLikeBridgeSuccessResponse
-  | RustLikeBridgeErrorResponse;
+  RustLikeBridgeSuccessResponse | RustLikeBridgeErrorResponse;
 
 function getSageWindow(): SageWindow {
   return window as SageWindow;

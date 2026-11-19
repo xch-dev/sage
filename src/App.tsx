@@ -1,7 +1,7 @@
 import { discoverThemes, resolveThemeImage } from '@/lib/themes';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
@@ -13,6 +13,7 @@ import { Slide, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ThemeProvider, useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
+import { getStoredTheme, storeTheme } from './lib/themeStorage';
 import { BiometricProvider } from './contexts/BiometricContext';
 import { ErrorProvider } from './contexts/ErrorContext';
 import {
@@ -166,12 +167,16 @@ export default function App() {
     'locale',
     getBrowserLanguage,
   );
+  // Read once: theme-o-rama reloads every theme when `defaultTheme` changes.
+  const defaultTheme = useRef(getStoredTheme() ?? 'light').current;
 
   return (
     <LanguageProvider locale={locale} setLocale={setLocale}>
       <ThemeProvider
         discoverThemes={discoverThemes}
         imageResolver={resolveThemeImage}
+        defaultTheme={defaultTheme}
+        onThemeChange={storeTheme}
       >
         <SafeAreaProvider>
           <ErrorProvider>

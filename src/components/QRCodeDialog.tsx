@@ -123,7 +123,7 @@ export function QRCodeDialog({
                 }}
               />
             </div>
-            <span className='text-center break-words break-all'>
+            <span className='text-center wrap-break-word break-all'>
               {isValidUrl(qr_code_contents) ? (
                 <a
                   href='#'

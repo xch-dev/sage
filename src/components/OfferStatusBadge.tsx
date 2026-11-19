@@ -51,7 +51,7 @@ export function OfferStatusBadge({ status, className }: OfferStatusBadgeProps) {
         className,
       )}
     >
-      <Icon className='h-4 w-4 flex-shrink-0' aria-hidden='true' />
+      <Icon className='h-4 w-4 shrink-0' aria-hidden='true' />
       {offerStatusLabel(status)}
     </span>
   );

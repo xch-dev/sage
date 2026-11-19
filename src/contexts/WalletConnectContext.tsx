@@ -923,7 +923,7 @@ function AddContactDialog({ params }: CommandDialogProps<'chia_addContact'>) {
         <div className='font-medium'>
           <Trans>Name</Trans>
         </div>
-        <div className='text-sm text-muted-foreground break-words'>
+        <div className='text-sm text-muted-foreground wrap-break-word'>
           {params.name}
         </div>
       </div>
@@ -943,7 +943,7 @@ function AddContactDialog({ params }: CommandDialogProps<'chia_addContact'>) {
           <div className='font-medium'>
             <Trans>Note</Trans>
           </div>
-          <div className='text-sm text-muted-foreground break-words'>
+          <div className='text-sm text-muted-foreground wrap-break-word'>
             {params.note}
           </div>
         </div>
@@ -964,7 +964,9 @@ function DefaultCommandDialog({ params }: { params: unknown }) {
 }
 
 const COMMAND_COMPONENTS: {
-  [K in WalletConnectCommand]?: (props: CommandDialogProps<K>) => JSX.Element;
+  [K in WalletConnectCommand]?: (
+    props: CommandDialogProps<K>,
+  ) => React.JSX.Element;
 } = {
   chip0002_signCoinSpends: SignCoinSpendsDialog,
   chip0002_signMessage: SignMessageDialog,
@@ -1056,7 +1058,7 @@ function RequestDialog({
   const CommandComponent = (COMMAND_COMPONENTS[method] ??
     DefaultCommandDialog) as (
     props: CommandDialogProps<WalletConnectCommand>,
-  ) => JSX.Element;
+  ) => React.JSX.Element;
 
   const parsedParams = useMemo(
     () => commandInfo.paramsType.parse(params),

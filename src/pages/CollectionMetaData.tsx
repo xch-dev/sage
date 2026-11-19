@@ -239,7 +239,7 @@ export default function CollectionMetaData() {
                     attr.type.toLowerCase() === 'description',
                 ) && (
                   <LabeledItem label={t`Description`} content={null}>
-                    <div className='break-words text-sm'>
+                    <div className='wrap-break-word text-sm'>
                       {
                         metadataContent.collection.attributes.find(
                           (attr: AttributeType) =>

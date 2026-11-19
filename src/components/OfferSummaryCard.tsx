@@ -25,7 +25,7 @@ export function OfferSummaryCard({
       {selectionState !== null && (
         <Checkbox
           checked={selectionState[0]}
-          className='mt-1 flex-shrink-0'
+          className='mt-1 shrink-0'
           aria-label={selectionState[0] ? t`Deselect offer` : t`Select offer`}
         />
       )}
@@ -93,7 +93,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           </div>
           <MutableNftBadge
             kind={nft_metadata_updater_kind}
-            className='flex-shrink-0'
+            className='shrink-0'
           />
         </div>
       ))}

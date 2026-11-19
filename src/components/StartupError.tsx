@@ -59,7 +59,7 @@ export function StartupError({ error }: StartupErrorProps) {
           </CardHeader>
           {!alreadyRunning && (
             <CardContent>
-              <p className='text-sm whitespace-pre-wrap break-words hyphens-auto'>
+              <p className='text-sm whitespace-pre-wrap wrap-break-word hyphens-auto'>
                 {error.reason}
               </p>
             </CardContent>

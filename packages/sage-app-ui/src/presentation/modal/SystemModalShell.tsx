@@ -27,7 +27,7 @@ export function SystemModalShell({
         'h-screen w-screen overflow-hidden text-foreground',
         isLinux
           ? ''
-          : 'flex items-center justify-center bg-black/20 backdrop-blur-sm',
+          : 'flex items-center justify-center bg-black/20 backdrop-blur-xs',
         className,
       ].join(' ')}
     >

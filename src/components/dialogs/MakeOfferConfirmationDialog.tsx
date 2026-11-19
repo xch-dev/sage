@@ -553,7 +553,7 @@ export function MakeOfferConfirmationDialog({
                 ) {
                   return (
                     <div className='flex items-center gap-2 p-3 mb-2 rounded border border-yellow-400 bg-yellow-50 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-200'>
-                      <AlertTriangle className='h-5 w-5 text-yellow-500 flex-shrink-0' />
+                      <AlertTriangle className='h-5 w-5 text-yellow-500 shrink-0' />
                       <span className='font-semibold'>
                         <Trans>
                           Warning: This is a one-sided offer. You are not

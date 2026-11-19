@@ -487,7 +487,7 @@ function ContactRow({
       <div className='flex items-start justify-between gap-2'>
         <div className='min-w-0 flex flex-col gap-1'>
           <div className='flex flex-wrap items-center gap-2'>
-            <span className='font-medium break-words'>{contact.name}</span>
+            <span className='font-medium wrap-break-word'>{contact.name}</span>
             {contact.kind === 'handle' && (
               <span className='font-mono text-sm text-muted-foreground'>
                 {contact.recipient}
@@ -496,7 +496,7 @@ function ContactRow({
             <ContactStatusBadge state={state} />
           </div>
           {contact.note && (
-            <div className='text-sm text-muted-foreground break-words'>
+            <div className='text-sm text-muted-foreground wrap-break-word'>
               {contact.note}
             </div>
           )}
@@ -591,7 +591,7 @@ function ContactRow({
             className='h-3.5 w-3.5 mt-0.5 shrink-0'
             aria-hidden='true'
           />
-          <span className='break-words'>
+          <span className='wrap-break-word'>
             <Trans>
               This handle changed. It previously resolved to{' '}
               <span className='font-mono break-all'>{changedFrom}</span>.

@@ -2,8 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { SageAppCommonView } from 'sage-system-app-sdk';
 
 export type AppIcon =
-  | { kind: 'url'; iconUrl: string }
-  | { kind: 'bytes'; icon: AppIconBytes };
+  { kind: 'url'; iconUrl: string } | { kind: 'bytes'; icon: AppIconBytes };
 
 export type AppIconBytes = {
   bytes: number[];

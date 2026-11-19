@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { lingui } from '@lingui/vite-plugin';
 import react from '@vitejs/plugin-react-swc';
 import { readFileSync } from 'fs';
@@ -26,7 +27,10 @@ function sandboxPlugin(): Plugin {
 
 function appVersion(): string {
   const config = JSON.parse(
-    readFileSync(path.resolve(__dirname, 'src-tauri/tauri.conf.json'), 'utf8'),
+    readFileSync(
+      path.resolve(import.meta.dirname, 'src-tauri/tauri.conf.json'),
+      'utf8',
+    ),
   );
   return config.version;
 }
@@ -81,7 +85,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
+  },
+  test: {
+    setupFiles: ['./src/bignumberConfig.ts'],
   },
 });

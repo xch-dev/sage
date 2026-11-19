@@ -107,7 +107,7 @@ export function TokenCard({
               </span>
               {asset?.ticker ?? 'CAT'}
             </div>
-            <div className='flex-shrink-0'>
+            <div className='shrink-0'>
               <AssetIcon asset={{ ...asset, kind: 'token' }} size='md' />
             </div>
           </div>

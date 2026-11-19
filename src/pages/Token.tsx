@@ -222,7 +222,7 @@ export default function Token() {
       {asset && (
         <>
           <Container>
-            <div className='flex flex-col gap-4 max-w-screen-lg'>
+            <div className='flex flex-col gap-4 max-w-(--breakpoint-lg)'>
               <TokenCard
                 asset={asset}
                 balanceInFiat={balanceInFiat}

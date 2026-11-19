@@ -75,16 +75,14 @@ export function MakeOffer() {
     const hasRequestedOptions =
       state.requested.options.filter((o) => o).length > 0;
 
-    if (
-      !(
-        hasOfferedTokens ||
-        hasOfferedNfts ||
-        hasRequestedTokens ||
-        hasRequestedNfts ||
-        hasOfferedOptions ||
-        hasRequestedOptions
-      )
-    ) {
+    if (!(
+      hasOfferedTokens ||
+      hasOfferedNfts ||
+      hasRequestedTokens ||
+      hasRequestedNfts ||
+      hasOfferedOptions ||
+      hasRequestedOptions
+    )) {
       addError({
         kind: 'invalid',
         reason: t`Offer must include at least one offered or requested asset.`,
@@ -133,7 +131,7 @@ export function MakeOffer() {
       <Header title={t`New Offer`} />
 
       <Container>
-        <div className='flex max-w-screen-lg flex-col gap-6'>
+        <div className='flex max-w-(--breakpoint-lg) flex-col gap-6'>
           <div className='flex flex-col lg:flex-row lg:items-stretch'>
             <Card className='min-w-0 lg:flex-1'>
               <CardHeader className='pb-4'>

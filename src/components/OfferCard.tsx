@@ -91,7 +91,7 @@ export function OfferCard({
   if (!offerSummary) return null;
 
   return (
-    <div className='flex flex-col gap-4 max-w-screen-lg pr-1'>
+    <div className='flex flex-col gap-4 max-w-(--breakpoint-lg) pr-1'>
       <Card>
         <CardHeader className='pb-2'>
           <CardTitle className='flex items-center justify-between'>

@@ -25,7 +25,6 @@
     "noImplicitAny": true,
 
     /** Shadcn UI */
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }

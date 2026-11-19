@@ -30,11 +30,7 @@ const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const RETRY_INTERVAL_MS = 15 * 60 * 1000;
 
 export type UpdateStatus =
-  | 'idle'
-  | 'checking'
-  | 'up-to-date'
-  | 'available'
-  | 'error';
+  'idle' | 'checking' | 'up-to-date' | 'available' | 'error';
 
 export interface UpdateContextType {
   /** Whether this platform gets update notices. App stores update the mobile apps. */

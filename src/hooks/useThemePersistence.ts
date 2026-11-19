@@ -1,9 +1,7 @@
 import { commands } from '@/bindings';
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from 'theme-o-rama';
-
-// Must match the key theme-o-rama uses for the selected theme.
-const THEME_STORAGE_KEY = 'theme';
+import { getStoredTheme } from '@/lib/themeStorage';
 
 /**
  * Mirrors the selected theme into the Rust config, so it survives
@@ -24,7 +22,7 @@ export function useThemePersistence() {
     restoreStarted.current = true;
 
     const restore = async () => {
-      if (localStorage.getItem(THEME_STORAGE_KEY) !== null) {
+      if (getStoredTheme() !== null) {
         return;
       }
 
@@ -49,7 +47,7 @@ export function useThemePersistence() {
       return;
     }
 
-    const theme = localStorage.getItem(THEME_STORAGE_KEY);
+    const theme = getStoredTheme();
 
     if (theme === null || theme === lastSaved.current) {
       return;

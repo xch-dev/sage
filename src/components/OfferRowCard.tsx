@@ -54,7 +54,7 @@ export function OfferRowCard({
         <Button
           variant='ghost'
           size='icon'
-          className='-mr-1.5 flex-shrink-0'
+          className='-mr-1.5 shrink-0'
           onClick={(e) => e.stopPropagation()}
         >
           <MoreVertical className='h-5 w-5' aria-hidden='true' />

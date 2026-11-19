@@ -191,7 +191,7 @@ export function NftGroupCard({
       }}
       role='article'
       tabIndex={0}
-      className={`cursor-pointer group border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
+      className={`cursor-pointer group border border-border rounded-lg focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
         isCollection && !item.visible ? 'opacity-50' : ''
       }`}
       aria-label={
