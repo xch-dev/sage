@@ -99,7 +99,7 @@ export function AutoFeeInput({
                 <span>{tier !== null ? feeTierLabel(tier) : t`Custom`}</span>
               </div>
             </SelectTrigger>
-            <SelectContent className='min-w-[15rem]'>
+            <SelectContent className='min-w-60'>
               {FEE_TIERS.map((name) => {
                 const rate = tierRate(name);
                 return (
@@ -131,7 +131,7 @@ export function AutoFeeInput({
                 </span>
               </SelectItem>
               {unestimated && (
-                <p className='max-w-[15rem] px-2 pb-1.5 pt-1 text-xs text-muted-foreground'>
+                <p className='max-w-60 px-2 pb-1.5 pt-1 text-xs text-muted-foreground'>
                   <Trans>
                     Fee estimates aren&apos;t available, so every speed pays the
                     recommended rate.
@@ -162,7 +162,7 @@ export function AutoFeeInput({
                 decimalScale={3}
                 allowNegative={false}
                 allowLeadingZeros={false}
-                className={`h-7 w-12 min-w-0 shrink rounded-sm border border-input bg-background px-1.5 text-left text-sm text-foreground focus:outline-none ${belowMinimum ? 'border-amber-500 text-amber-600 dark:text-amber-400' : ''}`}
+                className={`h-7 w-12 min-w-0 shrink rounded-sm border border-input bg-background px-1.5 text-left text-sm text-foreground focus:outline-hidden ${belowMinimum ? 'border-amber-500 text-amber-600 dark:text-amber-400' : ''}`}
               />
               <span className='shrink-0 whitespace-nowrap'>
                 <Trans>mojos/cost</Trans>

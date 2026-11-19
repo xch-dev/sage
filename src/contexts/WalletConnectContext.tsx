@@ -923,7 +923,7 @@ function AddContactDialog({ params }: CommandDialogProps<'chia_addContact'>) {
         <div className='font-medium'>
           <Trans>Name</Trans>
         </div>
-        <div className='text-sm text-muted-foreground break-words'>
+        <div className='text-sm text-muted-foreground wrap-break-word'>
           {params.name}
         </div>
       </div>
@@ -943,7 +943,7 @@ function AddContactDialog({ params }: CommandDialogProps<'chia_addContact'>) {
           <div className='font-medium'>
             <Trans>Note</Trans>
           </div>
-          <div className='text-sm text-muted-foreground break-words'>
+          <div className='text-sm text-muted-foreground wrap-break-word'>
             {params.note}
           </div>
         </div>

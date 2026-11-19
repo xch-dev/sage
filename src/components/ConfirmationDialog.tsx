@@ -148,8 +148,8 @@ export default function ConfirmationDialog({
 
   return (
     <Dialog open={!!response} onOpenChange={reset}>
-      <DialogContent className='max-w-none w-full h-full md:max-w-[500px] md:h-[80vh] flex flex-col p-2.5 md:p-6 border-0 md:border !rounded-none md:rounded-lg'>
-        <DialogHeader className='flex-shrink-0 mt-12 sm:mt-0'>
+      <DialogContent className='max-w-none w-full h-full md:max-w-[500px] md:h-[80vh] flex flex-col p-2.5 md:p-6 border-0 md:border rounded-none! md:rounded-lg'>
+        <DialogHeader className='shrink-0 mt-12 sm:mt-0'>
           <DialogTitle className='text-xl font-semibold'>
             <Trans>Confirm Transaction</Trans>
           </DialogTitle>
@@ -166,7 +166,7 @@ export default function ConfirmationDialog({
             onValueChange={setActiveTab}
             className='w-full h-full flex flex-col'
           >
-            <div className='flex items-center justify-between mb-4 flex-shrink-0'>
+            <div className='flex items-center justify-between mb-4 shrink-0'>
               <TabsList className='w-full inline-flex h-9 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground'>
                 <TabsTrigger
                   value='summary'
@@ -255,7 +255,7 @@ export default function ConfirmationDialog({
                     </h3>
                     <div className='space-y-2'>
                       <div className='flex items-start gap-2 text-sm border border-border rounded-md p-2 bg-card/30'>
-                        <div className='break-words whitespace-pre-wrap w-full'>
+                        <div className='wrap-break-word whitespace-pre-wrap w-full'>
                           {additionalData.content}
                         </div>
                       </div>
@@ -646,7 +646,7 @@ export default function ConfirmationDialog({
           </div>
         </div>
 
-        <DialogFooter className='pt-4 flex-shrink-0 border-t mt-auto mb-6 sm:mb-0 mr-4 sm:mr-0'>
+        <DialogFooter className='pt-4 shrink-0 border-t mt-auto mb-6 sm:mb-0 mr-4 sm:mr-0'>
           <Button variant='ghost' onClick={reset}>
             <Trans>Cancel</Trans>
           </Button>

@@ -113,7 +113,7 @@ export default function AddressList(props: AddressListProps) {
 
   return (
     <div className='flex flex-col'>
-      <div className='flex-shrink overflow-auto h-[350px]'>
+      <div className='shrink overflow-auto h-[350px]'>
         <DataTable
           columns={columns}
           data={derivations}
@@ -121,7 +121,7 @@ export default function AddressList(props: AddressListProps) {
           showTotalRows={false}
         />
       </div>
-      <div className='flex-shrink-0 py-4'>
+      <div className='shrink-0 py-4'>
         <div className='flex items-center justify-between'>
           <div className='text-sm text-muted-foreground'>
             {t`Showing ${shownDerivations} of ${totalDerivations} addresses`}

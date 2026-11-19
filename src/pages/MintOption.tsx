@@ -203,7 +203,7 @@ export function MintOption() {
           </AlertDescription>
         </Alert>
 
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-screen-lg'>
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-(--breakpoint-lg)'>
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
               <CardTitle className='text-md font-medium truncate flex items-center'>
@@ -224,14 +224,14 @@ export function MintOption() {
                     setUnderlyingAmount('');
                     wholeBalance.reset();
                   }}
-                  className='!rounded-r-none'
+                  className='rounded-r-none!'
                   hideZeroBalance={true}
                   showAllCats={false}
                   includeXch={true}
                 />
                 <TokenAmountInput
                   id='underlying-amount'
-                  className='!border-l-0 z-10 !rounded-l-none w-[150px] h-12'
+                  className='border-l-0! z-10 rounded-l-none! w-[150px] h-12'
                   placeholder={t`Amount`}
                   value={underlyingAmount}
                   onValueChange={(values) => {
@@ -274,15 +274,15 @@ export function MintOption() {
                     setStrikeAssetId(value);
                     setStrikeAmount('');
                   }}
-                  className='!rounded-r-none'
+                  className='rounded-r-none!'
                   hideZeroBalance={false}
                   showAllCats={true}
                   includeXch={true}
                 />
-                <div className='flex flex-grow-0'>
+                <div className='flex grow-0'>
                   <TokenAmountInput
                     id='strike-amount'
-                    className='!border-l-0 z-10 !rounded-l-none w-[150px] h-12'
+                    className='border-l-0! z-10 rounded-l-none! w-[150px] h-12'
                     placeholder={t`Amount`}
                     value={strikeAmount}
                     onValueChange={(values) => {
@@ -304,7 +304,7 @@ export function MintOption() {
         </div>
 
         {/* The same columns as the cards above, so the fee is as wide as one of them. */}
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-screen-lg mt-4'>
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-(--breakpoint-lg) mt-4'>
           <div className='flex flex-col space-y-1.5'>
             <Label htmlFor='fee'>
               <Trans>Network Fee</Trans>

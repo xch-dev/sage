@@ -34,7 +34,7 @@ function WalletTransitionWrapper({
     <div
       className={`transition-all duration-300 ${
         !shouldShow
-          ? 'opacity-0 blur-sm pointer-events-none'
+          ? 'opacity-0 blur-xs pointer-events-none'
           : 'opacity-100 blur-0'
       } flex flex-col h-screen overflow-hidden ${
         props.transparentBackground ? 'bg-transparent' : 'bg-background'
@@ -52,7 +52,7 @@ function WalletTransitionWrapper({
               message={t`Watch-only wallet — these addresses can't be spent from here`}
               aria-label={t`Watch-only wallet`}
               icon={
-                <Eye className='h-3 w-3 flex-shrink-0' aria-hidden='true' />
+                <Eye className='h-3 w-3 shrink-0' aria-hidden='true' />
               }
             />
           ) : (
@@ -62,7 +62,7 @@ function WalletTransitionWrapper({
                 aria-label={t`Read-only wallet`}
                 icon={
                   <Snowflake
-                    className='h-3 w-3 flex-shrink-0'
+                    className='h-3 w-3 shrink-0'
                     aria-hidden='true'
                   />
                 }

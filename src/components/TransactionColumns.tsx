@@ -90,7 +90,7 @@ export const columns: DataTableColumnDef<FlattenedTransaction>[] = [
 
       return (
         <div className='flex items-center gap-3'>
-          <div className='w-6 h-6 flex-shrink-0' role='img' aria-hidden='true'>
+          <div className='w-6 h-6 shrink-0' role='img' aria-hidden='true'>
             <AssetIcon
               asset={{
                 icon_url: row.original.iconUrl ?? null,

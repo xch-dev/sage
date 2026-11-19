@@ -39,7 +39,7 @@ export function OfferHandleNftWarning({
           role='alert'
         >
           <ShieldAlert
-            className='mt-0.5 h-4 w-4 flex-shrink-0'
+            className='mt-0.5 h-4 w-4 shrink-0'
             aria-hidden='true'
           />
           <div className='flex flex-col gap-1'>
@@ -50,7 +50,7 @@ export function OfferHandleNftWarning({
               const handle = nft.handle;
 
               return (
-                <span key={nft.nft_id} className='break-words'>
+                <span key={nft.nft_id} className='wrap-break-word'>
                   {nft.status === 'pending_transfer' ? (
                     <Trans>
                       A transfer of @{handle} is pending, so the seller could
@@ -76,7 +76,7 @@ export function OfferHandleNftWarning({
           role='alert'
         >
           <TriangleAlert
-            className='mt-0.5 h-4 w-4 flex-shrink-0'
+            className='mt-0.5 h-4 w-4 shrink-0'
             aria-hidden='true'
           />
           <div className='flex flex-col gap-1'>
@@ -84,7 +84,7 @@ export function OfferHandleNftWarning({
               const handle = nft.handle;
 
               return (
-                <span key={nft.nft_id} className='break-words'>
+                <span key={nft.nft_id} className='wrap-break-word'>
                   <Trans>
                     An NFT in this offer is named @{handle}, but the XCHandles
                     registry doesn&apos;t list it as the owner of that handle.

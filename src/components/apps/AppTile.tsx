@@ -35,7 +35,7 @@ export function AppTile({ app, launchDecision, onOpen, onContextMenu }: Props) {
       }}
       onContextMenu={onContextMenu}
       aria-disabled={!launchDecision.allowed}
-      className='relative group flex cursor-pointer flex-col items-center gap-3 rounded-2xl p-4 text-center transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-disabled:cursor-default'
+      className='relative group flex cursor-pointer flex-col items-center gap-3 rounded-2xl p-4 text-center transition-colors hover:bg-muted/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring aria-disabled:cursor-default'
     >
       {isChecking || isBlocked ? (
         <div className='absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/55 backdrop-blur-[1px]'>

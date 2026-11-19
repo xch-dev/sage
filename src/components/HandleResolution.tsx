@@ -74,7 +74,7 @@ export function HandleResolution({ value }: { value: string }) {
     return (
       <div className='flex items-start gap-1.5 text-xs text-destructive'>
         <XCircleIcon className='h-3.5 w-3.5 mt-0.5 shrink-0' />
-        <span className='break-words'>
+        <span className='wrap-break-word'>
           {handleErrorMessage(resolution.error)}
         </span>
       </div>
@@ -111,7 +111,7 @@ export function HandleResolution({ value }: { value: string }) {
       {changedFrom && (
         <div className='flex items-start gap-1.5 text-destructive'>
           <AlertTriangleIcon className='h-3.5 w-3.5 mt-0.5 shrink-0' />
-          <span className='break-words'>
+          <span className='wrap-break-word'>
             <Trans>
               This handle changed since you last used it. It previously resolved
               to <span className='font-mono break-all'>{changedFrom}</span>.

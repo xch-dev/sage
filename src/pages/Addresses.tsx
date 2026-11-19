@@ -113,7 +113,7 @@ export default function Addresses() {
         )}
       </Header>
 
-      <Container className='flex flex-col gap-4 max-w-screen-lg'>
+      <Container className='flex flex-col gap-4 max-w-(--breakpoint-lg)'>
         <Tabs
           value={tab}
           onValueChange={(value) => setSearchParams({ tab: value })}

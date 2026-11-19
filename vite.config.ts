@@ -26,7 +26,7 @@ function sandboxPlugin(): Plugin {
 
 function appVersion(): string {
   const config = JSON.parse(
-    readFileSync(path.resolve(__dirname, 'src-tauri/tauri.conf.json'), 'utf8'),
+    readFileSync(path.resolve(import.meta.dirname, 'src-tauri/tauri.conf.json'), 'utf8'),
   );
   return config.version;
 }
@@ -81,7 +81,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
 });

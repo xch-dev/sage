@@ -260,7 +260,6 @@ for (const appName of systemAppNames) {
       `builtin-apps/src/system/apps/${appName}`,
       'builtin-apps/src/system/build.mjs',
       'builtin-apps/src/system/package.json',
-      'builtin-apps/src/system/tailwind.shared.js',
       'builtin-apps/src/system/tsconfig.base.json',
       'builtin-apps/src/system/vite.system-app.config.ts',
       'pnpm-lock.yaml',

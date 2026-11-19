@@ -188,7 +188,7 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
                 <Button
                   variant='outline'
                   type='button'
-                  className={`!border-l-0 !rounded-l-none flex-shrink-0 ${heightClass} w-10 px-0 ${maxButtonClassName || ''}`}
+                  className={`border-l-0! rounded-l-none! shrink-0 ${heightClass} w-10 px-0 ${maxButtonClassName || ''}`}
                   onClick={() => onWholeBalanceChange?.(false)}
                   aria-label={t`Enter an amount instead`}
                 >
@@ -217,7 +217,7 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
             decimalScale={precision}
             allowLeadingZeros={true}
             allowNegative={false}
-            className={`!rounded-r-none ${props.className || ''}`}
+            className={`rounded-r-none! ${props.className || ''}`}
           />
           {ticker && (
             <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
@@ -234,7 +234,7 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
                 variant='outline'
                 type='button'
                 tabIndex={-1}
-                className={`!border-l-0 !rounded-l-none flex-shrink-0 ${heightClass} w-10 px-0 ${maxButtonClassName || ''}`}
+                className={`border-l-0! rounded-l-none! shrink-0 ${heightClass} w-10 px-0 ${maxButtonClassName || ''}`}
                 onClick={handleMaxClick}
                 disabled={!hasBalance}
                 aria-label={t`Use maximum spendable balance`}
@@ -369,7 +369,7 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
             <Button
               variant='outline'
               type='button'
-              className={`!border-l-0 !rounded-l-none flex-shrink-0 ${heightClass} w-10 px-0`}
+              className={`border-l-0! rounded-l-none! shrink-0 ${heightClass} w-10 px-0`}
               onClick={() =>
                 setValue(
                   auto
@@ -425,7 +425,7 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
         onChange={onChange}
         onValueChange={onValueChange}
         placeholder={t`Enter network fee`}
-        className={`pr-12 ${allowAuto ? '!rounded-r-none' : ''} ${className || ''}`}
+        className={`pr-12 ${allowAuto ? 'rounded-r-none!' : ''} ${className || ''}`}
         ticker='xch'
         precision={12}
         hideMaxButton={true}

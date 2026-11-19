@@ -567,7 +567,7 @@ export function WalletCard({
                     <h3 className='font-semibold'>
                       <Trans>Mnemonic</Trans>
                     </h3>
-                    <p className='break-words text-sm text-muted-foreground'>
+                    <p className='wrap-break-word text-sm text-muted-foreground'>
                       <Spoiler theme={currentTheme?.mostLike ?? 'light'}>
                         {secrets.mnemonic}
                       </Spoiler>

@@ -23,7 +23,7 @@ export function MutableNftWarning({
       role='alert'
     >
       <TriangleAlert
-        className='mt-0.5 h-4 w-4 flex-shrink-0'
+        className='mt-0.5 h-4 w-4 shrink-0'
         aria-hidden='true'
       />
       <div className='flex flex-col gap-1'>
@@ -41,7 +41,7 @@ export function MutableNftWarning({
             identify it; verify the NFT ID instead.
           </Trans>
         </span>
-        <span className='break-words font-medium'>{labels.join(', ')}</span>
+        <span className='wrap-break-word font-medium'>{labels.join(', ')}</span>
       </div>
     </div>
   );

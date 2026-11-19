@@ -8,19 +8,19 @@
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.4.1",
     "@tauri-apps/api": "^2.10.1",
-    "sage-system-app-sdk": "workspace:*",
-    "sage-app-ui": "workspace:*",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "sage-app-ui": "workspace:*",
+    "sage-system-app-sdk": "workspace:*"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.8",
-    "tailwindcss": "^4.3.5",
     "postcss": "^8.5.33",
-    "autoprefixer": "^10.6.2"
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
   }
 }

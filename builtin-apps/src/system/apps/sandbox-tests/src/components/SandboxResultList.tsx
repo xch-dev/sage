@@ -116,7 +116,7 @@ export function SandboxResultList({
                             <button
                               type='button'
                               aria-label={`${formatCapabilityLabel(capability)} details`}
-                              className='flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-border text-[10px] text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                              className='flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-border text-[10px] text-muted-foreground hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
                             >
                               ?
                             </button>
@@ -126,7 +126,7 @@ export function SandboxResultList({
                               side='top'
                               sideOffset={8}
                               collisionPadding={16}
-                              className='z-50 w-max max-w-[min(280px,calc(100vw-32px))] break-words rounded-md border p-2 text-xs text-foreground shadow-md backdrop-blur-sm'
+                              className='z-50 w-max max-w-[min(280px,calc(100vw-32px))] wrap-break-word rounded-md border p-2 text-xs text-foreground shadow-md backdrop-blur-xs'
                               style={{
                                 backgroundColor:
                                   resolveBackgroundTintWithAlpha(),

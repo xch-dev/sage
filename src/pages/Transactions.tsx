@@ -216,7 +216,7 @@ export function Transactions() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className='absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10 rounded-md'
+                className='absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-xs z-10 rounded-md'
                 style={{ minHeight: '200px' }}
               >
                 <Loading size={40} text={t`Loading transactions...`} />
