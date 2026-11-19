@@ -12,12 +12,14 @@ It never writes to the databases or creates them. Opening one read-only can stil
 update its `-shm` file, as any SQLite reader does. Run it with `python3 -I`, from the repository
 root, while no Sage instance is using the root.
 
-Launching opens the active wallet's database, the shared databases and the apps database, so a
-problem in one of those blocks the launch. Other wallets are only opened when the user switches to
-them, so a problem in one of those is a warning.
+Launching opens the apps database, and the active wallet's database and shared database on the
+active wallet's network, so a problem in one of those blocks the launch. Other databases are only
+opened when the user switches wallet or network, so a problem in one of those is a warning.
 
-Exit status: 0 if nothing will change, 1 if this build will apply migrations the release doesn't
-have (ask the user first), 2 if launching would bring up the reset dialog (don't launch).
+Exit status: 0 if launching changes nothing the release depends on, 1 if it will apply migrations
+the release doesn't have (ask the user first), 2 if it would bring up the reset dialog (don't
+launch). Databases it doesn't open never raise the status, since only switching to them would
+migrate them or bring up the dialog.
 """
 
 import argparse
@@ -71,15 +73,64 @@ def release_migrations(tag, directory):
     return migrations
 
 
-def active_fingerprint(root):
-    """The wallet Sage opens at launch: `fingerprint` in the `[global]` section of config.toml."""
-    try:
-        config = (root / "config.toml").read_text()
-    except OSError:
-        return None
-    section = re.search(r"^\[global\]$(.*?)(?=^\[|\Z)", config, re.M | re.S)
-    match = section and re.search(r"^fingerprint\s*=\s*(\d+)\s*$", section.group(1), re.M)
+def toml_section(text, header):
+    """The body of a `[header]` section, or of each `[[header]]` table in an array."""
+    pattern = rf"^\[{re.escape(header)}\]$(.*?)(?=^\[|\Z)"
+    return re.findall(pattern, text, re.M | re.S)
+
+
+def toml_value(section, key):
+    match = re.search(rf"^{re.escape(key)}\s*=\s*\"?([^\"\n]*?)\"?\s*$", section, re.M)
     return match.group(1) if match else None
+
+
+def read(path):
+    try:
+        return path.read_text()
+    except OSError:
+        return ""
+
+
+def launch_databases(root):
+    """
+    The active wallet's fingerprint, and the wallet and shared databases a launch opens for it.
+    This follows `wallet_db_path` and `shared_db_path` in `crates/sage/src/sage.rs`: the wallet's
+    network in wallets.toml, or else the default network. For a custom network, whose ID can differ
+    from its name, the shared database's name is a guess.
+    """
+    config = read(root / "config.toml")
+    global_sections = toml_section(config, "global")
+    fingerprint = toml_value(global_sections[0], "fingerprint") if global_sections else None
+    if fingerprint is None:
+        return None, set()
+
+    network = None
+    for wallet in toml_section(read(root / "wallets.toml"), "[wallets]"):
+        if toml_value(wallet, "fingerprint") == fingerprint:
+            network = toml_value(wallet, "network")
+            break
+    if network is None:
+        network_sections = toml_section(config, "network")
+        network = toml_value(network_sections[0], "default_network") if network_sections else None
+    if network is None:
+        # The default in `sage-config`, used when config.toml doesn't set one.
+        network = "mainnet"
+
+    return fingerprint, {
+        root / "wallets" / fingerprint / f"{network}.sqlite",
+        root / "shared" / f"{network}.sqlite",
+    }
+
+
+def release_has_shared_databases(tag):
+    """Whether a release has the per-network shared databases, which came after v0.13.0."""
+    return (
+        subprocess.run(
+            ["git", "grep", "--quiet", "shared_db_path", tag, "--", "crates/sage/src/sage.rs"],
+            capture_output=True,
+        ).returncode
+        == 0
+    )
 
 
 def query(connection, sql):
@@ -136,18 +187,26 @@ def main():
         print(f"release comparison skipped: tag {release} not found (run git fetch --tags)")
         release = None
 
+    active, opened = launch_databases(args.root)
+    opened.add(args.root / "sage-apps.sqlite3")
+    print(f"active wallet: {active or 'none'}")
+
+    wallet_databases = set((args.root / "wallets").glob("*/*.sqlite"))
+    wallet_databases |= set((args.root / "shared").glob("*.sqlite"))
+    # The launch creates the active wallet's databases if they don't exist yet.
+    wallet_databases |= {path for path in opened if path.name.endswith(".sqlite")}
     sets = [
-        (WALLET_MIGRATIONS, sorted((args.root / "wallets").glob("*/*.sqlite"))
-         + sorted((args.root / "shared").glob("*.sqlite"))),
+        (WALLET_MIGRATIONS, sorted(wallet_databases)),
         (APPS_MIGRATIONS, [args.root / "sage-apps.sqlite3"]),
     ]
 
-    active = active_fingerprint(args.root)
-    print(f"active wallet: {active or 'none'}")
+    # A release without shared databases never opens them, so they can't fail in it.
+    shared_in_release = release is None or release_has_shared_databases(release)
 
-    def opened_at_launch(path):
-        parts = path.relative_to(args.root).parts
-        return parts[0] != "wallets" or parts[1] == active
+    def compared_with_release(path):
+        return release is not None and (
+            shared_in_release or path.relative_to(args.root).parts[0] != "shared"
+        )
 
     blocked = False
     will_migrate = False
@@ -183,26 +242,31 @@ def main():
             problems = problems_with(applied, expected)
             if problems:
                 details = "; ".join(problems)
-                if released is not None and problems_with(applied, released):
+                if compared_with_release(path) and problems_with(applied, released):
                     details += f" (it fails in {release} too)"
-                if opened_at_launch(path):
+                if path in opened:
                     blocked = True
                     print(f"{name}: WOULD SHOW THE RESET DIALOG: {details}")
                 else:
-                    print(f"{name}: would show the reset dialog if switched to: {details}")
+                    print(f"{name}: would show the reset dialog if opened: {details}")
                 continue
 
             pending = sorted(set(expected) - set(applied))
-            new_to_release = [version for version in pending if version in unreleased]
+            new_to_release = [
+                version
+                for version in pending
+                if version in unreleased and (release is None or compared_with_release(path))
+            ]
             verb = "will be created with" if not path.exists() else "will apply"
-            if new_to_release:
-                will_migrate = True
-                lacks = f", which {release} lacks" if release else ""
-                print(f"{name}: {verb} {', '.join(map(str, pending))}{lacks}")
-            elif pending:
-                print(f"{name}: {verb} {', '.join(map(str, pending))}")
-            else:
+            if not pending:
                 print(f"{name}: up to date")
+                continue
+            lacks = f", which {release} lacks" if release and new_to_release else ""
+            # Only the databases the launch opens are migrated by it.
+            when = "" if path in opened else " if opened"
+            if new_to_release and path in opened:
+                will_migrate = True
+            print(f"{name}: {verb} {', '.join(map(str, pending))}{lacks}{when}")
 
     sys.exit(2 if blocked else 1 if will_migrate else 0)
 
