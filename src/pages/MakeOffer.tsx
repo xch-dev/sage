@@ -75,16 +75,14 @@ export function MakeOffer() {
     const hasRequestedOptions =
       state.requested.options.filter((o) => o).length > 0;
 
-    if (
-      !(
-        hasOfferedTokens ||
-        hasOfferedNfts ||
-        hasRequestedTokens ||
-        hasRequestedNfts ||
-        hasOfferedOptions ||
-        hasRequestedOptions
-      )
-    ) {
+    if (!(
+      hasOfferedTokens ||
+      hasOfferedNfts ||
+      hasRequestedTokens ||
+      hasRequestedNfts ||
+      hasOfferedOptions ||
+      hasRequestedOptions
+    )) {
       addError({
         kind: 'invalid',
         reason: t`Offer must include at least one offered or requested asset.`,

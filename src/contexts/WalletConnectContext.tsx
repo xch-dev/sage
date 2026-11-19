@@ -964,7 +964,7 @@ function DefaultCommandDialog({ params }: { params: unknown }) {
 }
 
 const COMMAND_COMPONENTS: {
-  [K in WalletConnectCommand]?: (props: CommandDialogProps<K>) => JSX.Element;
+  [K in WalletConnectCommand]?: (props: CommandDialogProps<K>) => React.JSX.Element;
 } = {
   chip0002_signCoinSpends: SignCoinSpendsDialog,
   chip0002_signMessage: SignMessageDialog,
@@ -1056,7 +1056,7 @@ function RequestDialog({
   const CommandComponent = (COMMAND_COMPONENTS[method] ??
     DefaultCommandDialog) as (
     props: CommandDialogProps<WalletConnectCommand>,
-  ) => JSX.Element;
+  ) => React.JSX.Element;
 
   const parsedParams = useMemo(
     () => commandInfo.paramsType.parse(params),

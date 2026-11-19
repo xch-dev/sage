@@ -1,23 +1,22 @@
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ColumnDef, Row } from '@tanstack/react-table';
 import { useMemo } from 'react';
 import { SignatureIcon } from 'lucide-react';
 import { DerivationRecord } from '../bindings';
 import { AddressItem } from './AddressItem';
 import { SimplePagination } from './SimplePagination';
 import { Button } from './ui/button';
-import { DataTable } from './ui/data-table';
+import { DataTable, DataTableColumnDef, DataTableRow } from './ui/data-table';
 
 // Extract column header and cell components
 const IndexHeader = () => <Trans>Index</Trans>;
 
-const IndexCell = ({ row }: { row: Row<DerivationRecord> }) =>
+const IndexCell = ({ row }: { row: DataTableRow<DerivationRecord> }) =>
   row.original.index;
 
 const AddressHeader = () => <Trans>Address</Trans>;
 
-const AddressCell = ({ row }: { row: Row<DerivationRecord> }) => {
+const AddressCell = ({ row }: { row: DataTableRow<DerivationRecord> }) => {
   const address = row.getValue('address') as string;
   return (
     <AddressItem
@@ -32,7 +31,7 @@ const AddressCell = ({ row }: { row: Row<DerivationRecord> }) => {
 
 const PublicKeyHeader = () => <Trans>Public Key</Trans>;
 
-const PublicKeyCell = ({ row }: { row: Row<DerivationRecord> }) => {
+const PublicKeyCell = ({ row }: { row: DataTableRow<DerivationRecord> }) => {
   const publicKey = row.getValue('public_key') as string;
   return (
     <AddressItem
@@ -48,7 +47,7 @@ const ActionsHeader = () => <span className='sr-only'>{t`Actions`}</span>;
 
 const signMessageColumn = (
   onSignMessage: (address: string) => void,
-): ColumnDef<DerivationRecord> => ({
+): DataTableColumnDef<DerivationRecord> => ({
   id: 'actions',
   size: 40,
   header: ActionsHeader,
@@ -84,7 +83,7 @@ export default function AddressList(props: AddressListProps) {
     onSignMessage,
   } = props;
 
-  const columns: ColumnDef<DerivationRecord>[] = useMemo(
+  const columns: DataTableColumnDef<DerivationRecord>[] = useMemo(
     () => [
       {
         id: 'index',

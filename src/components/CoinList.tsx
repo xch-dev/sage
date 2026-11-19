@@ -3,13 +3,7 @@ import { spacescanCoinUrl } from '@/lib/urls';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import {
-  ColumnDef,
-  OnChangeFn,
-  Row,
-  RowSelectionState,
-  Table,
-} from '@tanstack/react-table';
+import { OnChangeFn, RowSelectionState } from '@tanstack/react-table';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { ArrowDown, ArrowUp, FilterIcon, FilterXIcon } from 'lucide-react';
 import { useMemo } from 'react';
@@ -18,10 +12,10 @@ import { NumberFormat } from './NumberFormat';
 import { SimplePagination } from './SimplePagination';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
-import { DataTable } from './ui/data-table';
+import { DataTable, DataTableColumnDef, DataTableInstance, DataTableRow } from './ui/data-table';
 
 // Extract column header and cell components
-const SelectAllHeader = ({ table }: { table: Table<CoinRecord> }) => (
+const SelectAllHeader = ({ table }: { table: DataTableInstance<CoinRecord> }) => (
   <div className='flex justify-center items-center'>
     <Checkbox
       checked={
@@ -34,7 +28,7 @@ const SelectAllHeader = ({ table }: { table: Table<CoinRecord> }) => (
   </div>
 );
 
-const SelectRowCell = ({ row }: { row: Row<CoinRecord> }) => (
+const SelectRowCell = ({ row }: { row: DataTableRow<CoinRecord> }) => (
   <div className='flex justify-center items-center'>
     <Checkbox
       checked={row.getIsSelected()}
@@ -87,7 +81,7 @@ const CoinIdCell = ({
   row,
   isTestnet,
 }: {
-  row: Row<CoinRecord>;
+  row: DataTableRow<CoinRecord>;
   isTestnet: boolean;
 }) => {
   const coinId = row.original.coin_id;
@@ -156,7 +150,7 @@ const AmountCell = ({
   row,
   precision,
 }: {
-  row: Row<CoinRecord>;
+  row: DataTableRow<CoinRecord>;
   precision: number;
 }) => (
   <div className='font-mono truncate'>
@@ -207,7 +201,7 @@ const ConfirmedHeader = ({
   </Button>
 );
 
-const ConfirmedCell = ({ row }: { row: Row<CoinRecord> }) =>
+const ConfirmedCell = ({ row }: { row: DataTableRow<CoinRecord> }) =>
   row.original.created_timestamp
     ? formatTimestamp(row.original.created_timestamp, 'short', 'short')
     : row.original.created_height
@@ -292,7 +286,7 @@ const ClawbackVersionHeader = ({
   </Button>
 );
 
-const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) => {
+const ClawbackCell = ({ row }: { row: DataTableRow<CoinRecord> }) => {
   const expiration = row.original.clawback_timestamp;
   if (expiration == null) {
     return t`No expiration`;
@@ -316,7 +310,7 @@ const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) => {
   return formatTimestamp(lockSeconds, 'short', 'short');
 };
 
-const ClawbackVersionCell = ({ row }: { row: Row<CoinRecord> }) =>
+const ClawbackVersionCell = ({ row }: { row: DataTableRow<CoinRecord> }) =>
   row.original.clawback_version;
 
 const SpentHeader = ({
@@ -388,7 +382,7 @@ const SpentHeader = ({
   </div>
 );
 
-const SpentCell = ({ row }: { row: Row<CoinRecord> }) =>
+const SpentCell = ({ row }: { row: DataTableRow<CoinRecord> }) =>
   row.original.spent_timestamp
     ? formatTimestamp(row.original.spent_timestamp, 'short', 'short')
     : row.original.spent_height
@@ -468,12 +462,12 @@ const AmountCellWrapper = ({
   row,
   precision,
 }: {
-  row: Row<CoinRecord>;
+  row: DataTableRow<CoinRecord>;
   precision: number;
 }) => <AmountCell row={row} precision={precision} />;
 
 // Factory function to create columns outside the component
-const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
+const createColumns = (props: CoinListProps): DataTableColumnDef<CoinRecord>[] => [
   {
     id: 'select',
     size: 30,
@@ -485,7 +479,7 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
     accessorKey: 'coin_id',
     size: 100,
     header: () => <CoinIdHeaderWrapper {...props} />,
-    cell: ({ row }: { row: Row<CoinRecord> }) => (
+    cell: ({ row }: { row: DataTableRow<CoinRecord> }) => (
       <CoinIdCell row={row} isTestnet={props.isTestnet} />
     ),
   },
@@ -493,7 +487,7 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
     accessorKey: 'amount',
     size: 100,
     header: () => <AmountHeaderWrapper {...props} />,
-    cell: ({ row }: { row: Row<CoinRecord> }) => (
+    cell: ({ row }: { row: DataTableRow<CoinRecord> }) => (
       <AmountCellWrapper row={row} precision={props.precision} />
     ),
   },
@@ -556,7 +550,7 @@ export default function CoinList(props: CoinListProps) {
   // Use the factory function to create columns
   const columns = useMemo(() => createColumns(props), [props]);
 
-  const getRowStyles = (row: Row<CoinRecord>) => {
+  const getRowStyles = (row: DataTableRow<CoinRecord>) => {
     const coin = row.original;
     const isSpent = !!coin.spent_height || !!coin.transaction_id;
     const isSelected = row.getIsSelected();

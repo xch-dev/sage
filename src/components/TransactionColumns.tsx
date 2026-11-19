@@ -1,3 +1,4 @@
+import { DataTableColumnDef } from '@/components/ui/data-table';
 import { AssetKind } from '@/bindings';
 import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -10,7 +11,6 @@ import {
 import { formatAddress, formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ColumnDef } from '@tanstack/react-table';
 import { Copy, MoreHorizontal, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -34,7 +34,7 @@ export interface FlattenedTransaction {
   transactionId?: string;
 }
 
-export const columns: ColumnDef<FlattenedTransaction>[] = [
+export const columns: DataTableColumnDef<FlattenedTransaction>[] = [
   {
     accessorKey: 'transactionHeight',
     header: ({ column }) => (

@@ -1,3 +1,4 @@
+import { DataTableColumnDef } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,7 +11,6 @@ import { formatFiatPrice, getAssetDisplayName, toDecimal } from '@/lib/utils';
 import { PricedTokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ColumnDef } from '@tanstack/react-table';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   CircleAlertIcon,
@@ -38,7 +38,7 @@ export const columns = (
   actionHandlers: TokenActionHandlers | undefined,
   isTestnet: boolean,
   currency: string | null,
-): ColumnDef<PricedTokenRecord>[] => [
+): DataTableColumnDef<PricedTokenRecord>[] => [
   {
     id: 'icon',
     enableSorting: false,
@@ -213,7 +213,7 @@ export const columns = (
   },
 ];
 
-function fiatColumns(currency: string): ColumnDef<PricedTokenRecord>[] {
+function fiatColumns(currency: string): DataTableColumnDef<PricedTokenRecord>[] {
   return [
     {
       accessorKey: 'balanceInFiat',

@@ -1,9 +1,7 @@
 import { Button } from '@/components/ui/button';
 
 export type AppsLaunchpadContextMenuUpdateState =
-  | 'idle'
-  | 'checking'
-  | 'up_to_date';
+  'idle' | 'checking' | 'up_to_date';
 
 interface Props {
   open: boolean;
