@@ -12,10 +12,19 @@ import { NumberFormat } from './NumberFormat';
 import { SimplePagination } from './SimplePagination';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
-import { DataTable, DataTableColumnDef, DataTableInstance, DataTableRow } from './ui/data-table';
+import {
+  DataTable,
+  DataTableColumnDef,
+  DataTableInstance,
+  DataTableRow,
+} from './ui/data-table';
 
 // Extract column header and cell components
-const SelectAllHeader = ({ table }: { table: DataTableInstance<CoinRecord> }) => (
+const SelectAllHeader = ({
+  table,
+}: {
+  table: DataTableInstance<CoinRecord>;
+}) => (
   <div className='flex justify-center items-center'>
     <Checkbox
       checked={
@@ -467,7 +476,9 @@ const AmountCellWrapper = ({
 }) => <AmountCell row={row} precision={precision} />;
 
 // Factory function to create columns outside the component
-const createColumns = (props: CoinListProps): DataTableColumnDef<CoinRecord>[] => [
+const createColumns = (
+  props: CoinListProps,
+): DataTableColumnDef<CoinRecord>[] => [
   {
     id: 'select',
     size: 30,

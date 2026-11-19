@@ -62,9 +62,7 @@ export function AddressContacts({
           type='button'
           className={cn(
             'inline-flex max-w-full items-center gap-1 rounded-md border bg-background font-medium leading-none hover:bg-accent focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
-            compact
-              ? 'max-w-48 px-1 py-0.5 text-xs'
-              : 'px-1.5 py-1 text-xs',
+            compact ? 'max-w-48 px-1 py-0.5 text-xs' : 'px-1.5 py-1 text-xs',
             warning
               ? 'border-dashed border-amber-500/70 text-amber-700 dark:text-amber-400'
               : 'text-foreground',
@@ -161,7 +159,9 @@ function ContactDetails({ contact }: { contact: ContactRecord }) {
       )}
 
       {contact.note && (
-        <div className='wrap-break-word text-muted-foreground'>{contact.note}</div>
+        <div className='wrap-break-word text-muted-foreground'>
+          {contact.note}
+        </div>
       )}
     </div>
   );

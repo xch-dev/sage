@@ -964,7 +964,9 @@ function DefaultCommandDialog({ params }: { params: unknown }) {
 }
 
 const COMMAND_COMPONENTS: {
-  [K in WalletConnectCommand]?: (props: CommandDialogProps<K>) => React.JSX.Element;
+  [K in WalletConnectCommand]?: (
+    props: CommandDialogProps<K>,
+  ) => React.JSX.Element;
 } = {
   chip0002_signCoinSpends: SignCoinSpendsDialog,
   chip0002_signMessage: SignMessageDialog,

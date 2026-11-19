@@ -97,9 +97,7 @@ export function AddressHandles({
           type='button'
           className={cn(
             'inline-flex max-w-full items-center gap-1 rounded-md border bg-background font-medium leading-none hover:bg-accent focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
-            compact
-              ? 'max-w-48 px-1 py-0.5 text-xs'
-              : 'px-1.5 py-1 text-xs',
+            compact ? 'max-w-48 px-1 py-0.5 text-xs' : 'px-1.5 py-1 text-xs',
             TRUST_STYLES[trust],
             className,
           )}

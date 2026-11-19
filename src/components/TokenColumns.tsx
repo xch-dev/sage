@@ -213,7 +213,9 @@ export const columns = (
   },
 ];
 
-function fiatColumns(currency: string): DataTableColumnDef<PricedTokenRecord>[] {
+function fiatColumns(
+  currency: string,
+): DataTableColumnDef<PricedTokenRecord>[] {
   return [
     {
       accessorKey: 'balanceInFiat',

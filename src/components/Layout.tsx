@@ -51,9 +51,7 @@ function WalletTransitionWrapper({
             <Banner
               message={t`Watch-only wallet — these addresses can't be spent from here`}
               aria-label={t`Watch-only wallet`}
-              icon={
-                <Eye className='h-3 w-3 shrink-0' aria-hidden='true' />
-              }
+              icon={<Eye className='h-3 w-3 shrink-0' aria-hidden='true' />}
             />
           ) : (
             isReadOnly && (
@@ -61,10 +59,7 @@ function WalletTransitionWrapper({
                 message={t`Read-only wallet — transactions require private keys`}
                 aria-label={t`Read-only wallet`}
                 icon={
-                  <Snowflake
-                    className='h-3 w-3 shrink-0'
-                    aria-hidden='true'
-                  />
+                  <Snowflake className='h-3 w-3 shrink-0' aria-hidden='true' />
                 }
               />
             )

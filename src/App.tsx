@@ -1,7 +1,7 @@
 import { discoverThemes, resolveThemeImage } from '@/lib/themes';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
@@ -168,7 +168,7 @@ export default function App() {
     getBrowserLanguage,
   );
   // Read once: theme-o-rama reloads every theme when `defaultTheme` changes.
-  const [defaultTheme] = useState(() => getStoredTheme() ?? 'light');
+  const defaultTheme = useRef(getStoredTheme() ?? 'light').current;
 
   return (
     <LanguageProvider locale={locale} setLocale={setLocale}>
