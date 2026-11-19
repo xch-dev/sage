@@ -60,10 +60,10 @@
   },
   "dependencies": {
     "bech32": "^2.0.0",
-    "picomatch": "^4.0.4"
+    "picomatch": "^4.0.7"
   },
   "devDependencies": {
-    "tsup": "^8.5.1",
-    "typescript": "^5.6.3"
+    "tsup": "^9.0.0",
+    "typescript": "^7.0.2"
   }
 }

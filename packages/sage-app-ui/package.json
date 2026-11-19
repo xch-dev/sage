@@ -14,12 +14,12 @@
   "dependencies": {
     "sage-system-app-sdk": "workspace:*",
     "@tauri-apps/plugin-os": "^2.3.2",
-    "lucide-react": "^0.468.0",
-    "react": "^18.3.1"
+    "lucide-react": "^1.73.0",
+    "react": "^19.3.1"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "tsup": "^8.5.0"
+    "typescript": "^7.0.2",
+    "tsup": "^9.0.0"
   },
   "scripts": {
     "build": "tsup"
