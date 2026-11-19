@@ -36,6 +36,7 @@ interface AutoFeeInputProps {
   heightClass: string;
   /** Shown at the end of the input, to switch to entering an amount. */
   modeButton: React.ReactNode;
+  className?: string;
 }
 
 /**
@@ -48,6 +49,7 @@ export function AutoFeeInput({
   onKeyDown,
   heightClass,
   modeButton,
+  className,
 }: AutoFeeInputProps) {
   const feeRates = useFeeRates();
   const tier = autoFeeTier(value);
@@ -78,7 +80,7 @@ export function AutoFeeInput({
   };
 
   return (
-    <div>
+    <div className={className}>
       <div className='flex'>
         <div
           className={`flex flex-1 min-w-0 items-center justify-between gap-1 rounded-md rounded-r-none border border-input bg-muted/40 pr-1.5 text-sm focus-within:ring-1 focus-within:ring-ring ${heightClass}`}

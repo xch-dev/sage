@@ -295,6 +295,8 @@ IntegerInput.displayName = 'IntegerInput';
 interface FeeAmountInputProps extends Omit<TokenInputProps, 'value'> {
   value?: string;
   className?: string;
+  /** Classes for the outermost element, such as a width that holds in every mode. */
+  wrapperClassName?: string;
   /** Whether the fee can be calculated automatically. */
   allowAuto?: boolean;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -310,7 +312,15 @@ interface FeeAmountInputProps extends Omit<TokenInputProps, 'value'> {
 
 const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
   (
-    { value, className, allowAuto = true, onChange, onValueChange, ...props },
+    {
+      value,
+      className,
+      wrapperClassName,
+      allowAuto = true,
+      onChange,
+      onValueChange,
+      ...props
+    },
     ref,
   ) => {
     const { fee: storedDefaultFee } = useDefaultFee();
@@ -401,6 +411,7 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
           onKeyDown={props.onKeyDown}
           heightClass={heightClass}
           modeButton={modeButton(true)}
+          className={wrapperClassName}
         />
       );
     }
@@ -422,11 +433,13 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
     );
 
     if (!allowAuto) {
-      return <div className='relative'>{input}</div>;
+      return (
+        <div className={`relative ${wrapperClassName ?? ''}`}>{input}</div>
+      );
     }
 
     return (
-      <div className='flex'>
+      <div className={`flex ${wrapperClassName ?? ''}`}>
         <div className='relative flex-1 min-w-0'>{input}</div>
         {modeButton(false)}
       </div>
