@@ -49,7 +49,7 @@ Then start two watchers:
 
    When it expires, re-arm it with `tail -n 0 -F` so lines you've already seen aren't sent again. If a line keeps repeating and floods the monitor, re-arm with a `grep -v` for it. Still count it in the final report. The usual causes are peer connection warnings and `Hash mismatch` warnings, which appear when an NFT's metadata or license link points at a page that has changed since minting.
 
-Tell the user that the build is starting, what's being built (branch, HEAD, whether the tree is dirty), the root it's using, and that you'll report when they close the app. Then end your turn. A worktree's first build compiles everything and can take ten minutes or more; later builds only recompile what changed. `dev:prepare` runs helper binaries first (`Running \`target/debug/export_bridge_types ...\``), which don't mean the window is up. Tell the user it's up when you see `Running`for`target/debug/sage-tauri`.
+Tell the user that the build is starting, what's being built (branch, HEAD, whether the tree is dirty), the root it's using, and that you'll report when they close the app. Then end your turn. A worktree's first build compiles everything and can take ten minutes or more; later builds only recompile what changed. `dev:prepare` runs helper binaries first, which log `Running` lines for `target/debug/export_bridge_types`. Those don't mean the window is up. It's up when the `Running` line is for `target/debug/sage-tauri`, so tell the user then.
 
 ## 4. While it runs
 

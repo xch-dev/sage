@@ -24,25 +24,17 @@ Run these together with the general preflight, before launching:
   - _A database is newer than this build._ This happens when the branch is behind a build that already ran on this root, such as another worktree's. In this case the dev build offers the reset, or panics at startup if it's `sage-apps.sqlite3`.
   - _This build migrates a database past the installed release._ In this case the installed release offers the reset the next time it opens that wallet. For `sage-apps.sqlite3`, the installed release panics at startup instead. That lasts until a release with those migrations ships.
 
-  The app must be closed (see above) for the check. Compare the highest migration each database has applied with the highest one this build ships (`migrations/` for wallet and shared databases, `crates/sage-apps/src/db/migrations` for `sage-apps.sqlite3`) and the one the installed release ships. Get the release version with `defaults read /Applications/Sage.app/Contents/Info.plist CFBundleShortVersionString`, then `git fetch --tags --quiet` and list `git ls-tree --name-only v<version> -- migrations/ crates/sage-apps/src/db/migrations/`. If Sage isn't installed in `/Applications`, skip the release comparison and say so. Read each database's applied version without writing to it:
+  A migration that changed or failed causes the same dialog, because sqlx compares the checksum of every applied migration with the build's file and rejects a failed one. That happens, for example, when two branches each add a different migration with the same number, or a migration is edited after an earlier dev run applied it.
+
+  The app must be closed (see above) for the check. Get the installed release's version with `defaults read /Applications/Sage.app/Contents/Info.plist CFBundleShortVersionString`, and run `git fetch --tags --quiet`. Then run this from the repository root. It only reads the databases:
 
   ```bash
-  R="$HOME/Library/Application Support/com.rigidnetwork.sage"
-  applied() {
-    # Databases in WAL mode with no -shm file can't be opened read-only, and immutable mode
-    # ignores the WAL, so it's only a fallback when there's no WAL file to miss.
-    sqlite3 -readonly "$1" 'select max(version) from _sqlx_migrations' 2>/dev/null && return
-    [ -e "$1-wal" ] && { echo unreadable; return; }
-    sqlite3 "file:$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$1")?immutable=1" \
-      'select max(version) from _sqlx_migrations' 2>/dev/null || echo unreadable
-  }
-  { find "$R/wallets" "$R/shared" -name '*.sqlite' 2>/dev/null; echo "$R/sage-apps.sqlite3"; } |
-    while read -r f; do echo "$(applied "$f") ${f#"$R"/}"; done
+  python3 -I .claude/skills/dev-my-wallets/scripts/check_migrations.py --release v<version>
   ```
 
-  Then:
-  - **A database is ahead of this build:** don't launch. Tell the user which databases and versions are affected, and that the branch needs the newer migrations (usually a rebase onto `origin/main`). Tell them never to confirm a "Database Migration Required" dialog in a dev build on their real data.
-  - **This build is ahead of the installed release:** ask before launching. List the migrations and which databases are behind them. Wallet and shared databases are only migrated when a wallet on that network is opened, while `sage-apps.sqlite3` is migrated at launch. Explain what happens to the installed release afterwards, as described above. Don't continue without their go-ahead.
+  If Sage isn't installed in `/Applications`, leave out `--release` and say that the release comparison was skipped. The script prints one line per database and exits with status 2 if launching would bring up the dialog, 1 if this build will apply migrations, and 0 if nothing changes. Then:
+  - **Any database "WOULD SHOW THE RESET DIALOG":** don't launch. Tell the user which databases are affected and why. If the database is ahead of the branch, the branch needs those migrations, usually from a rebase onto `origin/main`. If a migration differs, the database was migrated by another branch's or an older build's version of it. Tell them never to confirm a "Database Migration Required" dialog in a dev build on their real data, and let them decide what to do.
+  - **Databases "will apply" migrations that the release doesn't have:** ask before launching. Say which migrations and how many databases. Wallet and shared databases are only migrated when a wallet on that network is opened, while `sage-apps.sqlite3` is migrated at launch. Explain what happens to the installed release afterwards, as described above. If a migration isn't released yet, the release fails the same way if that migration changes before it ships. Don't continue without their go-ahead.
   - **A database is unreadable:** say which one, and treat it as unknown when deciding.
   - Keep the output. The report compares against it.
 
@@ -59,5 +51,5 @@ Run these together with the general preflight, before launching:
 
 When the app closes, also report:
 
-- **Which databases were migrated.** Run the `applied` check again and compare it with the preflight output. sqlx doesn't log migrations. The log's "Migrating to version" lines are Sage's own data migrations and are worth listing too.
+- **Which databases were migrated.** Run the script again and compare its output with the preflight's. sqlx doesn't log migrations. The log's "Migrating to version" lines are Sage's own data migrations and are worth listing too.
 - **Wallet-level errors tied to a fingerprint**, such as sync failures, along with the fingerprint. Fingerprints are public, so they're fine to show.
