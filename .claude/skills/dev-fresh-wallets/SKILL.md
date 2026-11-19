@@ -11,8 +11,9 @@ Follow `.claude/skills/dev-fresh-wallets/references/dev-session.md` for the whol
 
 ## The root
 
-- By default, use a new directory, `$S/root`, inside the session directory.
-- If the user asks to reuse a previous fresh root ("same wallets as last time", or a path), use that directory instead. Earlier roots are in `<scratchpad>/dev-session/*/root`. If they don't name one, pick the most recent root that has a `wallets.toml`.
+- By default, use a new directory, `$S/root`, inside the session directory. It's temporary. The scratchpad belongs to this session, and macOS clears `/private/tmp` on reboot.
+- If the user asks for the same wallets as an earlier launch in this session, reuse the most recent root that has a `wallets.toml`: `ls -dt <scratchpad>/dev-session/*/root 2>/dev/null`. Roots from other sessions can't be found this way.
+- If the user gives a path, use it as is, creating it if needed. That's how to keep a root across sessions, for example `~/sage-profiles/<name>`, which the README uses as its example.
 - Pass an absolute path. `pnpm tauri:dev` starts the app from `src-tauri`, so a relative path would resolve against that directory.
 
 The `<ENV>` for the launch command is `SAGE_ROOT="<absolute root>"`.
@@ -31,7 +32,7 @@ The root stores fresh test keys in `keys.bin`. Don't copy them anywhere or print
 
 When the app closes, also report:
 
-- The root's path, and that it can be reused next time with "same wallets as last time".
+- The root's path. If it's in the scratchpad, say that it can be reused for the rest of this session, and that to keep it longer the user can copy it somewhere durable and pass that path next time.
 - What was created: wallet fingerprints and networks from `wallets.toml` and `wallets/`, and anything changed from the defaults in `config.toml`.
 
 Leave the root in place. Delete it only if the user asks.

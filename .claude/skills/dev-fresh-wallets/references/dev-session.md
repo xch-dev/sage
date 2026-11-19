@@ -20,7 +20,7 @@ Run these in one go:
 
 - **What's being built.** Get the branch, `git rev-parse --short HEAD`, and `git status --short`. Uncommitted changes are part of the build, so tell the user up front if there are any.
 - **Ports.** Vite needs 1420 and the system-apps watcher needs 1421, and both use strict ports: `lsof -nP -iTCP:1420 -iTCP:1421 -sTCP:LISTEN`. If either is taken, find out what holds it (`lsof -a -p <pid> -d cwd`). It's usually a dev session running from another Sage worktree. Tell the user and ask before stopping it. Never kill a process you didn't start without asking.
-- **Dependencies.** If `node_modules` is missing, or `pnpm-lock.yaml` is newer than `node_modules/.modules.yaml`, run `pnpm install` first.
+- **Dependencies.** If `node_modules` is missing, or `pnpm-lock.yaml` is newer than `node_modules/.modules.yaml`, run `pnpm install --frozen-lockfile` first. If that fails with `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`, the global pnpm is older than the one `packageManager` in `package.json` pins, and it ignores the overrides in `pnpm-workspace.yaml`. Install with the pinned version instead (`CI=true npx -y pnpm@<version> install --frozen-lockfile`), and never let an install rewrite `pnpm-lock.yaml`.
 
 ## 3. Launch
 
@@ -47,9 +47,9 @@ Then start two watchers:
      | grep -E --line-buffered ' (ERROR|WARN) |panicked|^error(\[E[0-9]+\])?:|Running `|Rebuilding|Sage wallet initialized|Internal server error|Pre-transform error|already in use|ELIFECYCLE|Error:'
    ```
 
-   When it expires, re-arm it with `tail -n 0 -F` so lines you've already seen aren't sent again. If a line keeps repeating and floods the monitor (peer connection warnings are the usual cause), re-arm with a `grep -v` for it. Still count it in the final report.
+   When it expires, re-arm it with `tail -n 0 -F` so lines you've already seen aren't sent again. If a line keeps repeating and floods the monitor, re-arm with a `grep -v` for it. Still count it in the final report. The usual causes are peer connection warnings and `Hash mismatch` warnings, which appear when an NFT's metadata or license link points at a page that has changed since minting.
 
-Tell the user that the build is starting, what's being built (branch, HEAD, whether the tree is dirty), the root it's using, and that you'll report when they close the app. Then end your turn. The first build after a Rust change can take a few minutes. `Running \`target/...\`` means the window is about to open, so tell the user it's up when you see that line.
+Tell the user that the build is starting, what's being built (branch, HEAD, whether the tree is dirty), the root it's using, and that you'll report when they close the app. Then end your turn. A worktree's first build compiles everything and can take ten minutes or more; later builds only recompile what changed. `dev:prepare` runs helper binaries first (`Running \`target/debug/export_bridge_types ...\``), which don't mean the window is up. Tell the user it's up when you see `Running`for`target/debug/sage-tauri`.
 
 ## 4. While it runs
 
