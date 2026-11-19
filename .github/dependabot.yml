@@ -1,0 +1,67 @@
+version: 2
+updates:
+  - package-ecosystem: 'cargo'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    groups:
+      cargo-deps:
+        patterns:
+          - '*'
+    ignore:
+      # Must match the chia_rs version used by chia-wallet-sdk, so these are
+      # bumped alongside it rather than independently.
+      - dependency-name: 'chia_streamable_macro'
+        update-types:
+          ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: 'chia-traits'
+        update-types:
+          ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: 'chia-sha2'
+        update-types:
+          ['version-update:semver-major', 'version-update:semver-minor']
+      # tauri-runtime, tauri-runtime-wry, tauri-utils and wry are patched to
+      # forks at fixed revisions (see [patch.crates-io] in Cargo.toml). A Tauri
+      # release that needs newer versions of them would quietly stop using the
+      # forks, so Tauri is bumped by hand together with the forks.
+      - dependency-name: 'tauri'
+      - dependency-name: 'tauri-build'
+      - dependency-name: 'tauri-plugin'
+      # The Tauri CLI requires each plugin crate to match the major and minor
+      # version of its @tauri-apps/plugin-* npm package, so these are bumped by
+      # hand together with the npm packages.
+      - dependency-name: 'tauri-plugin-*'
+        update-types:
+          ['version-update:semver-major', 'version-update:semver-minor']
+      # Release candidates that pin each other exactly, and that change the
+      # generated src/bindings.ts, so they are bumped by hand together.
+      - dependency-name: 'specta'
+      - dependency-name: 'specta-typescript'
+      - dependency-name: 'tauri-specta'
+
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    groups:
+      npm-deps:
+        patterns:
+          - '*'
+    ignore:
+      # Must match the major and minor version of the tauri and tauri-plugin-*
+      # crates, so these are bumped by hand together with them.
+      - dependency-name: '@tauri-apps/api'
+        update-types:
+          ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: '@tauri-apps/plugin-*'
+        update-types:
+          ['version-update:semver-major', 'version-update:semver-minor']
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    groups:
+      actions-deps:
+        patterns:
+          - '*'
