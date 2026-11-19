@@ -109,6 +109,7 @@ function Id({ kind, id }: { kind: AssetKind | 'coin'; id: string }) {
       break;
     case 'nft':
     case 'did':
+    case 'vault':
       label = t`Launcher ID`;
       toastMessage = t`Launcher ID copied to clipboard`;
       break;

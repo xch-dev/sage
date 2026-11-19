@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT hash FROM assets\n        WHERE kind = 4\n        AND NOT EXISTS (SELECT 1 FROM coins WHERE coins.asset_id = assets.id)\n        ORDER BY id ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2086ff3c6ca22b5cf6bdca54597cb8c5639a989ff2206d7fe1a852715c9fc5dc"
+}
