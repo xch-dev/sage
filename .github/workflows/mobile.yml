@@ -34,7 +34,7 @@ jobs:
             build: 'pnpm tauri android build'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Add aarch64-apple-ios
         if: matrix.platform_type == 'iOS'
@@ -82,10 +82,10 @@ jobs:
           echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Cache PNPM dependencies
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
@@ -146,14 +146,14 @@ jobs:
 
       # iOS
       - name: Upload IPA (iOS)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: matrix.platform_type == 'iOS'
         with:
           name: ${{ matrix.ipa_name }}.ipa
           path: artifacts/ios/${{ matrix.ipa_name }}.ipa
 
       - name: Release (iOS)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         if: matrix.platform_type == 'iOS' && startsWith(github.event.ref, 'refs/tags/v')
         with:
           files: |
@@ -168,21 +168,21 @@ jobs:
 
       # Android
       - name: Upload AAB (Android)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: matrix.platform_name == 'Android'
         with:
           name: Sage_Android.aab
           path: src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab
 
       - name: Upload APK (Android)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: matrix.platform_name == 'Android'
         with:
           name: Sage_Android.apk
           path: src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
 
       - name: Release (Android)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         if: matrix.platform_name == 'Android' && startsWith(github.event.ref, 'refs/tags/v')
         with:
           files: |
