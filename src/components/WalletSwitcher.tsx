@@ -314,21 +314,26 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
       <>
         <button
           type='button'
-          className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+          className={`flex min-w-0 items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+          title={wallet?.name}
           onClick={() => navigate('/wallet')}
         >
           {wallet?.emoji ? (
-            <span className='text-xl' role='img' aria-label='Wallet emoji'>
+            <span
+              className='shrink-0 text-xl'
+              role='img'
+              aria-label='Wallet emoji'
+            >
               {wallet.emoji}
             </span>
           ) : (
             <img
               src={currentTheme?.mostLike === 'light' ? iconDark : iconLight}
-              className='h-6 w-6'
+              className='h-6 w-6 shrink-0'
               alt={t`Wallet icon`}
             />
           )}
-          <span className='text-lg'>{wallet?.name ?? t`Wallet`}</span>
+          <span className='truncate text-lg'>{wallet?.name ?? t`Wallet`}</span>
         </button>
         {migrationDialog}
       </>
@@ -342,24 +347,31 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
         <DropdownMenuTrigger asChild>
           <button
             type='button'
-            className={`flex items-center gap-2 font-semibold font-heading group ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+            className={`flex min-w-0 items-center gap-2 font-semibold font-heading group ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+            title={wallet?.name}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
             {wallet?.emoji ? (
-              <span className='text-xl' role='img' aria-label='Wallet emoji'>
+              <span
+                className='shrink-0 text-xl'
+                role='img'
+                aria-label='Wallet emoji'
+              >
                 {wallet.emoji}
               </span>
             ) : (
               <img
                 src={currentTheme?.mostLike === 'light' ? iconDark : iconLight}
-                className='h-6 w-6'
+                className='h-6 w-6 shrink-0'
                 alt={t`Wallet icon`}
               />
             )}
-            <span className='text-lg'>{wallet?.name ?? t`Wallet`}</span>
+            <span className='truncate text-lg'>
+              {wallet?.name ?? t`Wallet`}
+            </span>
             <ChevronDown
-              className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+              className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
               aria-hidden='true'
             />
           </button>
