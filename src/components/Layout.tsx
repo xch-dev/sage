@@ -108,7 +108,7 @@ export function FullLayout(props: LayoutProps) {
         >
           <div className='bg-background flex h-full max-h-screen flex-col gap-2'>
             <div
-              className={`flex h-14 items-center pt-2 px-5 ${isCollapsed ? 'flex-col gap-2 justify-center' : 'justify-between'}`}
+              className={`flex h-14 items-center pt-2 px-5 ${isCollapsed ? 'flex-col gap-2 justify-center' : 'justify-between gap-2'}`}
             >
               <WalletSwitcher isCollapsed={isCollapsed} wallet={wallet} />
               <Tooltip>
@@ -116,7 +116,7 @@ export function FullLayout(props: LayoutProps) {
                   <button
                     type='button'
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className='text-muted-foreground hover:text-primary transition-colors'
+                    className='shrink-0 text-muted-foreground hover:text-primary transition-colors'
                     aria-label={
                       isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`
                     }
