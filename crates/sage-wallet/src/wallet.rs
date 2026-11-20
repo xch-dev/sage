@@ -41,7 +41,7 @@ pub use options::*;
 pub use signing::*;
 pub use wallet_kind::*;
 
-use crate::WalletError;
+use crate::{CoinSelectionAsset, WalletError};
 
 /// Shows that a wallet's spend lock is held, until it's dropped. See [`Wallet::lock_spends`].
 #[derive(Debug)]
@@ -149,7 +149,7 @@ impl Wallet {
         let mut selectable_coins = self.db.selectable_xch_coins().await?;
         selectable_coins.retain(|coin| !selected_coin_ids.contains(&coin.coin_id()));
 
-        Ok(select_coins(selectable_coins, amount)?)
+        select_coins_of(CoinSelectionAsset::Xch, selectable_coins, amount)
     }
 
     async fn select_cat_coins(
@@ -169,10 +169,12 @@ impl Wallet {
             selectable_coins.push(cat.coin);
         }
 
-        Ok(select_coins(selectable_coins, amount)?
-            .into_iter()
-            .map(|coin| cats[&coin])
-            .collect())
+        Ok(
+            select_coins_of(CoinSelectionAsset::Cat(asset_id), selectable_coins, amount)?
+                .into_iter()
+                .map(|coin| cats[&coin])
+                .collect(),
+        )
     }
 
     pub async fn spend(
@@ -558,4 +560,22 @@ impl Wallet {
 
         Ok(spends.spend(ctx, coin_spends)?)
     }
+}
+
+/// Selects coins of `asset` covering `amount`, saying what was short if they can't.
+fn select_coins_of(
+    asset: CoinSelectionAsset,
+    selectable_coins: Vec<Coin>,
+    amount: u64,
+) -> Result<Vec<Coin>, WalletError> {
+    let available = selectable_coins
+        .iter()
+        .fold(0u64, |total, coin| total.saturating_add(coin.amount));
+
+    select_coins(selectable_coins, amount).map_err(|error| WalletError::InsufficientCoins {
+        asset,
+        needed: amount,
+        available,
+        error,
+    })
 }

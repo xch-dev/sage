@@ -275,7 +275,7 @@ mod tests {
     use test_log::test;
     use tokio::time::sleep;
 
-    use crate::{SyncEvent, TestWallet, WalletError, assert_before_seconds};
+    use crate::{CoinSelectionAsset, SyncEvent, TestWallet, WalletError, assert_before_seconds};
 
     // Test-only: Sage never creates V1. Emits REMARK metadata + receiver discovery hint.
     // Returns (coin_id, info, inclusion_block_timestamp).
@@ -408,6 +408,29 @@ mod tests {
 
         assert_eq!(test.wallet.db.xch_balance().await?, 1000);
         assert_eq!(test.wallet.db.selectable_xch_coins().await?.len(), 1);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_send_xch_short_of_the_fee() -> anyhow::Result<()> {
+        let test = TestWallet::new(1000).await?;
+
+        let error = test
+            .wallet
+            .send_xch(vec![(test.puzzle_hash, 1000)], 1, vec![], None)
+            .await
+            .expect_err("the fee doesn't fit");
+
+        assert!(matches!(
+            error,
+            WalletError::InsufficientCoins {
+                asset: CoinSelectionAsset::Xch,
+                needed: 1001,
+                available: 1000,
+                ..
+            }
+        ));
 
         Ok(())
     }
