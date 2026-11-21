@@ -8,6 +8,7 @@ import { useWallet } from '@/contexts/WalletContext';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import { useNetwork } from '@/hooks/useNetwork';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
+import { splitOfferNfts } from '@/state';
 import { offersEnabled } from '@/lib/features';
 import { mintGardenCollectionUrl, mintGardenDidUrl } from '@/lib/urls';
 //import { getMintGardenProfile } from '@/lib/marketplaces';
@@ -56,7 +57,6 @@ interface NftGroupCardProps {
   isLoading?: boolean;
   error?: Error;
   isPlaceHolder?: boolean;
-  setSplitNftOffers?: (value: boolean) => void;
 }
 
 export function NftGroupCard({
@@ -69,7 +69,6 @@ export function NftGroupCard({
   isLoading,
   error,
   isPlaceHolder = false,
-  setSplitNftOffers,
 }: NftGroupCardProps) {
   const navigate = useNavigate();
   const { isTestnet } = useNetwork();
@@ -192,7 +191,7 @@ export function NftGroupCard({
       }}
       role='article'
       tabIndex={0}
-      className={`cursor-pointer group border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
+      className={`cursor-pointer group border border-border rounded-lg focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
         isCollection && !item.visible ? 'opacity-50' : ''
       }`}
       aria-label={
@@ -465,20 +464,18 @@ export function NftGroupCard({
                           },
                         });
 
-                        if (setSplitNftOffers) {
-                          setSplitNftOffers(true);
-                        }
-
                         const nfts = addedCount === 1 ? t`NFT` : t`NFTs`;
                         const message =
                           addedCount > 0
                             ? t`Added ${addedCount} ${nfts} to offer`
                             : t`Selected NFTs are already in the offer`;
                         toast.success(message, {
-                          onClick: () =>
-                            navigate('/offers/make', {
-                              state: { splitNftOffers: true },
-                            }),
+                          onClick: () => {
+                            // The offer may have been cleared since the NFTs
+                            // were added, while the toast was still showing.
+                            splitOfferNfts();
+                            navigate('/offers/make');
+                          },
                         });
                       } catch (error: unknown) {
                         toast.error(

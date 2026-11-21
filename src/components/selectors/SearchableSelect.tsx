@@ -212,7 +212,7 @@ export function SearchableSelect<T>({
                         className='px-2 py-1.5 gap-2'
                       >
                         {isSelected && (
-                          <CheckIcon className='h-4 w-4 flex-shrink-0' />
+                          <CheckIcon className='h-4 w-4 shrink-0' />
                         )}
                         <div className='flex-1 min-w-0'>{renderItem(item)}</div>
                       </CommandItem>

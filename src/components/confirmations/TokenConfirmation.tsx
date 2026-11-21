@@ -176,7 +176,7 @@ export function TokenConfirmation({
       {type === 'send' && currentMemo && (
         <ConfirmationCard>
           <div className='flex items-center justify-between'>
-            <div className='break-words whitespace-pre-wrap flex-1'>
+            <div className='wrap-break-word whitespace-pre-wrap flex-1'>
               <MemoDisplay memo={currentMemo} />
             </div>
             <CopyButton

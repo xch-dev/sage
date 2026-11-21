@@ -8,6 +8,7 @@ import {
 } from './bindings';
 import { CustomError } from './contexts/ErrorContext';
 import { Expiration } from './lib/expiration';
+import { clearFeeRates } from './lib/fees';
 
 export interface WalletState {
   sync: GetSyncStatusResponse;
@@ -29,6 +30,11 @@ export interface OfferState {
   requested: Assets;
   fee: string;
   expiration: OfferExpiration | null;
+  /** Make a separate offer for each offered NFT. */
+  splitNftOffers: boolean;
+  /** Split coins before making the offer, paying `preSplitFee`. */
+  preSplit: boolean;
+  preSplitFee: string;
 }
 
 export interface Assets {
@@ -64,9 +70,20 @@ export const useNavigationStore = create<NavigationStore>((set) => ({
     })),
 }));
 
+/**
+ * Turns on one offer per NFT for the offer being made. It does nothing once
+ * the offer has been cleared, since a partial state isn't a whole offer.
+ */
+export function splitOfferNfts() {
+  useOfferState.setState(
+    (state) => state && { ...state, splitNftOffers: true },
+  );
+}
+
 export function clearState() {
   useWalletState.setState(defaultState());
   useOfferState.setState(null);
+  clearFeeRates();
 }
 
 export async function fetchState() {

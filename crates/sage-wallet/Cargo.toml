@@ -5,7 +5,6 @@ edition = "2024"
 license = "Apache-2.0"
 description = "The driver code and sync logic for Sage wallet."
 authors = ["Rigidity <me@rigidnetwork.com>"]
-homepage = "https://github.com/rigidity/sage"
 repository = "https://github.com/rigidity/sage"
 readme = { workspace = true }
 keywords = { workspace = true }
@@ -41,3 +40,4 @@ sqlx = { workspace = true, features = ["runtime-tokio"] }
 test-log = { workspace = true, features = ["trace"] }
 tokio = { workspace = true }
 hex-literal = { workspace = true }
+tokio-tungstenite = { workspace = true }

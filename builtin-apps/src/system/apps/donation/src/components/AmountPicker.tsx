@@ -170,7 +170,7 @@ export function AmountPicker({
             }}
             placeholder={mode === 'usd' ? '10.00' : '0.025'}
             inputMode='decimal'
-            className='min-w-0 flex-1 bg-transparent text-right text-sm outline-none'
+            className='min-w-0 flex-1 bg-transparent text-right text-sm outline-hidden'
           />
           <span className='text-xs font-medium text-muted-foreground'>
             {mode === 'usd' ? 'USD' : 'XCH'}

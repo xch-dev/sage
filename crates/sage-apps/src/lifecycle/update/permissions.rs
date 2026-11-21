@@ -290,7 +290,7 @@ async fn network_change_affects_current_network(
 
     let app_state = app_handle.state::<AppState>();
     let network_id = {
-        let state = app_state.lock().await;
+        let state = app_state.read().await;
         state.config.network.default_network.clone()
     };
 

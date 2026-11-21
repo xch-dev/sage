@@ -10,6 +10,9 @@ pub enum ErrorKind {
     Unauthorized,
     Internal,
     DatabaseMigration,
+    /// The database shared by the wallets on a network, which holds the address book and handle
+    /// mappings, couldn't be migrated. Deleting the wallet's own database doesn't fix this.
+    SharedDatabaseMigration,
     Nfc,
     /// One or more recipients couldn't be used. See the attached recipient errors.
     Recipient,

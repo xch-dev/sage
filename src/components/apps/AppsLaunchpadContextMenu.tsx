@@ -1,9 +1,7 @@
 import { Button } from '@/components/ui/button';
 
 export type AppsLaunchpadContextMenuUpdateState =
-  | 'idle'
-  | 'checking'
-  | 'up_to_date';
+  'idle' | 'checking' | 'up_to_date';
 
 interface Props {
   open: boolean;
@@ -145,11 +143,11 @@ export function AppsLaunchpadContextMenu({
         </button>
 
         {clearDataError ? (
-          <div className='px-3 py-2 text-xs text-destructive break-words'>
+          <div className='px-3 py-2 text-xs text-destructive wrap-break-word'>
             {clearDataError}
           </div>
         ) : !clearDataEnabled && clearDataDisabledReason ? (
-          <div className='px-3 py-2 text-xs text-muted-foreground break-words'>
+          <div className='px-3 py-2 text-xs text-muted-foreground wrap-break-word'>
             {clearDataDisabledReason}
           </div>
         ) : null}

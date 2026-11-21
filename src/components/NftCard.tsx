@@ -9,16 +9,15 @@ import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { offersEnabled } from '@/lib/features';
-import { amount } from '@/lib/formTypes';
+import { feeParams, feeWithinBalance } from '@/lib/fees';
 import { nftUri } from '@/lib/nftUri';
-import { cn, toMojos } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { useWallet } from '@/contexts/WalletContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import BigNumber from 'bignumber.js';
 import {
   Copy,
   EyeIcon,
@@ -203,11 +202,11 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const onTransferSubmit = (address: string, fee: string) => {
     setIsTransferring(true);
     setTransferAddress(address);
-    withHandleConfirmation((confirmed_handles) =>
+    withHandleConfirmation(async (confirmed_handles) =>
       commands.transferNfts({
         nft_ids: [nft.launcher_id],
         address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
+        ...(await feeParams(fee, walletState.sync.unit.precision)),
         confirmed_handles,
       }),
     )
@@ -222,12 +221,14 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const onAssignSubmit = (profile: string | null, fee: string) => {
     setIsEditingProfile(true);
     setAssignedProfileId(profile);
-    commands
-      .assignNftsToDid({
-        nft_ids: [nft.launcher_id],
-        did_id: profile,
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.assignNftsToDid({
+          nft_ids: [nft.launcher_id],
+          did_id: profile,
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err) => {
         setIsEditingProfile(false);
@@ -239,10 +240,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const addUrlFormSchema = z.object({
     url: z.string().min(1, t`URL is required`),
     kind: z.string().min(1, t`Kind is required`),
-    fee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
+    fee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
     ),
   });
 
@@ -258,13 +258,15 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
     setIsAddingUrl(true);
     setAddedUrl(values.url);
     setAddedUrlKind(values.kind);
-    commands
-      .addNftUri({
-        nft_id: nft.launcher_id,
-        uri: values.url,
-        kind: values.kind as NftUriKind,
-        fee: toMojos(values.fee, walletState.sync.unit.precision),
-      })
+    feeParams(values.fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.addNftUri({
+          nft_id: nft.launcher_id,
+          uri: values.url,
+          kind: values.kind as NftUriKind,
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err) => {
         setIsAddingUrl(false);
@@ -275,12 +277,14 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
 
   const onBurnSubmit = (fee: string) => {
     setIsBurning(true);
-    commands
-      .transferNfts({
-        nft_ids: [nft.launcher_id],
-        address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.transferNfts({
+          nft_ids: [nft.launcher_id],
+          address: walletState.sync.burn_address,
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err) => {
         setIsBurning(false);
@@ -345,7 +349,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
           {selectionState !== null && (
             <Checkbox
               checked={selectionState[0]}
-              className='absolute top-2 right-2 w-5 h-5 data-[state=checked]:!bg-secondary data-[state=unchecked]:!bg-secondary data-[state=checked]:text-secondary-foreground'
+              className='absolute top-2 right-2 w-5 h-5 data-[state=checked]:bg-secondary! data-[state=unchecked]:bg-secondary! data-[state=checked]:text-secondary-foreground'
               aria-label={selectionState[0] ? t`Deselect NFT` : t`Select NFT`}
             />
           )}

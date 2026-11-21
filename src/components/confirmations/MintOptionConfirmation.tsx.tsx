@@ -76,7 +76,7 @@ export function MintOptionConfirmation({
                 revocation_address: underlyingAsset.revocation_address,
               }}
               size='md'
-              className='flex-shrink-0'
+              className='shrink-0'
             />
             <div className='flex flex-col'>
               <div className='font-medium'>
@@ -114,7 +114,7 @@ export function MintOptionConfirmation({
                 revocation_address: strikeAsset.revocation_address,
               }}
               size='md'
-              className='flex-shrink-0'
+              className='shrink-0'
             />
             <div className='flex flex-col'>
               <div className='font-medium'>

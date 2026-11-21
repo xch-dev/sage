@@ -1,6 +1,7 @@
 import { OfferAsset, OfferRecord } from '@/bindings';
 import { NumberFormat } from '@/components/NumberFormat';
-import { formatTimestamp, fromMojos, getOfferStatus } from '@/lib/utils';
+import { formatTimestamp, fromMojos } from '@/lib/utils';
+import { offerStatusLabel } from '@/components/OfferStatusBadge';
 import { t } from '@lingui/core/macro';
 import BigNumber from 'bignumber.js';
 import { AssetIcon } from './AssetIcon';
@@ -24,7 +25,7 @@ export function OfferSummaryCard({
       {selectionState !== null && (
         <Checkbox
           checked={selectionState[0]}
-          className='mt-1 flex-shrink-0'
+          className='mt-1 shrink-0'
           aria-label={selectionState[0] ? t`Deselect offer` : t`Select offer`}
         />
       )}
@@ -32,7 +33,7 @@ export function OfferSummaryCard({
       <div className='flex justify-between flex-1 min-w-0'>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
           <div className='flex flex-col gap-1'>
-            <div>{getOfferStatus(record.status)}</div>
+            <div>{offerStatusLabel(record.status)}</div>
             <div className='text-muted-foreground text-sm'>
               {new Date(record.creation_timestamp * 1000).toLocaleString()}
             </div>
@@ -92,7 +93,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
           </div>
           <MutableNftBadge
             kind={nft_metadata_updater_kind}
-            className='flex-shrink-0'
+            className='shrink-0'
           />
         </div>
       ))}

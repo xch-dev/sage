@@ -7,7 +7,7 @@ use sage_api_macro::impl_endpoints;
 use sage_client::{Client, SageRpcError};
 use sage_rpc::start_rpc;
 use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 impl_endpoints! {
     #[derive(Debug, Parser)]
@@ -31,7 +31,7 @@ impl_endpoints! {
                     let mut receiver = sage.initialize().await?;
                     sage.switch_wallet().await?;
                     tokio::spawn(async move { while let Some(_message) = receiver.recv().await {} });
-                    start_rpc(Arc::new(Mutex::new(sage))).await
+                    start_rpc(Arc::new(RwLock::new(sage))).await
                 },
                 Self::GenerateOpenapi { output } => {
                     let openapi = sage_rpc::generate_openapi_spec();

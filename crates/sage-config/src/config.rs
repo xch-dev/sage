@@ -46,6 +46,11 @@ pub struct NetworkConfig {
     pub default_network: String,
     pub target_peers: u32,
     pub discover_peers: bool,
+    /// Whether to look up the mempool transactions that full nodes announce for the wallet
+    /// with the network's Coinset API, so that incoming and pending transactions show up
+    /// before they're confirmed, including after a resync. This tells Coinset which mempool
+    /// transactions involve the wallet.
+    pub mempool_discovery: bool,
 }
 
 impl Default for NetworkConfig {
@@ -54,6 +59,7 @@ impl Default for NetworkConfig {
             default_network: "mainnet".to_string(),
             target_peers: 5,
             discover_peers: true,
+            mempool_discovery: true,
         }
     }
 }
@@ -94,6 +100,9 @@ mod tests {
         assert_eq!(config.global.log_level, "DEBUG");
         assert_eq!(config.global.fingerprint, Some(1_000_000));
         assert_eq!(config.global.theme, None);
+
+        // Configs from before the setting existed get the default.
+        assert!(config.network.mempool_discovery);
     }
 
     #[test]

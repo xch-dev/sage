@@ -118,7 +118,7 @@ async fn wait_for_synced(app: &mut TestApp) -> Result<()> {
     for _ in 0..100 {
         while app.events.try_recv().is_ok() {}
 
-        let wallet = app.sage.lock().await.wallet()?;
+        let wallet = app.sage.read().await.wallet()?;
 
         if wallet
             .db
@@ -147,6 +147,7 @@ async fn alice_with_assets(app: &mut TestApp) -> Result<(u32, Holdings, Vec<Stri
         revocable: false,
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -170,6 +171,8 @@ async fn alice_with_assets(app: &mut TestApp) -> Result<(u32, Holdings, Vec<Stri
         },
         fee: Amount::u64(0),
         auto_submit: true,
+        fee_per_cost: None,
+        deduct_fee: false,
     })
     .await?;
     app.wait_for_coins().await;
@@ -209,6 +212,7 @@ async fn alice_with_nft_apart(app: &mut TestApp) -> Result<(u32, Holdings, Strin
         clawback: None,
         auto_submit: true,
         confirmed_handles: Vec::new(),
+        fee_per_cost: None,
     })
     .await?;
     app.wait_for_coins().await;
@@ -275,7 +279,7 @@ async fn watched_addresses_show_their_holdings() -> Result<()> {
     // puzzle hashes can be watched on another network.
     assert_eq!(
         app.sage
-            .lock()
+            .read()
             .await
             .wallet_entry(watch)
             .map(|wallet| wallet.network.clone()),
@@ -350,6 +354,8 @@ async fn watch_wallets_are_read_only() -> Result<()> {
             clawback: None,
             auto_submit: false,
             coin_ids: None,
+            fee_per_cost: None,
+            deduct_fee: false,
         })
         .await
         .expect_err("watch wallets can't send");
@@ -360,6 +366,7 @@ async fn watch_wallets_are_read_only() -> Result<()> {
             name: "Watch".to_string(),
             fee: Amount::u64(0),
             auto_submit: false,
+            fee_per_cost: None,
         })
         .await
         .expect_err("watch wallets can't create DIDs");
@@ -378,7 +385,7 @@ async fn watch_wallets_are_read_only() -> Result<()> {
 
     let error = app
         .sage
-        .lock()
+        .read()
         .await
         .sign_message_by_address(SignMessageByAddress {
             message: hex::encode("hello"),
@@ -409,6 +416,8 @@ async fn watch_wallets_are_read_only() -> Result<()> {
         clawback: None,
         auto_submit: false,
         coin_ids: None,
+        fee_per_cost: None,
+        deduct_fee: false,
     })
     .await?;
 
@@ -603,7 +612,7 @@ async fn addresses_added_while_closed_sync_when_opened() -> Result<()> {
     app.login(Login { fingerprint: watch }).await?;
     assert!(
         app.sage
-            .lock()
+            .read()
             .await
             .wallet()?
             .db
@@ -639,7 +648,7 @@ async fn an_interrupted_sync_is_resumed_from_the_start() -> Result<()> {
     app.login(Login { fingerprint: alice }).await?;
     {
         let p2_puzzle_hash = Address::decode(&addresses[0])?.puzzle_hash.to_vec();
-        let pool = app.sage.lock().await.connect_to_database(watch).await?;
+        let pool = app.sage.read().await.connect_to_database(watch).await?;
 
         sqlx::query(
             "
@@ -666,7 +675,7 @@ async fn an_interrupted_sync_is_resumed_from_the_start() -> Result<()> {
     app.login(Login { fingerprint: watch }).await?;
     assert!(
         app.sage
-            .lock()
+            .read()
             .await
             .wallet()?
             .db

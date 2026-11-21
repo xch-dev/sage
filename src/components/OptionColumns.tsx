@@ -1,3 +1,4 @@
+import { DataTableColumnDef } from '@/components/ui/data-table';
 import { OptionRecord } from '@/bindings';
 import { AssetIcon } from '@/components/AssetIcon';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,6 @@ import { OptionActionHandlers } from '@/hooks/useOptionActions';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ColumnDef } from '@tanstack/react-table';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import {
   AlertCircle,
@@ -31,7 +31,7 @@ import { NumberFormat } from './NumberFormat';
 export const columns = (
   actionHandlers?: OptionActionHandlers,
   isTransactionDisabled = false,
-): ColumnDef<OptionRecord>[] => [
+): DataTableColumnDef<OptionRecord>[] => [
   {
     accessorKey: 'name',
     header: () => <Trans>Name</Trans>,

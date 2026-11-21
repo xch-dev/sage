@@ -1,5 +1,7 @@
 use std::{
-    sync::Arc,
+    collections::HashMap,
+    net::Ipv4Addr,
+    sync::{Arc, Mutex as StdMutex},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -11,26 +13,62 @@ use chia_wallet_sdk::{
         },
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
-    client::Connector,
+    client::{Connector, PeerOptions},
+    clvm_traits::clvm_quote,
     prelude::*,
     test::PeerSimulator,
 };
+use futures_util::future::BoxFuture;
 use sage_config::TESTNET11;
 use sage_database::{Database, Derivation, SharedDatabase};
 use sqlx::{SqlitePool, migrate};
 use tokio::{
+    net::TcpListener,
     sync::{
         Mutex,
         mpsc::{Receiver, Sender},
     },
     time::timeout,
 };
+use tokio_tungstenite::{accept_async, connect_async};
 use tracing::debug;
 
 use crate::{
-    PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Transaction, Wallet,
-    WalletKind, insert_transaction,
+    MempoolSource, PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts,
+    Transaction, Wallet, WalletError, WalletKind, WalletPeer, insert_transaction, run_conditions,
 };
+
+/// A spend of a coin whose puzzle outputs the given conditions, for transactions that a
+/// dApp could put together. The coin doesn't have to exist.
+pub fn quoted_spend(
+    parent_coin_info: Bytes32,
+    amount: u64,
+    conditions: Conditions,
+) -> anyhow::Result<CoinSpend> {
+    let mut ctx = SpendContext::new();
+    let puzzle = ctx.alloc(&clvm_quote!(conditions))?;
+    let coin = Coin::new(parent_coin_info, ctx.tree_hash(puzzle).into(), amount);
+    Ok(CoinSpend::new(
+        coin,
+        ctx.serialize(&puzzle)?,
+        ctx.serialize(&NodePtr::NIL)?,
+    ))
+}
+
+/// The timestamps that the coin spends must be confirmed before.
+pub fn assert_before_seconds(coin_spends: &[CoinSpend]) -> anyhow::Result<Vec<u64>> {
+    let mut timestamps = Vec::new();
+
+    for coin_spend in coin_spends {
+        for condition in run_conditions(&coin_spend.puzzle_reveal, &coin_spend.solution)? {
+            if let Condition::AssertBeforeSecondsAbsolute(condition) = condition {
+                timestamps.push(condition.seconds);
+            }
+        }
+    }
+
+    Ok(timestamps)
+}
 
 static INDEX: Mutex<u32> = Mutex::const_new(0);
 
@@ -49,6 +87,8 @@ pub struct TestWallet {
     pub index: u32,
     pub state: Arc<Mutex<PeerState>>,
     pub options: SyncOptions,
+    /// What the wallet's sync manager looks up announced mempool transactions in.
+    pub mempool: Arc<FakeMempool>,
 }
 
 impl TestWallet {
@@ -63,7 +103,7 @@ impl TestWallet {
 
     pub async fn new_with_options(balance: u64, options: SyncOptions) -> anyhow::Result<Self> {
         let sim = PeerSimulator::new().await?;
-        Self::with_sim(Arc::new(sim), balance, 0, options).await
+        Self::with_sim(Arc::new(sim), balance, 0, 0, options).await
     }
 
     pub async fn next_with_options(
@@ -71,12 +111,15 @@ impl TestWallet {
         balance: u64,
         options: SyncOptions,
     ) -> anyhow::Result<Self> {
-        Self::with_sim(self.sim.clone(), balance, self.index + 1, options).await
+        Self::with_sim(self.sim.clone(), balance, 0, self.index + 1, options).await
     }
 
+    /// Creates a coin worth `balance`, and expects the wallet to sync it along with the
+    /// `existing_balance` it already has on the simulator.
     async fn with_sim(
         sim: Arc<PeerSimulator>,
         balance: u64,
+        existing_balance: u128,
         key_index: u32,
         options: SyncOptions,
     ) -> anyhow::Result<Self> {
@@ -160,6 +203,9 @@ impl TestWallet {
             Connector::Plain,
         );
 
+        let mempool = Arc::new(FakeMempool::default());
+        sync_manager.set_mempool_source(Some(mempool.clone()));
+
         let (peer, receiver) = sim.connect_raw().await?;
 
         assert!(
@@ -184,17 +230,22 @@ impl TestWallet {
             index: key_index,
             state,
             options,
+            mempool,
         };
 
         test.consume_until(|event| matches!(event, SyncEvent::Subscribed))
             .await;
-        assert_eq!(test.wallet.db.xch_balance().await?, balance as u128);
+        assert_eq!(
+            test.wallet.db.xch_balance().await?,
+            balance as u128 + existing_balance
+        );
 
         Ok(test)
     }
 
     pub async fn resync(&mut self) -> anyhow::Result<()> {
-        *self = Self::with_sim(self.sim.clone(), 0, self.index, self.options).await?;
+        let balance = self.wallet.db.xch_balance().await?;
+        *self = Self::with_sim(self.sim.clone(), 0, balance, self.index, self.options).await?;
         Ok(())
     }
 
@@ -287,6 +338,7 @@ pub fn default_test_options() -> SyncOptions {
     SyncOptions {
         target_peers: 0,
         discover_peers: false,
+        mempool_discovery: true,
         dns_batch_size: 0,
         connection_batch_size: 0,
         max_peer_age_seconds: 0,
@@ -302,5 +354,82 @@ pub fn default_test_options() -> SyncOptions {
             ..Default::default()
         },
         testing: true,
+    }
+}
+
+/// Connects to a local websocket server that accepts the connection but never answers, like a
+/// peer whose connection silently died.
+pub async fn unresponsive_peer() -> anyhow::Result<WalletPeer> {
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+    let addr = listener.local_addr()?;
+
+    tokio::spawn(async move {
+        let mut connections = Vec::new();
+        while let Ok((stream, _)) = listener.accept().await {
+            if let Ok(ws) = accept_async(stream).await {
+                connections.push(ws);
+            }
+        }
+    });
+
+    let (ws, _) = connect_async(format!("ws://{addr}")).await?;
+    let (peer, _receiver) = Peer::from_websocket(ws, PeerOptions::default())?;
+
+    Ok(WalletPeer::new(peer))
+}
+
+/// A [`MempoolSource`] that serves the spend bundles added to it, like Coinset's mempool.
+#[derive(Debug, Default)]
+pub struct FakeMempool {
+    spend_bundles: StdMutex<HashMap<Bytes32, SpendBundle>>,
+    lookups: StdMutex<Vec<Bytes32>>,
+    failing: StdMutex<bool>,
+}
+
+impl FakeMempool {
+    pub fn add(&self, spend_bundle: SpendBundle) {
+        self.add_as(spend_bundle.name(), spend_bundle);
+    }
+
+    /// Serves the spend bundle for `transaction_id`, which doesn't have to be its id.
+    pub fn add_as(&self, transaction_id: Bytes32, spend_bundle: SpendBundle) {
+        self.spend_bundles
+            .lock()
+            .expect("fake mempool lock")
+            .insert(transaction_id, spend_bundle);
+    }
+
+    /// Makes every lookup fail, like an API that's down.
+    pub fn fail(&self) {
+        *self.failing.lock().expect("fake mempool lock") = true;
+    }
+
+    /// The transaction ids that have been looked up, in order.
+    pub fn lookups(&self) -> Vec<Bytes32> {
+        self.lookups.lock().expect("fake mempool lock").clone()
+    }
+}
+
+impl MempoolSource for FakeMempool {
+    fn spend_bundle(
+        &self,
+        transaction_id: Bytes32,
+    ) -> BoxFuture<'_, Result<Option<SpendBundle>, WalletError>> {
+        self.lookups
+            .lock()
+            .expect("fake mempool lock")
+            .push(transaction_id);
+
+        if *self.failing.lock().expect("fake mempool lock") {
+            return Box::pin(async { Err(WalletError::Coinset("unavailable".to_string())) });
+        }
+
+        let spend_bundle = self
+            .spend_bundles
+            .lock()
+            .expect("fake mempool lock")
+            .get(&transaction_id)
+            .cloned();
+        Box::pin(async move { Ok(spend_bundle) })
     }
 }

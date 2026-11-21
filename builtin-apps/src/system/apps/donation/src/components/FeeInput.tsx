@@ -36,7 +36,7 @@ export function FeeInput({ value, onChange }: Props) {
               onChange={(event) => onChange(event.target.value)}
               placeholder='0.0001'
               inputMode='decimal'
-              className='min-w-0 flex-1 bg-transparent text-right text-sm outline-none'
+              className='min-w-0 flex-1 bg-transparent text-right text-sm outline-hidden'
             />
 
             <span className='text-xs font-medium text-muted-foreground'>

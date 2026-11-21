@@ -1,5 +1,5 @@
 use chia_wallet_sdk::prelude::*;
-use sage_wallet::{SyncCommand, Transaction, insert_transaction, is_fully_signed};
+use sage_wallet::{SpendGuard, SyncCommand, Transaction, insert_transaction, is_fully_signed};
 
 use crate::{Error, Result, Sage};
 
@@ -40,16 +40,20 @@ impl Sage {
     /// Submits a transaction. If it was created by Sage with handle recipients, they're
     /// resolved again first, and it's only submitted if they still resolve to the same
     /// addresses.
-    pub(crate) async fn submit(&self, spend_bundle: SpendBundle) -> Result<()> {
+    pub(crate) async fn submit(
+        &self,
+        spend_bundle: SpendBundle,
+        spends: &SpendGuard<'_>,
+    ) -> Result<()> {
         let handle_sends = self.recheck_handle_sends(&spend_bundle.coin_spends).await?;
 
         if handle_sends.is_empty() {
-            return self.submit_unchecked(spend_bundle).await;
+            return self.submit_unchecked(spend_bundle, spends).await;
         }
 
         let coin_spends = spend_bundle.coin_spends.clone();
 
-        if let Err(error) = self.submit_unchecked(spend_bundle).await {
+        if let Err(error) = self.submit_unchecked(spend_bundle, spends).await {
             // It may be submitted again, and has to be checked again then.
             self.remember_handle_sends(&coin_spends, handle_sends);
             return Err(error);
@@ -59,7 +63,13 @@ impl Sage {
         Ok(())
     }
 
-    pub(crate) async fn submit_unchecked(&self, spend_bundle: SpendBundle) -> Result<()> {
+    /// Saves a transaction to be submitted by the transaction queue, which marks its coins as
+    /// spent so that they aren't selected again.
+    pub(crate) async fn submit_unchecked(
+        &self,
+        spend_bundle: SpendBundle,
+        _spends: &SpendGuard<'_>,
+    ) -> Result<()> {
         let wallet = self.wallet()?;
         let peer = self
             .peer_state

@@ -249,7 +249,7 @@ function HandleRow({
             className='h-3.5 w-3.5 mt-0.5 shrink-0'
             aria-hidden='true'
           />
-          <span className='break-words'>
+          <span className='wrap-break-word'>
             <Trans>
               This handle changed. It previously resolved to{' '}
               <span className='font-mono break-all'>{changedFrom}</span>.

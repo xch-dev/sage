@@ -12,7 +12,7 @@ export function CapabilityHelp({
     <span className='relative inline-flex shrink-0 group'>
       <button
         type='button'
-        className='rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground'
+        className='rounded-xs p-0.5 text-muted-foreground transition-colors hover:text-foreground'
         onClick={(event) => event.preventDefault()}
         aria-label='Permission details'
       >

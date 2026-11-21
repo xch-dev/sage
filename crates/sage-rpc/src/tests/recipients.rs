@@ -50,12 +50,14 @@ pub(super) fn send(
         auto_submit,
         coin_ids: None,
         confirmed_handles,
+        fee_per_cost: None,
+        deduct_fee: false,
     }
 }
 
 async fn registry_launcher_id(app: &TestApp) -> Bytes32 {
     app.sage
-        .lock()
+        .read()
         .await
         .network()
         .xchandles()
@@ -104,7 +106,7 @@ pub(super) async fn store_handle(
 
     edit(&mut row);
 
-    let wallet = app.sage.lock().await.wallet()?;
+    let wallet = app.sage.read().await.wallet()?;
     wallet.shared_db.upsert_xchandle(&row).await?;
 
     Ok(())
@@ -112,7 +114,7 @@ pub(super) async fn store_handle(
 
 pub(super) async fn stored_handle(app: &TestApp, handle: &str) -> Result<XchandleRow> {
     let registry_launcher_id = registry_launcher_id(app).await;
-    let wallet = app.sage.lock().await.wallet()?;
+    let wallet = app.sage.read().await.wallet()?;
 
     Ok(wallet
         .shared_db
@@ -341,6 +343,7 @@ async fn test_bulk_send_reports_each_recipient() -> Result<()> {
         memos: vec![],
         auto_submit: false,
         confirmed_handles: vec![],
+        fee_per_cost: None,
     };
 
     let error = app
@@ -411,7 +414,7 @@ async fn test_raw_address_errors_are_unchanged() -> Result<()> {
 async fn test_handle_recipients_on_unsupported_networks() -> Result<()> {
     let app = funded_app().await?;
 
-    for network in &mut app.sage.lock().await.network_list.networks {
+    for network in &mut app.sage.write().await.network_list.networks {
         network.inherit = None;
         network.xchandles = None;
     }
@@ -453,6 +456,8 @@ async fn test_offer_with_pending_handle_transfer() -> Result<()> {
             auto_import: false,
             coin_ids: None,
             confirmed_handles: vec![],
+            pre_split_fee: None,
+            pre_split_fee_per_cost: None,
         })
         .await?
         .offer;
@@ -474,6 +479,7 @@ async fn test_offer_with_pending_handle_transfer() -> Result<()> {
         offer: offer.clone(),
         fee: Amount::u64(0),
         auto_submit: false,
+        fee_per_cost: None,
     };
 
     // The handle can't be checked, so the offer can't be taken.
@@ -546,6 +552,8 @@ async fn test_offer_nft_named_like_a_handle_is_not_a_claim() -> Result<()> {
             auto_import: false,
             coin_ids: None,
             confirmed_handles: vec![],
+            pre_split_fee: None,
+            pre_split_fee_per_cost: None,
         })
         .await?
         .offer;
@@ -562,6 +570,7 @@ async fn test_offer_nft_named_like_a_handle_is_not_a_claim() -> Result<()> {
         offer,
         fee: Amount::u64(0),
         auto_submit: false,
+        fee_per_cost: None,
     })
     .await?;
 

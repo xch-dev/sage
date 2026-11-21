@@ -4,22 +4,39 @@ import { runCommand } from './run-command.mjs';
 
 const PORT = 1421;
 
+// chokidar no longer supports globs, so watch directories and filter here.
 const watchPaths = [
-  'builtin-apps/src/system/apps/**/*',
-  'builtin-apps/src/system/*.ts',
-  'builtin-apps/src/system/*.js',
-  'packages/sage-app-sdk/cli/**/*',
-  'packages/sage-app-sdk/src/**/*',
-  'packages/sage-system-app-sdk/src/**/*',
-  'packages/sage-app-ui/src/**/*',
+  'builtin-apps/src/system',
+  'packages/sage-app-sdk/cli',
+  'packages/sage-app-sdk/src',
+  'packages/sage-system-app-sdk/src',
+  'packages/sage-app-ui/src',
 ];
 
-const ignored = [
-  '**/node_modules/**',
-  '**/dist/**',
-  'builtin-apps/build/**',
-  'packages/*/src/generated-types.ts',
-];
+const SYSTEM_ROOT = 'builtin-apps/src/system/';
+
+function ignored(path, stats) {
+  const normalized = path.replaceAll('\\', '/');
+
+  if (/(^|\/)(node_modules|dist)(\/|$)/.test(normalized)) {
+    return true;
+  }
+
+  if (/^packages\/[^/]+\/src\/generated-types\.ts$/.test(normalized)) {
+    return true;
+  }
+
+  // Outside the apps, only the shared top-level .ts and .js files matter.
+  if (
+    normalized.startsWith(SYSTEM_ROOT) &&
+    !normalized.startsWith(`${SYSTEM_ROOT}apps`)
+  ) {
+    const rest = normalized.slice(SYSTEM_ROOT.length);
+    return rest.includes('/') || (!!stats?.isFile() && !/\.[jt]s$/.test(rest));
+  }
+
+  return false;
+}
 
 const wss = new WebSocketServer({ port: PORT });
 

@@ -82,6 +82,11 @@ pub struct Network {
     /// is inherited from the built-in network named by `inherit`, if there is one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub xchandles: Option<XchandlesConfig>,
+    /// Whether to drop auto-discovered peers that stop sending new peaks. Disable this for
+    /// networks that don't create blocks regularly, such as simulators, where a live peer can go
+    /// quiet for a long time.
+    #[serde(default = "default_drop_silent_peers", skip_serializing_if = "is_true")]
+    pub drop_silent_peers: bool,
 }
 
 /// The XCHandles deployment used to resolve handles on a network.
@@ -176,17 +181,36 @@ impl Network {
             return Some(xchandles.clone());
         }
 
-        let inherited = match self.inherit? {
+        let inherited = match self.same_chain_as()? {
             InheritedNetwork::Mainnet => &*MAINNET,
             InheritedNetwork::Testnet11 => &*TESTNET11,
         };
 
-        if inherited.genesis_challenge != self.genesis_challenge {
-            return None;
-        }
-
         inherited.xchandles.clone()
     }
+
+    /// The built-in network this one inherits from, if it's the same chain, so services for
+    /// that network (such as XCHandles and Coinset) work for this one too. A custom network that
+    /// only borrows a built-in network's introducers isn't the same chain.
+    pub fn same_chain_as(&self) -> Option<InheritedNetwork> {
+        let inherit = self.inherit?;
+
+        let inherited = match inherit {
+            InheritedNetwork::Mainnet => &*MAINNET,
+            InheritedNetwork::Testnet11 => &*TESTNET11,
+        };
+
+        (inherited.genesis_challenge == self.genesis_challenge).then_some(inherit)
+    }
+}
+
+fn default_drop_silent_peers() -> bool {
+    true
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_true(value: &bool) -> bool {
+    *value
 }
 
 fn default_precision() -> u8 {
@@ -240,6 +264,7 @@ pub static MAINNET: LazyLock<Network> = LazyLock::new(|| Network {
         relative_block_height: 32,
         api_url: "https://api.xchandles.com".to_string(),
     }),
+    drop_silent_peers: true,
 });
 
 pub static TESTNET11: LazyLock<Network> = LazyLock::new(|| Network {
@@ -271,6 +296,7 @@ pub static TESTNET11: LazyLock<Network> = LazyLock::new(|| Network {
         relative_block_height: 8,
         api_url: "https://testnet-api.xchandles.com".to_string(),
     }),
+    drop_silent_peers: true,
 });
 
 #[cfg(test)]
@@ -339,6 +365,31 @@ mod tests {
     }
 
     #[test]
+    fn test_same_chain_as() {
+        assert!(matches!(
+            MAINNET.same_chain_as(),
+            Some(InheritedNetwork::Mainnet)
+        ));
+        assert!(matches!(
+            TESTNET11.same_chain_as(),
+            Some(InheritedNetwork::Testnet11)
+        ));
+
+        // A custom network that inherits mainnet's introducers isn't mainnet.
+        let custom = Network {
+            genesis_challenge: Bytes32::new([1; 32]),
+            ..MAINNET.clone()
+        };
+        assert!(custom.same_chain_as().is_none());
+
+        let standalone = Network {
+            inherit: None,
+            ..MAINNET.clone()
+        };
+        assert!(standalone.same_chain_as().is_none());
+    }
+
+    #[test]
     fn test_default_networks_inherit_xchandles() {
         let list = NetworkList::default();
 
@@ -395,5 +446,24 @@ mod tests {
         let toml = toml::to_string_pretty(&network).unwrap();
         let parsed: Network = toml::from_str(&toml).unwrap();
         assert_eq!(parsed.xchandles(), Some(custom));
+    }
+
+    #[test]
+    fn test_drop_silent_peers_defaults_to_enabled() {
+        let toml = toml::to_string_pretty(&*TESTNET11).unwrap();
+        assert!(!toml.contains("drop_silent_peers"));
+
+        let parsed: Network = toml::from_str(&toml).unwrap();
+        assert!(parsed.drop_silent_peers);
+
+        let network = Network {
+            name: "simulator0".to_string(),
+            drop_silent_peers: false,
+            ..TESTNET11.clone()
+        };
+
+        let toml = toml::to_string_pretty(&network).unwrap();
+        let parsed: Network = toml::from_str(&toml).unwrap();
+        assert!(!parsed.drop_silent_peers);
     }
 }

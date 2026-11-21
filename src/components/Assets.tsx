@@ -62,7 +62,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                     maximumFractionDigits={asset.precision}
                   />
                 )}{' '}
-                <span className='text-sm font-medium break-words'>
+                <span className='text-sm font-medium wrap-break-word'>
                   {asset.name ?? asset.ticker ?? t`Unknown`}
                 </span>
               </div>

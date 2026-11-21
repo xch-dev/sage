@@ -32,7 +32,16 @@ impl Sage {
     ) -> Result<TransactionSummary> {
         let wallet = self.wallet()?;
 
+        let cost = self.cost_rules().await?.cost(&coin_spends);
         let transaction = Transaction::from_coin_spends(coin_spends)?;
+        let declared_fee = transaction.fee;
+        // A transaction that leaves less than its declared fee can't be valid on its own, so
+        // the rest must come from spends that aren't here, like one that creates more than it
+        // spends. Any transaction it's part of pays at least the declared fee.
+        let fee = transaction
+            .actual_fee
+            .filter(|actual_fee| *actual_fee >= declared_fee)
+            .unwrap_or(declared_fee);
 
         let input_coins: HashMap<Bytes32, Coin> = transaction
             .inputs
@@ -145,7 +154,9 @@ impl Sage {
         }
 
         Ok(TransactionSummary {
-            fee: Amount::u64(transaction.fee),
+            fee: Amount::u64(fee),
+            declared_fee: Amount::u64(declared_fee),
+            cost,
             inputs,
             handles: cache.handles,
         })

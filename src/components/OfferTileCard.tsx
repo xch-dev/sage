@@ -34,7 +34,7 @@ export function OfferTileCard({
         {selectionState !== null && (
           <Checkbox
             checked={selectionState[0]}
-            className='flex-shrink-0'
+            className='shrink-0'
             aria-label={selectionState[0] ? t`Deselect offer` : t`Select offer`}
           />
         )}
@@ -87,7 +87,7 @@ function TileSide({ assets, label }: TileSideProps) {
 
   return (
     <div className='flex min-w-0 items-center gap-2' title={label}>
-      <div className='relative flex-shrink-0'>
+      <div className='relative shrink-0'>
         <div className='flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-muted'>
           <AssetIcon asset={first.asset} size='lg' />
         </div>

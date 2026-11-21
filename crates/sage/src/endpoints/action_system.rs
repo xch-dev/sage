@@ -10,12 +10,14 @@ use sage_api::{CreateTransaction, NftUriKind, TransactionResponse};
 use sage_wallet::{Hint, calculate_memos};
 
 use crate::{
-    ConfirmationInfo, Result, Sage, parse_amount, parse_any_asset_id, parse_coin_ids, parse_memos,
+    ConfirmationInfo, Result, Sage, build_with_fee, parse_amount, parse_any_asset_id,
+    parse_coin_ids, parse_memos,
 };
 
 impl Sage {
     pub async fn create_transaction(&self, req: CreateTransaction) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
 
         let sender_puzzle_hash = wallet.change_p2_puzzle_hash().await?;
         let selected_coin_ids = parse_coin_ids(req.selected_coin_ids)?;
@@ -162,11 +164,24 @@ impl Sage {
             }
         }
 
-        wallet.spend(&mut ctx, selected_coin_ids, &actions).await?;
+        // The fee actions are paid as given, and any fee needed to cover the cost at the fee
+        // rate is added as another fee action.
+        let coin_spends = build_with_fee!(self, 0, req.fee_per_cost, |fee| {
+            let mut actions = actions.clone();
 
-        let coin_spends = ctx.take();
+            if fee > 0 {
+                actions.push(Action::fee(fee));
+            }
 
-        self.transact_with(coin_spends, req.auto_submit, info).await
+            wallet
+                .spend(&mut ctx, selected_coin_ids.clone(), &actions)
+                .await?;
+
+            ctx.take()
+        });
+
+        self.transact_with(coin_spends, req.auto_submit, info, &spends)
+            .await
     }
 }
 

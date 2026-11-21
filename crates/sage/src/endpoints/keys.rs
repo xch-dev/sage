@@ -1,4 +1,8 @@
-use std::{fs, str::FromStr};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use bip39::Mnemonic;
 use chia_wallet_sdk::{
@@ -241,10 +245,11 @@ impl Sage {
 
         if path.try_exists()? {
             // Delete the specific SQLite file for this network
-            let db_file = path.join(format!("{}.sqlite", req.network));
-            if db_file.try_exists()? {
-                fs::remove_file(&db_file)?;
-            }
+            remove_sqlite_database(&path.join(format!("{}.sqlite", req.network)))?;
+        }
+
+        if req.shared {
+            remove_sqlite_database(&self.shared_db_path(req.fingerprint)?)?;
         }
 
         Ok(DeleteDatabaseResponse {})
@@ -848,4 +853,20 @@ fn parse_watch_addresses(addresses: Vec<String>) -> Result<Vec<Bytes32>> {
     }
 
     Ok(p2_puzzle_hashes)
+}
+
+/// Removes a database file, along with its write-ahead log and shared memory files, which would
+/// otherwise be left behind.
+fn remove_sqlite_database(path: &Path) -> Result<()> {
+    for suffix in ["", "-wal", "-shm"] {
+        let mut file = path.as_os_str().to_owned();
+        file.push(suffix);
+        let file = PathBuf::from(file);
+
+        if file.try_exists()? {
+            fs::remove_file(&file)?;
+        }
+    }
+
+    Ok(())
 }

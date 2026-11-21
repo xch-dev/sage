@@ -11,6 +11,7 @@ use std::{
 use chia_wallet_sdk::{
     chia::bls::master_to_wallet_unhardened_intermediate,
     client::{Connector, create_rustls_connector, load_ssl_cert},
+    coinset::CoinsetClient,
     prelude::*,
 };
 use indexmap::IndexMap;
@@ -61,6 +62,9 @@ pub struct Sage {
     pub http_client: reqwest::Client,
     /// The handle recipients of transactions which haven't been submitted yet.
     pub pending_handle_sends: Arc<std::sync::Mutex<PendingHandleSends>>,
+    /// Where fee estimates are fetched from in place of the network's Coinset API, such as the
+    /// sandbox's stand-in for it. It's used in tests too, which otherwise never fetch them.
+    pub fee_estimator: Option<CoinsetClient>,
     /// Whether the config and keychain can be saved. This is only the case once initialization
     /// has started, and stops if it fails, since the state in memory may then be incomplete.
     writable: bool,
@@ -82,6 +86,7 @@ impl Sage {
             test,
             http_client: reqwest::Client::new(),
             pending_handle_sends: Arc::default(),
+            fee_estimator: None,
             writable: false,
             data_dir_lock: None,
         }
@@ -312,6 +317,7 @@ impl Sage {
             SyncOptions {
                 target_peers: self.config.network.target_peers.try_into()?,
                 discover_peers: self.config.network.discover_peers,
+                mempool_discovery: self.config.network.mempool_discovery,
                 max_peer_age_seconds: 3600 * 8,
                 dns_batch_size: 10,
                 connection_batch_size: 30,
@@ -409,6 +415,8 @@ impl Sage {
                 .transpose()?
                 .map(|address| address.puzzle_hash),
         ));
+
+        wallet.set_transaction_expiration(self.wallet_config.defaults.transaction_expiration());
 
         self.wallet = Some(wallet.clone());
         self.unit = Unit {
@@ -554,7 +562,14 @@ impl Sage {
     /// Connects to the database shared by every wallet on the network of the given wallet.
     pub async fn connect_to_shared_database(&self, fingerprint: u32) -> Result<SharedDatabase> {
         let path = self.shared_db_path(fingerprint)?;
-        Ok(SharedDatabase::new(self.connect_to_pool(path).await?))
+
+        // This is told apart from the wallet's own database failing to migrate, since deleting that
+        // one wouldn't help.
+        match self.connect_to_pool(path).await {
+            Ok(pool) => Ok(SharedDatabase::new(pool)),
+            Err(Error::DatabaseVersionTooOld) => Err(Error::SharedDatabaseVersionTooOld),
+            Err(error) => Err(error),
+        }
     }
 
     /// The database shared by every wallet on the network of the given wallet, for the
@@ -638,6 +653,26 @@ impl Sage {
             .wallets
             .iter()
             .find(|wallet| wallet.fingerprint == fingerprint)
+    }
+
+    /// Whether `address` is an address on the current network.
+    pub fn is_valid_address(&self, address: &str) -> bool {
+        Address::decode(address).is_ok_and(|address| address.prefix == self.network().prefix())
+    }
+
+    /// Moves a wallet to `index` in the wallet list, or to the end if `index` is past it.
+    pub fn move_key(&mut self, fingerprint: u32, index: u32) -> Result<()> {
+        let old_index = self
+            .wallet_config
+            .wallets
+            .iter()
+            .position(|wallet| wallet.fingerprint == fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        let wallet = self.wallet_config.wallets.remove(old_index);
+        let index = (index as usize).min(self.wallet_config.wallets.len());
+        self.wallet_config.wallets.insert(index, wallet);
+        self.save_config()
     }
 
     /// Whether any wallet uses the key with this fingerprint. For now that's only the BLS
@@ -771,7 +806,7 @@ fn parse_config_file<T: DeserializeOwned>(path: &Path, text: &str) -> Result<T> 
 
 /// Writes to a temporary file in the same directory, then renames it over the destination, so
 /// that a crash or power loss can't leave the file truncated or empty.
-fn write_atomic(path: &Path, contents: impl AsRef<[u8]>) -> Result<()> {
+pub(crate) fn write_atomic(path: &Path, contents: impl AsRef<[u8]>) -> Result<()> {
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
     let mut file = tempfile::NamedTempFile::new_in(dir)?;
     file.write_all(contents.as_ref())?;
@@ -819,6 +854,7 @@ pub(crate) async fn watch_p2_puzzles(
 
 #[cfg(test)]
 mod tests {
+    use sage_api::DeleteDatabase;
     use tempfile::TempDir;
 
     use super::*;
@@ -830,6 +866,62 @@ mod tests {
         sage.setup_config()?;
         sage.migrate_wallet_config()?;
         Ok(sage)
+    }
+
+    fn wallet_order(sage: &Sage) -> Vec<u32> {
+        sage.wallet_config
+            .wallets
+            .iter()
+            .map(|wallet| wallet.fingerprint)
+            .collect()
+    }
+
+    #[test]
+    fn move_key_reorders_and_saves_the_wallet_list() -> Result<()> {
+        let dir = TempDir::new()?;
+        let mut sage = load(dir.path())?;
+
+        for fingerprint in [1, 2, 3] {
+            sage.wallet_config.wallets.push(WalletEntry {
+                name: format!("Wallet {fingerprint}"),
+                fingerprint,
+                ..Default::default()
+            });
+        }
+
+        sage.move_key(1, 1)?;
+        assert_eq!(wallet_order(&sage), [2, 1, 3]);
+
+        // An index past the end moves the wallet to the end.
+        sage.move_key(2, 10)?;
+        assert_eq!(wallet_order(&sage), [1, 3, 2]);
+
+        assert!(matches!(
+            sage.move_key(4, 0),
+            Err(Error::UnknownFingerprint)
+        ));
+        assert_eq!(wallet_order(&sage), [1, 3, 2]);
+
+        assert_eq!(wallet_order(&load(dir.path())?), [1, 3, 2]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn is_valid_address_checks_the_network() -> Result<()> {
+        let dir = TempDir::new()?;
+        let sage = load(dir.path())?;
+        let prefix = sage.network().prefix();
+        let other = if prefix == "xch" { "txch" } else { "xch" };
+
+        let address = |prefix: &str| Address::new(Bytes32::default(), prefix.to_string()).encode();
+
+        assert!(sage.is_valid_address(&address(&prefix)?));
+        assert!(!sage.is_valid_address(&address(other)?));
+        assert!(!sage.is_valid_address("xch1bad"));
+        assert!(!sage.is_valid_address(""));
+
+        Ok(())
     }
 
     #[test]
@@ -860,6 +952,56 @@ mod tests {
         );
         assert_eq!(sage.shared_db_path(2)?, shared.join("custom-id.sqlite"));
         assert_eq!(sage.shared_db_path(3)?, shared.join("mainnet.sqlite"));
+
+        Ok(())
+    }
+
+    /// A shared database which can't be migrated is reported as such, since deleting the wallet's
+    /// own database wouldn't help, and deleting it with the wallet's database fixes it.
+    #[tokio::test]
+    async fn resets_a_shared_database_that_cant_be_migrated() -> Result<()> {
+        let dir = TempDir::new()?;
+        let mut sage = load(dir.path())?;
+
+        sage.wallet_config.wallets.push(WalletEntry {
+            name: "Wallet".to_string(),
+            fingerprint: 1,
+            ..Default::default()
+        });
+
+        // A migration that was applied with different contents, as when a migration is edited.
+        let pool = sage.connect_to_pool(sage.shared_db_path(1)?).await?;
+        sqlx::query("UPDATE _sqlx_migrations SET checksum = x'00' WHERE version = 1")
+            .execute(&pool)
+            .await?;
+        pool.close().await;
+
+        assert!(matches!(
+            sage.connect_to_shared_database(1).await,
+            Err(Error::SharedDatabaseVersionTooOld)
+        ));
+
+        // Deleting only the wallet's database leaves the shared one as it is.
+        let network = sage.network_id();
+        sage.delete_database(DeleteDatabase {
+            fingerprint: 1,
+            network: network.clone(),
+            shared: false,
+        })?;
+        assert!(sage.shared_db_path(1)?.try_exists()?);
+
+        sage.delete_database(DeleteDatabase {
+            fingerprint: 1,
+            network,
+            shared: true,
+        })?;
+
+        let shared = sage.shared_db_path(1)?;
+        for suffix in ["", "-wal", "-shm"] {
+            assert!(!PathBuf::from(format!("{}{suffix}", shared.display())).try_exists()?);
+        }
+
+        sage.connect_to_shared_database(1).await?;
 
         Ok(())
     }
@@ -1089,6 +1231,24 @@ mod tests {
             panic!("expected an invalid config error");
         };
         assert!(path.ends_with("wallets.toml"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn rpc_port_and_log_level_are_saved_and_rejected_values_are_ignored() -> Result<()> {
+        let dir = TempDir::new()?;
+        let mut sage = load(dir.path())?;
+
+        sage.set_rpc_port(9300)?;
+        sage.set_log_level("debug")?;
+
+        assert!(matches!(sage.set_rpc_port(0), Err(Error::InvalidRpcPort)));
+        assert!(sage.set_log_level("loud").is_err());
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.config.rpc.port, 9300);
+        assert_eq!(sage.config.global.log_level, "DEBUG");
 
         Ok(())
     }

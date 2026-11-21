@@ -14,8 +14,9 @@ export function offerStatusLabel(status: OfferRecordStatus): string {
   switch (status) {
     case 'active':
       return t`Active`;
+    // Pending offers are waiting for the coins they spend to be split.
     case 'pending':
-      return t`Pending`;
+      return t`Splitting Coins`;
     case 'completed':
       return t`Completed`;
     case 'cancelled':
@@ -50,7 +51,7 @@ export function OfferStatusBadge({ status, className }: OfferStatusBadgeProps) {
         className,
       )}
     >
-      <Icon className='h-4 w-4 flex-shrink-0' aria-hidden='true' />
+      <Icon className='h-4 w-4 shrink-0' aria-hidden='true' />
       {offerStatusLabel(status)}
     </span>
   );
