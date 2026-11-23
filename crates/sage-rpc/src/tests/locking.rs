@@ -107,7 +107,7 @@ async fn concurrent_rpc_sends_dont_select_the_same_coin() -> Result<()> {
 
     let error = first.err().or(second.err()).expect("one send should fail");
     assert!(
-        error.to_string().contains("no spendable coins"),
+        error.to_string().contains("only 0 XCH is spendable"),
         "the other send should find no coin left, but failed with: {error}"
     );
 

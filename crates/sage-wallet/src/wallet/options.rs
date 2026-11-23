@@ -266,7 +266,10 @@ impl Wallet {
             .select_spends_for_deltas(ctx, spends, deltas, &[])
             .await
         {
-            Err(WalletError::CoinSelection(CoinSelectionError::NoSpendableCoins)) => Err(missing),
+            Err(WalletError::InsufficientCoins {
+                error: CoinSelectionError::NoSpendableCoins,
+                ..
+            }) => Err(missing),
             result => result,
         }
     }

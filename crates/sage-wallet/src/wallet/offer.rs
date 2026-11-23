@@ -16,8 +16,8 @@ mod tests {
     use test_log::test;
 
     use crate::{
-        Offered, PreSplitOffer, Requested, RequestedCat, TakenOffer, TestWallet, WalletError,
-        WalletNftMint, assert_before_seconds,
+        CoinSelectionAsset, Offered, PreSplitOffer, Requested, RequestedCat, TakenOffer,
+        TestWallet, WalletError, WalletNftMint, assert_before_seconds,
     };
 
     use super::aggregate_offers;
@@ -1051,7 +1051,7 @@ mod tests {
 
         let result = alice.wallet.take_offer(offer, 0).await;
         assert!(
-            matches!(result, Err(WalletError::CoinSelection(_))),
+            matches!(result, Err(WalletError::InsufficientCoins { .. })),
             "taking the offer should not reuse the offer input coin"
         );
 
@@ -1258,6 +1258,56 @@ mod tests {
 
         // Check balances
         assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 1000);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_take_cat_offer_without_xch_for_the_fee() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let bob = alice.next(0).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    cats: indexmap! { asset_id => 1000 },
+                    ..Default::default()
+                },
+                Requested::default(),
+                None,
+            )
+            .await?;
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        // Bob gets the CAT for free, but the network fee is paid in XCH, which he doesn't have
+        let error = bob
+            .wallet
+            .take_offer(offer, 1)
+            .await
+            .expect_err("the fee needs XCH");
+
+        assert!(matches!(
+            error,
+            WalletError::InsufficientCoins {
+                asset: CoinSelectionAsset::Xch,
+                needed: 1,
+                available: 0,
+                ..
+            }
+        ));
+        assert!(
+            error
+                .to_string()
+                .contains("network fee is always paid in XCH")
+        );
 
         Ok(())
     }

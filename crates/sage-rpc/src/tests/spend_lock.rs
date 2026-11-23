@@ -77,7 +77,7 @@ fn assert_first_wins<A, B>(first: &sage::Result<A>, second: &sage::Result<B>) {
     match second {
         Ok(_) => panic!("the second request should fail, since the coin is taken"),
         Err(error) => assert!(
-            error.to_string().contains("no spendable coins"),
+            error.to_string().contains("only 0 XCH is spendable"),
             "the second request should find no coin left, but failed with: {error}"
         ),
     }
