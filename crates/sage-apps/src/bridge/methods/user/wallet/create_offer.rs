@@ -104,9 +104,10 @@ pub struct WalletCreateOfferResult {
     pub id: String,
     /// The transaction that splits the offered coins, if one was made. The offer can't be taken
     /// until it's confirmed. It leaves `wallet.getPendingTransactions` when it's confirmed, but
-    /// also if it fails or expires. To tell which, check a coin from its `created` list there
-    /// with `wallet.getCoinsByIds`: the coin gets a `createdHeight` once the split is confirmed.
-    /// If it never does, the split failed and the offer can never be taken.
+    /// also if it fails or expires. To tell which, look up a coin from its `created` list there
+    /// with `wallet.getCoinsByIds` once it has left: a confirmed split's coin is returned with a
+    /// `createdHeight`, and a failed split's coin isn't returned at all, in which case the offer
+    /// can never be taken.
     pub split_transaction_id: Option<String>,
 }
 
@@ -480,8 +481,6 @@ fn fold_xch_lookalike(c: char) -> char {
     }
 }
 
-/// Whether a label reads as "XCH", ignoring case, spaces, punctuation and invisible characters
-/// such as zero-width spaces, and with lookalike letters folded.
 /// The approval for an offer, with its offered and requested assets already labelled. Every
 /// fee the offer may pay is part of it.
 fn approval_summary(
@@ -498,6 +497,8 @@ fn approval_summary(
     }
 }
 
+/// Whether a label reads as "XCH", ignoring case, spaces, punctuation and invisible characters
+/// such as zero-width spaces, and with lookalike letters folded.
 fn is_xch_label(label: Option<&str>) -> bool {
     label.is_some_and(|label| {
         label
