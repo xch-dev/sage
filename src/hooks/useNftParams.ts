@@ -2,11 +2,11 @@ import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 
-const NFT_HIDDEN_STORAGE_KEY = 'sage-wallet-nft-hidden';
-const NFT_GROUP_STORAGE_KEY = 'sage-wallet-nft-group';
-const NFT_SORT_STORAGE_KEY = 'sage-wallet-nft-sort';
-const NFT_PAGE_SIZE_STORAGE_KEY = 'sage-wallet-nft-page-size';
-const NFT_CARD_SIZE_STORAGE_KEY = 'sage-wallet-nft-card-size';
+export const NFT_HIDDEN_STORAGE_KEY = 'sage-wallet-nft-hidden';
+export const NFT_GROUP_STORAGE_KEY = 'sage-wallet-nft-group';
+export const NFT_SORT_STORAGE_KEY = 'sage-wallet-nft-sort';
+export const NFT_PAGE_SIZE_STORAGE_KEY = 'sage-wallet-nft-page-size';
+export const NFT_CARD_SIZE_STORAGE_KEY = 'sage-wallet-nft-card-size';
 
 export enum NftSortMode {
   Name = 'name',

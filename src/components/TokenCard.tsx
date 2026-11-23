@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fromMojos } from '@/lib/utils';
 import { useNetwork } from '@/hooks/useNetwork';
+import { usePrices } from '@/hooks/usePrices';
 import { dexieAssetUrl } from '@/lib/urls';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -49,7 +50,7 @@ import { Separator } from './ui/separator';
 
 interface TokenCardProps {
   asset: TokenRecord;
-  balanceInUsd: string;
+  balanceInFiat: string;
   onRedownload: () => void;
   onVisibilityChange: (visible: boolean) => void;
   onUpdate: (updatedAsset: TokenRecord) => Promise<void>;
@@ -57,7 +58,7 @@ interface TokenCardProps {
 
 export function TokenCard({
   asset,
-  balanceInUsd,
+  balanceInFiat,
   onRedownload,
   onVisibilityChange,
   onUpdate,
@@ -65,6 +66,7 @@ export function TokenCard({
   const walletState = useWalletState();
   const navigate = useNavigate();
   const { isTestnet } = useNetwork();
+  const { fiatCurrency } = usePrices();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
@@ -105,7 +107,7 @@ export function TokenCard({
               </span>
               {asset?.ticker ?? 'CAT'}
             </div>
-            <div className='flex-shrink-0'>
+            <div className='shrink-0'>
               <AssetIcon asset={{ ...asset, kind: 'token' }} size='md' />
             </div>
           </div>
@@ -124,16 +126,18 @@ export function TokenCard({
               </>
             )}
           </div>
-          <Separator />
-          <div className='text-sm text-muted-foreground'>
-            <NumberFormat
-              value={balanceInUsd}
-              style='currency'
-              currency='USD'
-              minimumFractionDigits={2}
-              maximumFractionDigits={2}
-            />
-          </div>
+          {fiatCurrency && (
+            <>
+              <Separator />
+              <div className='text-sm text-muted-foreground'>
+                <NumberFormat
+                  value={balanceInFiat}
+                  style='currency'
+                  currency={fiatCurrency}
+                />
+              </div>
+            </>
+          )}
         </CardHeader>
         <CardContent className='flex flex-col gap-2'>
           <ReceiveAddress className='mt-2' />

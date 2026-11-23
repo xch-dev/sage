@@ -1,8 +1,8 @@
-import { spawnSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import crossSpawn from 'cross-spawn';
+import { signalProcessTree } from './run-command.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const forwardedArgs = process.argv.slice(2);
@@ -40,30 +40,6 @@ function waitForExit(child) {
     child.once('error', reject);
     child.once('close', (code, signal) => resolve({ code, signal }));
   });
-}
-
-function signalProcessTree(child, signal) {
-  try {
-    if (process.platform === 'win32') {
-      if (child.exitCode !== null || child.signalCode !== null) {
-        return;
-      }
-
-      if (signal === 'SIGKILL') {
-        spawnSync('taskkill', ['/pid', String(child.pid), '/t', '/f'], {
-          stdio: 'ignore',
-        });
-      } else {
-        child.kill(signal);
-      }
-    } else {
-      process.kill(-child.pid, signal);
-    }
-  } catch (error) {
-    if (error?.code !== 'ESRCH') {
-      console.error(`[tauri:dev] failed to send ${signal}:`, error);
-    }
-  }
 }
 
 function wait(milliseconds) {

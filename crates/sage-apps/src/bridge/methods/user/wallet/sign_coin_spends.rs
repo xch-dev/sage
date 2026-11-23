@@ -206,7 +206,10 @@ impl From<TransactionInput> for WalletSignCoinSpendsApprovalInput {
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct WalletSignCoinSpendsApprovalSummary {
+    /// The fee the transaction actually pays, including any that isn't declared.
     pub fee: WalletSignCoinSpendsAmount,
+    /// The sum of the transaction's `RESERVE_FEE` conditions.
+    pub declared_fee: WalletSignCoinSpendsAmount,
     pub inputs: Vec<WalletSignCoinSpendsApprovalInput>,
 }
 
@@ -214,6 +217,7 @@ impl From<TransactionSummary> for WalletSignCoinSpendsApprovalSummary {
     fn from(summary: TransactionSummary) -> Self {
         Self {
             fee: summary.fee.into(),
+            declared_fee: summary.declared_fee.into(),
             inputs: summary.inputs.into_iter().map(Into::into).collect(),
         }
     }
@@ -258,7 +262,7 @@ impl BridgeMethod for WalletSignCoinSpends {
 
         let summary = tools
             .app_state
-            .lock()
+            .read()
             .await
             .view_coin_spends(params.preview_request())
             .await
@@ -289,7 +293,7 @@ impl BridgeMethod for WalletSignCoinSpends {
 
         let response = tools
             .app_state
-            .lock()
+            .read()
             .await
             .sign_coin_spends(params.into_request())
             .await

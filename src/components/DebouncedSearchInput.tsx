@@ -23,7 +23,7 @@ export function DebouncedSearchInput({
   className,
 }: DebouncedSearchInputProps) {
   const [text, setText] = useState(value ?? '');
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
   // The last value this input reported, so its echo back through `value`

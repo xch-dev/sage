@@ -19,9 +19,7 @@ pub async fn poll_isolation(
     loop {
         let results = {
             let runs = apps_state.sandbox.runs.lock().await;
-            runs.get(run_id)
-                .map(|r| r.isolation.clone())
-                .unwrap_or_default()
+            runs.get(run_id).map_or_default(|r| r.isolation.clone())
         };
 
         if results.len() >= expected_count {
@@ -48,8 +46,7 @@ pub async fn poll_persistence_write(
         let results = {
             let runs = apps_state.sandbox.runs.lock().await;
             runs.get(run_id)
-                .map(|r| r.persistence_write.clone())
-                .unwrap_or_default()
+                .map_or_default(|r| r.persistence_write.clone())
         };
 
         if results.len() >= expected_count {
@@ -76,8 +73,7 @@ pub async fn poll_persistence_read(
         let results = {
             let runs = apps_state.sandbox.runs.lock().await;
             runs.get(run_id)
-                .map(|r| r.persistence_read.clone())
-                .unwrap_or_default()
+                .map_or_default(|r| r.persistence_read.clone())
         };
 
         if results.len() >= expected_count {
@@ -103,9 +99,7 @@ pub async fn poll_network(
     loop {
         let results = {
             let runs = apps_state.sandbox.runs.lock().await;
-            runs.get(run_id)
-                .map(|r| r.network.clone())
-                .unwrap_or_default()
+            runs.get(run_id).map_or_default(|r| r.network.clone())
         };
 
         if results.len() >= expected_count {

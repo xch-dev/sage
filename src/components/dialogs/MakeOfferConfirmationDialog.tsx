@@ -12,6 +12,14 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useFeeRates } from '@/hooks/useFeeRates';
+import {
+  autoFeeAtRate,
+  autoFeeRateFor,
+  autoFeeTier,
+  formatRate,
+  isAutoFee,
+} from '@/lib/fees';
 import { marketplaces } from '@/lib/marketplaces';
 import { isMutableNft, mutableNftLabel } from '@/lib/nftUpdater';
 import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
@@ -27,10 +35,15 @@ import { ScrollArea } from '../ui/scroll-area';
 interface MakeOfferConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  /**
+   * Called with the split fee to pay. An automatic one is at the rate shown, rather than
+   * whatever the tier's rate is by the time the offer is made.
+   */
+  onConfirm: (preSplitFee: string | null) => void;
   offerState: OfferState;
   splitNftOffers: boolean;
   fee: string;
+  preSplitFee: string | null;
   enabledMarketplaces?: Record<string, boolean>;
   setEnabledMarketplaces?: (marketplaces: Record<string, boolean>) => void;
 }
@@ -413,10 +426,24 @@ export function MakeOfferConfirmationDialog({
   offerState,
   splitNftOffers,
   fee,
+  preSplitFee,
   enabledMarketplaces,
   setEnabledMarketplaces,
 }: MakeOfferConfirmationDialogProps) {
   const [xchToken, setXchToken] = useState<TokenRecord | null>(null);
+  const feeRates = useFeeRates();
+  // An automatic split fee is calculated when the offer is made, at this rate.
+  const splitFeeRate = isAutoFee(preSplitFee)
+    ? autoFeeRateFor(preSplitFee, feeRates)
+    : null;
+  // A tier's rate is shown as it's paid; one that was entered is shown as it was entered.
+  const splitFeeTier = isAutoFee(preSplitFee) ? autoFeeTier(preSplitFee) : null;
+  const shownSplitFeeRate =
+    splitFeeRate === null
+      ? null
+      : splitFeeTier !== null
+        ? formatRate(splitFeeRate)
+        : String(splitFeeRate);
 
   useEffect(() => {
     const fetchXchToken = async () => {
@@ -435,7 +462,11 @@ export function MakeOfferConfirmationDialog({
   }, [open]);
 
   const handleConfirm = () => {
-    onConfirm();
+    onConfirm(
+      splitFeeTier !== null && shownSplitFeeRate !== null
+        ? autoFeeAtRate(shownSplitFeeRate)
+        : preSplitFee,
+    );
     onOpenChange(false);
   };
 
@@ -522,7 +553,7 @@ export function MakeOfferConfirmationDialog({
                 ) {
                   return (
                     <div className='flex items-center gap-2 p-3 mb-2 rounded border border-yellow-400 bg-yellow-50 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-200'>
-                      <AlertTriangle className='h-5 w-5 text-yellow-500 flex-shrink-0' />
+                      <AlertTriangle className='h-5 w-5 text-yellow-500 shrink-0' />
                       <span className='font-semibold'>
                         <Trans>
                           Warning: This is a one-sided offer. You are not
@@ -600,6 +631,48 @@ export function MakeOfferConfirmationDialog({
                   </Trans>
                 </p>
               )}
+            </div>
+          )}
+
+          {preSplitFee !== null && (
+            <div>
+              <h3 className='text-md font-semibold mb-1'>
+                <Trans>Pre-split Coins</Trans>
+              </h3>
+              <p className='text-sm'>
+                <Trans>Split Fee:</Trans>{' '}
+                {isAutoFee(preSplitFee) ? (
+                  shownSplitFeeRate !== null ? (
+                    <Trans>Automatic, {shownSplitFeeRate} mojos per cost</Trans>
+                  ) : (
+                    <Trans>Automatic</Trans>
+                  )
+                ) : (
+                  <>
+                    <NumberFormat
+                      value={preSplitFee || '0'}
+                      minimumFractionDigits={2}
+                      maximumFractionDigits={xchToken?.precision ?? 12}
+                    />{' '}
+                    {xchToken
+                      ? getAssetDisplayName(
+                          xchToken.name,
+                          xchToken.ticker,
+                          'token',
+                        )
+                      : 'XCH'}
+                  </>
+                )}
+              </p>
+              <p className='text-xs text-muted-foreground'>
+                <Trans>
+                  If the coins you&apos;re offering add up to more than the
+                  offered amounts, they will first be split into coins of the
+                  exact amounts, so the rest of your balance stays spendable.
+                  The offer stays pending, and won&apos;t be uploaded to
+                  marketplaces, until that transaction is confirmed.
+                </Trans>
+              </p>
             </div>
           )}
 

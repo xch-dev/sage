@@ -78,7 +78,7 @@ impl BridgeMethod for WalletGetPublicKeys {
         let params: WalletGetPublicKeysParams = parse_optional_params(self, request)?;
         let response = tools
             .app_state
-            .lock()
+            .read()
             .await
             .get_derivations(params.into())
             .await

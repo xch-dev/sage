@@ -4,7 +4,15 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { DataTable } from '@/components/ui/data-table';
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableColumnDef,
+  DataTableInstance,
+  DataTableRow,
+  dataTableFeatures,
+} from '@/components/ui/data-table';
+import { useTable } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   Dialog,
@@ -35,14 +43,6 @@ import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
 import { animated, useSpring } from '@react-spring/web';
-import {
-  Column,
-  ColumnDef,
-  getCoreRowModel,
-  Row,
-  Table,
-  useReactTable,
-} from '@tanstack/react-table';
 import { platform } from '@tauri-apps/plugin-os';
 import { useDrag } from '@use-gesture/react';
 import {
@@ -55,7 +55,11 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { commands, PeerRecord } from '../bindings';
 
-const SelectAllHeader = ({ table }: { table: Table<PeerRecord> }) => (
+const SelectAllHeader = ({
+  table,
+}: {
+  table: DataTableInstance<PeerRecord>;
+}) => (
   <Checkbox
     className='mx-2'
     checked={
@@ -67,7 +71,7 @@ const SelectAllHeader = ({ table }: { table: Table<PeerRecord> }) => (
   />
 );
 
-const SelectRowCell = ({ row }: { row: Row<PeerRecord> }) => (
+const SelectRowCell = ({ row }: { row: DataTableRow<PeerRecord> }) => (
   <Checkbox
     className='mx-2'
     checked={row.getIsSelected()}
@@ -82,7 +86,7 @@ const TypeHeader = () => (
   </div>
 );
 
-const TypeCell = ({ row }: { row: Row<PeerRecord> }) => (
+const TypeCell = ({ row }: { row: DataTableRow<PeerRecord> }) => (
   <div className='text-center'>
     <TooltipProvider delayDuration={200}>
       <Tooltip>
@@ -115,7 +119,7 @@ const ActionsCell = ({
   row,
   onDelete,
 }: {
-  row: Row<PeerRecord>;
+  row: DataTableRow<PeerRecord>;
   onDelete: (peer: PeerRecord) => void;
 }) => (
   <div className='text-center'>
@@ -128,23 +132,27 @@ const ActionsCell = ({
 const IPAddressHeader = ({
   column,
 }: {
-  column: Column<PeerRecord, unknown>;
+  column: DataTableColumn<PeerRecord, unknown>;
 }) => <DataTableColumnHeader column={column} title={t`IP Address`} />;
 
-const PortHeader = ({ column }: { column: Column<PeerRecord, unknown> }) => (
-  <DataTableColumnHeader column={column} title={t`Port`} />
-);
+const PortHeader = ({
+  column,
+}: {
+  column: DataTableColumn<PeerRecord, unknown>;
+}) => <DataTableColumnHeader column={column} title={t`Port`} />;
 
-const HeightHeader = ({ column }: { column: Column<PeerRecord, unknown> }) => (
-  <DataTableColumnHeader column={column} title={t`Height`} />
-);
+const HeightHeader = ({
+  column,
+}: {
+  column: DataTableColumn<PeerRecord, unknown>;
+}) => <DataTableColumnHeader column={column} title={t`Height`} />;
 
 // Remove the duplicate wrapper and fix the actions cell properly
 const ActionsCellWrapper = ({
   row,
   setPeerToDelete,
 }: {
-  row: Row<PeerRecord>;
+  row: DataTableRow<PeerRecord>;
   setPeerToDelete: (peers: PeerRecord[]) => void;
 }) => <ActionsCell row={row} onDelete={(peer) => setPeerToDelete([peer])} />;
 
@@ -295,9 +303,9 @@ export default function PeerList() {
 
   const isMobile = platform() === 'ios' || platform() === 'android';
 
-  const columns: ColumnDef<PeerRecord>[] = useMemo(() => {
+  const columns: DataTableColumnDef<PeerRecord>[] = useMemo(() => {
     const actionsCellWithSetPeerToDelete = (props: {
-      row: Row<PeerRecord>;
+      row: DataTableRow<PeerRecord>;
     }) => (
       <ActionsCellWrapper row={props.row} setPeerToDelete={setPeerToDelete} />
     );
@@ -345,10 +353,10 @@ export default function PeerList() {
     ];
   }, [setPeerToDelete]);
 
-  const table = useReactTable({
+  const table = useTable({
+    features: dataTableFeatures,
     data: peers ?? [],
     columns,
-    getCoreRowModel: getCoreRowModel(),
     enableRowSelection: true,
     state: {
       rowSelection,

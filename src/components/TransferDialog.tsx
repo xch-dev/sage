@@ -1,12 +1,11 @@
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { xchandlesEnabled } from '@/lib/features';
-import { amount } from '@/lib/formTypes';
+import { feeWithinBalance } from '@/lib/fees';
 import { isHandleInput, isValidHandle } from '@/lib/handles';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import BigNumber from 'bignumber.js';
 import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -57,10 +56,9 @@ export function TransferDialog({
         (address) => !isHandleInput(address) || isValidHandle(address),
         t`Invalid handle`,
       ),
-    fee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
+    fee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
     ),
   });
 

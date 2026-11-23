@@ -1,3 +1,4 @@
+import { DataTableColumnDef } from '@/components/ui/data-table';
 import { OptionRecord } from '@/bindings';
 import { AssetIcon } from '@/components/AssetIcon';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,6 @@ import { OptionActionHandlers } from '@/hooks/useOptionActions';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ColumnDef } from '@tanstack/react-table';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import {
   AlertCircle,
@@ -22,6 +22,7 @@ import {
   HandCoins,
   MoreHorizontal,
   SendIcon,
+  Undo2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -29,7 +30,8 @@ import { NumberFormat } from './NumberFormat';
 
 export const columns = (
   actionHandlers?: OptionActionHandlers,
-): ColumnDef<OptionRecord>[] => [
+  isTransactionDisabled = false,
+): DataTableColumnDef<OptionRecord>[] => [
   {
     accessorKey: 'name',
     header: () => <Trans>Name</Trans>,
@@ -187,7 +189,7 @@ export const columns = (
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>
-            {!isPending && option.is_owned && (
+            {!isPending && option.is_owned && !isTransactionDisabled && (
               <>
                 {actionHandlers?.onExercise && (
                   <DropdownMenuItem
@@ -197,6 +199,16 @@ export const columns = (
                     <Trans>Exercise</Trans>
                   </DropdownMenuItem>
                 )}
+                {actionHandlers?.onCancel &&
+                  option.is_creator &&
+                  option.expiration_seconds * 1000 > Date.now() && (
+                    <DropdownMenuItem
+                      onClick={() => actionHandlers.onCancel?.(option)}
+                    >
+                      <Undo2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                      <Trans>Cancel</Trans>
+                    </DropdownMenuItem>
+                  )}
                 {actionHandlers?.onTransfer && (
                   <DropdownMenuItem
                     onClick={() => actionHandlers.onTransfer?.(option)}

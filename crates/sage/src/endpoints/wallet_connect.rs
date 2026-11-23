@@ -1,5 +1,3 @@
-use std::slice;
-
 use chia_wallet_sdk::driver::{Clawback as ClawbackV1, ClawbackV2};
 use chia_wallet_sdk::{
     chia::{
@@ -19,9 +17,7 @@ use sage_api::{
     },
 };
 use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, DeserializePrimitive, P2Puzzle};
-use sage_wallet::{
-    Status, SyncCommand, Transaction, WalletError, insert_transaction, submit_to_peers,
-};
+use sage_wallet::{Status, WalletError, submit_to_peers};
 use tracing::{debug, info, warn};
 
 use crate::{
@@ -38,11 +34,9 @@ impl Sage {
         let mut coin_ids = Vec::new();
 
         for coin_id in req.coin_ids {
-            if wallet
-                .db
-                .are_coins_spendable(slice::from_ref(&coin_id))
-                .await?
-            {
+            let parsed_coin_id = parse_coin_id(coin_id.clone())?;
+
+            if wallet.db.are_coins_spendable(&[parsed_coin_id]).await? {
                 coin_ids.push(coin_id);
             }
         }
@@ -259,6 +253,7 @@ impl Sage {
         // TODO: Should this be the normal way of sending transactions?
 
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
         let spend_bundle = rust_bundle(req.spend_bundle)?;
         let peers = self.peer_state.lock().await.peers();
 
@@ -267,34 +262,13 @@ impl Sage {
         let transaction_id = spend_bundle.name();
 
         match submit_to_peers(&peers, spend_bundle.clone()).await? {
-            Status::Pending => {
-                let peer = self
-                    .peer_state
-                    .lock()
-                    .await
-                    .acquire_peer()
-                    .ok_or(Error::NoPeers)?;
-
-                let subscriptions = insert_transaction(
-                    &wallet.db,
-                    &peer,
-                    wallet.genesis_challenge,
-                    spend_bundle.name(),
-                    Transaction::from_coin_spends(spend_bundle.coin_spends)?,
-                    spend_bundle.aggregated_signature,
-                )
-                .await?;
-
-                self.command_sender
-                    .send(SyncCommand::SubscribeCoins {
-                        coin_ids: subscriptions,
-                    })
-                    .await?;
+            Status::Pending(status) => {
+                self.submit_unchecked(spend_bundle, &spends).await?;
 
                 info!("Successfully submitted and inserted transaction {transaction_id}");
 
                 Ok(SendTransactionImmediatelyResponse {
-                    status: 1,
+                    status,
                     error: None,
                 })
             }

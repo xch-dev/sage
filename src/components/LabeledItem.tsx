@@ -57,7 +57,7 @@ export function LabeledItem({
           id={contentId}
           onClick={() => openUrl(content)}
           onKeyDown={(e) => handleKeyDown(e, () => openUrl(content))}
-          className='text-sm break-words text-blue-600 cursor-pointer hover:underline focus:outline-none rounded-sm text-left p-0 border-0 bg-transparent m-0'
+          className='text-sm wrap-break-word text-blue-600 cursor-pointer hover:underline focus:outline-hidden rounded-sm text-left p-0 border-0 bg-transparent m-0'
           title={t`Open external link: ${content}`}
           aria-label={t`${label}: ${content} (opens in external application)`}
           aria-describedby={labelId}
@@ -71,7 +71,7 @@ export function LabeledItem({
           id={contentId}
           onClick={onClick}
           onKeyDown={(e) => handleKeyDown(e, onClick)}
-          className='text-sm break-words text-blue-600 cursor-pointer hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm text-left p-0 border-0 bg-transparent m-0'
+          className='text-sm wrap-break-word text-blue-600 cursor-pointer hover:underline focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm text-left p-0 border-0 bg-transparent m-0'
           title={t`Navigate to: ${contentText}`}
           aria-label={t`${label}: ${contentText} (navigate within app)`}
           aria-describedby={labelId}
@@ -83,7 +83,7 @@ export function LabeledItem({
       ) : (
         <span
           id={contentId}
-          className={`text-sm break-words ${className}`}
+          className={`text-sm wrap-break-word ${className}`}
           aria-describedby={labelId}
         >
           {content}

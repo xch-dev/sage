@@ -44,6 +44,7 @@ cast_possible_truncation = "allow"
 cast_sign_loss = "allow"
 cast_lossless = "allow"
 result_large_err = "allow"
+assert_is_empty = "allow"
 
 [workspace.dependencies]
 sage = { path = "./crates/sage" }
@@ -89,10 +90,10 @@ tauri-specta = "2.0.0-rc.21"
 utoipa = "5.2.0"
 
 # Chia
-chia-wallet-sdk = { version = "0.37.1", features = ["rustls", "offer-compression", "peer-simulator", "action-layer"] }
-chia_streamable_macro = "0.52.1"
-chia-traits = "0.52.1"
-chia-sha2 = "0.52.1"
+chia-wallet-sdk = { version = "0.39.0", features = ["rustls", "offer-compression", "peer-simulator", "action-layer"] }
+chia_streamable_macro = "0.54.0"
+chia-traits = "0.54.0"
+chia-sha2 = "0.54.0"
 bip39 = "2.0.0"
 bech32 = "0.9.1"
 rand = "0.8.5"
@@ -107,6 +108,7 @@ futures-util = "0.3.30"
 futures-lite = "2.3.0"
 sqlx = "0.8.0"
 reqwest = { version = "0.12.22", default-features = false }
+tokio-tungstenite = "0.30.0"
 
 # Utilities
 indexmap = "2.3.0"
@@ -148,6 +150,12 @@ clap = "4.5.21"
 # Testing
 tempfile = "3.25.0"
 tower = "0.5.3"
+
+[profile.dev]
+# Line tables are enough for backtraces and panic locations, and full debuginfo makes the
+# target directory roughly 40% larger. Set `CARGO_PROFILE_DEV_DEBUG=true` to get full
+# debuginfo back when you need to inspect variables in a debugger.
+debug = "line-tables-only"
 
 [patch.crates-io]
 tauri-runtime = { git = "https://github.com/Rigidity/tauri.git", rev = "8b205bb844bd56b4ee027905d1b068553d867ebe" }

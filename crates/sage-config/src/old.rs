@@ -136,6 +136,7 @@ pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseInt
             default_network: old.network.network_id,
             target_peers: old.network.target_peers,
             discover_peers: old.network.discover_peers,
+            mempool_discovery: true,
         },
         rpc: RpcConfig {
             enabled: old.rpc.run_on_startup,
@@ -199,6 +200,7 @@ pub fn migrate_networks(old: IndexMap<String, OldNetwork>) -> NetworkList {
                     additional_peer_introducers: vec![],
                     inherit,
                     xchandles: None,
+                    drop_silent_peers: true,
                 }
             })
             .collect(),

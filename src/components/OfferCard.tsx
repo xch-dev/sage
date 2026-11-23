@@ -3,6 +3,7 @@ import { Assets } from '@/components/Assets';
 import { MarketplaceCard } from '@/components/MarketplaceCard';
 import { MutableNftWarning } from '@/components/MutableNftWarning';
 import { NumberFormat } from '@/components/NumberFormat';
+import { offerStatusLabel } from '@/components/OfferStatusBadge';
 import { marketplaces } from '@/lib/marketplaces';
 import { mutableOfferNftLabels } from '@/lib/nftUpdater';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
@@ -90,7 +91,7 @@ export function OfferCard({
   if (!offerSummary) return null;
 
   return (
-    <div className='flex flex-col gap-4 max-w-screen-lg pr-1'>
+    <div className='flex flex-col gap-4 max-w-(--breakpoint-lg) pr-1'>
       <Card>
         <CardHeader className='pb-2'>
           <CardTitle className='flex items-center justify-between'>
@@ -138,13 +139,7 @@ export function OfferCard({
                         : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
                 }`}
               >
-                {status === 'active' || status === 'pending'
-                  ? t`Pending`
-                  : status === 'completed'
-                    ? t`Taken`
-                    : status === 'cancelled'
-                      ? t`Cancelled`
-                      : t`Expired`}
+                {offerStatusLabel(status)}
               </div>
             )}
           </div>
@@ -258,18 +253,29 @@ export function OfferCard({
             </p>
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
-            <div className='flex flex-col md:flex-row items-start gap-8'>
-              {marketplaces.map((marketplace) => (
-                <MarketplaceCard
-                  key={marketplace.id}
-                  offer={offer || ''}
-                  offerId={offerId}
-                  offerSummary={offerSummary}
-                  isTestnet={isTestnet}
-                  marketplace={marketplace}
-                />
-              ))}
-            </div>
+            {status === 'pending' ? (
+              <p className='text-sm text-muted-foreground'>
+                <Trans>
+                  The coins for this offer are still being split, so
+                  marketplaces won&apos;t accept it yet. If you chose to upload
+                  it when you made it, that will happen once the split is
+                  confirmed.
+                </Trans>
+              </p>
+            ) : (
+              <div className='flex flex-col md:flex-row items-start gap-8'>
+                {marketplaces.map((marketplace) => (
+                  <MarketplaceCard
+                    key={marketplace.id}
+                    offer={offer || ''}
+                    offerId={offerId}
+                    offerSummary={offerSummary}
+                    isTestnet={isTestnet}
+                    marketplace={marketplace}
+                  />
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

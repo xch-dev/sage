@@ -19,3 +19,24 @@ export function toCustomError(e: unknown): CustomError {
     reason: e instanceof Error ? e.message : String(e),
   };
 }
+
+/** Which database failed to migrate: the wallet's own, or the one shared by
+ *  the wallets on its network, which holds the address book and handle
+ *  mappings. Each needs a different database deleted to fix it. */
+export type DatabaseMigration = 'wallet' | 'shared';
+
+/** The database that failed to migrate, if that's why the request failed. */
+export function databaseMigration(e: unknown): DatabaseMigration | null {
+  if (typeof e !== 'object' || e === null || !('kind' in e)) {
+    return null;
+  }
+
+  switch (e.kind) {
+    case 'database_migration':
+      return 'wallet';
+    case 'shared_database_migration':
+      return 'shared';
+    default:
+      return null;
+  }
+}

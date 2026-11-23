@@ -1,6 +1,6 @@
 use crate::{
     Error, Result, Sage, address_kind, encode_nft_updater_kind, parse_any_asset_id, parse_asset_id,
-    parse_collection_id, parse_did_id, parse_nft_id, parse_option_id,
+    parse_coin_ids, parse_collection_id, parse_did_id, parse_nft_id, parse_option_id,
 };
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chia_wallet_sdk::prelude::*;
@@ -168,7 +168,8 @@ impl Sage {
         req: GetAreCoinsSpendable,
     ) -> Result<GetAreCoinsSpendableResponse> {
         let wallet = self.wallet()?;
-        let spendable = wallet.db.are_coins_spendable(&req.coin_ids).await?;
+        let coin_ids = parse_coin_ids(req.coin_ids)?;
+        let spendable = wallet.db.are_coins_spendable(&coin_ids).await?;
 
         Ok(GetAreCoinsSpendableResponse { spendable })
     }
@@ -191,7 +192,8 @@ impl Sage {
 
     pub async fn get_coins_by_ids(&self, req: GetCoinsByIds) -> Result<GetCoinsByIdsResponse> {
         let wallet = self.wallet()?;
-        let rows = wallet.db.coins_by_ids(&req.coin_ids).await?;
+        let coin_ids = parse_coin_ids(req.coin_ids)?;
+        let rows = wallet.db.coins_by_ids(&coin_ids).await?;
         let mut coins = Vec::new();
 
         for row in rows {
@@ -469,6 +471,7 @@ impl Sage {
                 created_timestamp: row.coin_row.created_timestamp,
                 is_owned: row.coin_row.spent_height.is_none()
                     && row.coin_row.mempool_item_hash.is_none(),
+                is_creator: row.is_creator,
             });
         }
 
@@ -502,6 +505,7 @@ impl Sage {
             created_height: row.coin_row.created_height,
             created_timestamp: row.coin_row.created_timestamp,
             is_owned: row.coin_row.spent_height.is_none(),
+            is_creator: row.is_creator,
         };
 
         Ok(GetOptionResponse {
@@ -800,13 +804,16 @@ impl Sage {
 
         let nft_id = parse_nft_id(req.nft_id)?;
 
-        let Some(nft) = wallet.db.nft(nft_id).await? else {
-            return Ok(GetNftThumbnailResponse { thumbnail: None });
-        };
+        // Any NFT the wallet knows, not only ones it holds: an NFT looked up for an offer is
+        // saved too, and its data is downloaded and thumbnailed like any other.
+        let data_hash = wallet
+            .db
+            .offer_nft_info(nft_id)
+            .await?
+            .and_then(|info| info.parsed_metadata())
+            .and_then(|metadata| metadata.data_hash);
 
-        let metadata = nft.info.parsed_metadata();
-
-        let Some(data_hash) = metadata.as_ref().and_then(|m| m.data_hash) else {
+        let Some(data_hash) = data_hash else {
             return Ok(GetNftThumbnailResponse { thumbnail: None });
         };
 
@@ -869,20 +876,13 @@ impl Sage {
             )
             .encode()?,
             royalty_ten_thousandths: row.nft_info.royalty_basis_points,
-            data_uris: metadata
-                .as_ref()
-                .map(|m| m.data_uris.clone())
-                .unwrap_or_default(),
+            data_uris: metadata.as_ref().map_or_default(|m| m.data_uris.clone()),
             data_hash: data_hash.map(hex::encode),
             metadata_uris: metadata
                 .as_ref()
-                .map(|m| m.metadata_uris.clone())
-                .unwrap_or_default(),
+                .map_or_default(|m| m.metadata_uris.clone()),
             metadata_hash: metadata_hash.map(hex::encode),
-            license_uris: metadata
-                .as_ref()
-                .map(|m| m.license_uris.clone())
-                .unwrap_or_default(),
+            license_uris: metadata.as_ref().map_or_default(|m| m.license_uris.clone()),
             license_hash: license_hash.map(hex::encode),
             edition_number: metadata
                 .as_ref()

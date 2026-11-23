@@ -100,6 +100,8 @@ impl From<WalletSendXchParams> for SendXch {
             auto_submit: true,
             coin_ids: None,
             confirmed_handles: Vec::new(),
+            fee_per_cost: None,
+            deduct_fee: false,
         }
     }
 }
@@ -120,7 +122,7 @@ async fn execute_send_xch(
 
     let result = tools
         .app_state
-        .lock()
+        .read()
         .await
         .send_xch(request)
         .await
@@ -195,7 +197,7 @@ impl BridgeMethod for WalletSendXch {
         {
             let result = tools
                 .app_state
-                .lock()
+                .read()
                 .await
                 .resolve_handle(ResolveHandle {
                     handle: summary.address.trim().to_string(),

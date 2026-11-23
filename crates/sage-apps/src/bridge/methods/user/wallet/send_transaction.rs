@@ -162,7 +162,7 @@ impl BridgeMethod for WalletSendTransaction {
 
         let response = tools
             .app_state
-            .lock()
+            .read()
             .await
             .send_transaction_immediately(params.into())
             .await

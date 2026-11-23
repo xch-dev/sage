@@ -81,7 +81,7 @@ impl BridgeMethod for WalletSignMessage {
         let params: WalletSignMessageParams = parse_required_params(self, request)?;
         let response = tools
             .app_state
-            .lock()
+            .read()
             .await
             .sign_message_with_public_key(params.into())
             .await

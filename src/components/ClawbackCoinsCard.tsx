@@ -9,7 +9,7 @@ import {
 } from '@/hooks/useCoinPageSize';
 import { useErrors } from '@/hooks/useErrors';
 import { useNetwork } from '@/hooks/useNetwork';
-import { toMojos } from '@/lib/utils';
+import { FeeParams, feeParams } from '@/lib/fees';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -287,14 +287,20 @@ export function ClawbackCoinsCard({
     (
       type: 'clawback' | 'finalize_clawback' | 'claim_clawback',
       title: string,
-      request: (coinIds: string[], fee: string) => Promise<TransactionResponse>,
+      request: (
+        coinIds: string[],
+        fees: FeeParams,
+      ) => Promise<TransactionResponse>,
       setOpen: (open: boolean) => void,
     ) =>
     (fee: string) => {
-      request(
-        selectedCoinRecords.map((record) => record.coin_id),
-        toMojos(fee || '0', walletState.sync.unit.precision),
-      )
+      feeParams(fee, walletState.sync.unit.precision)
+        .then((fees) =>
+          request(
+            selectedCoinRecords.map((record) => record.coin_id),
+            fees,
+          ),
+        )
         .then((result) =>
           setResponse(
             Object.assign({}, result, {
@@ -411,7 +417,7 @@ export function ClawbackCoinsCard({
         onSubmit={submit(
           'clawback',
           t`Claw Back Details`,
-          (coin_ids, fee) => commands.combine({ coin_ids, fee }),
+          (coin_ids, fees) => commands.combine({ coin_ids, ...fees }),
           setClawBackOpen,
         )}
         submitButtonLabel={t`Claw Back`}
@@ -426,7 +432,7 @@ export function ClawbackCoinsCard({
         onSubmit={submit(
           'finalize_clawback',
           t`Finalize Clawback Details`,
-          (coin_ids, fee) => commands.finalizeClawback({ coin_ids, fee }),
+          (coin_ids, fees) => commands.finalizeClawback({ coin_ids, ...fees }),
           setFinalizeOpen,
         )}
         submitButtonLabel={t`Finalize`}
@@ -445,8 +451,8 @@ export function ClawbackCoinsCard({
         onSubmit={submit(
           'claim_clawback',
           t`Claim Clawback Details`,
-          (coin_ids, fee) =>
-            commands.claimClawback({ coin_ids, fee, auto_submit: false }),
+          (coin_ids, fees) =>
+            commands.claimClawback({ coin_ids, ...fees, auto_submit: false }),
           setClaimOpen,
         )}
         submitButtonLabel={t`Claim`}

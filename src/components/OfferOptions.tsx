@@ -64,7 +64,7 @@ export function OfferOptions({
 }: OfferOptionsProps) {
   const statusLabels: Record<OfferStatusFilter, string> = {
     all: t`All Offers`,
-    pending: t`Pending`,
+    pending: t`Splitting Coins`,
     active: t`Active`,
     completed: t`Completed`,
     cancelled: t`Cancelled`,
@@ -72,6 +72,7 @@ export function OfferOptions({
   };
   const statusOptions: OfferStatusFilter[] = [
     'all',
+    'pending',
     'active',
     'completed',
     'cancelled',

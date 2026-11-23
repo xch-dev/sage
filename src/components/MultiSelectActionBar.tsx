@@ -42,7 +42,7 @@ export function MultiSelectActionBar({
       aria-label={regionAriaLabel}
     >
       <span
-        className='flex-shrink-0 whitespace-nowrap text-card-foreground'
+        className='shrink-0 whitespace-nowrap text-card-foreground'
         aria-live='polite'
       >
         <Trans>{selectedCount} selected</Trans>
@@ -53,7 +53,7 @@ export function MultiSelectActionBar({
             <Button
               variant='outline'
               size='sm'
-              className='flex items-center gap-1 flex-shrink-0'
+              className='flex items-center gap-1 shrink-0'
               aria-label={t`Selection options`}
             >
               <Trans>Select</Trans>
@@ -100,7 +100,7 @@ export function MultiSelectActionBar({
         <DropdownMenuTrigger asChild>
           <Button
             size='sm'
-            className='flex items-center gap-1 flex-shrink-0'
+            className='flex items-center gap-1 shrink-0'
             aria-label={actionsAriaLabel}
           >
             <Trans>Actions</Trans>

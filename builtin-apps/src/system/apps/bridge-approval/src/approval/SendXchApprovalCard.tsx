@@ -177,7 +177,7 @@ export function SendXchApprovalCard({
               aria-describedby={
                 selectedFee === null ? 'send-xch-fee-description' : undefined
               }
-              className='min-w-0 flex-1 bg-transparent py-2 text-sm font-mono outline-none disabled:cursor-not-allowed disabled:opacity-60'
+              className='min-w-0 flex-1 bg-transparent py-2 text-sm font-mono outline-hidden disabled:cursor-not-allowed disabled:opacity-60'
             />
             <span className='ml-2 text-xs text-muted-foreground'>XCH</span>
           </div>

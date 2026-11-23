@@ -27,9 +27,8 @@ impl Database {
     pub async fn mempool_items_to_submit(
         &self,
         check_every_seconds: i64,
-        limit: i64,
     ) -> Result<Vec<MempoolItem>> {
-        mempool_items_to_submit(&self.pool, check_every_seconds, limit).await
+        mempool_items_to_submit(&self.pool, check_every_seconds).await
     }
 
     pub async fn mempool_coin_spends(&self, mempool_item_id: Bytes32) -> Result<Vec<CoinSpend>> {
@@ -84,6 +83,10 @@ impl DatabaseTx<'_> {
 
     pub async fn mempool_items_for_output(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
         mempool_items_for_output(&mut *self.tx, coin_id).await
+    }
+
+    pub async fn update_mempool_item_time(&mut self, mempool_item_id: Bytes32) -> Result<()> {
+        update_mempool_item_time(&mut *self.tx, mempool_item_id).await
     }
 
     pub async fn remove_mempool_item(&mut self, mempool_item_id: Bytes32) -> Result<()> {
@@ -178,20 +181,19 @@ async fn insert_mempool_spend(
     Ok(())
 }
 
+/// Never-submitted items come first, then the ones that have waited the longest.
 async fn mempool_items_to_submit(
     conn: impl SqliteExecutor<'_>,
     check_every_seconds: i64,
-    limit: i64,
 ) -> Result<Vec<MempoolItem>> {
     query!(
         "
         SELECT hash, aggregated_signature, fee, submitted_timestamp
         FROM mempool_items
         WHERE submitted_timestamp IS NULL OR unixepoch() - submitted_timestamp >= ?
-        LIMIT ?
+        ORDER BY submitted_timestamp IS NOT NULL, submitted_timestamp ASC, id ASC
         ",
-        check_every_seconds,
-        limit
+        check_every_seconds
     )
     .fetch_all(conn)
     .await?

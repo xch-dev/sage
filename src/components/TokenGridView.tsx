@@ -1,4 +1,5 @@
 import { NumberFormat } from '@/components/NumberFormat';
+import { usePrices } from '@/hooks/usePrices';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -12,7 +13,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { formatUsdPrice, fromMojos, getAssetDisplayName } from '@/lib/utils';
+import { formatFiatPrice, fromMojos, getAssetDisplayName } from '@/lib/utils';
 import { PricedTokenRecord, TokenViewProps } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -100,6 +101,8 @@ function TokenCardMenu({
 }
 
 export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
+  const { fiatCurrency } = usePrices();
+
   return (
     <div
       role='region'
@@ -131,35 +134,45 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                   <AssetIcon asset={{ ...token, kind: 'token' }} size='sm' />
                 </CardHeader>
                 <CardContent className='flex flex-col gap-1'>
-                  <div className='text-2xl font-medium truncate'>
-                    <NumberFormat
-                      value={fromMojos(token.balance, token.precision)}
-                      minimumFractionDigits={0}
-                      maximumFractionDigits={token.precision}
-                    />{' '}
-                    {token.ticker ?? ''}
+                  {/* Only the number truncates, so the ticker stays visible for large balances. */}
+                  <div
+                    className='flex gap-1.5 text-2xl font-medium'
+                    title={`${fromMojos(token.balance, token.precision)} ${token.ticker ?? ''}`.trim()}
+                  >
+                    <span className='truncate min-w-0'>
+                      <NumberFormat
+                        value={fromMojos(token.balance, token.precision)}
+                        minimumFractionDigits={0}
+                        maximumFractionDigits={token.precision}
+                      />
+                    </span>
+                    {token.ticker && (
+                      <span className='shrink-0'>{token.ticker}</span>
+                    )}
                   </div>
                   <div className='flex justify-between items-center text-sm text-muted-foreground'>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div>
-                          ~
-                          <NumberFormat
-                            value={token.balanceInUsd}
-                            style='currency'
-                            currency='USD'
-                            minimumFractionDigits={2}
-                            maximumFractionDigits={2}
-                          />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <span>
-                          1 {token.ticker ?? 'CAT'}{' '}
-                          {formatUsdPrice(token.priceInUsd)}
-                        </span>
-                      </TooltipContent>
-                    </Tooltip>
+                    {fiatCurrency ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            ~
+                            <NumberFormat
+                              value={token.balanceInFiat}
+                              style='currency'
+                              currency={fiatCurrency}
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <span>
+                            1 {token.ticker ?? 'CAT'}{' '}
+                            {formatFiatPrice(token.priceInFiat, fiatCurrency)}
+                          </span>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <div />
+                    )}
                     <TokenCardMenu
                       record={token}
                       actionHandlers={actionHandlers}

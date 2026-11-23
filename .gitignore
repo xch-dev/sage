@@ -32,3 +32,6 @@ target
 !/builtin-apps/build/dist/
 /builtin-apps/build/dist/*
 !/builtin-apps/build/dist/.gitkeep
+
+# Sandbox (pnpm sandbox)
+/.sandbox

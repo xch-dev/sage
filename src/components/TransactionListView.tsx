@@ -1,7 +1,7 @@
-import { DataTable } from '@/components/ui/data-table';
+import { DataTable, DataTableRow } from '@/components/ui/data-table';
 import { getAssetDisplayName } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
-import { Row, SortingState } from '@tanstack/react-table';
+import { SortingState } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
@@ -26,47 +26,43 @@ export function TransactionListView({
 
   const flattenedPending: FlattenedTransaction[] = pendingTransactions.flatMap(
     (transaction) => {
-      const created = transaction.created.map(
-        (coin): FlattenedTransaction => ({
-          type: coin.asset.kind,
-          address: coin.address,
-          displayName: getAssetDisplayName(
-            coin.asset.name,
-            coin.asset.ticker,
-            coin.asset.kind,
-          ),
-          itemId: coin.asset.asset_id ?? 'XCH',
-          amount: coin.amount.toString(),
-          transactionHeight: 0,
-          iconUrl: coin.asset.icon_url ?? '',
-          timestamp: null,
-          precision: coin.asset.precision,
-          groupKey: transaction.transaction_id,
-          isPending: true,
-          transactionId: transaction.transaction_id,
-        }),
-      );
+      const created = transaction.created.map((coin): FlattenedTransaction => ({
+        type: coin.asset.kind,
+        address: coin.address,
+        displayName: getAssetDisplayName(
+          coin.asset.name,
+          coin.asset.ticker,
+          coin.asset.kind,
+        ),
+        itemId: coin.asset.asset_id ?? 'XCH',
+        amount: coin.amount.toString(),
+        transactionHeight: 0,
+        iconUrl: coin.asset.icon_url ?? '',
+        timestamp: null,
+        precision: coin.asset.precision,
+        groupKey: transaction.transaction_id,
+        isPending: true,
+        transactionId: transaction.transaction_id,
+      }));
 
-      const spent = transaction.spent.map(
-        (coin): FlattenedTransaction => ({
-          type: coin.asset.kind,
-          address: coin.address,
-          displayName: getAssetDisplayName(
-            coin.asset.name,
-            coin.asset.ticker,
-            coin.asset.kind,
-          ),
-          itemId: coin.asset.asset_id ?? 'XCH',
-          amount: BigNumber(coin.amount).negated().toString(),
-          transactionHeight: 0,
-          iconUrl: coin.asset.icon_url ?? '',
-          timestamp: null,
-          precision: coin.asset.precision,
-          groupKey: transaction.transaction_id,
-          isPending: true,
-          transactionId: transaction.transaction_id,
-        }),
-      );
+      const spent = transaction.spent.map((coin): FlattenedTransaction => ({
+        type: coin.asset.kind,
+        address: coin.address,
+        displayName: getAssetDisplayName(
+          coin.asset.name,
+          coin.asset.ticker,
+          coin.asset.kind,
+        ),
+        itemId: coin.asset.asset_id ?? 'XCH',
+        amount: BigNumber(coin.amount).negated().toString(),
+        transactionHeight: 0,
+        iconUrl: coin.asset.icon_url ?? '',
+        timestamp: null,
+        precision: coin.asset.precision,
+        groupKey: transaction.transaction_id,
+        isPending: true,
+        transactionId: transaction.transaction_id,
+      }));
 
       if (!summarized) {
         return [...created, ...spent];
@@ -91,43 +87,39 @@ export function TransactionListView({
   );
 
   const flattenedTransactions = transactions.flatMap((transaction) => {
-    const created = transaction.created.map(
-      (coin): FlattenedTransaction => ({
-        type: coin.asset.kind,
-        address: coin.address,
-        displayName: getAssetDisplayName(
-          coin.asset.name,
-          coin.asset.ticker,
-          coin.asset.kind,
-        ),
-        itemId: coin.asset.asset_id ?? 'XCH',
-        amount: coin.amount.toString(),
-        transactionHeight: transaction.height,
-        iconUrl: coin.asset.icon_url ?? '',
-        timestamp: transaction.timestamp,
-        precision: coin.asset.precision,
-        groupKey: String(transaction.height),
-      }),
-    );
+    const created = transaction.created.map((coin): FlattenedTransaction => ({
+      type: coin.asset.kind,
+      address: coin.address,
+      displayName: getAssetDisplayName(
+        coin.asset.name,
+        coin.asset.ticker,
+        coin.asset.kind,
+      ),
+      itemId: coin.asset.asset_id ?? 'XCH',
+      amount: coin.amount.toString(),
+      transactionHeight: transaction.height,
+      iconUrl: coin.asset.icon_url ?? '',
+      timestamp: transaction.timestamp,
+      precision: coin.asset.precision,
+      groupKey: String(transaction.height),
+    }));
 
-    const spent = transaction.spent.map(
-      (coin): FlattenedTransaction => ({
-        type: coin.asset.kind,
-        address: coin.address,
-        displayName: getAssetDisplayName(
-          coin.asset.name,
-          coin.asset.ticker,
-          coin.asset.kind,
-        ),
-        itemId: coin.asset.asset_id ?? 'XCH',
-        amount: BigNumber(coin.amount).negated().toString(),
-        transactionHeight: transaction.height,
-        iconUrl: coin.asset.icon_url ?? '',
-        timestamp: transaction.timestamp,
-        precision: coin.asset.precision,
-        groupKey: String(transaction.height),
-      }),
-    );
+    const spent = transaction.spent.map((coin): FlattenedTransaction => ({
+      type: coin.asset.kind,
+      address: coin.address,
+      displayName: getAssetDisplayName(
+        coin.asset.name,
+        coin.asset.ticker,
+        coin.asset.kind,
+      ),
+      itemId: coin.asset.asset_id ?? 'XCH',
+      amount: BigNumber(coin.amount).negated().toString(),
+      transactionHeight: transaction.height,
+      iconUrl: coin.asset.icon_url ?? '',
+      timestamp: transaction.timestamp,
+      precision: coin.asset.precision,
+      groupKey: String(transaction.height),
+    }));
 
     if (!summarized) {
       return [...created, ...spent];
@@ -166,7 +158,7 @@ export function TransactionListView({
   ];
 
   // Function to determine if a row is the first in a transaction group
-  const getRowStyles = (row: Row<FlattenedTransaction>) => {
+  const getRowStyles = (row: DataTableRow<FlattenedTransaction>) => {
     const currentKey = row.original.groupKey;
     const rowIndex = allFlattenedTransactions.indexOf(row.original);
 

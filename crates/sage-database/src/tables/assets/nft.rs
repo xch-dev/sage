@@ -73,6 +73,10 @@ impl NftOfferInfo {
     pub fn metadata_updater_kind(&self) -> NftUpdaterKind {
         NftUpdaterKind::from_puzzle_hash(self.metadata_updater_puzzle_hash)
     }
+
+    pub fn parsed_metadata(&self) -> Option<ParsedNftMetadata> {
+        ParsedNftMetadata::parse_program(&self.metadata, self.metadata_updater_kind())
+    }
 }
 
 impl Database {

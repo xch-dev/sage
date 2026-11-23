@@ -6,8 +6,8 @@ use crate::TokenRecord;
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "CAT Tokens",
-        description = "Resynchronize a specific CAT token's coins and balance."
+        tag = "Tokens",
+        description = "Fetch a CAT's name, ticker, description and icon from Dexie again, replacing what the wallet has stored. It also makes the CAT visible again."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,7 +23,7 @@ pub struct ResyncCat {
 }
 
 /// Response after resynchronizing a `CAT` token
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "CAT Tokens"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Tokens"))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -31,14 +31,17 @@ pub struct ResyncCatResponse {}
 
 #[cfg_attr(
     feature = "openapi",
-    crate::openapi_attr(tag = "Price", description = "Get XCH-USD price")
+    crate::openapi_attr(
+        tag = "System",
+        description = "Get the current price of XCH in USD, from CoinGecko."
+    )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetXchUsdPrice {}
 
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Price"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System"))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -46,12 +49,69 @@ pub struct GetXchUsdPriceResponse {
     pub usd: f64,
 }
 
+/// Get the fee rate to price transactions at
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "System",
+        description = "Get the fee rate, in mojos per cost, that the wallet recommends pricing transactions at, and on mainnet and testnet11 the rates Coinset estimates are needed to be confirmed within a minute, five minutes and an hour. Pass one as `fee_per_cost` to have the fee calculated from the transaction's cost."
+    )
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetFeeRate {}
+
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "System"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetFeeRateResponse {
+    /// The recommended fee rate, in mojos per cost, used when there's no estimate to go by
+    pub fee_per_cost: f64,
+    /// The lowest fee rate, in mojos per cost, at which a transaction is admitted to a full
+    /// mempool and included in blocks by farmers that enforce a minimum fee. A transaction
+    /// paying less may never be confirmed.
+    pub minimum_fee_per_cost: f64,
+    /// The fee rates estimated to get a transaction confirmed within each tier's target time,
+    /// fastest first. It's empty if the network has no Coinset API to estimate them with, or
+    /// the estimate couldn't be fetched.
+    pub tiers: Vec<FeeTier>,
+}
+
+/// A fee rate estimated to get a transaction confirmed within a target time
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct FeeTier {
+    /// Which tier this is
+    pub name: FeeTierName,
+    /// How long, in seconds, a transaction paying this rate is expected to take to confirm
+    pub target_time: u64,
+    /// The fee rate, in mojos per cost. It's never below the minimum fee rate.
+    pub fee_per_cost: f64,
+}
+
+/// A tier of fee rates, by how quickly the transaction is confirmed
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum FeeTierName {
+    /// Within about a minute
+    Fast,
+    /// Within about five minutes
+    Standard,
+    /// Within about an hour
+    Economy,
+}
+
 /// Update a `CAT` token's metadata and visibility
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
-        tag = "CAT Tokens",
-        description = "Update CAT token metadata (name, ticker, etc.)."
+        tag = "Tokens",
+        description = "Change how a CAT is shown in the wallet: its name, ticker, description, icon and visibility. Nothing on chain changes."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,7 +123,7 @@ pub struct UpdateCat {
 }
 
 /// Response after updating a `CAT` token
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "CAT Tokens"))]
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Tokens"))]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -74,7 +134,7 @@ pub struct UpdateCatResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Options",
-        description = "Update option visibility and display settings."
+        description = "Show or hide an option in the wallet. Nothing on chain changes."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,7 +159,10 @@ pub struct UpdateOptionResponse {}
 /// Update a `DID`'s name and visibility settings
 #[cfg_attr(
     feature = "openapi",
-    crate::openapi_attr(tag = "DIDs", description = "Update DID metadata and information.")
+    crate::openapi_attr(
+        tag = "DIDs",
+        description = "Change a DID's name and visibility in the wallet. Nothing on chain changes."
+    )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -128,7 +191,7 @@ pub struct UpdateDidResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Update NFT metadata and display settings."
+        description = "Show or hide an NFT in the wallet. Nothing on chain changes."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -155,7 +218,7 @@ pub struct UpdateNftResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Update NFT collection metadata and settings."
+        description = "Show or hide an NFT collection in the wallet. Nothing on chain changes."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -182,7 +245,7 @@ pub struct UpdateNftCollectionResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Re-download NFT data and metadata from URIs."
+        description = "Delete an NFT's downloaded data, metadata and license, and queue them to be downloaded again from its URIs."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -206,7 +269,7 @@ pub struct RedownloadNftResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Addresses",
-        description = "Increase the derivation index to generate more addresses for the wallet."
+        description = "Derive the active wallet's addresses until there are the given number of each kind, and start syncing them. Hardened addresses need the wallet's secret key, so pass hardened as false for a wallet without one. Not supported by watch wallets."
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

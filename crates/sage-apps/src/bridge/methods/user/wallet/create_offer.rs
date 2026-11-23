@@ -314,6 +314,9 @@ impl ValidatedOffer {
             auto_import: true,
             coin_ids: None,
             confirmed_handles: Vec::new(),
+            // No split transaction: its fee isn't part of what the user approves.
+            pre_split_fee: None,
+            pre_split_fee_per_cost: None,
         }
     }
 }
@@ -338,7 +341,7 @@ async fn offer_royalties(
 ) -> Result<MakeOfferRoyalties, BridgeMethodHandleError> {
     tools
         .app_state
-        .lock()
+        .read()
         .await
         .make_offer_royalties(offer.to_request())
         .await
@@ -435,7 +438,7 @@ async fn approval_asset(
 ) -> Result<WalletCreateOfferApprovalAsset, BridgeMethodHandleError> {
     // Labels are best effort: a CAT, NFT or option the wallet has never seen has
     // no record, and the approval then shows its kind and id.
-    let app_state = tools.app_state.lock().await;
+    let app_state = tools.app_state.read().await;
 
     let (name, ticker, precision) = match leg.kind {
         WalletCreateOfferApprovalAssetKind::Xch | WalletCreateOfferApprovalAssetKind::Cat => {
@@ -579,7 +582,7 @@ impl BridgeMethod for WalletCreateOffer {
 
         let response = tools
             .app_state
-            .lock()
+            .read()
             .await
             .make_offer(offer.to_request())
             .await

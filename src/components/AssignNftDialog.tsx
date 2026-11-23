@@ -1,10 +1,9 @@
 import { useDids } from '@/hooks/useDids';
-import { amount } from '@/lib/formTypes';
+import { feeWithinBalance } from '@/lib/fees';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import BigNumber from 'bignumber.js';
 import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -53,10 +52,9 @@ export function AssignNftDialog({
 
   const schema = z.object({
     profile: z.string().min(1, t`Profile is required`),
-    fee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
+    fee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
     ),
   });
 
@@ -78,7 +76,7 @@ export function AssignNftDialog({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handler)}
-            className='space-y-4 overflow-hidden p-[1px]'
+            className='space-y-4 overflow-hidden p-px'
           >
             <FormField
               control={form.control}
@@ -96,7 +94,7 @@ export function AssignNftDialog({
                       >
                         <SelectValue placeholder={t`Select profile`} />
                       </SelectTrigger>
-                      <SelectContent className='max-w-[var(--radix-select-trigger-width)]'>
+                      <SelectContent className='max-w-(--radix-select-trigger-width)'>
                         <SelectItem key='none' value='none'>
                           <Trans>None</Trans>
                         </SelectItem>

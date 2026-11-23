@@ -6,7 +6,7 @@ use crate::{Amount, HandleConfirmation, NftUriKind, TransactionResponse};
     feature = "openapi",
     crate::openapi_attr(
         tag = "Transactions",
-        description = "Create a new transaction using the action system.",
+        description = "Build a transaction from a list of actions: sends to an address or handle, NFT mints, NFT updates and fees. Actions can refer to assets created earlier in the list.",
         response_type = "TransactionResponse"
     )
 )]
@@ -19,6 +19,11 @@ pub struct CreateTransaction {
     pub selected_coin_ids: Vec<String>,
     /// The list of actions to perform in the transaction
     pub actions: Vec<Action>,
+    /// Fee rate in mojos per cost. When set, a fee is added until the transaction's fee covers
+    /// its cost at this rate, including the coins that pay it, on top of any fee actions
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]

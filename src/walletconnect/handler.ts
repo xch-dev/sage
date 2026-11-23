@@ -53,7 +53,16 @@ export const handleCommand = async (
   params: unknown,
   context: HandlerContext,
 ) => {
-  if (context.isReadOnly && SIGNING_COMMANDS.has(command)) {
+  // Cancelling an offer off-chain only deletes it locally, so nothing is signed.
+  const isOffChainCancel =
+    command === 'chia_cancelOffer' &&
+    (params as { offChain?: unknown } | null)?.offChain === true;
+
+  if (
+    context.isReadOnly &&
+    SIGNING_COMMANDS.has(command) &&
+    !isOffChainCancel
+  ) {
     throw new Error(
       t`This wallet is read-only and cannot sign, so ${command} is not available`,
     );

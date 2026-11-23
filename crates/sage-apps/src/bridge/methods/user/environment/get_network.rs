@@ -49,7 +49,7 @@ impl BridgeMethod for EnvironmentGetNetwork {
     ) -> BridgeHandleResult {
         let current = tools
             .app_state
-            .lock()
+            .read()
             .await
             .get_network(GetNetwork {})
             .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;

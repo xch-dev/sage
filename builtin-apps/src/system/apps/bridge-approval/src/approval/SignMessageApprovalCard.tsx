@@ -67,7 +67,7 @@ export function SignMessageApprovalCard({ approval, appName }: Props) {
           <div className='mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
             Decoded UTF-8 preview
           </div>
-          <div className='whitespace-pre-wrap break-words text-sm'>
+          <div className='whitespace-pre-wrap wrap-break-word text-sm'>
             {decodedMessage}
           </div>
         </div>

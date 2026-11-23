@@ -22,7 +22,7 @@ use sage::Sage;
 use sage_api::{ErrorKind, RecipientError, RecipientErrorKind};
 use sage_api_macro::impl_endpoints;
 use serde::Serialize;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use tracing::info;
 
 // Re-export for CLI usage
@@ -30,12 +30,12 @@ pub use openapi::generate_openapi as generate_openapi_spec;
 
 #[derive(Debug, Clone)]
 struct AppState {
-    sage: Arc<Mutex<Sage>>,
+    sage: Arc<RwLock<Sage>>,
 }
 
 impl_endpoints! {
     (repeat async fn endpoint(State(state): State<AppState>, Json(req): Json<sage_api::Endpoint>) -> Response {
-        handle(state.sage.lock().await.endpoint(req) maybe_await)
+        handle(state.sage.read_or_write().await.endpoint(req) maybe_await)
     })
 
     fn api_router() -> Router<AppState> {
@@ -61,6 +61,7 @@ where
                 ErrorKind::Unauthorized => StatusCode::UNAUTHORIZED,
                 ErrorKind::AlreadyRunning => StatusCode::CONFLICT,
                 ErrorKind::DatabaseMigration
+                | ErrorKind::SharedDatabaseMigration
                 | ErrorKind::Wallet
                 | ErrorKind::Internal
                 | ErrorKind::Nfc => StatusCode::INTERNAL_SERVER_ERROR,
@@ -100,8 +101,8 @@ fn recipient_error_response(reason: String, recipients: &[RecipientError]) -> Re
     (status, Json(body)).into_response()
 }
 
-pub async fn start_rpc(sage: Arc<Mutex<Sage>>) -> Result<()> {
-    let app = sage.lock().await;
+pub async fn start_rpc(sage: Arc<RwLock<Sage>>) -> Result<()> {
+    let app = sage.read().await;
 
     let addr: SocketAddr = ([127, 0, 0, 1], app.config.rpc.port).into();
     info!("RPC server is listening at {addr}");
@@ -130,6 +131,6 @@ pub async fn start_rpc(sage: Arc<Mutex<Sage>>) -> Result<()> {
     Ok(())
 }
 
-pub fn make_router(sage: Arc<Mutex<Sage>>) -> Router {
+pub fn make_router(sage: Arc<RwLock<Sage>>) -> Router {
     api_router().with_state(AppState { sage })
 }

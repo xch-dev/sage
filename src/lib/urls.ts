@@ -107,3 +107,13 @@ export function offerCoApiUrl(isTestnet: boolean): string {
   }
   return 'https://offerco.de/api/v1/getoffer';
 }
+
+// ── GitHub ──────────────────────────────────────────────────────────────────
+
+/** Sage's latest release. It leaves out drafts and prereleases. */
+export const sageLatestReleaseApiUrl =
+  'https://api.github.com/repos/xch-dev/sage/releases/latest';
+
+export function sageReleasePageUrl(tag: string): string {
+  return `https://github.com/xch-dev/sage/releases/tag/${encodeURIComponent(tag)}`;
+}

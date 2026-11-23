@@ -227,6 +227,11 @@ pub enum Error {
     #[error("Missing offer: {0}")]
     MissingOffer(Bytes32),
 
+    #[error(
+        "Offer {0} can't be cancelled on-chain until the transaction splitting its coins is confirmed"
+    )]
+    OfferPending(Bytes32),
+
     #[error("Coin already spent: {0}")]
     CoinSpent(Bytes32),
 
@@ -262,6 +267,9 @@ pub enum Error {
     #[error("Database version too old")]
     DatabaseVersionTooOld,
 
+    #[error("The database shared by this network's wallets can't be migrated")]
+    SharedDatabaseVersionTooOld,
+
     #[error("Sage did not initialize successfully, so changes cannot be saved")]
     NotInitialized,
 
@@ -281,6 +289,12 @@ pub enum Error {
 
     #[error("At most {0} addresses can be looked up at once")]
     TooManyAddresses(usize),
+
+    #[error("The transaction expiration must be at least {0} seconds, or 0 for none")]
+    TransactionExpirationTooShort(u64),
+
+    #[error("The RPC server port can't be 0")]
+    InvalidRpcPort,
 
     #[error("Contact {0} not found")]
     MissingContact(u32),
@@ -347,6 +361,7 @@ impl Error {
                 | KeychainError::Argon2(..) => ErrorKind::Internal,
             },
             Self::SqlxMigration(..) | Self::DatabaseVersionTooOld => ErrorKind::DatabaseMigration,
+            Self::SharedDatabaseVersionTooOld => ErrorKind::SharedDatabaseMigration,
             Self::Send(..)
             | Self::Io(..)
             | Self::Client(..)
@@ -423,11 +438,14 @@ impl Error {
             | Self::InvalidThemeJson
             | Self::MissingThemeData
             | Self::TooManyAddresses(..)
+            | Self::TransactionExpirationTooShort(..)
+            | Self::InvalidRpcPort
             | Self::InvalidContact(..)
             | Self::DuplicateContactRecipient { .. }
             | Self::DuplicateContactName { .. }
             | Self::ContactNetworkMismatch(..)
-            | Self::OfferHandleNft(..) => ErrorKind::Api,
+            | Self::OfferHandleNft(..)
+            | Self::OfferPending(..) => ErrorKind::Api,
         }
     }
 

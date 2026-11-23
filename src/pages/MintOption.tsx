@@ -1,4 +1,4 @@
-import { commands, TokenRecord, TransactionResponse } from '@/bindings';
+import { commands, events, TokenRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { MintOptionConfirmation } from '@/components/confirmations/MintOptionConfirmation.tsx';
 import Container from '@/components/Container';
@@ -12,11 +12,13 @@ import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { useErrors } from '@/hooks/useErrors';
 import { useNowSeconds } from '@/hooks/useNowSeconds';
+import { useWholeBalance } from '@/hooks/useWholeBalance';
 import {
   Expiration,
   expirationError,
   futureExpirationTimestamp,
 } from '@/lib/expiration';
+import { feeParams } from '@/lib/fees';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -25,6 +27,12 @@ import BigNumber from 'bignumber.js';
 import { AlertCircleIcon, HandCoins, Handshake } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+/**
+ * The mojo the option itself is made of, which minting spends on top of the underlying. It's
+ * `OPTION_AMOUNT` in `sage-wallet`.
+ */
+const OPTION_MOJOS = 1;
 
 export function MintOption() {
   const walletState = useWalletState();
@@ -44,6 +52,8 @@ export function MintOption() {
     string | null | undefined
   >();
   const [underlyingAmount, setUnderlyingAmount] = useState('');
+  // The underlying amount the minted option locks up, for the confirmation.
+  const [mintedUnderlyingAmount, setMintedUnderlyingAmount] = useState('');
 
   const [strikeAssetId, setStrikeAssetId] = useState<
     string | null | undefined
@@ -60,16 +70,32 @@ export function MintOption() {
   );
   const [strikeAsset, setStrikeAsset] = useState<TokenRecord | null>(null);
 
-  // Fetch token details when asset IDs change
+  // Fetch token details when asset IDs change, and keep the underlying balance current, since
+  // the whole of it can be locked up.
   useEffect(() => {
-    if (underlyingAssetId !== undefined) {
+    if (underlyingAssetId === undefined) {
+      setUnderlyingAsset(null);
+      return;
+    }
+
+    const update = () =>
       commands
         .getToken({ asset_id: underlyingAssetId })
         .then((res) => setUnderlyingAsset(res.token))
         .catch(() => setUnderlyingAsset(null));
-    } else {
-      setUnderlyingAsset(null);
-    }
+
+    update();
+
+    const unlisten = events.syncEvent.listen((event) => {
+      const type = event.payload.type;
+      if (type === 'coin_state' || type === 'puzzle_batch_synced') {
+        update();
+      }
+    });
+
+    return () => {
+      unlisten.then((u) => u());
+    };
   }, [underlyingAssetId]);
 
   useEffect(() => {
@@ -82,6 +108,13 @@ export function MintOption() {
       setStrikeAsset(null);
     }
   }, [strikeAssetId]);
+
+  // Only an XCH underlying can be the whole balance, since that's the asset the fee is paid in.
+  const wholeBalance = useWholeBalance({
+    asset: underlyingAsset,
+    enabled: underlyingAssetId === null,
+    setAmount: setUnderlyingAmount,
+  });
 
   const mint = useCallback(() => {
     if (underlyingAssetId === undefined || strikeAssetId === undefined) {
@@ -97,27 +130,45 @@ export function MintOption() {
       return;
     }
 
-    commands
-      .mintOption({
-        fee: toMojos(fee, walletState.sync.unit.precision),
-        underlying: {
-          asset_id: underlyingAssetId,
-          amount: toMojos(
-            underlyingAmount,
-            underlyingAssetId === null ? walletState.sync.unit.precision : 3,
-          ),
-        },
-        strike: {
-          asset_id: strikeAssetId,
-          amount: toMojos(
-            strikeAmount,
-            strikeAssetId === null ? walletState.sync.unit.precision : 3,
-          ),
-        },
-        expiration_seconds: expirationSeconds,
-      })
+    const precision =
+      underlyingAssetId === null ? walletState.sync.unit.precision : 3;
+    // The whole balance is locked up with the fee, and the option's own mojo, taken out of it,
+    // since the fee isn't known until the transaction is built.
+    const underlyingMojos =
+      wholeBalance.mojos ?? toMojos(underlyingAmount, precision);
+
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.mintOption({
+          ...fees,
+          deduct_fee: wholeBalance.active,
+          underlying: {
+            asset_id: underlyingAssetId,
+            amount: underlyingMojos,
+          },
+          strike: {
+            asset_id: strikeAssetId,
+            amount: toMojos(
+              strikeAmount,
+              strikeAssetId === null ? walletState.sync.unit.precision : 3,
+            ),
+          },
+          expiration_seconds: expirationSeconds,
+        }),
+      )
       .then((response) => {
         setMintedExpirationSeconds(expirationSeconds);
+        setMintedUnderlyingAmount(
+          wholeBalance.active
+            ? toDecimal(
+                BigNumber(underlyingMojos)
+                  .minus(response.summary.fee)
+                  .minus(OPTION_MOJOS)
+                  .toFixed(),
+                precision,
+              )
+            : underlyingAmount,
+        );
         setResponse(response);
       })
       .catch(addError);
@@ -126,6 +177,8 @@ export function MintOption() {
     fee,
     underlyingAssetId,
     underlyingAmount,
+    wholeBalance.mojos,
+    wholeBalance.active,
     strikeAssetId,
     strikeAmount,
     walletState.sync.unit.precision,
@@ -150,7 +203,7 @@ export function MintOption() {
           </AlertDescription>
         </Alert>
 
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-screen-lg'>
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-(--breakpoint-lg)'>
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
               <CardTitle className='text-md font-medium truncate flex items-center'>
@@ -169,32 +222,32 @@ export function MintOption() {
                   onChange={(value) => {
                     setUnderlyingAssetId(value);
                     setUnderlyingAmount('');
+                    wholeBalance.reset();
                   }}
-                  className='!rounded-r-none'
+                  className='rounded-r-none!'
                   hideZeroBalance={true}
                   showAllCats={false}
                   includeXch={true}
                 />
                 <TokenAmountInput
                   id='underlying-amount'
-                  className='!border-l-0 z-10 !rounded-l-none w-[150px] h-12'
+                  className='border-l-0! z-10 rounded-l-none! w-[150px] h-12'
                   placeholder={t`Amount`}
                   value={underlyingAmount}
                   onValueChange={(values) => {
                     setUnderlyingAmount(values.value);
                   }}
                   precision={underlyingAssetId === null ? 12 : 3}
+                  wholeBalance={wholeBalance.active}
+                  onWholeBalanceChange={wholeBalance.onWholeBalanceChange}
+                  // An XCH underlying is locked up as the whole balance minus the fee instead,
+                  // so the fee doesn't need taking out here.
                   maxValue={
                     underlyingAsset
-                      ? BigNumber.max(
-                          0,
-                          BigNumber(
-                            toDecimal(
-                              underlyingAsset.selectable_balance,
-                              underlyingAsset.precision,
-                            ),
-                          ).minus(underlyingAssetId === null ? fee || 0 : 0),
-                        ).toString()
+                      ? toDecimal(
+                          underlyingAsset.selectable_balance,
+                          underlyingAsset.precision,
+                        )
                       : undefined
                   }
                 />
@@ -221,15 +274,15 @@ export function MintOption() {
                     setStrikeAssetId(value);
                     setStrikeAmount('');
                   }}
-                  className='!rounded-r-none'
+                  className='rounded-r-none!'
                   hideZeroBalance={false}
                   showAllCats={true}
                   includeXch={true}
                 />
-                <div className='flex flex-grow-0'>
+                <div className='flex grow-0'>
                   <TokenAmountInput
                     id='strike-amount'
-                    className='!border-l-0 z-10 !rounded-l-none w-[150px] h-12'
+                    className='border-l-0! z-10 rounded-l-none! w-[150px] h-12'
                     placeholder={t`Amount`}
                     value={strikeAmount}
                     onValueChange={(values) => {
@@ -250,24 +303,17 @@ export function MintOption() {
           </div>
         </div>
 
-        <div className='flex flex-col space-y-1.5 mt-4'>
-          <Label htmlFor='fee'>
-            <Trans>Network Fee</Trans>
-          </Label>
-          <div className='relative'>
+        {/* The same columns as the cards above, so the fee is as wide as one of them. */}
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-(--breakpoint-lg) mt-4'>
+          <div className='flex flex-col space-y-1.5'>
+            <Label htmlFor='fee'>
+              <Trans>Network Fee</Trans>
+            </Label>
             <FeeAmountInput
               id='fee'
-              className='pr-12'
+              value={fee}
               onValueChange={(values) => setFee(values.value)}
             />
-            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-              <span
-                className='text-muted-foreground text-sm'
-                id='price-currency'
-              >
-                {walletState.sync.unit.ticker}
-              </span>
-            </div>
           </div>
         </div>
 
@@ -296,7 +342,7 @@ export function MintOption() {
             content: (
               <MintOptionConfirmation
                 underlyingAsset={underlyingAsset}
-                underlyingAmount={underlyingAmount}
+                underlyingAmount={mintedUnderlyingAmount}
                 strikeAsset={strikeAsset}
                 strikeAmount={strikeAmount}
                 expirationSeconds={mintedExpirationSeconds}

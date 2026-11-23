@@ -4,9 +4,7 @@ use crate::{
     app_state::{self, AppState, Initialized, RpcTask},
     error::Result,
 };
-use chia_wallet_sdk::utils::Address;
 use reqwest::StatusCode;
-use sage::Error;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
 #[cfg(not(mobile))]
@@ -35,7 +33,7 @@ pub async fn initialize(
         return result.clone();
     }
 
-    let mut sage = state.lock().await;
+    let mut sage = state.write().await;
     let result = app_state::initialize(app_handle.clone(), &mut sage)
         .await
         .map_err(Into::into);
@@ -50,7 +48,7 @@ pub async fn initialize(
         loop {
             sleep(Duration::from_secs(3)).await;
 
-            let app_state = app_state.lock().await;
+            let app_state = app_state.read().await;
 
             if let Err(error) = app_state.save_peers().await {
                 error!("Error while saving peers: {error:?}");
@@ -60,7 +58,7 @@ pub async fn initialize(
         }
     });
 
-    let app_state = state.lock().await;
+    let app_state = state.read().await;
 
     if app_state.config.rpc.enabled {
         *rpc_task.0.lock().await = Some(tokio::spawn(start_rpc((*state).clone())));
@@ -82,7 +80,7 @@ impl_endpoints_tauri! {
         #[command]
         #[specta]
         pub async fn endpoint(state: State<'_, AppState>, req: Endpoint) -> Result<EndpointResponse> {
-            Ok(state.lock().await.endpoint(req) maybe_await?)
+            Ok(state.read_or_write().await.endpoint(req) maybe_await?)
         }
     )
 }
@@ -90,36 +88,25 @@ impl_endpoints_tauri! {
 #[command]
 #[specta]
 pub async fn validate_address(state: State<'_, AppState>, address: String) -> Result<bool> {
-    let state = state.lock().await;
-    let Some(address) = Address::decode(&address).ok() else {
-        return Ok(false);
-    };
-    Ok(address.prefix == state.network().prefix())
+    Ok(state.read().await.is_valid_address(&address))
 }
 
 #[command]
 #[specta]
 pub async fn network_config(state: State<'_, AppState>) -> Result<NetworkConfig> {
-    Ok(state.lock().await.config.network.clone())
+    Ok(state.read().await.config.network.clone())
 }
 
 #[command]
 #[specta]
 pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Result<Option<Wallet>> {
-    Ok(state
-        .lock()
-        .await
-        .wallet_config
-        .wallets
-        .iter()
-        .find(|wallet| wallet.fingerprint == fingerprint)
-        .cloned())
+    Ok(state.read().await.wallet_entry(fingerprint).cloned())
 }
 
 #[command]
 #[specta]
 pub async fn default_wallet_config(state: State<'_, AppState>) -> Result<WalletDefaults> {
-    Ok(state.lock().await.wallet_config.defaults)
+    Ok(state.read().await.wallet_config.defaults)
 }
 
 #[command]
@@ -152,7 +139,7 @@ pub async fn stop_rpc_server(rpc_task: State<'_, RpcTask>) -> Result<()> {
 #[command]
 #[specta]
 pub async fn get_rpc_run_on_startup(state: State<'_, AppState>) -> Result<bool> {
-    Ok(state.lock().await.config.rpc.enabled)
+    Ok(state.read().await.config.rpc.enabled)
 }
 
 #[command]
@@ -161,8 +148,35 @@ pub async fn set_rpc_run_on_startup(
     state: State<'_, AppState>,
     run_on_startup: bool,
 ) -> Result<()> {
-    state.lock().await.config.rpc.enabled = run_on_startup;
-    state.lock().await.save_config()?;
+    let mut sage = state.write().await;
+    sage.config.rpc.enabled = run_on_startup;
+    sage.save_config()?;
+    Ok(())
+}
+
+#[command]
+#[specta]
+pub async fn get_rpc_port(state: State<'_, AppState>) -> Result<u16> {
+    Ok(state.read().await.config.rpc.port)
+}
+
+#[command]
+#[specta]
+pub async fn set_rpc_port(state: State<'_, AppState>, port: u16) -> Result<()> {
+    state.write().await.set_rpc_port(port)?;
+    Ok(())
+}
+
+#[command]
+#[specta]
+pub async fn get_log_level(state: State<'_, AppState>) -> Result<String> {
+    Ok(state.read().await.config.global.log_level.clone())
+}
+
+#[command]
+#[specta]
+pub async fn set_log_level(state: State<'_, AppState>, level: String) -> Result<()> {
+    state.write().await.set_log_level(&level)?;
     Ok(())
 }
 
@@ -170,7 +184,7 @@ pub async fn set_rpc_run_on_startup(
 #[specta]
 pub async fn switch_wallet(app_handle: AppHandle, state: State<'_, AppState>) -> Result<()> {
     {
-        state.lock().await.switch_wallet().await?;
+        state.write().await.switch_wallet().await?;
     }
 
     #[cfg(not(mobile))]
@@ -191,20 +205,7 @@ pub async fn switch_wallet(app_handle: AppHandle, state: State<'_, AppState>) ->
 #[command]
 #[specta]
 pub async fn move_key(state: State<'_, AppState>, fingerprint: u32, index: u32) -> Result<()> {
-    let mut state = state.lock().await;
-
-    let old_index = state
-        .wallet_config
-        .wallets
-        .iter()
-        .position(|w| w.fingerprint == fingerprint)
-        .ok_or(Error::UnknownFingerprint)?;
-
-    let wallet = state.wallet_config.wallets.remove(old_index);
-    state.wallet_config.wallets.insert(index as usize, wallet);
-    state.save_config()?;
-
-    Ok(())
+    Ok(state.write().await.move_key(fingerprint, index)?)
 }
 
 #[command]
@@ -252,7 +253,7 @@ pub struct LogFile {
 #[command]
 #[specta]
 pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<LogFile>> {
-    let state = state.lock().await;
+    let state = state.read().await;
     let files = fs::read_dir(state.path.join("log"))?;
 
     let mut log_files = Vec::new();

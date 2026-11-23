@@ -97,6 +97,7 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       break;
 
     case 'database_migration':
+    case 'shared_database_migration':
       kind = 'Database Migration';
       break;
 
@@ -117,7 +118,7 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{kind ? `${kind} ` : ''}Error</DialogTitle>
-          <DialogDescription className='break-words hyphens-auto'>
+          <DialogDescription className='wrap-break-word hyphens-auto'>
             {error?.recipients?.length ? null : error?.reason}
           </DialogDescription>
         </DialogHeader>
@@ -131,7 +132,7 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
                 <div className='font-medium break-all'>
                   {recipient.recipient}
                 </div>
-                <div className='text-muted-foreground break-words'>
+                <div className='text-muted-foreground wrap-break-word'>
                   {recipient.reason}
                 </div>
               </div>

@@ -30,8 +30,8 @@ import {
 import { useDids } from '@/hooks/useDids';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { feeAmount, feeParams } from '@/lib/fees';
 import { amount } from '@/lib/formTypes';
-import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -59,7 +59,7 @@ export default function MintNft() {
 
   const formSchema = z.object({
     profile: z.string().min(1, t`Profile is required`),
-    fee: amount(walletState.sync.unit.precision).optional(),
+    fee: feeAmount(walletState.sync.unit.precision),
     royaltyAddress: z
       .string()
       .optional()
@@ -149,12 +149,9 @@ export default function MintNft() {
       license_uris: mintDetails.license_uris,
     }));
 
-    withHandleConfirmation((confirmed_handles) =>
+    withHandleConfirmation(async (confirmed_handles) =>
       commands.bulkMintNfts({
-        fee: toMojos(
-          values.fee?.toString() || '0',
-          walletState.sync.unit.precision,
-        ),
+        ...(await feeParams(values.fee, walletState.sync.unit.precision)),
         did_id: values.profile,
         mints,
         confirmed_handles,

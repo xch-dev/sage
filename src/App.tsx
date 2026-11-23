@@ -1,7 +1,7 @@
 import { discoverThemes, resolveThemeImage } from '@/lib/themes';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
@@ -13,6 +13,7 @@ import { Slide, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ThemeProvider, useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
+import { getStoredTheme, storeTheme } from './lib/themeStorage';
 import { BiometricProvider } from './contexts/BiometricContext';
 import { ErrorProvider } from './contexts/ErrorContext';
 import {
@@ -24,6 +25,7 @@ import {
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
+import { UpdateProvider } from './contexts/UpdateContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import { WalletProvider } from './contexts/WalletContext';
 import { StartupError } from './components/StartupError';
@@ -152,6 +154,7 @@ const router = createHashRouter(
         />
       </Route>
       <Route path='/settings' element={<Settings />} />
+      <Route path='/settings/:section' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />
       <Route path='/peers' element={<PeerList />} />
       <Route path='/themes' element={<Themes />} />
@@ -164,12 +167,16 @@ export default function App() {
     'locale',
     getBrowserLanguage,
   );
+  // Read once: theme-o-rama reloads every theme when `defaultTheme` changes.
+  const defaultTheme = useRef(getStoredTheme() ?? 'light').current;
 
   return (
     <LanguageProvider locale={locale} setLocale={setLocale}>
       <ThemeProvider
         discoverThemes={discoverThemes}
         imageResolver={resolveThemeImage}
+        defaultTheme={defaultTheme}
+        onThemeChange={storeTheme}
       >
         <SafeAreaProvider>
           <ErrorProvider>
@@ -220,7 +227,9 @@ function AppInner() {
             <AppsProvider>
               <WalletConnectProvider>
                 <PriceProvider>
-                  <RouterProvider router={router} />
+                  <UpdateProvider>
+                    <RouterProvider router={router} />
+                  </UpdateProvider>
                 </PriceProvider>
               </WalletConnectProvider>
             </AppsProvider>

@@ -24,7 +24,8 @@ import {
   mintGardenNftUrl,
   spacescanNftUrl,
 } from '@/lib/urls';
-import { formatTimestamp, getOfferStatus } from '@/lib/utils';
+import { formatTimestamp } from '@/lib/utils';
+import { offerStatusLabel } from '@/components/OfferStatusBadge';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -571,7 +572,9 @@ export default function Nft() {
                     <div className='flex flex-col gap-1'>
                       <div className='grid gap-2'>
                         {offersForAsset.map((localOffer) => {
-                          const offerStatus = getOfferStatus(localOffer.status);
+                          const offerStatus = offerStatusLabel(
+                            localOffer.status,
+                          );
                           const createdAt = localOffer.creation_timestamp
                             ? formatTimestamp(
                                 localOffer.creation_timestamp,

@@ -19,16 +19,17 @@ use sage_database::{
     OfferSortColumn, OfferStatus, OfferedAsset, OffersPageParams, ParsedNftMetadata,
 };
 use sage_wallet::{
-    Offered, Requested, RequestedCat, SyncCommand, TakenOffer, Transaction, Wallet, WalletError,
-    aggregate_offers, insert_transaction, offer_royalty_amounts, sort_offer,
+    Offered, PreSplitOffer, Requested, RequestedCat, SpendGuard, TakenOffer, Wallet, WalletError,
+    aggregate_offers, offer_royalty_amounts, sort_offer,
 };
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::{debug, warn};
 
 use crate::{
-    ConfirmationInfo, Error, ExtractedNftData, Result, Sage, encode_nft_updater_kind,
-    extract_nft_data, json_bundle, offer_expiration, parse_amount, parse_asset_id, parse_coin_ids,
-    parse_did_id, parse_hash, parse_nft_id, parse_offer_id, parse_option_id, selectable_coin_ids,
+    ConfirmationInfo, Error, ExtractedNftData, Result, Sage, build_with_fee,
+    encode_nft_updater_kind, extract_nft_data, json_bundle, offer_expiration, parse_amount,
+    parse_asset_id, parse_coin_ids, parse_did_id, parse_hash, parse_nft_id, parse_offer_id,
+    parse_option_id, selectable_coin_ids,
 };
 
 /// The royalties a [`MakeOffer`] pays on top of the offered amounts, in mojos: XCH, then CATs by
@@ -48,6 +49,14 @@ fn add_offer_amount(total: &mut u64, amount: u64) -> Result<()> {
     Ok(())
 }
 
+/// An offer that's ready to be saved to the wallet.
+#[derive(Debug, Clone)]
+struct PreparedOffer {
+    row: OfferRow,
+    coin_ids: Vec<Bytes32>,
+    assets: Vec<AssetToOffer>,
+}
+
 #[derive(Debug, Clone)]
 struct AssetToOffer {
     offer_id: Bytes32,
@@ -60,14 +69,39 @@ struct AssetToOffer {
 impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
         let expires_at_second = req.expires_at_second;
         let auto_import = req.auto_import;
+        let pre_split_fee = req.pre_split_fee.clone();
+        let pre_split_fee_per_cost = req.pre_split_fee_per_cost;
 
         let (offered, requested, info) = self.make_offer_assets(&wallet, req).await?;
 
-        let unsigned = wallet
-            .make_offer(offered, requested, expires_at_second)
-            .await?;
+        let PreSplitOffer {
+            offer: unsigned,
+            split_coin_spends,
+        } = if let Some(split_fee) = pre_split_fee {
+            build_with_fee!(
+                self,
+                parse_amount(split_fee)?,
+                pre_split_fee_per_cost,
+                |fee| wallet
+                    .make_pre_split_offer(
+                        offered.clone(),
+                        requested.clone(),
+                        expires_at_second,
+                        fee,
+                    )
+                    .await?
+            )
+        } else {
+            PreSplitOffer {
+                offer: wallet
+                    .make_offer(offered, requested, expires_at_second)
+                    .await?,
+                split_coin_spends: None,
+            }
+        };
 
         let master_sk = self.master_secret_key(&wallet)?;
 
@@ -82,19 +116,39 @@ impl Sage {
 
         let encoded_offer = encode_offer(&offer)?;
 
+        let pre_split_transaction_id = if let Some(coin_spends) = split_coin_spends {
+            let split = self.sign(coin_spends, false).await?;
+            let transaction_id = split.name();
+
+            // The offer has to be saved to keep the split coins from being spent on something
+            // else, but they only become known to the wallet once the split is submitted. So the
+            // lookups that can fail, which may reach the network, are done first, leaving only
+            // the database writes for afterwards.
+            let prepared = self.prepare_offer_import(encoded_offer.clone()).await?;
+
+            self.submit_unchecked(split, &spends).await?;
+
+            if let Some(prepared) = prepared {
+                self.insert_offer(prepared, OfferStatus::Pending, &spends)
+                    .await?;
+            }
+
+            Some(hex::encode(transaction_id))
+        } else {
+            if auto_import {
+                self.save_offer(encoded_offer.clone(), &spends).await?;
+            }
+
+            None
+        };
+
         // Creating the offer commits to the receive address, since anyone can take it.
         self.record_handle_sends(&info.handle_sends).await;
-
-        if auto_import {
-            self.import_offer(ImportOffer {
-                offer: encoded_offer.clone(),
-            })
-            .await?;
-        }
 
         Ok(MakeOfferResponse {
             offer: encoded_offer,
             offer_id: hex::encode(sort_offer(offer).name()),
+            pre_split_transaction_id,
         })
     }
 
@@ -252,6 +306,7 @@ impl Sage {
 
     pub async fn take_offer(&self, req: TakeOffer) -> Result<TakeOfferResponse> {
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
 
         let offer = decode_offer(&req.offer)?;
         let fee = parse_amount(req.fee)?;
@@ -276,7 +331,9 @@ impl Sage {
             ));
         }
 
-        let taken = wallet.take_offer(offer, fee).await?;
+        let taken = build_with_fee!(self, fee, req.fee_per_cost, |fee| wallet
+            .take_offer(offer.clone(), fee)
+            .await?);
 
         let master_sk = self.master_secret_key(&wallet)?;
 
@@ -300,28 +357,7 @@ impl Sage {
         );
 
         if req.auto_submit {
-            let peer = self
-                .peer_state
-                .lock()
-                .await
-                .acquire_peer()
-                .ok_or(Error::NoPeers)?;
-
-            let subscriptions = insert_transaction(
-                &wallet.db,
-                &peer,
-                wallet.genesis_challenge,
-                spend_bundle.name(),
-                Transaction::from_coin_spends(spend_bundle.coin_spends.clone())?,
-                spend_bundle.aggregated_signature.clone(),
-            )
-            .await?;
-
-            self.command_sender
-                .send(SyncCommand::SubscribeCoins {
-                    coin_ids: subscriptions,
-                })
-                .await?;
+            self.submit_unchecked(spend_bundle.clone(), &spends).await?;
         }
 
         let json_bundle = json_bundle(&spend_bundle);
@@ -402,14 +438,40 @@ impl Sage {
     }
 
     pub async fn import_offer(&self, req: ImportOffer) -> Result<ImportOfferResponse> {
+        let offer_id = sort_offer(decode_offer(&req.offer)?).name();
+
+        // Saving the offer locks its coins, which mustn't happen to a coin that another
+        // request has selected for a transaction it hasn't submitted yet.
         let wallet = self.wallet()?;
-        let spend_bundle = sort_offer(decode_offer(&req.offer)?);
+        let spends = wallet.lock_spends().await;
+
+        self.save_offer(req.offer, &spends).await?;
+
+        Ok(ImportOfferResponse {
+            offer_id: hex::encode(offer_id),
+        })
+    }
+
+    /// Saves an offer to the wallet as active, unless it's already there.
+    async fn save_offer(&self, encoded_offer: String, spends: &SpendGuard<'_>) -> Result<()> {
+        if let Some(prepared) = self.prepare_offer_import(encoded_offer).await? {
+            self.insert_offer(prepared, OfferStatus::Active, spends)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    /// Looks up everything needed to save an offer to the wallet, which is done separately so
+    /// that nothing can fail between submitting a transaction the offer depends on and saving
+    /// it. Returns `None` if the offer has already been imported.
+    async fn prepare_offer_import(&self, encoded_offer: String) -> Result<Option<PreparedOffer>> {
+        let wallet = self.wallet()?;
+        let spend_bundle = sort_offer(decode_offer(&encoded_offer)?);
         let offer_id = spend_bundle.name();
 
         if wallet.db.offer(offer_id).await?.is_some() {
-            return Ok(ImportOfferResponse {
-                offer_id: hex::encode(offer_id),
-            });
+            return Ok(None);
         }
 
         let mut ctx = SpendContext::new();
@@ -597,25 +659,71 @@ impl Sage {
             });
         }
 
-        let mut tx = wallet.db.tx().await?;
+        let mut assets = Vec::new();
+
+        if offered_amounts.xch > 0 || offered_royalties.xch > 0 {
+            assets.push(AssetToOffer {
+                offer_id,
+                is_requested: false,
+                asset_id: Bytes32::default(),
+                amount: coin_amount(offered_amounts.xch)?,
+                royalty: coin_amount(offered_royalties.xch)?,
+            });
+        }
+
+        if requested_amounts.xch > 0 || requested_royalties.xch > 0 {
+            assets.push(AssetToOffer {
+                offer_id,
+                is_requested: true,
+                asset_id: Bytes32::default(),
+                amount: coin_amount(requested_amounts.xch)?,
+                royalty: coin_amount(requested_royalties.xch)?,
+            });
+        }
+
+        assets.extend(cat_rows);
+        assets.extend(nft_rows);
+        assets.extend(option_rows);
+
+        Ok(Some(PreparedOffer {
+            row: OfferRow {
+                offer_id,
+                encoded_offer,
+                expiration_height: status.expiration_height,
+                expiration_timestamp: status.expiration_timestamp,
+                fee: offer.offered_coins().fee,
+                status: OfferStatus::Active,
+                inserted_timestamp: 0,
+            },
+            coin_ids,
+            assets,
+        }))
+    }
+
+    async fn insert_offer(
+        &self,
+        prepared: PreparedOffer,
+        status: OfferStatus,
+        _spends: &SpendGuard<'_>,
+    ) -> Result<()> {
+        let wallet = self.wallet()?;
+        let offer_id = prepared.row.offer_id;
 
         let inserted_timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("system time is before the UNIX epoch")
             .as_secs();
 
+        let mut tx = wallet.db.tx().await?;
+
         tx.insert_offer(OfferRow {
-            offer_id,
-            encoded_offer: req.offer,
-            expiration_height: status.expiration_height,
-            expiration_timestamp: status.expiration_timestamp,
-            fee: offer.offered_coins().fee,
-            status: OfferStatus::Active,
+            status,
             inserted_timestamp,
+            ..prepared.row
         })
         .await?;
 
-        for coin_id in coin_ids {
+        for coin_id in prepared.coin_ids {
             if !tx.is_known_coin(coin_id).await? {
                 return Err(Error::Wallet(WalletError::CannotImportOffer));
             }
@@ -623,51 +731,7 @@ impl Sage {
             tx.insert_offered_coin(offer_id, coin_id).await?;
         }
 
-        if offered_amounts.xch > 0 || offered_royalties.xch > 0 {
-            tx.insert_offer_asset(
-                offer_id,
-                Bytes32::default(),
-                coin_amount(offered_amounts.xch)?,
-                coin_amount(offered_royalties.xch)?,
-                false,
-            )
-            .await?;
-        }
-
-        if requested_amounts.xch > 0 || requested_royalties.xch > 0 {
-            tx.insert_offer_asset(
-                offer_id,
-                Bytes32::default(),
-                coin_amount(requested_amounts.xch)?,
-                coin_amount(requested_royalties.xch)?,
-                true,
-            )
-            .await?;
-        }
-
-        for row in cat_rows {
-            tx.insert_offer_asset(
-                row.offer_id,
-                row.asset_id,
-                row.amount,
-                row.royalty,
-                row.is_requested,
-            )
-            .await?;
-        }
-
-        for row in nft_rows {
-            tx.insert_offer_asset(
-                row.offer_id,
-                row.asset_id,
-                row.amount,
-                row.royalty,
-                row.is_requested,
-            )
-            .await?;
-        }
-
-        for row in option_rows {
+        for row in prepared.assets {
             tx.insert_offer_asset(
                 row.offer_id,
                 row.asset_id,
@@ -680,9 +744,7 @@ impl Sage {
 
         tx.commit().await?;
 
-        Ok(ImportOfferResponse {
-            offer_id: hex::encode(offer_id),
-        })
+        Ok(())
     }
 
     pub fn combine_offers(&self, req: CombineOffers) -> Result<CombineOffersResponse> {
@@ -896,6 +958,7 @@ impl Sage {
 
     pub async fn cancel_offer(&self, req: CancelOffer) -> Result<CancelOfferResponse> {
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
         let offer_id = parse_offer_id(req.offer_id)?;
         let fee = parse_amount(req.fee)?;
 
@@ -903,15 +966,22 @@ impl Sage {
             return Err(Error::MissingOffer(offer_id));
         };
 
+        if row.status == OfferStatus::Pending {
+            return Err(Error::OfferPending(offer_id));
+        }
+
         let offer = decode_offer(&row.encoded_offer)?;
         let fee_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
-        let coin_spends = wallet.cancel_offers(vec![offer], fee, fee_coin_ids).await?;
+        let coin_spends = build_with_fee!(self, fee, req.fee_per_cost, |fee| wallet
+            .cancel_offers(vec![offer.clone()], fee, fee_coin_ids.clone())
+            .await?);
 
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 
     pub async fn cancel_offers(&self, req: CancelOffers) -> Result<CancelOffersResponse> {
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
         let fee = parse_amount(req.fee)?;
 
         let offer_ids = req
@@ -927,6 +997,10 @@ impl Sage {
                 return Err(Error::MissingOffer(offer_id));
             };
 
+            if row.status == OfferStatus::Pending {
+                return Err(Error::OfferPending(offer_id));
+            }
+
             offers.push(decode_offer(&row.encoded_offer)?);
         }
 
@@ -938,11 +1012,11 @@ impl Sage {
             .ok_or_else(|| Error::InvalidAmount("fee times offer count overflows".to_string()))?;
 
         let fee_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
-        let coin_spends = wallet
-            .cancel_offers(offers, total_fee, fee_coin_ids)
-            .await?;
+        let coin_spends = build_with_fee!(self, total_fee, req.fee_per_cost, |fee| wallet
+            .cancel_offers(offers.clone(), fee, fee_coin_ids.clone())
+            .await?);
 
-        self.transact(coin_spends, req.auto_submit).await
+        self.transact(coin_spends, req.auto_submit, &spends).await
     }
 }
 

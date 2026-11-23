@@ -125,6 +125,9 @@ async transferOptions(req: TransferOptions) : Promise<TransactionResponse> {
 async exerciseOptions(req: ExerciseOptions) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("exercise_options", { req });
 },
+async cancelOptions(req: CancelOptions) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("cancel_options", { req });
+},
 async addNftUri(req: AddNftUri) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("add_nft_uri", { req });
 },
@@ -311,6 +314,9 @@ async networkConfig() : Promise<NetworkConfig> {
 async setDiscoverPeers(req: SetDiscoverPeers) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_discover_peers", { req });
 },
+async setMempoolDiscovery(req: SetMempoolDiscovery) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_mempool_discovery", { req });
+},
 async setTargetPeers(req: SetTargetPeers) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_target_peers", { req });
 },
@@ -340,6 +346,9 @@ async setDeltaSyncOverride(req: SetDeltaSyncOverride) : Promise<EmptyResponse> {
 },
 async setChangeAddress(req: SetChangeAddress) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_change_address", { req });
+},
+async setTransactionExpiration(req: SetTransactionExpiration) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_transaction_expiration", { req });
 },
 async updateCat(req: UpdateCat) : Promise<UpdateCatResponse> {
     return await TAURI_INVOKE("update_cat", { req });
@@ -422,6 +431,18 @@ async getRpcRunOnStartup() : Promise<boolean> {
 async setRpcRunOnStartup(runOnStartup: boolean) : Promise<null> {
     return await TAURI_INVOKE("set_rpc_run_on_startup", { runOnStartup });
 },
+async getRpcPort() : Promise<number> {
+    return await TAURI_INVOKE("get_rpc_port");
+},
+async setRpcPort(port: number) : Promise<null> {
+    return await TAURI_INVOKE("set_rpc_port", { port });
+},
+async getLogLevel() : Promise<string> {
+    return await TAURI_INVOKE("get_log_level");
+},
+async setLogLevel(level: string) : Promise<null> {
+    return await TAURI_INVOKE("set_log_level", { level });
+},
 async switchWallet() : Promise<null> {
     return await TAURI_INVOKE("switch_wallet");
 },
@@ -439,6 +460,9 @@ async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
 },
 async getXchUsdPrice(req: GetXchUsdPrice) : Promise<GetXchUsdPriceResponse> {
     return await TAURI_INVOKE("get_xch_usd_price", { req });
+},
+async getFeeRate(req: GetFeeRate) : Promise<GetFeeRateResponse> {
+    return await TAURI_INVOKE("get_fee_rate", { req });
 },
 async appsEnterWorkspace() : Promise<null> {
     return await TAURI_INVOKE("apps_enter_workspace");
@@ -576,6 +600,12 @@ uri: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Type of URI
  */
 kind: NftUriKind; 
@@ -588,7 +618,7 @@ auto_submit?: boolean }
  */
 export type AddPeer = { 
 /**
- * IP address or hostname with port
+ * IP address of the peer, which is connected to on the network's default port
  */
 ip: string }
 /**
@@ -666,6 +696,12 @@ did_id: string | null;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -689,6 +725,12 @@ max_coin_amount: Amount | null;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -726,6 +768,12 @@ max_coin_amount: Amount | null;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -761,6 +809,12 @@ did_id: string;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -808,6 +862,12 @@ amount: Amount;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to include the CAT hint
  */
 include_hint?: boolean; 
@@ -842,6 +902,12 @@ amount: Amount;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Optional memos
  */
 memos?: string[]; 
@@ -868,6 +934,12 @@ offer_id: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean; 
@@ -888,6 +960,12 @@ offer_ids: string[];
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean; 
@@ -895,6 +973,28 @@ auto_submit?: boolean;
  * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
  */
 coin_ids?: string[] | null }
+/**
+ * Cancel options
+ */
+export type CancelOptions = { 
+/**
+ * Option IDs to cancel
+ */
+option_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
 /**
  * Validate and check an address
  */
@@ -923,6 +1023,12 @@ coin_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -976,6 +1082,12 @@ coin_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -1096,6 +1208,12 @@ name: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -1109,6 +1227,11 @@ selected_coin_ids?: string[];
  * The list of actions to perform in the transaction
  */
 actions: Action[]; 
+/**
+ * Fee rate in mojos per cost. When set, a fee is added until the transaction's fee covers
+ * its cost at this rate, including the coins that pay it, on top of any fee actions
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -1138,7 +1261,12 @@ fingerprint: number;
 /**
  * Network name
  */
-network: string }
+network: string; 
+/**
+ * Whether to also delete the database shared by the wallets on the wallet's network, which
+ * holds the address book and handle mappings
+ */
+shared?: boolean }
 /**
  * Response for database deletion
  */
@@ -1206,7 +1334,12 @@ handle_error_code?: HandleErrorCode | null;
  * The recipients which couldn't be used, if that's why the request failed.
  */
 recipients?: RecipientError[] | null }
-export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc" | 
+export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | 
+/**
+ * The database shared by the wallets on a network, which holds the address book and handle
+ * mappings, couldn't be migrated. Deleting the wallet's own database doesn't fix this.
+ */
+"shared_database_migration" | "nfc" | 
 /**
  * One or more recipients couldn't be used. See the attached recipient errors.
  */
@@ -1223,6 +1356,12 @@ option_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -1248,6 +1387,38 @@ export type FeeAction = {
  * The fee amount, in mojos
  */
 amount: Amount }
+/**
+ * A fee rate estimated to get a transaction confirmed within a target time
+ */
+export type FeeTier = { 
+/**
+ * Which tier this is
+ */
+name: FeeTierName; 
+/**
+ * How long, in seconds, a transaction paying this rate is expected to take to confirm
+ */
+target_time: number; 
+/**
+ * The fee rate, in mojos per cost. It's never below the minimum fee rate.
+ */
+fee_per_cost: number }
+/**
+ * A tier of fee rates, by how quickly the transaction is confirmed
+ */
+export type FeeTierName = 
+/**
+ * Within about a minute
+ */
+"fast" | 
+/**
+ * Within about five minutes
+ */
+"standard" | 
+/**
+ * Within about an hour
+ */
+"economy"
 /**
  * Filter unlocked coins from a list
  */
@@ -1276,6 +1447,12 @@ coin_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -1529,6 +1706,27 @@ export type GetDidsResponse = {
  * List of DIDs
  */
 dids: DidRecord[] }
+/**
+ * Get the fee rate to price transactions at
+ */
+export type GetFeeRate = Record<string, never>
+export type GetFeeRateResponse = { 
+/**
+ * The recommended fee rate, in mojos per cost, used when there's no estimate to go by
+ */
+fee_per_cost: number; 
+/**
+ * The lowest fee rate, in mojos per cost, at which a transaction is admitted to a full
+ * mempool and included in blocks by farmers that enforce a minimum fee. A transaction
+ * paying less may never be confirmed.
+ */
+minimum_fee_per_cost: number; 
+/**
+ * The fee rates estimated to get a transaction confirmed within each tier's target time,
+ * fastest first. It's empty if the network has no Coinset API to estimate them with, or
+ * the estimate couldn't be fetched.
+ */
+tiers: FeeTier[] }
 /**
  * Get the full verified details of an XCHandles handle
  */
@@ -2021,7 +2219,8 @@ fingerprint: number }
  */
 export type GetSecretKeyResponse = { 
 /**
- * Secret key information if authorized
+ * Secret key information, or null if the key isn't in the keychain or only its public key is
+ * stored
  */
 secrets: SecretKeyInfo | null }
 /**
@@ -2187,7 +2386,7 @@ theme: string | null }
 export type GetUserThemes = Record<string, never>
 export type GetUserThemesResponse = { 
 /**
- * List of theme NFT IDs
+ * The JSON of each saved theme
  */
 themes: string[] }
 /**
@@ -2547,15 +2746,15 @@ name: string;
  */
 key: string; 
 /**
- * Starting derivation index
+ * Number of addresses of each enabled kind to derive up front
  */
 derivation_index?: number; 
 /**
- * Optional hardened derivation count
+ * Whether to derive hardened addresses (defaults to true). Needs a secret key
  */
 hardened?: boolean | null; 
 /**
- * Optional unhardened derivation count
+ * Whether to derive unhardened addresses (defaults to true)
  */
 unhardened?: boolean | null; 
 /**
@@ -2667,6 +2866,12 @@ revocable?: boolean;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -2798,7 +3003,22 @@ coin_ids?: string[] | null;
  * handle which resolves to a different address than the one last sent to must be
  * confirmed here before it can be used.
  */
-confirmed_handles?: HandleConfirmation[] }
+confirmed_handles?: HandleConfirmation[]; 
+/**
+ * If set, the XCH and CAT coins the offer would spend are first split into coins of the
+ * exact amounts it offers, in a transaction paying this fee, so the rest of the balance
+ * isn't locked up by the offer. The offer is always imported, and stays pending until
+ * that transaction is confirmed, so it shouldn't be shared before then. If the coins are
+ * already the exact amounts, nothing is split.
+ */
+pre_split_fee?: Amount | null; 
+/**
+ * Fee rate for the transaction that splits the coins, in mojos per cost. When set, its fee
+ * is raised until it covers that transaction's cost at this rate, and `pre_split_fee` is
+ * the least it pays. The offer's own fee is always `fee`, since an offer's cost isn't
+ * known until it's taken.
+ */
+pre_split_fee_per_cost?: number | null }
 /**
  * Response with created offer
  */
@@ -2810,7 +3030,12 @@ offer: string;
 /**
  * Offer ID
  */
-offer_id: string }
+offer_id: string; 
+/**
+ * The ID of the transaction splitting the offer's coins, if they had to be split. The
+ * offer is pending until it's confirmed.
+ */
+pre_split_transaction_id: string | null }
 export type MintNftAction = { 
 /**
  * The parent asset id of the minted NFT
@@ -2877,6 +3102,18 @@ strike: OptionAsset;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
+ * Take the fee, and the mojo the option itself is made of, out of the underlying amount,
+ * which must be XCH, so that minting spends exactly the underlying amount given. Use it to
+ * lock up a whole balance when the fee isn't known until the transaction is built
+ */
+deduct_fee?: boolean; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -2901,8 +3138,21 @@ export type Network = { name: string; ticker: string; prefix?: string | null; pr
  * Overrides the XCHandles deployment for this network. When unset, the deployment
  * is inherited from the built-in network named by `inherit`, if there is one.
  */
-xchandles?: XchandlesConfig | null }
-export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean }
+xchandles?: XchandlesConfig | null; 
+/**
+ * Whether to drop auto-discovered peers that stop sending new peaks. Disable this for
+ * networks that don't create blocks regularly, such as simulators, where a live peer can go
+ * quiet for a long time.
+ */
+drop_silent_peers: boolean }
+export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean; 
+/**
+ * Whether to look up the mempool transactions that full nodes announce for the wallet
+ * with the network's Coinset API, so that incoming and pending transactions show up
+ * before they're confirmed, including after a resync. This tells Coinset which mempool
+ * transactions involve the wallet.
+ */
+mempool_discovery: boolean }
 export type NetworkKind = "mainnet" | "testnet" | "unknown"
 export type NetworkList = { networks: Network[] }
 export type NewNftUri = { 
@@ -3009,6 +3259,12 @@ did_ids: string[];
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -3110,7 +3366,11 @@ export type OptionFilter =
  * Both owned and created options
  */
 "all"
-export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null; is_owned: boolean }
+export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null; is_owned: boolean; 
+/**
+ * Whether this wallet minted the option
+ */
+is_creator: boolean }
 export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }
@@ -3272,7 +3532,7 @@ export type RedownloadNftResponse = Record<string, never>
  */
 export type RemovePeer = { 
 /**
- * IP address or hostname of the peer
+ * IP address of the peer
  */
 ip: string; 
 /**
@@ -3477,6 +3737,12 @@ amount: Amount;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to include the CAT hint
  */
 include_hint?: boolean; 
@@ -3538,6 +3804,18 @@ amount: Amount;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
+ * Take the fee out of `amount`, so that `amount` is what leaves the wallet in total and
+ * the recipient gets the rest. Use it to send a whole balance when the fee isn't known
+ * until the transaction is built
+ */
+deduct_fee?: boolean; 
 /**
  * Optional memos
  */
@@ -3601,6 +3879,14 @@ export type SetDiscoverPeers = {
  */
 discover_peers: boolean }
 /**
+ * Enable or disable looking up announced mempool transactions with Coinset
+ */
+export type SetMempoolDiscovery = { 
+/**
+ * Whether to look up mempool transactions with Coinset
+ */
+mempool_discovery: boolean }
+/**
  * Set the active network
  */
 export type SetNetwork = { 
@@ -3636,6 +3922,14 @@ export type SetTargetPeers = {
  * Target number of peer connections
  */
 target_peers: number }
+/**
+ * Set how long every wallet's transactions can be confirmed for after they're created
+ */
+export type SetTransactionExpiration = { 
+/**
+ * Seconds a transaction can be confirmed for, at least 300, or 0 for no limit
+ */
+seconds: number }
 /**
  * Set wallet emoji
  */
@@ -3795,6 +4089,12 @@ output_count: number;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -3833,6 +4133,12 @@ offer: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -3869,7 +4175,25 @@ summary: TransactionSummary;
  * Coin spends in the transaction
  */
 coin_spends: CoinSpendJson[] }
-export type TransactionSummary = { fee: Amount; inputs: TransactionInput[]; 
+export type TransactionSummary = { 
+/**
+ * The fee the transaction actually pays: the value of the coins it spends minus the
+ * value of the coins it creates. If that's less than the declared fee, so the
+ * transaction isn't complete on its own, this is the declared fee instead. It's only the fee paid
+ * if the transaction is submitted as is: when only signatures are returned, spends that
+ * don't need them could be left out.
+ */
+fee: Amount; 
+/**
+ * The sum of the transaction's `RESERVE_FEE` conditions. When this differs from `fee`,
+ * some of the fee isn't declared.
+ */
+declared_fee?: Amount; 
+/**
+ * The cost the mempool charges for the transaction, which its fee is priced against. It's
+ * only known for a complete transaction, so it's missing for one side of an offer.
+ */
+cost?: number | null; inputs: TransactionInput[]; 
 /**
  * The handle recipients of the transaction, and the verified addresses they were
  * resolved to
@@ -3891,6 +4215,12 @@ address: string;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Optional clawback timestamp
  */
@@ -3922,6 +4252,12 @@ address: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Optional clawback timestamp
  */
 clawback?: number | null; 
@@ -3951,6 +4287,12 @@ address: string;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Optional clawback timestamp
  */
@@ -4129,7 +4471,12 @@ export type Wallet =
  * The p2 puzzle hashes being watched. The first one is the wallet's receive address.
  */
 { type: "watch"; p2_puzzle_hashes: string[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
-export type WalletDefaults = { delta_sync: boolean }
+export type WalletDefaults = { delta_sync: boolean; 
+/**
+ * How many seconds after a transaction is created that it can no longer be confirmed, or 0
+ * for no limit. This doesn't apply to offers, which have their own expiration.
+ */
+transaction_expiration: number }
 export type WalletInfo = { name: string; fingerprint: number; kind: WalletKind; network_id: string; emoji: string | null }
 /**
  * The kind of wallet, which determines how its addresses are found and whether it can sign

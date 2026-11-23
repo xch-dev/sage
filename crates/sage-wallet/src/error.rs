@@ -39,6 +39,9 @@ pub enum WalletError {
     #[error("Timeout exceeded")]
     Elapsed(#[from] Elapsed),
 
+    #[error("Coinset request failed: {0}")]
+    Coinset(String),
+
     #[error("Missing spend with id {0}")]
     MissingSpend(Bytes32),
 
@@ -47,6 +50,9 @@ pub enum WalletError {
 
     #[error("Peer misbehaved")]
     PeerMisbehaved,
+
+    #[error("No peers are connected")]
+    NoPeers,
 
     #[error("Subscription limit reached")]
     SubscriptionLimitReached,
@@ -69,6 +75,9 @@ pub enum WalletError {
     #[error("Insufficient funds")]
     InsufficientFunds,
 
+    #[error("The transaction's amounts add up to more than the maximum amount")]
+    AmountOverflow,
+
     #[error("Insufficient derivations")]
     InsufficientDerivations,
 
@@ -80,6 +89,11 @@ pub enum WalletError {
 
     #[error("Missing secret key")]
     UnknownPublicKey,
+
+    #[error(
+        "Refusing to sign an AGG_SIG_UNSAFE condition with one of this wallet's keys, since the signature could be reused elsewhere"
+    )]
+    AggSigUnsafe,
 
     #[error("Missing XCH coin with id {0}")]
     MissingXchCoin(Bytes32),
@@ -119,10 +133,22 @@ pub enum WalletError {
     #[error("Cannot import offer that doesn't belong to this wallet")]
     CannotImportOffer,
 
+    #[error("The transaction splitting the offer's coins didn't create the expected coins")]
+    MissingPreSplitCoin,
+
     #[error(
         "NFT with id {0} doesn't use the default metadata updater, so URIs can't be appended to it"
     )]
     NftMetadataNotAppendOnly(Bytes32),
+
+    #[error("Option contract with id {0} wasn't minted by this wallet")]
+    NotOptionCreator(Bytes32),
+
+    #[error("Cancelling an option requires a coin of its strike asset, of any amount")]
+    MissingStrikeCoin,
+
+    #[error("Cancelling an option requires an XCH coin, of any amount")]
+    MissingMeltCoin,
 
     #[error("NFT option contracts are not supported")]
     NftOptionNotSupported,

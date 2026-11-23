@@ -136,7 +136,7 @@ async fn active_network_id(app_handle: &AppHandle) -> AnyResult<String> {
 
     let state = app_handle.state::<AppState>();
 
-    let sage = timeout(TIMEOUT, state.lock())
+    let sage = timeout(TIMEOUT, state.read())
         .await
         .map_err(|_| anyhow!("active network id unavailable because Sage state is locked"))?;
 

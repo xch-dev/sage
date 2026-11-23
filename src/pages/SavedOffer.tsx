@@ -1,4 +1,4 @@
-import { commands, OfferRecord } from '@/bindings';
+import { commands, events, OfferRecord } from '@/bindings';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { OfferCard } from '@/components/OfferCard';
@@ -15,10 +15,25 @@ export function SavedOffer() {
   useEffect(() => {
     if (!offerId) return;
 
-    commands
-      .getOffer({ offer_id: offerId })
-      .then((data) => setRecord(data.offer))
-      .catch(addError);
+    const refresh = () => {
+      commands
+        .getOffer({ offer_id: offerId })
+        .then((data) => setRecord(data.offer))
+        .catch(addError);
+    };
+
+    refresh();
+
+    // The offer's status changes as its coins are split, taken, or cancelled.
+    const unlisten = events.syncEvent.listen((event) => {
+      if (event.payload.type === 'coin_state') {
+        refresh();
+      }
+    });
+
+    return () => {
+      unlisten.then((u) => u());
+    };
   }, [offerId, addError]);
 
   return (
