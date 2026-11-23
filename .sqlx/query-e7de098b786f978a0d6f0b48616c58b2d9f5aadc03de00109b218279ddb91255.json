@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT is_recovery, kind, key, is_fast_forward\n        FROM vault_config_members\n        WHERE vault_config_id = ?\n        ORDER BY id ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "is_recovery",
+        "ordinal": 0,
+        "type_info": "Bool"
+      },
+      {
+        "name": "kind",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "key",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "is_fast_forward",
+        "ordinal": 3,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e7de098b786f978a0d6f0b48616c58b2d9f5aadc03de00109b218279ddb91255"
+}
