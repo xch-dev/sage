@@ -1892,22 +1892,32 @@ async fn test_make_offer_royalties_match_the_offer() -> Result<()> {
     app.login(Login { fingerprint: bob }).await?;
     app.wait_for_coins().await;
 
-    app.issue_cat(IssueCat {
-        name: "Royalty".to_string(),
-        ticker: "RYL".to_string(),
-        amount: Amount::u64(1000),
-        revocable: false,
-        fee: Amount::u64(0),
-        auto_submit: true,
-        fee_per_cost: None,
-    })
-    .await?;
-    app.wait_for_coins().await;
+    let mut cat_ids = Vec::new();
 
-    let cat_id = app.get_cats(GetCats {}).await?.cats[0]
-        .asset_id
-        .clone()
-        .expect("the CAT has an asset id");
+    for ticker in ["RYL", "SML"] {
+        app.issue_cat(IssueCat {
+            name: ticker.to_string(),
+            ticker: ticker.to_string(),
+            amount: Amount::u64(1000),
+            revocable: false,
+            fee: Amount::u64(0),
+            auto_submit: true,
+            fee_per_cost: None,
+        })
+        .await?;
+        app.wait_for_coins().await;
+
+        let cats = app.get_cats(GetCats {}).await?.cats;
+        let cat = cats
+            .into_iter()
+            .find(|cat| cat.ticker.as_deref() == Some(ticker))
+            .expect("missing CAT");
+        cat_ids.push(cat.asset_id.expect("the CAT has an asset id"));
+    }
+
+    let cat_id = cat_ids[0].clone();
+    // A 3% royalty on 10 mojos rounds down to nothing.
+    let small_cat_id = cat_ids[1].clone();
 
     let request = MakeOffer {
         confirmed_handles: Vec::new(),
@@ -1927,11 +1937,17 @@ async fn test_make_offer_royalties_match_the_offer() -> Result<()> {
                 hidden_puzzle_hash: None,
                 amount: Amount::u64(100),
             },
+            OfferAmount {
+                asset_id: Some(small_cat_id.clone()),
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(10),
+            },
         ],
         fee: Amount::u64(0),
         receive_address: None,
         expires_at_second: None,
-        auto_import: false,
+        // As the Sage Apps bridge makes offers.
+        auto_import: true,
         coin_ids: None,
         pre_split_fee: None,
         pre_split_fee_per_cost: None,
@@ -1957,6 +1973,8 @@ async fn test_make_offer_royalties_match_the_offer() -> Result<()> {
         .make_offer_with_royalties(request.clone(), &changed)
         .await;
     assert!(matches!(refused, Err(sage::Error::OfferRoyaltiesChanged)));
+    let saved = app.sage.read().await.wallet()?.db.offers(None).await?;
+    assert!(saved.is_empty(), "a refused offer must not be saved");
 
     let offer = app
         .sage
@@ -1978,6 +1996,10 @@ async fn test_make_offer_royalties_match_the_offer() -> Result<()> {
     };
     assert_eq!(royalty(None), Some(royalties.xch));
     assert_eq!(royalty(Some(&cat_id)), Some(3));
+    assert_eq!(royalty(Some(&small_cat_id)), Some(0));
+
+    let saved = app.sage.read().await.wallet()?.db.offers(None).await?;
+    assert_eq!(saved.len(), 1);
 
     Ok(())
 }

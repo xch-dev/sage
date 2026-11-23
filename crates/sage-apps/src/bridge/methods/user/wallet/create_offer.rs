@@ -2,9 +2,12 @@ use std::collections::HashSet;
 
 use async_trait::async_trait;
 use sage::{Error as SageError, MakeOfferRoyalties};
-use sage_api::{Amount, GetNft, GetOption, GetToken, MakeOffer, MakeOfferResponse, OfferAmount};
+use sage_api::{
+    Amount, ErrorKind, GetNft, GetOption, GetToken, MakeOffer, MakeOfferResponse, OfferAmount,
+};
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use unicode_normalization::UnicodeNormalization;
 
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
@@ -284,7 +287,7 @@ fn validate_params(
         )));
     }
 
-    Ok(ValidatedOffer {
+    let offer = ValidatedOffer {
         offered: validate_legs(&params.offer_assets, "offerAssets")?,
         requested: validate_legs(&params.request_assets, "requestAssets")?,
         fee: params
@@ -294,7 +297,16 @@ fn validate_params(
             .transpose()?
             .unwrap_or(0),
         expires_at_second: params.expires_at_second,
-    })
+    };
+
+    // As make_offer requires, so the app hears about it before the user is asked to approve.
+    if offer.offered.is_empty() && offer.fee == 0 {
+        return Err(BridgeMethodHandleError::invalid_request(
+            "an offer that only requests assets needs a fee",
+        ));
+    }
+
+    Ok(offer)
 }
 
 fn now_seconds() -> u64 {
@@ -357,11 +369,21 @@ async fn offer_royalties(
         .await
         .make_offer_royalties(offer.to_request())
         .await
-        .map_err(|err| {
-            BridgeMethodHandleError::internal_error(format!(
-                "wallet.createOffer could not look up royalties: {err}"
-            ))
-        })
+        .map_err(|err| make_offer_error("wallet.createOffer", err))
+}
+
+/// Reports a failure to make or price the offer. Errors caused by the request itself, such as an
+/// NFT id that can't be found, are the app's to fix and are reported as invalid requests.
+fn make_offer_error(method: &str, err: SageError) -> BridgeMethodHandleError {
+    match err {
+        SageError::OfferRoyaltiesChanged => BridgeMethodHandleError::invalid_request(
+            "the offer's royalties changed after it was approved; request it again",
+        ),
+        err if matches!(err.kind(), ErrorKind::Api | ErrorKind::NotFound) => {
+            BridgeMethodHandleError::invalid_request(format!("{method}: {err}"))
+        }
+        err => BridgeMethodHandleError::internal_error(format!("{method} failed: {err}")),
+    }
 }
 
 /// The royalties the user approved, rebuilt from the approval's offered assets, which carry
@@ -383,40 +405,48 @@ fn approved_royalties(
             ))
         })?;
 
+        if royalty == 0 {
+            continue;
+        }
+
         match (asset.kind, &asset.asset_id) {
             (WalletCreateOfferApprovalAssetKind::Xch, _) => royalties.xch = royalty,
-            (WalletCreateOfferApprovalAssetKind::Cat, Some(asset_id)) if royalty > 0 => {
+            (WalletCreateOfferApprovalAssetKind::Cat, Some(asset_id)) => {
                 royalties.cats.insert(asset_id.clone(), royalty);
             }
-            _ if royalty > 0 => {
+            (
+                WalletCreateOfferApprovalAssetKind::Cat
+                | WalletCreateOfferApprovalAssetKind::Nft
+                | WalletCreateOfferApprovalAssetKind::Option,
+                _,
+            ) => {
                 return Err(BridgeMethodHandleError::internal_error(
-                    "only offered XCH and CATs pay royalties",
+                    "only offered XCH and CATs with an asset id pay royalties",
                 ));
             }
-            _ => {}
         }
     }
 
     Ok(royalties)
 }
 
-/// Folds the Cyrillic, Greek, fullwidth and Roman numeral lookalikes of the letters in "XCH" to
-/// them.
+/// Folds the Cyrillic, Greek and small capital lookalikes of the letters in "XCH" to them.
+/// Fullwidth, mathematical and Roman numeral forms are folded by NFKC first.
 fn fold_xch_lookalike(c: char) -> char {
     match c {
-        'Х' | 'х' | 'Χ' | 'χ' | 'Ｘ' | 'ｘ' | 'Ⅹ' | 'ⅹ' => 'x',
-        'С' | 'с' | 'Ϲ' | 'ϲ' | 'Ｃ' | 'ｃ' | 'Ⅽ' | 'ⅽ' => 'c',
-        'Н' | 'н' | 'Η' | 'һ' | 'Ｈ' | 'ｈ' => 'h',
+        'Х' | 'х' | 'Χ' | 'χ' => 'x',
+        'С' | 'с' | 'Ϲ' | 'ϲ' | 'ᴄ' => 'c',
+        'Н' | 'н' | 'Η' | 'һ' | 'ʜ' => 'h',
         c => c,
     }
 }
 
 /// Whether a label reads as "XCH", ignoring case, spaces, punctuation and invisible characters
-/// such as zero-width spaces, and with common lookalike letters folded.
+/// such as zero-width spaces, and with lookalike letters folded.
 fn is_xch_label(label: Option<&str>) -> bool {
     label.is_some_and(|label| {
         label
-            .chars()
+            .nfkc()
             .filter(|c| c.is_alphanumeric())
             .map(fold_xch_lookalike)
             .collect::<String>()
@@ -610,15 +640,7 @@ impl BridgeMethod for WalletCreateOffer {
             .await
             .make_offer_with_royalties(offer.to_request(), &royalties)
             .await
-            .map_err(|err| match err {
-                SageError::OfferRoyaltiesChanged => BridgeMethodHandleError::invalid_request(
-                    "the offer's royalties changed after it was approved; request it again",
-                ),
-                err => BridgeMethodHandleError::internal_error(format!(
-                    "{} failed: {err}",
-                    self.name()
-                )),
-            })?;
+            .map_err(|err| make_offer_error(self.name(), err))?;
 
         Ok(Box::new(WalletCreateOfferResult::from(response)))
     }
@@ -626,23 +648,15 @@ impl BridgeMethod for WalletCreateOffer {
     async fn handle(
         &self,
         _ctx: BridgeContext<'_>,
-        tools: BridgeTools<'_>,
-        request: &RustBridgeRequest,
+        _tools: BridgeTools<'_>,
+        _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let params: WalletCreateOfferParams = parse_required_params(self, request)?;
-        let offer = validate_params(&params, now_seconds())?;
-
-        let response = tools
-            .app_state
-            .read()
-            .await
-            .make_offer(offer.to_request())
-            .await
-            .map_err(|err| {
-                BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
-            })?;
-
-        Ok(Box::new(WalletCreateOfferResult::from(response)))
+        // Every offer is approved, which is what fixes the royalties it may pay, so this can't
+        // be reached. Making the offer here would skip that check.
+        Err(BridgeMethodHandleError::invalid_request(format!(
+            "{} requires approval",
+            self.name()
+        )))
     }
 }
 
@@ -756,6 +770,25 @@ mod tests {
         }));
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn request_only_offer_needs_a_fee() {
+        for fee in [json!(null), json!(0), json!("0")] {
+            let message = error_message(validate(json!({
+                "offerAssets": [],
+                "requestAssets": [{ "amount": 1 }],
+                "fee": fee
+            })));
+            assert!(message.contains("needs a fee"), "{message}");
+        }
+
+        validate(json!({
+            "offerAssets": [],
+            "requestAssets": [{ "amount": 1 }],
+            "fee": 1
+        }))
+        .expect("a request-only offer with a fee is valid");
     }
 
     #[test]
@@ -910,6 +943,11 @@ mod tests {
             (None, Some("\u{0425}\u{0421}\u{041D}")),
             (None, Some("\u{03A7}C\u{0397}")),
             (None, Some("\u{FF38}\u{FF23}\u{FF28}")),
+            // Roman numerals, mathematical bold letters and small capitals.
+            (None, Some("\u{2169}\u{216D}H")),
+            (None, Some("\u{1D417}\u{1D402}\u{1D407}")),
+            (None, Some("X\u{1D04}\u{029C}")),
+            (None, Some("XC\u{04BB}")),
         ] {
             for kind in [
                 WalletCreateOfferApprovalAssetKind::Cat,

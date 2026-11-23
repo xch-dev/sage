@@ -6945,6 +6945,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
+ "unicode-normalization",
  "url",
  "uuid",
  "zip",

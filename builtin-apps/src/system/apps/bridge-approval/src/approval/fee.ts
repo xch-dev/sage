@@ -16,9 +16,7 @@ export function formatMojos(mojos: bigint, precision: number) {
     .padStart(precision, '0')
     .replace(/0+$/, '');
 
-  return precision > 0 && fraction.length > 0
-    ? `${whole}.${fraction}`
-    : whole.toString();
+  return fraction.length > 0 ? `${whole}.${fraction}` : whole.toString();
 }
 
 function formatXch(mojos: bigint) {
