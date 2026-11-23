@@ -83,11 +83,12 @@ pub struct WalletCreateOfferParams {
     pub request_assets: Vec<WalletCreateOfferAsset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fee: Option<WalletCreateOfferAmount>,
-    /// The fee, in mojos, for first splitting the offered XCH and CAT coins into coins of the
-    /// exact amounts offered, so the offer doesn't lock up the rest of the balance. Omit it to
-    /// offer the coins as they are. The split is only made, and its fee only paid, if the coins
-    /// don't already match. A split offer can't be taken until the split is confirmed: see
-    /// `splitTransactionId` in the result.
+    /// The fee, in mojos, for first splitting the XCH and CAT coins the offer spends into coins of
+    /// the exact amounts it spends, so the offer doesn't lock up the rest of the balance. Omit it
+    /// to offer the coins as they are. The split is only made, and its fee only paid, if the
+    /// coins don't already match. It needs an offered XCH or CAT, or a `fee`, since otherwise the
+    /// offer spends no coins to split. A split offer can't be taken until the split is
+    /// confirmed: see `splitTransactionId` in the result.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pre_split_fee: Option<WalletCreateOfferAmount>,
     /// Unix time in seconds. It must be in the future; omit it for an offer that
@@ -102,7 +103,10 @@ pub struct WalletCreateOfferResult {
     pub offer: String,
     pub id: String,
     /// The transaction that splits the offered coins, if one was made. The offer can't be taken
-    /// until it's confirmed, which is when it leaves `wallet.getPendingTransactions`.
+    /// until it's confirmed. It leaves `wallet.getPendingTransactions` when it's confirmed, but
+    /// also if it fails or expires. To tell which, check a coin from its `created` list there
+    /// with `wallet.getCoinsByIds`: the coin gets a `createdHeight` once the split is confirmed.
+    /// If it never does, the split failed and the offer can never be taken.
     pub split_transaction_id: Option<String>,
 }
 
@@ -325,6 +329,22 @@ fn validate_params(
         ));
     }
 
+    // Only XCH and CAT coins are split, so an offer which spends none has nothing to split, and
+    // the approval shouldn't show a split fee for it.
+    let spends_fungible_coins = offer.fee > 0
+        || offer.offered.iter().any(|leg| {
+            matches!(
+                leg.kind,
+                WalletCreateOfferApprovalAssetKind::Xch | WalletCreateOfferApprovalAssetKind::Cat
+            )
+        });
+
+    if offer.pre_split_fee.is_some() && !spends_fungible_coins {
+        return Err(BridgeMethodHandleError::invalid_request(
+            "preSplitFee needs an offered XCH or CAT, or a fee, since there are no coins to split",
+        ));
+    }
+
     Ok(offer)
 }
 
@@ -462,6 +482,22 @@ fn fold_xch_lookalike(c: char) -> char {
 
 /// Whether a label reads as "XCH", ignoring case, spaces, punctuation and invisible characters
 /// such as zero-width spaces, and with lookalike letters folded.
+/// The approval for an offer, with its offered and requested assets already labelled. Every
+/// fee the offer may pay is part of it.
+fn approval_summary(
+    offer: &ValidatedOffer,
+    offered: Vec<WalletCreateOfferApprovalAsset>,
+    requested: Vec<WalletCreateOfferApprovalAsset>,
+) -> WalletCreateOfferApprovalSummary {
+    WalletCreateOfferApprovalSummary {
+        offered,
+        requested,
+        fee: offer.fee.to_string(),
+        pre_split_fee: offer.pre_split_fee.map(|fee| fee.to_string()),
+        expires_at_second: offer.expires_at_second,
+    }
+}
+
 fn is_xch_label(label: Option<&str>) -> bool {
     label.is_some_and(|label| {
         label
@@ -603,25 +639,19 @@ impl BridgeMethod for WalletCreateOffer {
         let royalties = offer_royalties(&tools, &offer).await?;
 
         let mut offered = Vec::with_capacity(offer.offered.len());
-        for leg in offer.offered {
-            let royalty = leg_royalty(&leg, &royalties);
-            offered.push(approval_asset(&tools, leg, royalty).await?);
+        for leg in &offer.offered {
+            let royalty = leg_royalty(leg, &royalties);
+            offered.push(approval_asset(&tools, leg.clone(), royalty).await?);
         }
 
         let mut requested = Vec::with_capacity(offer.requested.len());
-        for leg in offer.requested {
-            requested.push(approval_asset(&tools, leg, 0).await?);
+        for leg in &offer.requested {
+            requested.push(approval_asset(&tools, leg.clone(), 0).await?);
         }
 
         Ok(Some(RustBridgeApprovalRequest {
             body: RustBridgeApprovalBody::CreateOffer {
-                summary: WalletCreateOfferApprovalSummary {
-                    offered,
-                    requested,
-                    fee: offer.fee.to_string(),
-                    pre_split_fee: offer.pre_split_fee.map(|fee| fee.to_string()),
-                    expires_at_second: offer.expires_at_second,
-                },
+                summary: approval_summary(&offer, offered, requested),
             },
         }))
     }
@@ -791,6 +821,75 @@ mod tests {
                 "preSplitFee": fee
             }));
             assert!(result.is_err(), "pre-split fee {fee} should be rejected");
+        }
+    }
+
+    #[test]
+    fn approval_shows_the_pre_split_fee() {
+        let summary = |params: serde_json::Value| {
+            approval_summary(
+                &validate(params).expect("valid params"),
+                Vec::new(),
+                Vec::new(),
+            )
+        };
+
+        let split = summary(json!({
+            "offerAssets": [{ "amount": 1000 }],
+            "requestAssets": [],
+            "fee": 5,
+            "preSplitFee": "25"
+        }));
+        assert_eq!(split.fee, "5");
+        assert_eq!(split.pre_split_fee.as_deref(), Some("25"));
+
+        let unsplit = summary(json!({
+            "offerAssets": [{ "amount": 1000 }],
+            "requestAssets": []
+        }));
+        assert_eq!(unsplit.pre_split_fee, None);
+    }
+
+    #[test]
+    fn pre_split_fee_needs_coins_to_split() {
+        for params in [
+            // Only an NFT or option is offered, with no fee.
+            json!({
+                "offerAssets": [{ "assetId": NFT_ID, "amount": 1 }],
+                "requestAssets": [{ "amount": 1000 }],
+                "preSplitFee": 25
+            }),
+            json!({
+                "offerAssets": [{ "assetId": OPTION_ID, "amount": 1 }],
+                "requestAssets": [{ "amount": 1000 }],
+                "preSplitFee": 0
+            }),
+        ] {
+            let message = error_message(validate(params));
+            assert!(message.contains("no coins to split"), "{message}");
+        }
+
+        // A fee, or an offered XCH or CAT, is paid with coins that can be split.
+        for params in [
+            json!({
+                "offerAssets": [{ "assetId": NFT_ID, "amount": 1 }],
+                "requestAssets": [{ "amount": 1000 }],
+                "fee": 1,
+                "preSplitFee": 25
+            }),
+            json!({
+                "offerAssets": [],
+                "requestAssets": [{ "amount": 1000 }],
+                "fee": 1,
+                "preSplitFee": 25
+            }),
+            json!({
+                "offerAssets": [{ "assetId": CAT_ID, "amount": 1 }],
+                "requestAssets": [],
+                "preSplitFee": 25
+            }),
+        ] {
+            validate(params).expect("there are coins to split");
         }
     }
 
