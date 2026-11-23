@@ -8,6 +8,7 @@ mod sage;
 mod sync_events;
 mod utils;
 
+pub use endpoints::MakeOfferRoyalties;
 pub use error::*;
 pub use sage::*;
 pub use sync_events::*;

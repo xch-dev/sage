@@ -22,6 +22,7 @@ reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 anyhow = { workspace = true }
 semver = { workspace = true }
 hex = { workspace = true }
+unicode-normalization = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
 sha2 = "0.10.9"
 uuid = { workspace = true, features = ["v4", "serde"] }

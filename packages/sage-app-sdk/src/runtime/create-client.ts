@@ -183,6 +183,13 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
         );
       },
 
+      async createOffer(input: Generated.WalletCreateOfferParams) {
+        return await callHost<Generated.WalletCreateOfferResult>(
+          'wallet.createOffer',
+          input,
+        );
+      },
+
       async getAssetBalance(input: Generated.WalletGetAssetBalanceParams) {
         return await callHost<Generated.WalletGetAssetBalanceResult>(
           'wallet.getAssetBalance',

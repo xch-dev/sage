@@ -2,6 +2,7 @@ use chia_wallet_sdk::{
     driver::{coin_amount, decode_offer, encode_offer},
     prelude::*,
 };
+use indexmap::IndexMap;
 use itertools::Itertools;
 use sage_api::{
     Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CombineOffers,
@@ -19,7 +20,7 @@ use sage_database::{
 };
 use sage_wallet::{
     Offered, PreSplitOffer, Requested, RequestedCat, SpendGuard, TakenOffer, Wallet, WalletError,
-    aggregate_offers, sort_offer,
+    aggregate_offers, offer_royalty_amounts, sort_offer,
 };
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::{debug, warn};
@@ -30,6 +31,38 @@ use crate::{
     parse_asset_id, parse_coin_ids, parse_did_id, parse_hash, parse_nft_id, parse_offer_id,
     parse_option_id, selectable_coin_ids,
 };
+
+/// The royalties a [`MakeOffer`] pays on top of the offered amounts, in mojos: XCH, then CATs by
+/// hex asset id.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct MakeOfferRoyalties {
+    pub xch: u64,
+    pub cats: IndexMap<String, u64>,
+}
+
+/// Adds one leg's amount to an asset's offer total. A sum that doesn't fit in a `u64` is refused,
+/// since wrapping would offer or request less than was asked for.
+fn add_offer_amount(total: &mut u64, amount: u64) -> Result<()> {
+    *total = total.checked_add(amount).ok_or_else(|| {
+        Error::InvalidAmount("the amounts for one asset add up to more than a u64".to_string())
+    })?;
+    Ok(())
+}
+
+/// The royalties an offer of `offered` for `requested` pays on top of the offered XCH and CATs.
+fn make_offer_royalties(offered: &Offered, requested: &Requested) -> Result<MakeOfferRoyalties> {
+    let royalties = offer_royalty_amounts(offered, requested)?;
+
+    Ok(MakeOfferRoyalties {
+        xch: coin_amount(royalties.xch)?,
+        cats: royalties
+            .cats
+            .into_iter()
+            .filter(|(_, amount)| *amount > 0)
+            .map(|(asset_id, amount)| Ok((hex::encode(asset_id), coin_amount(amount)?)))
+            .collect::<Result<_>>()?,
+    })
+}
 
 /// An offer that's ready to be saved to the wallet.
 #[derive(Debug, Clone)]
@@ -50,150 +83,56 @@ struct AssetToOffer {
 
 impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
+        self.make_offer_checked(req, None).await
+    }
+
+    /// Makes the offer only if the royalties it pays on top of the offered XCH and CATs are
+    /// `expected`, as returned by [`Sage::make_offer_royalties`] when the offer was approved. They
+    /// are checked against the same lookup the offer is built from.
+    pub async fn make_offer_with_royalties(
+        &self,
+        req: MakeOffer,
+        expected: &MakeOfferRoyalties,
+    ) -> Result<MakeOfferResponse> {
+        self.make_offer_checked(req, Some(expected)).await
+    }
+
+    async fn make_offer_checked(
+        &self,
+        req: MakeOffer,
+        expected_royalties: Option<&MakeOfferRoyalties>,
+    ) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
         let spends = wallet.lock_spends().await;
+        let MakeOffer {
+            expires_at_second,
+            auto_import,
+            pre_split_fee_per_cost,
+            ..
+        } = req;
+        let pre_split_fee = req.pre_split_fee.clone();
 
-        let selected_coin_ids = parse_coin_ids(req.coin_ids.unwrap_or_default())?;
+        let (offered, requested, info) = self.make_offer_assets(&wallet, req).await?;
 
-        let mut info = ConfirmationInfo::default();
-        let p2_puzzle_hash = if let Some(address) = &req.receive_address {
-            Some(
-                self.resolve_recipient(address, &req.confirmed_handles, &mut info)
-                    .await?,
-            )
-        } else {
-            None
-        };
-
-        let mut offered = Offered {
-            fee: parse_amount(req.fee)?,
-            p2_puzzle_hash,
-            selected_coin_ids,
-            ..Default::default()
-        };
-
-        for OfferAmount {
-            asset_id,
-            amount: raw_amount,
-            hidden_puzzle_hash: _, // We ignore this since we already have it
-        } in req.offered_assets
+        if let Some(expected) = expected_royalties
+            && make_offer_royalties(&offered, &requested)? != *expected
         {
-            let amount = parse_amount(raw_amount.clone())?;
-
-            if let Some(asset_id) = asset_id {
-                if let Ok(asset_id) = parse_asset_id(asset_id.clone()) {
-                    *offered.cats.entry(asset_id).or_insert(0) += amount;
-                } else if let Ok(nft_id) = parse_nft_id(asset_id.clone()) {
-                    if amount != 1 {
-                        return Err(Error::InvalidAmount(raw_amount.to_string()));
-                    }
-
-                    offered.nfts.push(nft_id);
-                } else if let Ok(option_id) = parse_option_id(asset_id.clone()) {
-                    if amount != 1 {
-                        return Err(Error::InvalidAmount(raw_amount.to_string()));
-                    }
-
-                    offered.options.push(option_id);
-                } else {
-                    return Err(Error::InvalidAssetId(asset_id));
-                }
-            } else {
-                offered.xch += amount;
-            }
-        }
-
-        let has_offered_assets = offered.xch > 0
-            || !offered.cats.is_empty()
-            || !offered.nfts.is_empty()
-            || !offered.options.is_empty();
-
-        if !has_offered_assets && offered.fee == 0 {
-            return Err(Error::InvalidAmount(
-                "A request-only offer requires a network fee.".to_string(),
-            ));
-        }
-
-        let mut requested = Requested::default();
-        let mut peer = None;
-
-        for OfferAmount {
-            asset_id,
-            hidden_puzzle_hash,
-            amount: raw_amount,
-        } in req.requested_assets
-        {
-            let amount = parse_amount(raw_amount.clone())?;
-
-            if let Some(asset_id) = asset_id {
-                if let Ok(asset_id) = parse_asset_id(asset_id.clone()) {
-                    let hidden_puzzle_hash = if let Some(hidden_puzzle_hash) = hidden_puzzle_hash {
-                        Some(parse_hash(hidden_puzzle_hash)?)
-                    } else {
-                        wallet.fetch_offer_cat_hidden_puzzle_hash(asset_id).await?
-                    };
-
-                    requested
-                        .cats
-                        .entry(asset_id)
-                        .or_insert(RequestedCat {
-                            amount: 0,
-                            hidden_puzzle_hash,
-                        })
-                        .amount += amount;
-                } else if let Ok(nft_id) = parse_nft_id(asset_id.clone()) {
-                    if amount != 1 {
-                        return Err(Error::InvalidAmount(raw_amount.to_string()));
-                    }
-
-                    if peer.is_none() {
-                        peer = self.peer_state.lock().await.acquire_peer();
-                    }
-
-                    let Some(requested_nft) =
-                        wallet.fetch_offer_nft_info(peer.as_ref(), nft_id).await?
-                    else {
-                        return Err(Error::CouldNotFetchNft(nft_id));
-                    };
-
-                    requested.nfts.insert(nft_id, requested_nft);
-                } else if let Ok(option_id) = parse_option_id(asset_id.clone()) {
-                    if amount != 1 {
-                        return Err(Error::InvalidAmount(raw_amount.to_string()));
-                    }
-                    if peer.is_none() {
-                        peer = self.peer_state.lock().await.acquire_peer();
-                    }
-
-                    let Some(requested_option) = wallet
-                        .fetch_offer_option_info(peer.as_ref(), option_id)
-                        .await?
-                    else {
-                        return Err(Error::CouldNotFetchOption(option_id));
-                    };
-
-                    requested.options.insert(option_id, requested_option);
-                } else {
-                    return Err(Error::InvalidAssetId(asset_id));
-                }
-            } else {
-                requested.xch += amount;
-            }
+            return Err(Error::OfferRoyaltiesChanged);
         }
 
         let PreSplitOffer {
             offer: unsigned,
             split_coin_spends,
-        } = if let Some(split_fee) = req.pre_split_fee {
+        } = if let Some(split_fee) = pre_split_fee {
             build_with_fee!(
                 self,
                 parse_amount(split_fee)?,
-                req.pre_split_fee_per_cost,
+                pre_split_fee_per_cost,
                 |fee| wallet
                     .make_pre_split_offer(
                         offered.clone(),
                         requested.clone(),
-                        req.expires_at_second,
+                        expires_at_second,
                         fee,
                     )
                     .await?
@@ -201,7 +140,7 @@ impl Sage {
         } else {
             PreSplitOffer {
                 offer: wallet
-                    .make_offer(offered, requested, req.expires_at_second)
+                    .make_offer(offered, requested, expires_at_second)
                     .await?,
                 split_coin_spends: None,
             }
@@ -239,7 +178,7 @@ impl Sage {
 
             Some(hex::encode(transaction_id))
         } else {
-            if req.auto_import {
+            if auto_import {
                 self.save_offer(encoded_offer.clone(), &spends).await?;
             }
 
@@ -254,6 +193,148 @@ impl Sage {
             offer_id: hex::encode(sort_offer(offer).name()),
             pre_split_transaction_id,
         })
+    }
+
+    /// The royalties that [`Sage::make_offer`] would pay on top of the offered XCH and CATs for
+    /// this request, from the same NFT lookup and royalty math, so they can be approved first.
+    pub async fn make_offer_royalties(&self, req: MakeOffer) -> Result<MakeOfferRoyalties> {
+        let wallet = self.wallet()?;
+        let (offered, requested, _info) = self.make_offer_assets(&wallet, req).await?;
+        make_offer_royalties(&offered, &requested)
+    }
+
+    /// Parses and looks up a [`MakeOffer`] request's assets, as [`Sage::make_offer`] spends them.
+    async fn make_offer_assets(
+        &self,
+        wallet: &Wallet,
+        req: MakeOffer,
+    ) -> Result<(Offered, Requested, ConfirmationInfo)> {
+        let selected_coin_ids = parse_coin_ids(req.coin_ids.unwrap_or_default())?;
+
+        let mut info = ConfirmationInfo::default();
+        let p2_puzzle_hash = if let Some(address) = &req.receive_address {
+            Some(
+                self.resolve_recipient(address, &req.confirmed_handles, &mut info)
+                    .await?,
+            )
+        } else {
+            None
+        };
+
+        let mut offered = Offered {
+            fee: parse_amount(req.fee)?,
+            p2_puzzle_hash,
+            selected_coin_ids,
+            ..Default::default()
+        };
+
+        for OfferAmount {
+            asset_id,
+            amount: raw_amount,
+            hidden_puzzle_hash: _, // We ignore this since we already have it
+        } in req.offered_assets
+        {
+            let amount = parse_amount(raw_amount.clone())?;
+
+            if let Some(asset_id) = asset_id {
+                if let Ok(asset_id) = parse_asset_id(asset_id.clone()) {
+                    add_offer_amount(offered.cats.entry(asset_id).or_insert(0), amount)?;
+                } else if let Ok(nft_id) = parse_nft_id(asset_id.clone()) {
+                    if amount != 1 {
+                        return Err(Error::InvalidAmount(raw_amount.to_string()));
+                    }
+
+                    offered.nfts.push(nft_id);
+                } else if let Ok(option_id) = parse_option_id(asset_id.clone()) {
+                    if amount != 1 {
+                        return Err(Error::InvalidAmount(raw_amount.to_string()));
+                    }
+
+                    offered.options.push(option_id);
+                } else {
+                    return Err(Error::InvalidAssetId(asset_id));
+                }
+            } else {
+                add_offer_amount(&mut offered.xch, amount)?;
+            }
+        }
+
+        let has_offered_assets = offered.xch > 0
+            || !offered.cats.is_empty()
+            || !offered.nfts.is_empty()
+            || !offered.options.is_empty();
+
+        if !has_offered_assets && offered.fee == 0 {
+            return Err(Error::InvalidAmount(
+                "A request-only offer requires a network fee.".to_string(),
+            ));
+        }
+
+        let mut requested = Requested::default();
+        let mut peer = None;
+
+        for OfferAmount {
+            asset_id,
+            hidden_puzzle_hash,
+            amount: raw_amount,
+        } in req.requested_assets
+        {
+            let amount = parse_amount(raw_amount.clone())?;
+
+            if let Some(asset_id) = asset_id {
+                if let Ok(asset_id) = parse_asset_id(asset_id.clone()) {
+                    let hidden_puzzle_hash = if let Some(hidden_puzzle_hash) = hidden_puzzle_hash {
+                        Some(parse_hash(hidden_puzzle_hash)?)
+                    } else {
+                        wallet.fetch_offer_cat_hidden_puzzle_hash(asset_id).await?
+                    };
+
+                    let requested_cat = requested.cats.entry(asset_id).or_insert(RequestedCat {
+                        amount: 0,
+                        hidden_puzzle_hash,
+                    });
+                    add_offer_amount(&mut requested_cat.amount, amount)?;
+                } else if let Ok(nft_id) = parse_nft_id(asset_id.clone()) {
+                    if amount != 1 {
+                        return Err(Error::InvalidAmount(raw_amount.to_string()));
+                    }
+
+                    if peer.is_none() {
+                        peer = self.peer_state.lock().await.acquire_peer();
+                    }
+
+                    let Some(requested_nft) =
+                        wallet.fetch_offer_nft_info(peer.as_ref(), nft_id).await?
+                    else {
+                        return Err(Error::CouldNotFetchNft(nft_id));
+                    };
+
+                    requested.nfts.insert(nft_id, requested_nft);
+                } else if let Ok(option_id) = parse_option_id(asset_id.clone()) {
+                    if amount != 1 {
+                        return Err(Error::InvalidAmount(raw_amount.to_string()));
+                    }
+                    if peer.is_none() {
+                        peer = self.peer_state.lock().await.acquire_peer();
+                    }
+
+                    let Some(requested_option) = wallet
+                        .fetch_offer_option_info(peer.as_ref(), option_id)
+                        .await?
+                    else {
+                        return Err(Error::CouldNotFetchOption(option_id));
+                    };
+
+                    requested.options.insert(option_id, requested_option);
+                } else {
+                    return Err(Error::InvalidAssetId(asset_id));
+                }
+            } else {
+                add_offer_amount(&mut requested.xch, amount)?;
+            }
+        }
+
+        Ok((offered, requested, info))
     }
 
     pub async fn take_offer(&self, req: TakeOffer) -> Result<TakeOfferResponse> {
@@ -984,8 +1065,21 @@ fn parse_find_id(value: String) -> Option<Bytes32> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_find_id;
+    use super::{add_offer_amount, parse_find_id};
     use chia_wallet_sdk::prelude::*;
+
+    #[test]
+    fn offer_totals_refuse_to_wrap() {
+        let mut total = 0;
+        add_offer_amount(&mut total, u64::MAX - 1).expect("fits");
+        add_offer_amount(&mut total, 1).expect("fits");
+        assert_eq!(total, u64::MAX);
+
+        // Unchecked, u64::MAX + 2 wraps to 1 mojo.
+        let mut total = u64::MAX;
+        assert!(add_offer_amount(&mut total, 2).is_err());
+        assert_eq!(total, u64::MAX);
+    }
 
     #[test]
     fn parses_hex_ids_with_or_without_prefix() {

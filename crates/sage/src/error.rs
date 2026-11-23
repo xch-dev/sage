@@ -161,6 +161,9 @@ pub enum Error {
     #[error("Invalid coin amount: {0}")]
     InvalidCoinAmount(String),
 
+    #[error("The offer's NFT royalties are not the ones that were approved")]
+    OfferRoyaltiesChanged,
+
     #[error("Invalid hash: {0}")]
     InvalidHash(String),
 
@@ -414,6 +417,7 @@ impl Error {
             | Self::AddressPrefix(..)
             | Self::InvalidAmount(..)
             | Self::InvalidCoinAmount(..)
+            | Self::OfferRoyaltiesChanged
             | Self::Address(..)
             | Self::InvalidDidId(..)
             | Self::InvalidNftId(..)

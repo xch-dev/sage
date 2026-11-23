@@ -1,4 +1,5 @@
 mod contacts;
+mod create_offer;
 mod events;
 mod filter_unlocked_coins;
 mod get_asset_balance;
@@ -14,6 +15,7 @@ mod sign_coin_spends;
 mod sign_message;
 
 pub(crate) use contacts::*;
+pub(crate) use create_offer::*;
 pub(crate) use events::*;
 pub(crate) use filter_unlocked_coins::*;
 pub(crate) use get_asset_balance::*;

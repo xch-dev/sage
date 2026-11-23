@@ -39,6 +39,9 @@ export type SageWalletClient = {
   signCoinSpends(
     input: Generated.WalletSignCoinSpendsParams,
   ): Promise<Generated.WalletSignCoinSpendsResult>;
+  createOffer(
+    input: Generated.WalletCreateOfferParams,
+  ): Promise<Generated.WalletCreateOfferResult>;
   getAssetBalance(
     input: Generated.WalletGetAssetBalanceParams,
   ): Promise<Generated.WalletGetAssetBalanceResult>;

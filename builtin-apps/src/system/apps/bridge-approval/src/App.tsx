@@ -37,6 +37,8 @@ function titleForApproval(approval: PendingBridgeApprovalView) {
       return 'Approve secret key access';
     case 'signCoinSpends':
       return 'Approve coin-spend signatures';
+    case 'createOffer':
+      return 'Approve offer';
     case 'signMessage':
       return 'Approve message signature';
     case 'openExternalUrl':

@@ -82,6 +82,12 @@
 | ---------- | ---------------------- |
 | Capability | `wallet.check_address` |
 
+## `wallet.createOffer`
+
+| Field      | Value                 |
+| ---------- | --------------------- |
+| Capability | `wallet.create_offer` |
+
 ## `wallet.filterUnlockedCoins`
 
 | Field      | Value                          |

@@ -42,11 +42,12 @@ use sage_api::{
     Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CoinFilterMode, CoinJson,
     CoinSortMode, CoinSpendJson, CreateDid, CreateTransaction, GetAreCoinsSpendable, GetCats,
     GetCoins, GetCoinsByIds, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater,
-    GetNftThumbnail, GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet,
-    HandleFilterMode, HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet,
-    IssueCat, Login, LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind,
-    OfferAmount, OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, TakeOffer,
-    UpdateNftAction, ViewCoinSpends, ViewOffer, wallet_connect::FilterUnlockedCoins,
+    GetNftThumbnail, GetOffer, GetOffers, GetPeers, GetPendingTransactions, GetSyncStatus,
+    GetVersion, GetWallet, HandleFilterMode, HandleStatus, HandleVerification, Id as ApiId,
+    ImportOffer, ImportWallet, IssueCat, Login, LookupAddressHandles, MakeOffer, NewNftUri,
+    NftUpdaterKind, NftUriKind, OfferAmount, OfferAsset, OfferRecordStatus, ResolveHandle, SendXch,
+    SignCoinSpends, TakeOffer, UpdateNftAction, ViewCoinSpends, ViewOffer,
+    wallet_connect::FilterUnlockedCoins,
 };
 use sage_api_macro::impl_endpoints;
 use sage_database::{OfferStatus, ResizedImageKind, XchandleRow, XchandleStatus};
@@ -1851,6 +1852,172 @@ async fn test_mutable_nft() -> Result<()> {
         .expect("missing nft");
     assert_eq!(nft.metadata_updater_kind, NftUpdaterKind::Default);
     assert_eq!(nft.edition_number, Some(1));
+
+    Ok(())
+}
+
+/// The royalties shown before an offer is approved are the ones the offer it builds pays, and an
+/// offer is only made with the royalties it was approved with.
+#[tokio::test]
+async fn test_make_offer_royalties_match_the_offer() -> Result<()> {
+    check_make_offer_royalties(None).await
+}
+
+/// As [`test_make_offer_royalties_match_the_offer`], for an offer which splits its coins first.
+#[tokio::test]
+async fn test_make_offer_royalties_match_the_pre_split_offer() -> Result<()> {
+    check_make_offer_royalties(Some(Amount::u64(0))).await
+}
+
+async fn check_make_offer_royalties(pre_split_fee: Option<Amount>) -> Result<()> {
+    let pre_split = pre_split_fee.is_some();
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(10_000).await?;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    app.create_did(CreateDid {
+        name: "Alice".to_string(),
+        fee: Amount::u64(0),
+        auto_submit: true,
+        fee_per_cost: None,
+    })
+    .await?;
+    app.wait_for_coins().await;
+
+    let did_id = app.get_dids(GetDids {}).await?.dids[0].launcher_id.clone();
+    let nft_id = app
+        .bulk_mint_nfts(serde_json::from_value::<BulkMintNfts>(serde_json::json!({
+            "mints": [{ "royalty_ten_thousandths": 300 }],
+            "did_id": did_id,
+            "fee": 0,
+            "auto_submit": true,
+        }))?)
+        .await?
+        .nft_ids
+        .remove(0);
+    app.wait_for_coins().await;
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
+
+    let mut cat_ids = Vec::new();
+
+    for ticker in ["RYL", "SML"] {
+        app.issue_cat(IssueCat {
+            name: ticker.to_string(),
+            ticker: ticker.to_string(),
+            amount: Amount::u64(1000),
+            revocable: false,
+            fee: Amount::u64(0),
+            auto_submit: true,
+            fee_per_cost: None,
+        })
+        .await?;
+        app.wait_for_coins().await;
+
+        let cats = app.get_cats(GetCats {}).await?.cats;
+        let cat = cats
+            .into_iter()
+            .find(|cat| cat.ticker.as_deref() == Some(ticker))
+            .expect("missing CAT");
+        cat_ids.push(cat.asset_id.expect("the CAT has an asset id"));
+    }
+
+    let cat_id = cat_ids[0].clone();
+    // A 3% royalty on 10 mojos rounds down to nothing.
+    let small_cat_id = cat_ids[1].clone();
+
+    let request = MakeOffer {
+        confirmed_handles: Vec::new(),
+        requested_assets: vec![OfferAmount {
+            asset_id: Some(nft_id.clone()),
+            hidden_puzzle_hash: None,
+            amount: Amount::u64(1),
+        }],
+        offered_assets: vec![
+            OfferAmount {
+                asset_id: None,
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(1000),
+            },
+            OfferAmount {
+                asset_id: Some(cat_id.clone()),
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(100),
+            },
+            OfferAmount {
+                asset_id: Some(small_cat_id.clone()),
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(10),
+            },
+        ],
+        fee: Amount::u64(0),
+        receive_address: None,
+        expires_at_second: None,
+        // As the Sage Apps bridge makes offers.
+        auto_import: true,
+        coin_ids: None,
+        pre_split_fee,
+        pre_split_fee_per_cost: None,
+    };
+
+    let royalties = app
+        .sage
+        .read()
+        .await
+        .make_offer_royalties(request.clone())
+        .await?;
+    assert_eq!(royalties.xch, 30);
+    assert_eq!(royalties.cats.get(&cat_id), Some(&3));
+    assert_eq!(royalties.cats.len(), 1);
+
+    // Royalties other than the approved ones are refused before anything is signed.
+    let mut changed = royalties.clone();
+    changed.xch += 1;
+    let refused = app
+        .sage
+        .read()
+        .await
+        .make_offer_with_royalties(request.clone(), &changed)
+        .await;
+    assert!(matches!(refused, Err(sage::Error::OfferRoyaltiesChanged)));
+    let saved = app.sage.read().await.wallet()?.db.offers(None).await?;
+    assert!(saved.is_empty(), "a refused offer must not be saved");
+    let pending = app
+        .get_pending_transactions(GetPendingTransactions {})
+        .await?
+        .transactions;
+    assert!(pending.is_empty(), "a refused offer must not split coins");
+
+    let response = app
+        .sage
+        .read()
+        .await
+        .make_offer_with_royalties(request, &royalties)
+        .await?;
+    assert_eq!(response.pre_split_transaction_id.is_some(), pre_split);
+    let offer = response.offer;
+
+    let summary = app.view_offer(ViewOffer { offer }).await?.offer;
+    let royalty = |asset_id: Option<&str>| {
+        summary
+            .maker
+            .iter()
+            .find(|asset| asset.asset.asset_id.as_deref() == asset_id)
+            .expect("missing offered asset")
+            .royalty
+            .to_u64()
+    };
+    assert_eq!(royalty(None), Some(royalties.xch));
+    assert_eq!(royalty(Some(&cat_id)), Some(3));
+    assert_eq!(royalty(Some(&small_cat_id)), Some(0));
+
+    let saved = app.sage.read().await.wallet()?.db.offers(None).await?;
+    assert_eq!(saved.len(), 1);
 
     Ok(())
 }
