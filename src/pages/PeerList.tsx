@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
 import { useLongPress } from '@/hooks/useLongPress';
+import { useReadableSurfaceColor } from '@/hooks/useReadableSurfaceColor';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
@@ -162,12 +163,14 @@ const MobileRow = ({
   selected,
   onSelect,
   selectionMode,
+  surfaceColor,
 }: {
   peer: PeerRecord;
   onDelete: () => void;
   selected: boolean;
   onSelect: (peer: PeerRecord, forceModeOn?: boolean) => void;
   selectionMode: boolean;
+  surfaceColor: string;
 }) => {
   const [{ x }, api] = useSpring(() => ({
     x: 0,
@@ -224,11 +227,12 @@ const MobileRow = ({
         {...longPressHandlers}
         style={{
           x,
-          // this removes transparency of the secondary color
+          // this removes transparency of the surface color
           backgroundColor:
             // because otherwise the trashcan shows through when there is
-            //transparency or a background image set
-            'color-mix(in srgb, var(--secondary) 100%, transparent)',
+            // transparency or a background image set. The surface is the
+            // theme's secondary unless that clashes with the text color.
+            `color-mix(in srgb, ${surfaceColor} 100%, transparent)`,
         }}
         className='relative p-4 touch-pan-y select-none'
       >
@@ -302,6 +306,8 @@ export default function PeerList() {
   const peersToDeleteCount = peerToDelete?.length ?? 0;
 
   const isMobile = platform() === 'ios' || platform() === 'android';
+  // Mobile rows sit over their delete button, so they need a solid surface.
+  const surfaceColor = useReadableSurfaceColor();
 
   const columns: DataTableColumnDef<PeerRecord>[] = useMemo(() => {
     const actionsCellWithSetPeerToDelete = (props: {
@@ -546,6 +552,7 @@ export default function PeerList() {
                     selected={selectedPeers.has(peer.ip_addr)}
                     onSelect={handleSelect}
                     selectionMode={selectionMode}
+                    surfaceColor={surfaceColor}
                   />
                 ))}
               </div>
