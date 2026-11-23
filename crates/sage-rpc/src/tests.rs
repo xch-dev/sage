@@ -1855,6 +1855,133 @@ async fn test_mutable_nft() -> Result<()> {
     Ok(())
 }
 
+/// The royalties shown before an offer is approved are the ones the offer it builds pays, and an
+/// offer is only made with the royalties it was approved with.
+#[tokio::test]
+async fn test_make_offer_royalties_match_the_offer() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    let bob = app.setup_bls(10_000).await?;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    app.create_did(CreateDid {
+        name: "Alice".to_string(),
+        fee: Amount::u64(0),
+        auto_submit: true,
+        fee_per_cost: None,
+    })
+    .await?;
+    app.wait_for_coins().await;
+
+    let did_id = app.get_dids(GetDids {}).await?.dids[0].launcher_id.clone();
+    let nft_id = app
+        .bulk_mint_nfts(serde_json::from_value::<BulkMintNfts>(serde_json::json!({
+            "mints": [{ "royalty_ten_thousandths": 300 }],
+            "did_id": did_id,
+            "fee": 0,
+            "auto_submit": true,
+        }))?)
+        .await?
+        .nft_ids
+        .remove(0);
+    app.wait_for_coins().await;
+
+    app.login(Login { fingerprint: bob }).await?;
+    app.wait_for_coins().await;
+
+    app.issue_cat(IssueCat {
+        name: "Royalty".to_string(),
+        ticker: "RYL".to_string(),
+        amount: Amount::u64(1000),
+        revocable: false,
+        fee: Amount::u64(0),
+        auto_submit: true,
+        fee_per_cost: None,
+    })
+    .await?;
+    app.wait_for_coins().await;
+
+    let cat_id = app.get_cats(GetCats {}).await?.cats[0]
+        .asset_id
+        .clone()
+        .expect("the CAT has an asset id");
+
+    let request = MakeOffer {
+        confirmed_handles: Vec::new(),
+        requested_assets: vec![OfferAmount {
+            asset_id: Some(nft_id.clone()),
+            hidden_puzzle_hash: None,
+            amount: Amount::u64(1),
+        }],
+        offered_assets: vec![
+            OfferAmount {
+                asset_id: None,
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(1000),
+            },
+            OfferAmount {
+                asset_id: Some(cat_id.clone()),
+                hidden_puzzle_hash: None,
+                amount: Amount::u64(100),
+            },
+        ],
+        fee: Amount::u64(0),
+        receive_address: None,
+        expires_at_second: None,
+        auto_import: false,
+        coin_ids: None,
+        pre_split_fee: None,
+        pre_split_fee_per_cost: None,
+    };
+
+    let royalties = app
+        .sage
+        .read()
+        .await
+        .make_offer_royalties(request.clone())
+        .await?;
+    assert_eq!(royalties.xch, 30);
+    assert_eq!(royalties.cats.get(&cat_id), Some(&3));
+    assert_eq!(royalties.cats.len(), 1);
+
+    // Royalties other than the approved ones are refused before anything is signed.
+    let mut changed = royalties.clone();
+    changed.xch += 1;
+    let refused = app
+        .sage
+        .read()
+        .await
+        .make_offer_with_royalties(request.clone(), &changed)
+        .await;
+    assert!(matches!(refused, Err(sage::Error::OfferRoyaltiesChanged)));
+
+    let offer = app
+        .sage
+        .read()
+        .await
+        .make_offer_with_royalties(request, &royalties)
+        .await?
+        .offer;
+
+    let summary = app.view_offer(ViewOffer { offer }).await?.offer;
+    let royalty = |asset_id: Option<&str>| {
+        summary
+            .maker
+            .iter()
+            .find(|asset| asset.asset.asset_id.as_deref() == asset_id)
+            .expect("missing offered asset")
+            .royalty
+            .to_u64()
+    };
+    assert_eq!(royalty(None), Some(royalties.xch));
+    assert_eq!(royalty(Some(&cat_id)), Some(3));
+
+    Ok(())
+}
+
 /// Removes an NFT's saved on-chain info from a wallet's database, as for offers imported
 /// before that info was saved.
 async fn forget_nft_info(app: &TestApp, fingerprint: u32, nft_id: &str) -> Result<()> {

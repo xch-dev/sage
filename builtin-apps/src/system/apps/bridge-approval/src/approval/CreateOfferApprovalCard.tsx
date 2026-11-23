@@ -1,5 +1,6 @@
 import { Handshake } from 'lucide-react';
 import type { RustBridgeApprovalRequest } from 'sage-system-app-sdk';
+import { formatMojos, parseMojos } from './fee';
 import { ApprovalDetailRow, ApprovalMetaPill } from './shared';
 
 interface Props {
@@ -22,14 +23,8 @@ function assetName(asset: OfferAsset) {
   return asset.name ?? `Unknown ${KIND_LABELS[asset.kind]}`;
 }
 
-function formatAmount(amount: string, precision: number) {
-  if (precision === 0) return amount;
-
-  const digits = amount.padStart(precision + 1, '0');
-  const whole = digits.slice(0, -precision);
-  const fraction = digits.slice(-precision).replace(/0+$/, '');
-
-  return fraction ? `${whole}.${fraction}` : whole;
+function formatAmount(mojos: string, precision: number) {
+  return formatMojos(BigInt(mojos), precision);
 }
 
 function assetAmount(asset: OfferAsset, mojos = asset.amount) {
@@ -158,7 +153,7 @@ export function CreateOfferApprovalCard({ approval, appName }: Props) {
       <div className='space-y-2 rounded-xl border bg-background/70 p-3'>
         <ApprovalDetailRow
           label='Fee'
-          value={`${formatAmount(summary.fee, 12)} XCH`}
+          value={`${parseMojos(summary.fee)?.xch ?? summary.fee} XCH`}
         />
         <ApprovalDetailRow
           label='Expires'

@@ -49,6 +49,21 @@ fn add_offer_amount(total: &mut u64, amount: u64) -> Result<()> {
     Ok(())
 }
 
+/// The royalties an offer of `offered` for `requested` pays on top of the offered XCH and CATs.
+fn make_offer_royalties(offered: &Offered, requested: &Requested) -> Result<MakeOfferRoyalties> {
+    let royalties = offer_royalty_amounts(offered, requested)?;
+
+    Ok(MakeOfferRoyalties {
+        xch: coin_amount(royalties.xch)?,
+        cats: royalties
+            .cats
+            .into_iter()
+            .filter(|(_, amount)| *amount > 0)
+            .map(|(asset_id, amount)| Ok((hex::encode(asset_id), coin_amount(amount)?)))
+            .collect::<Result<_>>()?,
+    })
+}
+
 /// An offer that's ready to be saved to the wallet.
 #[derive(Debug, Clone)]
 struct PreparedOffer {
@@ -68,14 +83,42 @@ struct AssetToOffer {
 
 impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
+        self.make_offer_checked(req, None).await
+    }
+
+    /// Makes the offer only if the royalties it pays on top of the offered XCH and CATs are
+    /// `expected`, as returned by [`Sage::make_offer_royalties`] when the offer was approved. They
+    /// are checked against the same lookup the offer is built from.
+    pub async fn make_offer_with_royalties(
+        &self,
+        req: MakeOffer,
+        expected: &MakeOfferRoyalties,
+    ) -> Result<MakeOfferResponse> {
+        self.make_offer_checked(req, Some(expected)).await
+    }
+
+    async fn make_offer_checked(
+        &self,
+        req: MakeOffer,
+        expected_royalties: Option<&MakeOfferRoyalties>,
+    ) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
         let spends = wallet.lock_spends().await;
-        let expires_at_second = req.expires_at_second;
-        let auto_import = req.auto_import;
+        let MakeOffer {
+            expires_at_second,
+            auto_import,
+            pre_split_fee_per_cost,
+            ..
+        } = req;
         let pre_split_fee = req.pre_split_fee.clone();
-        let pre_split_fee_per_cost = req.pre_split_fee_per_cost;
 
         let (offered, requested, info) = self.make_offer_assets(&wallet, req).await?;
+
+        if let Some(expected) = expected_royalties
+            && make_offer_royalties(&offered, &requested)? != *expected
+        {
+            return Err(Error::OfferRoyaltiesChanged);
+        }
 
         let PreSplitOffer {
             offer: unsigned,
@@ -157,17 +200,7 @@ impl Sage {
     pub async fn make_offer_royalties(&self, req: MakeOffer) -> Result<MakeOfferRoyalties> {
         let wallet = self.wallet()?;
         let (offered, requested, _info) = self.make_offer_assets(&wallet, req).await?;
-        let royalties = offer_royalty_amounts(&offered, &requested)?;
-
-        Ok(MakeOfferRoyalties {
-            xch: coin_amount(royalties.xch)?,
-            cats: royalties
-                .cats
-                .into_iter()
-                .filter(|(_, amount)| *amount > 0)
-                .map(|(asset_id, amount)| Ok((hex::encode(asset_id), coin_amount(amount)?)))
-                .collect::<Result<_>>()?,
-        })
+        make_offer_royalties(&offered, &requested)
     }
 
     /// Parses and looks up a [`MakeOffer`] request's assets, as [`Sage::make_offer`] spends them.
