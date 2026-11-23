@@ -25,7 +25,8 @@ pub fn api_sync_event(event: SyncEvent) -> Option<ApiEvent> {
         // TODO: New event?
         SyncEvent::CoinsUpdated
         | SyncEvent::TransactionUpdated { .. }
-        | SyncEvent::OfferUpdated { .. } => ApiEvent::CoinState,
+        | SyncEvent::OfferUpdated { .. }
+        | SyncEvent::VaultStateChanged { .. } => ApiEvent::CoinState,
         SyncEvent::PuzzleBatchSynced => ApiEvent::PuzzleBatchSynced,
         SyncEvent::CatInfo => ApiEvent::CatInfo,
         SyncEvent::DidInfo => ApiEvent::DidInfo,
@@ -121,7 +122,7 @@ mod tests {
     use std::net::{IpAddr, Ipv4Addr};
 
     use chia_wallet_sdk::prelude::Bytes32;
-    use sage_database::OfferStatus;
+    use sage_database::{OfferStatus, VaultState};
     use serde_json::{Value, json};
     use tokio::time::timeout;
 
@@ -168,6 +169,13 @@ mod tests {
                 SyncEvent::OfferUpdated {
                     offer_id: id,
                     status: OfferStatus::Active,
+                },
+                Some(json!({ "type": "coin_state" })),
+            ),
+            (
+                SyncEvent::VaultStateChanged {
+                    launcher_id: id,
+                    state: VaultState::Active,
                 },
                 Some(json!({ "type": "coin_state" })),
             ),

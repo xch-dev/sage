@@ -195,26 +195,8 @@ impl TestWallet {
             None,
         ));
 
-        let (mut sync_manager, sender, events) = SyncManager::new(
-            options,
-            state.clone(),
-            Some(wallet.clone()),
-            TESTNET11.clone(),
-            Connector::Plain,
-        );
-
         let mempool = Arc::new(FakeMempool::default());
-        sync_manager.set_mempool_source(Some(mempool.clone()));
-
-        let (peer, receiver) = sim.connect_raw().await?;
-
-        assert!(
-            sync_manager
-                .try_add_peer(peer.clone(), receiver, true, false)
-                .await
-        );
-
-        tokio::spawn(sync_manager.sync());
+        let (peer, sender, events) = start_sync(&sim, &wallet, &state, options, &mempool).await?;
 
         let mut test = TestWallet {
             sim,
@@ -241,6 +223,38 @@ impl TestWallet {
         );
 
         Ok(test)
+    }
+
+    /// Stops syncing the wallet, as if it were closed. Its database is kept.
+    pub async fn stop_sync(&mut self) -> anyhow::Result<()> {
+        self.sender
+            .send(SyncCommand::SwitchWallet {
+                wallet: None,
+                delta_sync: self.options.delta_sync,
+            })
+            .await?;
+
+        self.consume_until(|event| matches!(event, SyncEvent::WalletChanged { fingerprint: None }))
+            .await;
+
+        Ok(())
+    }
+
+    /// Starts syncing the wallet again with its existing database, as if it were reopened.
+    pub async fn restart_sync(&mut self) -> anyhow::Result<()> {
+        let state = Arc::new(Mutex::new(PeerState::default()));
+        let (peer, sender, events) =
+            start_sync(&self.sim, &self.wallet, &state, self.options, &self.mempool).await?;
+
+        self.peer = peer;
+        self.sender = sender;
+        self.events = events;
+        self.state = state;
+
+        self.consume_until(|event| matches!(event, SyncEvent::Subscribed))
+            .await;
+
+        Ok(())
     }
 
     pub async fn resync(&mut self) -> anyhow::Result<()> {
@@ -332,6 +346,37 @@ impl TestWallet {
         sim.create_block();
         Ok(timestamp)
     }
+}
+
+/// Starts a sync manager for the wallet, connected only to the simulator.
+async fn start_sync(
+    sim: &PeerSimulator,
+    wallet: &Arc<Wallet>,
+    state: &Arc<Mutex<PeerState>>,
+    options: SyncOptions,
+    mempool: &Arc<FakeMempool>,
+) -> anyhow::Result<(Peer, Sender<SyncCommand>, Receiver<SyncEvent>)> {
+    let (mut sync_manager, sender, events) = SyncManager::new(
+        options,
+        state.clone(),
+        Some(wallet.clone()),
+        TESTNET11.clone(),
+        Connector::Plain,
+    );
+
+    sync_manager.set_mempool_source(Some(mempool.clone()));
+
+    let (peer, receiver) = sim.connect_raw().await?;
+
+    assert!(
+        sync_manager
+            .try_add_peer(peer.clone(), receiver, true, false)
+            .await
+    );
+
+    tokio::spawn(sync_manager.sync());
+
+    Ok((peer, sender, events))
 }
 
 pub fn default_test_options() -> SyncOptions {
