@@ -104,7 +104,17 @@ Then run the quick checks for what you touched (`cargo test -p <crate>`, `pnpm e
 ## 5. When to stop
 
 - **Clean**: a round with no confirmed findings at major or above. Stop there; never start a round just for minor findings or nits.
-- **Out of rounds**: stop after round 3 even if findings remain, and list them in the report. If round 3's fixes were more than trivial, first run one more round with only the correctness reviewer, to check the fixes; fix what it confirms and report it, without another round. A change that still has major findings after three rounds usually has a design problem that another round won't fix, and the user should look.
+- **No progress**: the rounds are going in circles. Stop after fixing a round's findings if any of these holds:
+
+  - a confirmed finding is the same defect, in the same code, as one that an earlier round fixed. A different bug in the same area doesn't count;
+  - for two rounds in a row, every confirmed major-or-above finding is in code that the previous round's fixes wrote;
+  - from round 4 on, the count of confirmed major-or-above findings went up in each of the last two rounds (for example 1, 2, 3). A count that holds steady doesn't count: rounds that each find and fix different real issues are making progress.
+
+  Say in the report which signal held. A loop that circles usually has a design problem that another round won't fix, and the user should look.
+
+- **Out of rounds**: stop after round 10 (or the limit the user gave) even if findings remain, and list them in the report.
+
+Before stopping for no progress or out of rounds, if the last round's fixes were more than trivial, run one more round with only the correctness reviewer, to check the fixes; fix what it confirms and report it, without another round.
 
 Whatever the stop, still run the final checks and open or update the PR, so the user has the work in hand.
 
@@ -164,7 +174,7 @@ pnpm test:unit
 
 - Round 1: <n> findings, <n> confirmed. Caught: <the substantive ones, one line each>
 - Round 2: ...
-- Stopped because: <clean / out of rounds>
+- Stopped because: <clean / no progress (which signal) / out of rounds>
 
 ### Rejected findings
 
@@ -173,7 +183,7 @@ pnpm test:unit
 ### Left for you
 
 - <each provisional decision: what you picked and why, the alternatives, and what switching would take>
-- <confirmed findings left unfixed, if the loop ran out of rounds>
+- <confirmed findings left unfixed, if the loop stopped for no progress or ran out of rounds>
 
 ### Checks
 
