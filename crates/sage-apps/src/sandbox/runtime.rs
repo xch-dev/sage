@@ -8,7 +8,10 @@ use crate::{
     AppsHostState, close_runtime_internal, find_webview_in_sage_window, start_sandbox_test,
 };
 
-const TEST_WEBVIEW_CLOSE_TIMEOUT: Duration = Duration::from_secs(2);
+//  The release gives a test webview 2 s to close. WebView2 on a loaded Windows machine
+// (and WebKitGTK at wallet login) can take longer, and a slow close FAILED the capability
+// that had just passed — the probe waits (PROBE_TIMEOUT_MS) were raised, this one was not.
+const TEST_WEBVIEW_CLOSE_TIMEOUT: Duration = Duration::from_secs(10);
 const TEST_WEBVIEW_CLOSE_POLL_INTERVAL: Duration = Duration::from_millis(10);
 
 pub(crate) async fn stop_test_apps(

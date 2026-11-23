@@ -384,6 +384,7 @@ fn build_persistent_storage_target(
 #[cfg(target_os = "windows")]
 fn build_windows_storage_target(
     builder: WebviewBuilder<Wry>,
+    app_handle: &AppHandle,
     app: &SharedSageApp,
     webview_root: &Path,
 ) -> WebviewBuilder<Wry> {

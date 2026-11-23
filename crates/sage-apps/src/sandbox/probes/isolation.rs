@@ -150,7 +150,12 @@ async fn seed_host_isolation_probe(app: &AppHandle, run_id: &str) -> Result<(), 
         return Err(format!("failed to seed host isolation probe data: {err}"));
     }
 
-    let payload = match timeout(Duration::from_secs(5), receiver).await {
+    let payload = match timeout(
+        Duration::from_millis(super::PROBE_TIMEOUT_MS as u64),
+        receiver,
+    )
+    .await
+    {
         Ok(Ok(payload)) => payload,
         Ok(Err(_)) => {
             return Err("host isolation seed acknowledgement channel closed".into());
@@ -209,7 +214,7 @@ pub(in crate::sandbox) async fn run_isolation_test(
         )
         .await?;
 
-        poll_isolation(apps_state, &run_id, 2, 2_000).await
+        poll_isolation(apps_state, &run_id, 2, super::PROBE_TIMEOUT_MS).await
     }
     .await;
 

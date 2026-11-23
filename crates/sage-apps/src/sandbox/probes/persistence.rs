@@ -32,7 +32,7 @@ pub(in crate::sandbox) async fn run_persistence_test(
         )
         .await?;
 
-        poll_persistence_write(apps_state, &run_id, 2, 2_000).await
+        poll_persistence_write(apps_state, &run_id, 2, super::PROBE_TIMEOUT_MS).await
     }
     .await;
 
@@ -132,7 +132,7 @@ pub(in crate::sandbox) async fn run_persistence_test(
         )
         .await?;
 
-        poll_persistence_read(apps_state, &run_id, 2, 2_000).await
+        poll_persistence_read(apps_state, &run_id, 2, super::PROBE_TIMEOUT_MS).await
     }
     .await;
 

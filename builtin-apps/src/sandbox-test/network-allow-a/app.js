@@ -22,9 +22,12 @@ const log = (...args) => window.__SAGE_TEST__?.log?.(...args);
   const allowedUrl = 'https://example.com/';
   const blockedUrl = 'https://example.org/';
 
-  async function tryFetch(url) {
+  //  the ALLOWED fetch gets 12 s (a cold WebView2 behind a slow resolver
+  // missed 5 s at login and failed the capability for the session); the BLOCKED one keeps 5 s
+  // — it is refused at once by the sandbox, and a timeout there still counts as blocked.
+  async function tryFetch(url, ms = 5000) {
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 5000);
+    const timeout = window.setTimeout(() => controller.abort(), ms);
 
     try {
       await fetch(url, {
@@ -47,7 +50,7 @@ const log = (...args) => window.__SAGE_TEST__?.log?.(...args);
   let error = null;
 
   try {
-    allowedOk = await tryFetch(allowedUrl);
+    allowedOk = await tryFetch(allowedUrl, 12000);
     log('allowedOk', allowedUrl, allowedOk);
 
     blockedOk = await tryFetch(blockedUrl);
