@@ -155,6 +155,20 @@ export function CreateOfferApprovalCard({ approval, appName }: Props) {
           label='Fee'
           value={`${parseMojos(summary.fee)?.xch ?? summary.fee} XCH`}
         />
+        {summary.preSplitFee !== null ? (
+          <>
+            <ApprovalDetailRow
+              label='Split fee'
+              value={`${parseMojos(summary.preSplitFee)?.xch ?? summary.preSplitFee} XCH, if needed`}
+            />
+            <div className='text-xs text-muted-foreground'>
+              Your coins are first split into the exact amounts offered, in a
+              separate transaction, so the rest of your balance stays spendable.
+              The split fee is only paid if your coins don&apos;t already match.
+              The offer can&apos;t be taken until the split is confirmed.
+            </div>
+          </>
+        ) : null}
         <ApprovalDetailRow
           label='Expires'
           value={

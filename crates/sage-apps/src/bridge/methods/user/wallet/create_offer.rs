@@ -83,6 +83,13 @@ pub struct WalletCreateOfferParams {
     pub request_assets: Vec<WalletCreateOfferAsset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fee: Option<WalletCreateOfferAmount>,
+    /// The fee, in mojos, for first splitting the offered XCH and CAT coins into coins of the
+    /// exact amounts offered, so the offer doesn't lock up the rest of the balance. Omit it to
+    /// offer the coins as they are. The split is only made, and its fee only paid, if the coins
+    /// don't already match. A split offer can't be taken until the split is confirmed: see
+    /// `splitTransactionId` in the result.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_split_fee: Option<WalletCreateOfferAmount>,
     /// Unix time in seconds. It must be in the future; omit it for an offer that
     /// never expires.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -94,6 +101,9 @@ pub struct WalletCreateOfferParams {
 pub struct WalletCreateOfferResult {
     pub offer: String,
     pub id: String,
+    /// The transaction that splits the offered coins, if one was made. The offer can't be taken
+    /// until it's confirmed, which is when it leaves `wallet.getPendingTransactions`.
+    pub split_transaction_id: Option<String>,
 }
 
 impl From<MakeOfferResponse> for WalletCreateOfferResult {
@@ -101,6 +111,7 @@ impl From<MakeOfferResponse> for WalletCreateOfferResult {
         Self {
             offer: response.offer,
             id: response.offer_id,
+            split_transaction_id: response.pre_split_transaction_id,
         }
     }
 }
@@ -152,6 +163,8 @@ pub struct WalletCreateOfferApprovalSummary {
     pub offered: Vec<WalletCreateOfferApprovalAsset>,
     pub requested: Vec<WalletCreateOfferApprovalAsset>,
     pub fee: String,
+    /// The fee for splitting the offered coins first, in mojos, if the offer splits them.
+    pub pre_split_fee: Option<String>,
     pub expires_at_second: Option<u64>,
 }
 
@@ -167,6 +180,7 @@ struct ValidatedOffer {
     offered: Vec<ValidatedLeg>,
     requested: Vec<ValidatedLeg>,
     fee: u64,
+    pre_split_fee: Option<u64>,
     expires_at_second: Option<u64>,
 }
 
@@ -296,6 +310,11 @@ fn validate_params(
             .map(WalletCreateOfferAmount::mojos)
             .transpose()?
             .unwrap_or(0),
+        pre_split_fee: params
+            .pre_split_fee
+            .as_ref()
+            .map(WalletCreateOfferAmount::mojos)
+            .transpose()?,
         expires_at_second: params.expires_at_second,
     };
 
@@ -338,8 +357,8 @@ impl ValidatedOffer {
             auto_import: true,
             coin_ids: None,
             confirmed_handles: Vec::new(),
-            // No split transaction: its fee isn't part of what the user approves.
-            pre_split_fee: None,
+            // A fixed fee, so the approval shows exactly what the split may cost.
+            pre_split_fee: self.pre_split_fee.map(Amount::Number),
             pre_split_fee_per_cost: None,
         }
     }
@@ -600,6 +619,7 @@ impl BridgeMethod for WalletCreateOffer {
                     offered,
                     requested,
                     fee: offer.fee.to_string(),
+                    pre_split_fee: offer.pre_split_fee.map(|fee| fee.to_string()),
                     expires_at_second: offer.expires_at_second,
                 },
             },
@@ -726,6 +746,71 @@ mod tests {
             request.requested_assets[0].amount,
             Amount::Number(250)
         ));
+    }
+
+    #[test]
+    fn pre_split_fee_is_a_fixed_fee() {
+        let request = validate(json!({
+            "offerAssets": [{ "amount": 1000 }],
+            "requestAssets": [],
+            "preSplitFee": "25"
+        }))
+        .expect("valid params")
+        .to_request();
+        assert!(matches!(request.pre_split_fee, Some(Amount::Number(25))));
+        assert!(request.pre_split_fee_per_cost.is_none());
+
+        // A free split is allowed, as in Sage's own offer page.
+        let request = validate(json!({
+            "offerAssets": [{ "amount": 1000 }],
+            "requestAssets": [],
+            "preSplitFee": 0
+        }))
+        .expect("valid params")
+        .to_request();
+        assert!(matches!(request.pre_split_fee, Some(Amount::Number(0))));
+
+        let request = validate(json!({
+            "offerAssets": [{ "amount": 1000 }],
+            "requestAssets": []
+        }))
+        .expect("valid params")
+        .to_request();
+        assert!(request.pre_split_fee.is_none());
+        assert!(request.pre_split_fee_per_cost.is_none());
+
+        for fee in [
+            json!("1.5"),
+            json!("-1"),
+            json!(""),
+            json!("18446744073709551616"),
+        ] {
+            let result = validate(json!({
+                "offerAssets": [{ "amount": 1000 }],
+                "requestAssets": [],
+                "preSplitFee": fee
+            }));
+            assert!(result.is_err(), "pre-split fee {fee} should be rejected");
+        }
+    }
+
+    #[test]
+    fn result_carries_the_split_transaction() {
+        let response = |pre_split_transaction_id: Option<&str>| MakeOfferResponse {
+            offer: "offer1".to_string(),
+            offer_id: "id".to_string(),
+            pre_split_transaction_id: pre_split_transaction_id.map(ToString::to_string),
+        };
+
+        let result = WalletCreateOfferResult::from(response(Some("split")));
+        assert_eq!(result.split_transaction_id.as_deref(), Some("split"));
+
+        let result = WalletCreateOfferResult::from(response(None));
+        assert_eq!(result.split_transaction_id, None);
+
+        let json = serde_json::to_value(WalletCreateOfferResult::from(response(Some("split"))))
+            .expect("serializes");
+        assert_eq!(json["splitTransactionId"], "split");
     }
 
     #[test]
@@ -1159,6 +1244,7 @@ mod tests {
                 .collect(),
             requested: Vec::new(),
             fee: "0".to_string(),
+            pre_split_fee: None,
             expires_at_second: None,
         };
 
@@ -1192,6 +1278,7 @@ mod tests {
             offered: vec![nft],
             requested: Vec::new(),
             fee: "0".to_string(),
+            pre_split_fee: None,
             expires_at_second: None,
         };
         assert!(approved_royalties(&summary).is_err());

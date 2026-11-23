@@ -42,11 +42,12 @@ use sage_api::{
     Action as ApiAction, AddNftUri, Amount, BulkMintNfts, CancelOffer, CoinFilterMode, CoinJson,
     CoinSortMode, CoinSpendJson, CreateDid, CreateTransaction, GetAreCoinsSpendable, GetCats,
     GetCoins, GetCoinsByIds, GetDids, GetHandle, GetHandles, GetNft, GetNftMetadataUpdater,
-    GetNftThumbnail, GetOffer, GetOffers, GetPeers, GetSyncStatus, GetVersion, GetWallet,
-    HandleFilterMode, HandleStatus, HandleVerification, Id as ApiId, ImportOffer, ImportWallet,
-    IssueCat, Login, LookupAddressHandles, MakeOffer, NewNftUri, NftUpdaterKind, NftUriKind,
-    OfferAmount, OfferAsset, OfferRecordStatus, ResolveHandle, SendXch, SignCoinSpends, TakeOffer,
-    UpdateNftAction, ViewCoinSpends, ViewOffer, wallet_connect::FilterUnlockedCoins,
+    GetNftThumbnail, GetOffer, GetOffers, GetPeers, GetPendingTransactions, GetSyncStatus,
+    GetVersion, GetWallet, HandleFilterMode, HandleStatus, HandleVerification, Id as ApiId,
+    ImportOffer, ImportWallet, IssueCat, Login, LookupAddressHandles, MakeOffer, NewNftUri,
+    NftUpdaterKind, NftUriKind, OfferAmount, OfferAsset, OfferRecordStatus, ResolveHandle, SendXch,
+    SignCoinSpends, TakeOffer, UpdateNftAction, ViewCoinSpends, ViewOffer,
+    wallet_connect::FilterUnlockedCoins,
 };
 use sage_api_macro::impl_endpoints;
 use sage_database::{OfferStatus, ResizedImageKind, XchandleRow, XchandleStatus};
@@ -1859,6 +1860,17 @@ async fn test_mutable_nft() -> Result<()> {
 /// offer is only made with the royalties it was approved with.
 #[tokio::test]
 async fn test_make_offer_royalties_match_the_offer() -> Result<()> {
+    check_make_offer_royalties(None).await
+}
+
+/// As [`test_make_offer_royalties_match_the_offer`], for an offer which splits its coins first.
+#[tokio::test]
+async fn test_make_offer_royalties_match_the_pre_split_offer() -> Result<()> {
+    check_make_offer_royalties(Some(Amount::u64(0))).await
+}
+
+async fn check_make_offer_royalties(pre_split_fee: Option<Amount>) -> Result<()> {
+    let pre_split = pre_split_fee.is_some();
     let mut app = TestApp::new().await?;
 
     let alice = app.setup_bls(1000).await?;
@@ -1949,7 +1961,7 @@ async fn test_make_offer_royalties_match_the_offer() -> Result<()> {
         // As the Sage Apps bridge makes offers.
         auto_import: true,
         coin_ids: None,
-        pre_split_fee: None,
+        pre_split_fee,
         pre_split_fee_per_cost: None,
     };
 
@@ -1975,14 +1987,20 @@ async fn test_make_offer_royalties_match_the_offer() -> Result<()> {
     assert!(matches!(refused, Err(sage::Error::OfferRoyaltiesChanged)));
     let saved = app.sage.read().await.wallet()?.db.offers(None).await?;
     assert!(saved.is_empty(), "a refused offer must not be saved");
+    let pending = app
+        .get_pending_transactions(GetPendingTransactions {})
+        .await?
+        .transactions;
+    assert!(pending.is_empty(), "a refused offer must not split coins");
 
-    let offer = app
+    let response = app
         .sage
         .read()
         .await
         .make_offer_with_royalties(request, &royalties)
-        .await?
-        .offer;
+        .await?;
+    assert_eq!(response.pre_split_transaction_id.is_some(), pre_split);
+    let offer = response.offer;
 
     let summary = app.view_offer(ViewOffer { offer }).await?.offer;
     let royalty = |asset_id: Option<&str>| {
