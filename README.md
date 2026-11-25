@@ -29,6 +29,10 @@ On Linux (x64), install a downloaded Flatpak with
 `flatpak install --user ./Sage_VERSION_x64.flatpak`, replacing `VERSION` with the release version. See the
 [Flatpak packaging guide](src-tauri/flatpak/README.md) for building and updating.
 
+On Arch Linux (x86_64), install a downloaded package with
+`sudo pacman -U ./sage-wallet-*.pkg.tar.zst`. See the
+[Arch packaging guide](src-tauri/arch/README.md) to build a package from source.
+
 If you want to build from source, see the [Development](#development) section for instructions.
 
 ## Contributing
@@ -108,6 +112,10 @@ And build the application with:
 ```bash
 pnpm tauri:build
 ```
+
+On Arch Linux, build a pacman package of the current working tree with
+`pnpm package:arch`. See the [Arch packaging guide](src-tauri/arch/README.md) for
+prerequisites and package checks.
 
 You can also run the app in the iOS or Android simulator, though it may take some prior setup:
 

@@ -481,7 +481,35 @@ fn create_main_window(
         let _ = data_store_identifier;
     }
 
-    builder.build()?;
+    let window = builder.build()?;
+
+    #[cfg(target_os = "linux")]
+    {
+        use gtk::{gdk::Display, prelude::*};
+        use tauri::LogicalSize;
+
+        if Display::default().is_some_and(|display| display.backend().is_wayland()) {
+            // Wayland resize events include the title bar. Keep the main
+            // webview within GTK's content area so bottom controls stay visible.
+            let webview = window.as_ref().clone();
+            let content = window.default_vbox()?;
+            webview.set_auto_resize(false)?;
+            webview.set_size(LogicalSize::new(
+                content.allocated_width(),
+                content.allocated_height(),
+            ))?;
+            content.connect_size_allocate(move |_, allocation| {
+                if let Err(err) =
+                    webview.set_size(LogicalSize::new(allocation.width(), allocation.height()))
+                {
+                    tracing::error!("failed to resize main webview: {err}");
+                }
+            });
+        }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    let _ = window;
 
     Ok(())
 }

@@ -7113,6 +7113,7 @@ dependencies = [
  "anyhow",
  "aws-lc-rs",
  "glob",
+ "gtk",
  "reqwest 0.12.24",
  "rustls",
  "sage",
