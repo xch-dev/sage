@@ -11,9 +11,10 @@ sudo pacman -U "$(makepkg --packagelist)"
 `makepkg -si` builds and installs in one step. The recipe requires the complete
 Sage checkout and builds its current working tree, including uncommitted changes.
 To build a release, check out its tag first. The version comes from
-`src-tauri/tauri.conf.json`; makepkg updates `pkgver` and resets `pkgrel` to `1`
-when the app version changes. Alphabetic prerelease labels such as `-rc.1` become
-`rc.1` so Arch orders them before the final release.
+`src-tauri/tauri.conf.json`. When bumping the app version, commit the `pkgver`
+and `pkgrel=1` that makepkg writes so package queries work before the first build.
+Alphabetic prerelease labels such as `-rc.1` become `rc.1` so Arch orders them
+before the final release.
 
 From the repository root, after `pnpm install`, the equivalent command is:
 
@@ -31,6 +32,8 @@ The recipe uses the existing Tauri build and its `beforeBuildCommand` to build
 the frontend and built-in apps. Rustup and pnpm select the versions pinned in
 `rust-toolchain.toml` and `package.json`. Preparation downloads dependencies;
 Cargo and pnpm use their normal caches, and Rust output stays in `target/`.
+`makepkg` stages under `target/arch/` by default. If you set `BUILDDIR`, choose a
+directory outside `src-tauri/` so Cargo can scan the crate.
 GCC from `base-devel` is the supported C compiler.
 
 Arch is an entry in the existing CI build matrix, using an Arch container and

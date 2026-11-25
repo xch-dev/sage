@@ -1,6 +1,6 @@
 pkgname=sage-wallet
-pkgver=0.13.0
-pkgrel=4
+pkgver=0.13.1
+pkgrel=1
 pkgdesc='A light wallet for the Chia blockchain'
 arch=('x86_64')
 url='https://github.com/xch-dev/sage'
@@ -17,11 +17,16 @@ depends=(
   'webkit2gtk-4.1'
   'xdg-utils'
 )
-makedepends=('rustup' 'clang' 'cmake' 'git' 'nodejs>=22.12.0' 'pnpm')
+makedepends=('rustup' 'clang' 'cmake' 'git' 'nodejs>=24.15.0' 'pnpm')
 checkdepends=('desktop-file-utils')
 options=('!debug' '!lto')
 
 _repo_dir=$(realpath "$(dirname "${BASH_SOURCE[0]}")/../..")
+
+# Cargo scans src-tauri in a Git checkout and cannot read makepkg's protected pkg/ directory.
+if [[ $BUILDDIR -ef $startdir ]]; then
+  BUILDDIR="$_repo_dir/target/arch"
+fi
 
 pkgver() {
   cd "$_repo_dir"

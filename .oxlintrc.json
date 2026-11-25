@@ -7,13 +7,7 @@
   "env": {
     "builtin": true
   },
-  "ignorePatterns": [
-    "target/**/*",
-    "dist/**/*",
-    "src/bindings.ts",
-    "src-tauri/arch/src/**/*",
-    "src-tauri/arch/pkg/**/*"
-  ],
+  "ignorePatterns": ["target/**/*", "dist/**/*", "src/bindings.ts"],
   "overrides": [
     {
       "files": ["src/**/*.ts", "src/**/*.tsx"],
