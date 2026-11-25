@@ -1,5 +1,7 @@
 use std::{
+    collections::HashSet,
     fs,
+    io::Write,
     path::{Path, PathBuf},
     str::FromStr,
     sync::{Arc, Once},
@@ -9,29 +11,38 @@ use std::{
 use chia_wallet_sdk::{
     chia::bls::master_to_wallet_unhardened_intermediate,
     client::{Connector, create_rustls_connector, load_ssl_cert},
+    coinset::CoinsetClient,
     prelude::*,
 };
 use indexmap::IndexMap;
 use sage_api::{Unit, XCH};
 use sage_config::{
-    Config, Network, NetworkList, OldConfig, OldNetwork, WalletConfig, migrate_config,
-    migrate_networks,
+    Config, Network, NetworkList, OldConfig, OldNetwork, WALLET_CONFIG_VERSION,
+    Wallet as WalletEntry, WalletConfig, WalletKind as ConfigWalletKind, is_old_config,
+    migrate_config, migrate_networks,
 };
-use sage_database::Database;
+use sage_database::{Database, SharedDatabase};
 use sage_keychain::Keychain;
-use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
+use sage_wallet::{
+    PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet, WalletError,
+    WalletKind,
+};
+use serde::de::DeserializeOwned;
 use sqlx::{
     ConnectOptions, SqlitePool,
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
-use tokio::sync::{Mutex, mpsc};
+use tokio::{
+    sync::{Mutex, mpsc},
+    task::JoinHandle,
+};
 use tracing::{Level, error, info, warn};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{
     EnvFilter, Layer, Registry, filter::filter_fn, fmt, layer::SubscriberExt,
 };
 
-use crate::{Error, Result, peers::Peers};
+use crate::{DataDirLock, Error, PendingHandleSends, Result, peers::Peers};
 
 static LOGGING_SETUP: Once = Once::new();
 
@@ -47,6 +58,17 @@ pub struct Sage {
     pub command_sender: mpsc::Sender<SyncCommand>,
     pub unit: Unit,
     pub test: bool,
+    /// Shared between requests so that connections are reused.
+    pub http_client: reqwest::Client,
+    /// The handle recipients of transactions which haven't been submitted yet.
+    pub pending_handle_sends: Arc<std::sync::Mutex<PendingHandleSends>>,
+    /// Where fee estimates are fetched from in place of the network's Coinset API, such as the
+    /// sandbox's stand-in for it. It's used in tests too, which otherwise never fetch them.
+    pub fee_estimator: Option<CoinsetClient>,
+    /// Whether the config and keychain can be saved. This is only the case once initialization
+    /// has started, and stops if it fails, since the state in memory may then be incomplete.
+    writable: bool,
+    data_dir_lock: Option<DataDirLock>,
 }
 
 impl Sage {
@@ -62,18 +84,50 @@ impl Sage {
             command_sender: mpsc::channel(1).0,
             unit: XCH.clone(),
             test,
+            http_client: reqwest::Client::new(),
+            pending_handle_sends: Arc::default(),
+            fee_estimator: None,
+            writable: false,
+            data_dir_lock: None,
         }
     }
 
     pub async fn initialize(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
+        self.writable = true;
+
+        let result = self.try_initialize().await;
+
+        if let Err(error) = &result {
+            error!("Failed to initialize Sage: {error}");
+            self.writable = false;
+        }
+
+        result
+    }
+
+    async fn try_initialize(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
         fs::create_dir_all(&self.path)?;
+
+        // This must happen before anything is read, so that the state can't be stale.
+        self.data_dir_lock = Some(DataDirLock::acquire(&self.path)?);
 
         self.setup_keys()?;
         self.setup_config()?;
         self.setup_logging()?;
 
-        let receiver = self.setup_sync_manager()?;
-        self.setup_peers().await?;
+        if let Some(DataDirLock::Unsupported(error)) = &self.data_dir_lock {
+            warn!("File locking is not supported for the data directory: {error}");
+        }
+        self.migrate_wallet_config()?;
+
+        let (receiver, sync_task) = self.setup_sync_manager()?;
+
+        // Don't leave the sync manager running if initialization fails.
+        if let Err(error) = self.setup_peers().await {
+            sync_task.abort();
+            self.command_sender = mpsc::channel(1).0;
+            return Err(error);
+        }
 
         info!("Sage wallet initialized");
 
@@ -142,10 +196,40 @@ impl Sage {
             let data = fs::read(&key_path)?;
             self.keychain = Keychain::from_bytes(&data)?;
         } else {
-            fs::write(&key_path, self.keychain.to_bytes()?)?;
+            write_atomic(&key_path, self.keychain.to_bytes()?)?;
         }
 
         Ok(())
+    }
+
+    /// Upgrades `wallets.toml` to the current version.
+    fn migrate_wallet_config(&mut self) -> Result<()> {
+        if self.wallet_config.version >= WALLET_CONFIG_VERSION {
+            return Ok(());
+        }
+
+        // Before version 1, every key in the keychain was a wallet, so keys without an entry
+        // would otherwise be inaccessible. This only happens once, since the keychain can now
+        // hold keys that aren't wallets.
+        let mut missing: Vec<u32> = self
+            .keychain
+            .fingerprints()
+            .filter(|&fingerprint| self.wallet_entry(fingerprint).is_none())
+            .collect();
+
+        missing.sort_unstable();
+
+        for fingerprint in missing {
+            warn!("Recovering wallet {fingerprint}, which is in the keychain but not the config");
+
+            self.wallet_config.wallets.push(WalletEntry {
+                fingerprint,
+                ..Default::default()
+            });
+        }
+
+        self.wallet_config.version = WALLET_CONFIG_VERSION;
+        self.save_config()
     }
 
     fn setup_config(&mut self) -> Result<()> {
@@ -156,26 +240,25 @@ impl Sage {
         if config_path.try_exists()? {
             let config_text = fs::read_to_string(&config_path)?;
 
-            if let Some(old_config) = toml::from_str::<OldConfig>(&config_text)
-                .ok()
-                .filter(OldConfig::is_old)
-            {
+            if is_old_config(&config_text) {
+                let old_config: OldConfig = parse_config_file(&config_path, &config_text)?;
                 let (config, wallet_config) = migrate_config(old_config)?;
                 self.config = config;
-                self.wallet_config = wallet_config;
-                fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
-                fs::write(
-                    &wallet_config_path,
-                    toml::to_string_pretty(&self.wallet_config)?,
-                )?;
+                write_atomic(&config_path, toml::to_string_pretty(&self.config)?)?;
+                write_atomic(&wallet_config_path, toml::to_string_pretty(&wallet_config)?)?;
             } else {
-                self.config = toml::from_str(&config_text)?;
-                let wallet_config_text = fs::read_to_string(&wallet_config_path)?;
-                self.wallet_config = toml::from_str(&wallet_config_text)?;
+                self.config = parse_config_file(&config_path, &config_text)?;
             }
         } else {
-            fs::write(&config_path, toml::to_string_pretty(&self.config)?)?;
-            fs::write(
+            write_atomic(&config_path, toml::to_string_pretty(&self.config)?)?;
+        }
+
+        // This is loaded separately, so that a missing main config doesn't overwrite the wallets.
+        if wallet_config_path.try_exists()? {
+            let wallet_config_text = fs::read_to_string(&wallet_config_path)?;
+            self.wallet_config = parse_config_file(&wallet_config_path, &wallet_config_text)?;
+        } else {
+            write_atomic(
                 &wallet_config_path,
                 toml::to_string_pretty(&self.wallet_config)?,
             )?;
@@ -184,17 +267,21 @@ impl Sage {
         if network_list_path.try_exists()? {
             let text = fs::read_to_string(&network_list_path)?;
 
-            if let Ok(old_network_list) = toml::from_str::<IndexMap<String, OldNetwork>>(&text) {
+            // An empty file isn't an old network list, since migrating it would remove every network.
+            if let Some(old_network_list) = toml::from_str::<IndexMap<String, OldNetwork>>(&text)
+                .ok()
+                .filter(|networks| !networks.is_empty())
+            {
                 self.network_list = migrate_networks(old_network_list);
-                fs::write(
+                write_atomic(
                     &network_list_path,
                     toml::to_string_pretty(&self.network_list)?,
                 )?;
             } else {
-                self.network_list = toml::from_str(&text)?;
+                self.network_list = parse_config_file(&network_list_path, &text)?;
             }
         } else {
-            fs::write(
+            write_atomic(
                 &network_list_path,
                 toml::to_string_pretty(&self.network_list)?,
             )?;
@@ -223,13 +310,14 @@ impl Sage {
         Ok(create_rustls_connector(&cert)?)
     }
 
-    fn setup_sync_manager(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
+    fn setup_sync_manager(&mut self) -> Result<(mpsc::Receiver<SyncEvent>, JoinHandle<()>)> {
         let connector = self.setup_ssl()?;
 
         let (sync_manager, command_sender, receiver) = SyncManager::new(
             SyncOptions {
                 target_peers: self.config.network.target_peers.try_into()?,
                 discover_peers: self.config.network.discover_peers,
+                mempool_discovery: self.config.network.mempool_discovery,
                 max_peer_age_seconds: 3600 * 8,
                 dns_batch_size: 10,
                 connection_batch_size: 30,
@@ -260,15 +348,15 @@ impl Sage {
             connector,
         );
 
-        tokio::spawn(sync_manager.sync());
+        let sync_task = tokio::spawn(sync_manager.sync());
         self.command_sender = command_sender;
 
-        Ok(receiver)
+        Ok((receiver, sync_task))
     }
 
     pub async fn switch_network(&mut self) -> Result<()> {
         self.command_sender
-            .send(SyncCommand::SwitchNetwork(self.network().clone()))
+            .send(SyncCommand::SwitchNetwork(Box::new(self.network().clone())))
             .await?;
 
         Ok(())
@@ -276,6 +364,11 @@ impl Sage {
 
     pub async fn switch_wallet(&mut self) -> Result<()> {
         self.switch_network().await?;
+
+        self.pending_handle_sends
+            .lock()
+            .expect("pending handle sends lock poisoned")
+            .clear();
 
         let Some(fingerprint) = self.config.global.fingerprint else {
             self.wallet = None;
@@ -290,11 +383,7 @@ impl Sage {
             return Ok(());
         };
 
-        let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
-            return Err(Error::UnknownFingerprint);
-        };
-
-        let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
+        let kind = self.wallet_kind(fingerprint)?;
 
         let pool = self.connect_to_database(fingerprint).await?;
         let db = Database::new(pool);
@@ -302,12 +391,21 @@ impl Sage {
         db.run_rust_migrations(self.network().ticker.clone())
             .await?;
 
+        // `wallets.toml` defines what a watch wallet watches, so the database follows it before
+        // syncing. Sync subscribes to every watched puzzle hash in the database.
+        if let Some(p2_puzzle_hashes) = self.watched_p2_puzzle_hashes(fingerprint) {
+            watch_p2_puzzles(&db, p2_puzzle_hashes).await?;
+        }
+
+        let shared_db = self.connect_to_shared_database(fingerprint).await?;
+
         let wallet_config = self.wallet_config().cloned().unwrap_or_default();
 
         let wallet = Arc::new(Wallet::new(
             db.clone(),
+            shared_db,
             fingerprint,
-            intermediate_pk,
+            kind,
             self.network().genesis_challenge,
             AggSigConstants::new(self.network().agg_sig_me()),
             wallet_config
@@ -317,6 +415,8 @@ impl Sage {
                 .transpose()?
                 .map(|address| address.puzzle_hash),
         ));
+
+        wallet.set_transaction_expiration(self.wallet_config.defaults.transaction_expiration());
 
         self.wallet = Some(wallet.clone());
         self.unit = Unit {
@@ -459,11 +559,56 @@ impl Sage {
         Ok(pool)
     }
 
+    /// Connects to the database shared by every wallet on the network of the given wallet.
+    pub async fn connect_to_shared_database(&self, fingerprint: u32) -> Result<SharedDatabase> {
+        let path = self.shared_db_path(fingerprint)?;
+
+        // This is told apart from the wallet's own database failing to migrate, since deleting that
+        // one wouldn't help.
+        match self.connect_to_pool(path).await {
+            Ok(pool) => Ok(SharedDatabase::new(pool)),
+            Err(Error::DatabaseVersionTooOld) => Err(Error::SharedDatabaseVersionTooOld),
+            Err(error) => Err(error),
+        }
+    }
+
+    /// The database shared by every wallet on the network of the given wallet, for the
+    /// address book and verified handle mappings. Each network has its own, since addresses
+    /// and handle registries differ between networks.
+    pub fn shared_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
+        let path = self.path.join("shared");
+        fs::create_dir_all(&path)?;
+
+        // Wallet databases are named after the network a wallet is switched to, which for a
+        // custom network can differ from its ID. Every wallet on a network must share one
+        // database, so this always uses the network's ID.
+        let network_id = match self
+            .wallet_config
+            .wallets
+            .iter()
+            .find(|wallet| wallet.fingerprint == fingerprint)
+            .and_then(|wallet| wallet.network.as_deref())
+        {
+            Some(name) => self
+                .network_list
+                .by_name(name)
+                .map_or_else(|| name.to_string(), Network::network_id),
+            None => self.network_id(),
+        };
+
+        Ok(path.join(format!("{network_id}.sqlite")))
+    }
+
     pub fn wallet_db_path(&self, fingerprint: u32) -> Result<PathBuf> {
         let path = self.path.join("wallets").join(fingerprint.to_string());
         fs::create_dir_all(&path)?;
-        let network_id = self
-            .wallet_config
+        let path = path.join(format!("{}.sqlite", self.wallet_network_id(fingerprint)));
+        Ok(path)
+    }
+
+    /// The network a wallet uses, which may differ from the default network.
+    fn wallet_network_id(&self, fingerprint: u32) -> String {
+        self.wallet_config
             .wallets
             .iter()
             .find_map(|wallet| {
@@ -473,18 +618,14 @@ impl Sage {
                     None
                 }
             })
-            .unwrap_or_else(|| self.network_id());
-        let path = path.join(format!("{network_id}.sqlite"));
-        Ok(path)
+            .unwrap_or_else(|| self.network_id())
     }
 
     pub fn wallet_config(&self) -> Option<&sage_config::Wallet> {
-        self.config.global.fingerprint.and_then(|fingerprint| {
-            self.wallet_config
-                .wallets
-                .iter()
-                .find(|w| w.fingerprint == fingerprint)
-        })
+        self.config
+            .global
+            .fingerprint
+            .and_then(|fingerprint| self.wallet_entry(fingerprint))
     }
 
     pub fn network(&self) -> &Network {
@@ -506,12 +647,107 @@ impl Sage {
         self.network().network_id()
     }
 
+    /// The entry in `wallets.toml`, which defines what kind of wallet this is.
+    pub fn wallet_entry(&self, fingerprint: u32) -> Option<&WalletEntry> {
+        self.wallet_config
+            .wallets
+            .iter()
+            .find(|wallet| wallet.fingerprint == fingerprint)
+    }
+
+    /// Whether `address` is an address on the current network.
+    pub fn is_valid_address(&self, address: &str) -> bool {
+        Address::decode(address).is_ok_and(|address| address.prefix == self.network().prefix())
+    }
+
+    /// Moves a wallet to `index` in the wallet list, or to the end if `index` is past it.
+    pub fn move_key(&mut self, fingerprint: u32, index: u32) -> Result<()> {
+        let old_index = self
+            .wallet_config
+            .wallets
+            .iter()
+            .position(|wallet| wallet.fingerprint == fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        let wallet = self.wallet_config.wallets.remove(old_index);
+        let index = (index as usize).min(self.wallet_config.wallets.len());
+        self.wallet_config.wallets.insert(index, wallet);
+        self.save_config()
+    }
+
+    /// Whether any wallet uses the key with this fingerprint. For now that's only the BLS
+    /// wallet with the same fingerprint, but other wallets will be able to use keys too, such as
+    /// vaults with signers.
+    pub fn is_key_used(&self, fingerprint: u32) -> bool {
+        self.wallet_config.wallets.iter().any(|wallet| {
+            matches!(wallet.kind, ConfigWalletKind::Bls) && wallet.fingerprint == fingerprint
+        })
+    }
+
+    /// Determines how the wallet with this fingerprint is opened.
+    pub fn wallet_kind(&self, fingerprint: u32) -> Result<WalletKind> {
+        let wallet = self
+            .wallet_entry(fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        Ok(match &wallet.kind {
+            ConfigWalletKind::Bls => {
+                let master_pk = self
+                    .keychain
+                    .extract_public_key(fingerprint)?
+                    .ok_or(Error::UnknownFingerprint)?;
+
+                WalletKind::Bls {
+                    intermediate_pk: master_to_wallet_unhardened_intermediate(&master_pk),
+                }
+            }
+            ConfigWalletKind::Watch { p2_puzzle_hashes } => {
+                if p2_puzzle_hashes.is_empty() {
+                    return Err(Error::NoWatchAddresses);
+                }
+
+                WalletKind::Watch
+            }
+        })
+    }
+
+    /// The p2 puzzle hashes that a watch wallet watches, in order. `None` for other kinds.
+    pub fn watched_p2_puzzle_hashes(&self, fingerprint: u32) -> Option<&[Bytes32]> {
+        match &self.wallet_entry(fingerprint)?.kind {
+            ConfigWalletKind::Watch { p2_puzzle_hashes } => Some(p2_puzzle_hashes),
+            ConfigWalletKind::Bls => None,
+        }
+    }
+
+    /// Whether the open wallet is a watch wallet, which can't create or sign transactions.
+    pub fn is_watch_only(&self) -> bool {
+        self.wallet
+            .as_ref()
+            .is_some_and(|wallet| matches!(wallet.kind, WalletKind::Watch))
+    }
+
+    /// The secret key that signs for the wallet. Watch wallets never have one, and cold BLS
+    /// wallets only have their public key.
+    pub(crate) fn master_secret_key(&self, wallet: &Wallet) -> Result<SecretKey> {
+        if matches!(wallet.kind, WalletKind::Watch) {
+            return Err(WalletError::WatchOnly.into());
+        }
+
+        let (_mnemonic, Some(master_sk)) =
+            self.keychain.extract_secrets(wallet.fingerprint, b"")?
+        else {
+            return Err(Error::NoSigningKey);
+        };
+
+        Ok(master_sk)
+    }
+
     pub fn wallet(&self) -> Result<Arc<Wallet>> {
         let Some(fingerprint) = self.config.global.fingerprint else {
             return Err(Error::NotLoggedIn);
         };
 
-        if !self.keychain.contains(fingerprint) {
+        if self.wallet_entry(fingerprint).is_none() {
             return Err(Error::UnknownFingerprint);
         }
 
@@ -524,18 +760,30 @@ impl Sage {
         Ok(wallet.clone())
     }
 
+    fn ensure_writable(&self) -> Result<()> {
+        if self.writable {
+            Ok(())
+        } else {
+            Err(Error::NotInitialized)
+        }
+    }
+
     pub fn save_config(&self) -> Result<()> {
+        self.ensure_writable()?;
+
         let config = toml::to_string_pretty(&self.config)?;
-        fs::write(self.path.join("config.toml"), config)?;
+        write_atomic(&self.path.join("config.toml"), config)?;
         let wallet_config = toml::to_string_pretty(&self.wallet_config)?;
-        fs::write(self.path.join("wallets.toml"), wallet_config)?;
+        write_atomic(&self.path.join("wallets.toml"), wallet_config)?;
         let network_list = toml::to_string_pretty(&self.network_list)?;
-        fs::write(self.path.join("networks.toml"), network_list)?;
+        write_atomic(&self.path.join("networks.toml"), network_list)?;
         Ok(())
     }
 
     pub fn save_keychain(&self) -> Result<()> {
-        fs::write(self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
+        self.ensure_writable()?;
+
+        write_atomic(&self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
         Ok(())
     }
 }
@@ -546,5 +794,462 @@ async fn update_query_planner_stats(pool: &SqlitePool) {
         warn!("Failed to update query planner stats: {error}");
     } else {
         info!("Updated database query planner statistics");
+    }
+}
+
+fn parse_config_file<T: DeserializeOwned>(path: &Path, text: &str) -> Result<T> {
+    toml::from_str(text).map_err(|error| Error::InvalidConfig {
+        path: path.display().to_string(),
+        error,
+    })
+}
+
+/// Writes to a temporary file in the same directory, then renames it over the destination, so
+/// that a crash or power loss can't leave the file truncated or empty.
+pub(crate) fn write_atomic(path: &Path, contents: impl AsRef<[u8]>) -> Result<()> {
+    let dir = path.parent().unwrap_or_else(|| Path::new("."));
+    let mut file = tempfile::NamedTempFile::new_in(dir)?;
+    file.write_all(contents.as_ref())?;
+    file.as_file().sync_all()?;
+    file.persist(path).map_err(|error| error.error)?;
+
+    // Sync the directory too, so that the rename itself survives a power loss. The file has
+    // already been replaced at this point, so a filesystem that doesn't support this is fine.
+    #[cfg(unix)]
+    if let Err(error) = fs::File::open(dir).and_then(|dir| dir.sync_all()) {
+        warn!("Failed to sync directory {}: {error}", dir.display());
+    }
+
+    Ok(())
+}
+
+/// Makes the database watch exactly these p2 puzzle hashes, and returns the ones it didn't watch
+/// yet. Coins synced for puzzle hashes that are no longer watched are deleted.
+pub(crate) async fn watch_p2_puzzles(
+    db: &Database,
+    p2_puzzle_hashes: &[Bytes32],
+) -> Result<Vec<Bytes32>> {
+    let existing: HashSet<Bytes32> = db.external_p2_puzzle_hashes().await?.into_iter().collect();
+    let watched: HashSet<Bytes32> = p2_puzzle_hashes.iter().copied().collect();
+
+    let mut tx = db.tx().await?;
+
+    for &p2_puzzle_hash in existing.difference(&watched) {
+        tx.delete_external_p2_puzzle(p2_puzzle_hash).await?;
+    }
+
+    let mut added = Vec::new();
+
+    for &p2_puzzle_hash in p2_puzzle_hashes {
+        if !existing.contains(&p2_puzzle_hash) && !added.contains(&p2_puzzle_hash) {
+            tx.insert_external_p2_puzzle(p2_puzzle_hash).await?;
+            added.push(p2_puzzle_hash);
+        }
+    }
+
+    tx.commit().await?;
+
+    Ok(added)
+}
+
+#[cfg(test)]
+mod tests {
+    use sage_api::DeleteDatabase;
+    use tempfile::TempDir;
+
+    use super::*;
+
+    fn load(path: &Path) -> Result<Sage> {
+        let mut sage = Sage::new(path, true);
+        sage.writable = true;
+        sage.setup_keys()?;
+        sage.setup_config()?;
+        sage.migrate_wallet_config()?;
+        Ok(sage)
+    }
+
+    fn wallet_order(sage: &Sage) -> Vec<u32> {
+        sage.wallet_config
+            .wallets
+            .iter()
+            .map(|wallet| wallet.fingerprint)
+            .collect()
+    }
+
+    #[test]
+    fn move_key_reorders_and_saves_the_wallet_list() -> Result<()> {
+        let dir = TempDir::new()?;
+        let mut sage = load(dir.path())?;
+
+        for fingerprint in [1, 2, 3] {
+            sage.wallet_config.wallets.push(WalletEntry {
+                name: format!("Wallet {fingerprint}"),
+                fingerprint,
+                ..Default::default()
+            });
+        }
+
+        sage.move_key(1, 1)?;
+        assert_eq!(wallet_order(&sage), [2, 1, 3]);
+
+        // An index past the end moves the wallet to the end.
+        sage.move_key(2, 10)?;
+        assert_eq!(wallet_order(&sage), [1, 3, 2]);
+
+        assert!(matches!(
+            sage.move_key(4, 0),
+            Err(Error::UnknownFingerprint)
+        ));
+        assert_eq!(wallet_order(&sage), [1, 3, 2]);
+
+        assert_eq!(wallet_order(&load(dir.path())?), [1, 3, 2]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn is_valid_address_checks_the_network() -> Result<()> {
+        let dir = TempDir::new()?;
+        let sage = load(dir.path())?;
+        let prefix = sage.network().prefix();
+        let other = if prefix == "xch" { "txch" } else { "xch" };
+
+        let address = |prefix: &str| Address::new(Bytes32::default(), prefix.to_string()).encode();
+
+        assert!(sage.is_valid_address(&address(&prefix)?));
+        assert!(!sage.is_valid_address(&address(other)?));
+        assert!(!sage.is_valid_address("xch1bad"));
+        assert!(!sage.is_valid_address(""));
+
+        Ok(())
+    }
+
+    #[test]
+    fn wallets_on_a_network_share_one_database() -> Result<()> {
+        let dir = TempDir::new()?;
+        let mut sage = load(dir.path())?;
+
+        // A custom network whose ID differs from its name, which wallet databases are named
+        // after when a wallet is switched to it.
+        let mut custom = sage_config::TESTNET11.clone();
+        custom.name = "custom".to_string();
+        custom.network_id = Some("custom-id".to_string());
+        sage.network_list.networks.push(custom);
+
+        for (fingerprint, network) in [(1, None), (2, Some("custom")), (3, Some("mainnet"))] {
+            sage.wallet_config.wallets.push(WalletEntry {
+                name: format!("Wallet {fingerprint}"),
+                fingerprint,
+                network: network.map(str::to_string),
+                ..Default::default()
+            });
+        }
+
+        let shared = dir.path().join("shared");
+        assert_eq!(
+            sage.shared_db_path(1)?,
+            shared.join(format!("{}.sqlite", sage.network_id()))
+        );
+        assert_eq!(sage.shared_db_path(2)?, shared.join("custom-id.sqlite"));
+        assert_eq!(sage.shared_db_path(3)?, shared.join("mainnet.sqlite"));
+
+        Ok(())
+    }
+
+    /// A shared database which can't be migrated is reported as such, since deleting the wallet's
+    /// own database wouldn't help, and deleting it with the wallet's database fixes it.
+    #[tokio::test]
+    async fn resets_a_shared_database_that_cant_be_migrated() -> Result<()> {
+        let dir = TempDir::new()?;
+        let mut sage = load(dir.path())?;
+
+        sage.wallet_config.wallets.push(WalletEntry {
+            name: "Wallet".to_string(),
+            fingerprint: 1,
+            ..Default::default()
+        });
+
+        // A migration that was applied with different contents, as when a migration is edited.
+        let pool = sage.connect_to_pool(sage.shared_db_path(1)?).await?;
+        sqlx::query("UPDATE _sqlx_migrations SET checksum = x'00' WHERE version = 1")
+            .execute(&pool)
+            .await?;
+        pool.close().await;
+
+        assert!(matches!(
+            sage.connect_to_shared_database(1).await,
+            Err(Error::SharedDatabaseVersionTooOld)
+        ));
+
+        // Deleting only the wallet's database leaves the shared one as it is.
+        let network = sage.network_id();
+        sage.delete_database(DeleteDatabase {
+            fingerprint: 1,
+            network: network.clone(),
+            shared: false,
+        })?;
+        assert!(sage.shared_db_path(1)?.try_exists()?);
+
+        sage.delete_database(DeleteDatabase {
+            fingerprint: 1,
+            network,
+            shared: true,
+        })?;
+
+        let shared = sage.shared_db_path(1)?;
+        for suffix in ["", "-wal", "-shm"] {
+            assert!(!PathBuf::from(format!("{}{suffix}", shared.display())).try_exists()?);
+        }
+
+        sage.connect_to_shared_database(1).await?;
+
+        Ok(())
+    }
+
+    fn add_key(sage: &mut Sage, seed: u8) -> Result<u32> {
+        let master_pk = SecretKey::from_seed(&[seed; 32]).public_key();
+        Ok(sage.keychain.add_public_key(&master_pk)?)
+    }
+
+    fn save_named_wallet(path: &Path) -> Result<()> {
+        let mut sage = load(path)?;
+        sage.wallet_config.wallets.push(WalletEntry {
+            name: "Named".to_string(),
+            fingerprint: 1_000_000,
+            ..Default::default()
+        });
+        sage.save_config()
+    }
+
+    #[test]
+    fn test_empty_config_is_not_migrated() -> Result<()> {
+        let dir = TempDir::new()?;
+        save_named_wallet(dir.path())?;
+
+        // An interrupted write can leave the config empty
+        fs::write(dir.path().join("config.toml"), "")?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.wallet_config.wallets.len(), 1);
+        assert_eq!(sage.wallet_config.wallets[0].name, "Named");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_missing_config_keeps_wallet_config() -> Result<()> {
+        let dir = TempDir::new()?;
+        save_named_wallet(dir.path())?;
+
+        fs::remove_file(dir.path().join("config.toml"))?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.wallet_config.wallets.len(), 1);
+        assert_eq!(sage.wallet_config.wallets[0].name, "Named");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_missing_wallet_config_is_created() -> Result<()> {
+        let dir = TempDir::new()?;
+        save_named_wallet(dir.path())?;
+
+        fs::remove_file(dir.path().join("wallets.toml"))?;
+
+        let sage = load(dir.path())?;
+        assert!(sage.wallet_config.wallets.is_empty());
+        assert!(dir.path().join("wallets.toml").try_exists()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_old_config_is_migrated() -> Result<()> {
+        let dir = TempDir::new()?;
+
+        fs::write(
+            dir.path().join("config.toml"),
+            "[app]\nlog_level = \"INFO\"\n\n[wallets.1000000]\nname = \"Old\"\n",
+        )?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.config.version, 2);
+        assert_eq!(sage.wallet_config.wallets.len(), 1);
+        assert_eq!(sage.wallet_config.wallets[0].name, "Old");
+        assert_eq!(sage.wallet_config.wallets[0].fingerprint, 1_000_000);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_empty_network_list_is_not_migrated() -> Result<()> {
+        let dir = TempDir::new()?;
+        drop(load(dir.path())?);
+
+        fs::write(dir.path().join("networks.toml"), "")?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.network().name, "mainnet");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_recover_wallets_missing_from_config() -> Result<()> {
+        let dir = TempDir::new()?;
+
+        let mut sage = load(dir.path())?;
+        let named = add_key(&mut sage, 1)?;
+        let lost = add_key(&mut sage, 2)?;
+        sage.save_keychain()?;
+        drop(sage);
+
+        fs::write(
+            dir.path().join("wallets.toml"),
+            format!("[[wallets]]\nname = \"Named\"\nfingerprint = {named}\n"),
+        )?;
+
+        let sage = load(dir.path())?;
+        let wallets = &sage.wallet_config.wallets;
+        assert_eq!(wallets.len(), 2);
+        assert_eq!(wallets[0].name, "Named");
+        assert_eq!(wallets[1].fingerprint, lost);
+
+        // The recovered entry is saved, along with the new version
+        let text = fs::read_to_string(dir.path().join("wallets.toml"))?;
+        assert!(text.contains(&lost.to_string()));
+        assert_eq!(sage.wallet_config.version, WALLET_CONFIG_VERSION);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_keys_are_only_recovered_once() -> Result<()> {
+        let dir = TempDir::new()?;
+
+        let mut sage = load(dir.path())?;
+        assert_eq!(sage.wallet_config.version, WALLET_CONFIG_VERSION);
+
+        // Once the wallet config is current, a key without a wallet isn't one.
+        let key = add_key(&mut sage, 1)?;
+        sage.save_keychain()?;
+        drop(sage);
+
+        let sage = load(dir.path())?;
+        assert!(sage.wallet_config.wallets.is_empty());
+        assert!(sage.keychain.contains(key));
+        assert!(matches!(
+            sage.wallet_kind(key),
+            Err(Error::UnknownFingerprint)
+        ));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_recover_wallets_when_wallet_config_deleted() -> Result<()> {
+        let dir = TempDir::new()?;
+
+        let mut sage = load(dir.path())?;
+        let fingerprint = add_key(&mut sage, 1)?;
+        sage.save_keychain()?;
+        drop(sage);
+
+        fs::remove_file(dir.path().join("wallets.toml"))?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.wallet_config.wallets.len(), 1);
+        assert_eq!(sage.wallet_config.wallets[0].fingerprint, fingerprint);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_atomic_replaces_file() -> Result<()> {
+        let dir = TempDir::new()?;
+        let path = dir.path().join("file.toml");
+
+        write_atomic(&path, "old")?;
+        write_atomic(&path, "new")?;
+
+        assert_eq!(fs::read_to_string(&path)?, "new");
+        assert_eq!(fs::read_dir(dir.path())?.count(), 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_save_requires_initialization() -> Result<()> {
+        let dir = TempDir::new()?;
+
+        let sage = Sage::new(dir.path(), true);
+        assert!(matches!(sage.save_config(), Err(Error::NotInitialized)));
+        assert!(matches!(sage.save_keychain(), Err(Error::NotInitialized)));
+        assert!(!dir.path().join("wallets.toml").try_exists()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_wallet_config_defines_watch_wallets() -> Result<()> {
+        let dir = TempDir::new()?;
+        drop(load(dir.path())?);
+
+        let watched = Bytes32::new([2; 32]);
+
+        fs::write(
+            dir.path().join("wallets.toml"),
+            format!(
+                "version = 1\n\n\
+                 [[wallets]]\nname = \"Watch\"\nfingerprint = 2\n\
+                 type = \"watch\"\np2_puzzle_hashes = [\"{watched}\"]\n\n\
+                 [[wallets]]\nname = \"Empty\"\nfingerprint = 3\n\
+                 type = \"watch\"\np2_puzzle_hashes = []\n"
+            ),
+        )?;
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.wallet_kind(2)?, WalletKind::Watch);
+        assert_eq!(sage.watched_p2_puzzle_hashes(2), Some([watched].as_slice()));
+        assert!(matches!(sage.wallet_kind(3), Err(Error::NoWatchAddresses)));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_invalid_config_names_file() -> Result<()> {
+        let dir = TempDir::new()?;
+        drop(load(dir.path())?);
+
+        fs::write(
+            dir.path().join("wallets.toml"),
+            "[[wallets]]\nname = Main\n",
+        )?;
+
+        let Err(Error::InvalidConfig { path, .. }) = load(dir.path()) else {
+            panic!("expected an invalid config error");
+        };
+        assert!(path.ends_with("wallets.toml"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn rpc_port_and_log_level_are_saved_and_rejected_values_are_ignored() -> Result<()> {
+        let dir = TempDir::new()?;
+        let mut sage = load(dir.path())?;
+
+        sage.set_rpc_port(9300)?;
+        sage.set_log_level("debug")?;
+
+        assert!(matches!(sage.set_rpc_port(0), Err(Error::InvalidRpcPort)));
+        assert!(sage.set_log_level("loud").is_err());
+
+        let sage = load(dir.path())?;
+        assert_eq!(sage.config.rpc.port, 9300);
+        assert_eq!(sage.config.global.log_level, "DEBUG");
+
+        Ok(())
     }
 }

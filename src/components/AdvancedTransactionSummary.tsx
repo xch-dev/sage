@@ -4,9 +4,11 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { BadgeMinus, BadgePlus, BoxIcon, ForwardIcon } from 'lucide-react';
-import { TransactionSummary, Unit } from '../bindings';
+import { TransactionOutput, TransactionSummary, Unit } from '../bindings';
 import { formatNumber } from '../i18n';
+import { AddressLabels } from './AddressLabels';
 import { Badge } from './ui/badge';
+import { UndeclaredFeeAlert } from './UndeclaredFeeAlert';
 
 interface SpentCoin {
   sort: number;
@@ -20,7 +22,18 @@ interface CreatedCoin {
   badge: string;
   label: string;
   address: string;
-  amount?: string;
+  /** Whether the output comes back to this wallet (change, or a self-send). */
+  toSelf: boolean;
+  /** Identifies the asset: XCH, a CAT's asset ID, or a singleton's ID. */
+  assetKey: string;
+  /** Raw amount and display unit, for fungible assets (XCH and CATs) only. */
+  fungible?: FungibleAmount;
+}
+
+interface FungibleAmount {
+  mojos: BigNumber;
+  precision: number;
+  ticker: string;
 }
 
 // Export AdvancedSummary for use in WalletConnectContext
@@ -40,6 +53,11 @@ export function AdvancedTransactionSummary({
 
   return (
     <div className='flex flex-col gap-1.5'>
+      <UndeclaredFeeAlert
+        fee={summary.fee}
+        declaredFee={summary.declared_fee}
+        unit={walletState.sync.unit}
+      />
       <div className='flex flex-col gap-2 w-full font-medium text-left text-card-foreground bg-card border border-border shadow-card p-2 rounded-lg'>
         <div className='flex items-center gap-2 text-lg'>
           <BadgeMinus className='w-6 h-6' aria-hidden='true' />
@@ -116,6 +134,7 @@ export function AdvancedTransactionSummary({
                   <div className='truncate text-muted-foreground text-sm'>
                     {created.address}
                   </div>
+                  <AddressLabels address={created.address} compact />
                 </div>
               </div>
             ))}
@@ -137,36 +156,46 @@ export function calculateTransaction(
   const spent: SpentCoin[] = [];
   const created: CreatedCoin[] = [];
 
-  for (const input of summary.inputs || []) {
+  const inputs = summary.inputs || [];
+  const inputCoinIds = new Set(inputs.map((input) => input.coin_id));
+  const outputCoinIds = new Set(
+    inputs.flatMap((input) => input.outputs.map((output) => output.coin_id)),
+  );
+
+  for (const input of inputs) {
+    const isEphemeral = outputCoinIds.has(input.coin_id);
+
     if (input.asset && !input.asset.asset_id) {
-      spent.push({
-        badge: 'Chia',
-        label: `${formatNumber({
-          value: fromMojos(input.amount, xch.precision),
-          minimumFractionDigits: 0,
-          maximumFractionDigits: xch.precision,
-        })} ${xch.ticker}`,
-        coinId: input.coin_id,
-        sort: 1,
-      });
-
-      for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
-          continue;
-        }
-
-        created.push({
+      if (!isEphemeral) {
+        spent.push({
           badge: 'Chia',
           label: `${formatNumber({
-            value: fromMojos(output.amount, xch.precision),
+            value: fromMojos(input.amount, xch.precision),
             minimumFractionDigits: 0,
             maximumFractionDigits: xch.precision,
           })} ${xch.ticker}`,
-          address: output.burning
-            ? t`Permanently Burned`
-            : output.receiving
-              ? t`You`
-              : output.address,
+          coinId: input.coin_id,
+          sort: 1,
+        });
+      }
+
+      for (const output of input.outputs) {
+        if (inputCoinIds.has(output.coin_id)) {
+          continue;
+        }
+
+        const fungible = {
+          mojos: BigNumber(output.amount),
+          precision: xch.precision,
+          ticker: xch.ticker,
+        };
+
+        created.push({
+          badge: 'Chia',
+          label: formatFungibleAmount(fungible),
+          assetKey: 'xch',
+          fungible,
+          ...outputRecipient(output),
           sort: 1,
         });
       }
@@ -175,46 +204,43 @@ export function calculateTransaction(
     if (input.asset?.kind === 'token' && input.asset.asset_id) {
       const ticker = input.asset.ticker || 'CAT';
 
-      spent.push({
-        badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
-        label: `${formatNumber({
-          value: fromMojos(input.amount, 3),
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 3,
-        })} ${ticker}`,
-        coinId: input.coin_id,
-        sort: 2,
-      });
-
-      for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
-          continue;
-        }
-
-        created.push({
+      if (!isEphemeral) {
+        spent.push({
           badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
           label: `${formatNumber({
-            value: fromMojos(output.amount, 3),
+            value: fromMojos(input.amount, 3),
             minimumFractionDigits: 0,
             maximumFractionDigits: 3,
           })} ${ticker}`,
-          address: output.burning
-            ? t`Permanently Burned`
-            : output.receiving
-              ? t`You`
-              : output.address,
+          coinId: input.coin_id,
+          sort: 2,
+        });
+      }
+
+      for (const output of input.outputs) {
+        if (inputCoinIds.has(output.coin_id)) {
+          continue;
+        }
+
+        const fungible = {
+          mojos: BigNumber(output.amount),
+          precision: 3,
+          ticker,
+        };
+
+        created.push({
+          badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
+          label: formatFungibleAmount(fungible),
+          assetKey: `cat:${input.asset.asset_id}`,
+          fungible,
+          ...outputRecipient(output),
           sort: 2,
         });
       }
     }
 
     if (input.asset?.kind === 'did') {
-      if (
-        !summary.inputs
-          .map((i) => i.outputs)
-          .flat()
-          .find((o) => o.coin_id === input.coin_id)
-      ) {
+      if (!isEphemeral) {
         spent.push({
           badge: t`Profile`,
           label: input.asset.name ?? t`Unnamed`,
@@ -224,7 +250,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 
@@ -232,11 +258,8 @@ export function calculateTransaction(
           created.push({
             badge: t`Profile`,
             label: input.asset.name ?? t`Unnamed`,
-            address: output.burning
-              ? t`Permanently Burned`
-              : output.receiving
-                ? t`You`
-                : output.address,
+            assetKey: `did:${input.asset.asset_id ?? input.coin_id}`,
+            ...outputRecipient(output),
             sort: 3,
           });
         }
@@ -244,12 +267,7 @@ export function calculateTransaction(
     }
 
     if (input.asset?.kind === 'nft') {
-      if (
-        !summary.inputs
-          .map((i) => i.outputs)
-          .flat()
-          .find((o) => o.coin_id === input.coin_id)
-      ) {
+      if (!isEphemeral) {
         spent.push({
           badge: 'NFT',
           label: input.asset.name ?? t`Unknown`,
@@ -259,7 +277,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 
@@ -267,11 +285,8 @@ export function calculateTransaction(
           created.push({
             badge: 'NFT',
             label: input.asset.name ?? t`Unknown`,
-            address: output.burning
-              ? t`Permanently Burned`
-              : output.receiving
-                ? t`You`
-                : output.address,
+            assetKey: `nft:${input.asset.asset_id ?? input.coin_id}`,
+            ...outputRecipient(output),
             sort: 4,
           });
         }
@@ -279,12 +294,7 @@ export function calculateTransaction(
     }
 
     if (input.asset?.kind === 'option') {
-      if (
-        !summary.inputs
-          .map((i) => i.outputs)
-          .flat()
-          .find((o) => o.coin_id === input.coin_id)
-      ) {
+      if (!isEphemeral) {
         spent.push({
           badge: 'Option',
           label: input.asset.name ?? t`Untitled`,
@@ -294,7 +304,7 @@ export function calculateTransaction(
       }
 
       for (const output of input.outputs) {
-        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+        if (inputCoinIds.has(output.coin_id)) {
           continue;
         }
 
@@ -302,11 +312,8 @@ export function calculateTransaction(
           created.push({
             badge: 'Option',
             label: input.asset.name ?? t`Untitled`,
-            address: output.burning
-              ? t`Permanently Burned`
-              : output.receiving
-                ? t`You`
-                : output.address,
+            assetKey: `option:${input.asset.asset_id ?? input.coin_id}`,
+            ...outputRecipient(output),
             sort: 5,
           });
         }
@@ -314,4 +321,77 @@ export function calculateTransaction(
     }
   }
   return { spent, created };
+}
+
+function outputRecipient(output: TransactionOutput) {
+  const toSelf = !output.burning && output.receiving;
+
+  return {
+    address: output.burning
+      ? t`Permanently Burned`
+      : toSelf
+        ? t`You`
+        : output.address,
+    toSelf,
+  };
+}
+
+function formatFungibleAmount({ mojos, precision, ticker }: FungibleAmount) {
+  return `${formatNumber({
+    value: fromMojos(mojos, precision),
+    minimumFractionDigits: 0,
+    maximumFractionDigits: precision,
+  })} ${ticker}`;
+}
+
+export interface SentAssetGroup {
+  key: string;
+  badge: string;
+  /** The formatted total for fungible assets, or the asset's label otherwise. */
+  total: string;
+  /** Each recipient once, in the order they first appear. */
+  recipients: string[];
+}
+
+/**
+ * Groups the coins sent to other recipients by asset for the confirmation
+ * summary, leaving out outputs that come back to this wallet. Fungible totals
+ * are summed from the raw amounts of every output, including repeated outputs
+ * to the same address, and only the final total is formatted.
+ */
+export function groupSentAssets(created: CreatedCoin[]): SentAssetGroup[] {
+  const groups = new Map<
+    string,
+    { coin: CreatedCoin; total?: FungibleAmount; recipients: Set<string> }
+  >();
+
+  for (const coin of [...created].sort((a, b) => a.sort - b.sort)) {
+    if (coin.toSelf) continue;
+
+    const group = groups.get(coin.assetKey);
+
+    if (!group) {
+      groups.set(coin.assetKey, {
+        coin,
+        total: coin.fungible,
+        recipients: new Set([coin.address]),
+      });
+      continue;
+    }
+
+    group.recipients.add(coin.address);
+    if (group.total && coin.fungible) {
+      group.total = {
+        ...group.total,
+        mojos: group.total.mojos.plus(coin.fungible.mojos),
+      };
+    }
+  }
+
+  return [...groups].map(([key, { coin, total, recipients }]) => ({
+    key,
+    badge: coin.badge,
+    total: total ? formatFungibleAmount(total) : coin.label,
+    recipients: [...recipients],
+  }));
 }

@@ -164,6 +164,14 @@ async fn process_shared(
         }
     }
 
+    if method.requires_signing() && app_state.read().await.is_watch_only() {
+        return Ok(RustBridgeInvokeResult::error(
+            &request.id,
+            "watch_only",
+            "Watch-only wallets can't create or sign transactions",
+        ));
+    }
+
     match method
         .prepare_approval(
             BridgeContext { app },
@@ -297,7 +305,7 @@ fn bridge_handle_result_to_response(
 
 async fn active_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u32> {
     app_state
-        .lock()
+        .read()
         .await
         .wallet()
         .map(|wallet| wallet.fingerprint)

@@ -1,4 +1,4 @@
-use chia_wallet_sdk::prelude::*;
+use chia_wallet_sdk::{driver::coin_amount, prelude::*};
 
 use crate::WalletError;
 
@@ -43,16 +43,21 @@ impl Wallet {
             spends.cats[&Id::Existing(asset_id)].selected_amount()
         } else {
             let total = spends.xch.selected_amount();
-            if fee > total {
+            if u128::from(fee) > total {
                 return Err(WalletError::InsufficientFunds);
             }
             total
         };
 
         let mut remaining_count = output_count;
-        let mut remaining_amount = total - if asset_id.is_none() { fee } else { 0 };
+        let mut remaining_amount = total
+            - if asset_id.is_none() {
+                u128::from(fee)
+            } else {
+                0
+            };
 
-        let max_individual_amount = remaining_amount.div_ceil(output_count as u64);
+        let max_individual_amount = remaining_amount.div_ceil(output_count as u128);
         let derivations_needed = output_count.div_ceil(selected_coin_ids.len()) as u32;
 
         let puzzle_hashes = if let Some(change_p2_puzzle_hash) = self.change_p2_puzzle_hash {
@@ -75,7 +80,7 @@ impl Wallet {
                 actions.push(Action::send(
                     asset_id.map_or(Id::Xch, Id::Existing),
                     puzzle_hash,
-                    amount,
+                    coin_amount(amount)?,
                     if asset_id.is_some() {
                         ctx.hint(puzzle_hash)?
                     } else {

@@ -1,5 +1,4 @@
-use std::slice;
-
+use chia_wallet_sdk::driver::{Clawback as ClawbackV1, ClawbackV2};
 use chia_wallet_sdk::{
     chia::{
         bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
@@ -18,7 +17,7 @@ use sage_api::{
     },
 };
 use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, DeserializePrimitive, P2Puzzle};
-use sage_wallet::{Status, SyncCommand, Transaction, insert_transaction, submit_to_peers};
+use sage_wallet::{Status, WalletError, submit_to_peers};
 use tracing::{debug, info, warn};
 
 use crate::{
@@ -35,11 +34,9 @@ impl Sage {
         let mut coin_ids = Vec::new();
 
         for coin_id in req.coin_ids {
-            if wallet
-                .db
-                .are_coins_spendable(slice::from_ref(&coin_id))
-                .await?
-            {
+            let parsed_coin_id = parse_coin_id(coin_id.clone())?;
+
+            if wallet.db.are_coins_spendable(&[parsed_coin_id]).await? {
                 coin_ids.push(coin_id);
             }
         }
@@ -89,14 +86,24 @@ impl Sage {
             let p2_puzzle = match wallet.db.p2_puzzle(row.p2_puzzle_hash).await? {
                 P2Puzzle::PublicKey(key) => StandardLayer::new(key).construct_puzzle(&mut ctx)?,
                 P2Puzzle::Clawback(clawback) => {
-                    let clawback = ClawbackV2::new(
-                        clawback.sender_puzzle_hash,
-                        clawback.receiver_puzzle_hash,
-                        clawback.seconds,
-                        row.coin.amount,
-                        true,
-                    );
-                    clawback.into_1_of_n().construct_puzzle(&mut ctx)?
+                    if clawback.version == 1 {
+                        let v1 = ClawbackV1::new(
+                            clawback.seconds,
+                            clawback.sender_puzzle_hash,
+                            clawback.receiver_puzzle_hash,
+                        );
+                        v1.into_1_of_n().construct_puzzle(&mut ctx)?
+                    } else {
+                        let v2 = ClawbackV2::new(
+                            clawback.sender_puzzle_hash,
+                            clawback.receiver_puzzle_hash,
+                            clawback.seconds,
+                            row.coin.amount,
+                            // Only clawbacks of assets with an outer puzzle are hinted
+                            req.kind.is_some(),
+                        );
+                        v2.into_1_of_n().construct_puzzle(&mut ctx)?
+                    }
                 }
                 P2Puzzle::Option(underlying) => {
                     let underlying = OptionUnderlying::new(
@@ -111,6 +118,7 @@ impl Sage {
                 P2Puzzle::Arbor(key) => {
                     P2DelegatedConditionsLayer::new(key).construct_puzzle(&mut ctx)?
                 }
+                P2Puzzle::External => return Err(WalletError::WatchOnly.into()),
             };
 
             let (puzzle, proof) = match req.kind {
@@ -175,15 +183,12 @@ impl Sage {
     ) -> Result<SignMessageWithPublicKeyResponse> {
         let wallet = self.wallet()?;
 
+        // Checked first, so watch wallets get a clear error rather than an unknown key.
+        let master_sk = self.master_secret_key(&wallet)?;
+
         let public_key = parse_public_key(req.public_key)?;
         let Some(info) = wallet.db.derivation(public_key).await? else {
             return Err(Error::InvalidKey);
-        };
-
-        let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
-        else {
-            return Err(Error::NoSigningKey);
         };
 
         let secret_key = if info.is_hardened {
@@ -210,6 +215,9 @@ impl Sage {
     ) -> Result<SignMessageByAddressResponse> {
         let wallet = self.wallet()?;
 
+        // Checked first, so watch wallets get a clear error rather than an unknown key.
+        let master_sk = self.master_secret_key(&wallet)?;
+
         let p2_puzzle_hash = self.parse_address(req.address)?;
         let Some(public_key) = wallet.db.public_key(p2_puzzle_hash).await? else {
             return Err(Error::InvalidKey);
@@ -217,12 +225,6 @@ impl Sage {
 
         let Some(info) = wallet.db.derivation(public_key).await? else {
             return Err(Error::InvalidKey);
-        };
-
-        let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
-        else {
-            return Err(Error::NoSigningKey);
         };
 
         let secret_key = if info.is_hardened {
@@ -251,6 +253,7 @@ impl Sage {
         // TODO: Should this be the normal way of sending transactions?
 
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
         let spend_bundle = rust_bundle(req.spend_bundle)?;
         let peers = self.peer_state.lock().await.peers();
 
@@ -259,34 +262,13 @@ impl Sage {
         let transaction_id = spend_bundle.name();
 
         match submit_to_peers(&peers, spend_bundle.clone()).await? {
-            Status::Pending => {
-                let peer = self
-                    .peer_state
-                    .lock()
-                    .await
-                    .acquire_peer()
-                    .ok_or(Error::NoPeers)?;
-
-                let subscriptions = insert_transaction(
-                    &wallet.db,
-                    &peer,
-                    wallet.genesis_challenge,
-                    spend_bundle.name(),
-                    Transaction::from_coin_spends(spend_bundle.coin_spends)?,
-                    spend_bundle.aggregated_signature,
-                )
-                .await?;
-
-                self.command_sender
-                    .send(SyncCommand::SubscribeCoins {
-                        coin_ids: subscriptions,
-                    })
-                    .await?;
+            Status::Pending(status) => {
+                self.submit_unchecked(spend_bundle, &spends).await?;
 
                 info!("Successfully submitted and inserted transaction {transaction_id}");
 
                 Ok(SendTransactionImmediatelyResponse {
-                    status: 1,
+                    status,
                     error: None,
                 })
             }

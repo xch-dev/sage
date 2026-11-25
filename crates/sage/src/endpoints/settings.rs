@@ -3,14 +3,17 @@ use std::time::Duration;
 use itertools::Itertools;
 use sage_api::{
     AddPeer, AddPeerResponse, GetNetwork, GetNetworkResponse, GetNetworks, GetNetworksResponse,
-    GetPeers, GetPeersResponse, NetworkKind, PeerRecord, RemovePeer, RemovePeerResponse,
-    SetChangeAddress, SetChangeAddressResponse, SetDeltaSync, SetDeltaSyncOverride,
-    SetDeltaSyncOverrideResponse, SetDeltaSyncResponse, SetDiscoverPeers, SetDiscoverPeersResponse,
-    SetNetwork, SetNetworkOverride, SetNetworkOverrideResponse, SetNetworkResponse, SetTargetPeers,
-    SetTargetPeersResponse,
+    GetPeers, GetPeersResponse, GetSelectedTheme, GetSelectedThemeResponse, NetworkKind,
+    PeerRecord, RemovePeer, RemovePeerResponse, SetChangeAddress, SetChangeAddressResponse,
+    SetDeltaSync, SetDeltaSyncOverride, SetDeltaSyncOverrideResponse, SetDeltaSyncResponse,
+    SetDiscoverPeers, SetDiscoverPeersResponse, SetMempoolDiscovery, SetMempoolDiscoveryResponse,
+    SetNetwork, SetNetworkOverride, SetNetworkOverrideResponse, SetNetworkResponse,
+    SetSelectedTheme, SetSelectedThemeResponse, SetTargetPeers, SetTargetPeersResponse,
+    SetTransactionExpiration, SetTransactionExpirationResponse,
 };
-use sage_config::{MAINNET, TESTNET11};
+use sage_config::{MAINNET, MIN_TRANSACTION_EXPIRATION, TESTNET11};
 use sage_wallet::SyncCommand;
+use tracing::Level;
 
 use crate::{Error, Result, Sage};
 
@@ -76,6 +79,21 @@ impl Sage {
         Ok(SetDiscoverPeersResponse {})
     }
 
+    pub async fn set_mempool_discovery(
+        &mut self,
+        req: SetMempoolDiscovery,
+    ) -> Result<SetMempoolDiscoveryResponse> {
+        if self.config.network.mempool_discovery != req.mempool_discovery {
+            self.config.network.mempool_discovery = req.mempool_discovery;
+            self.save_config()?;
+            self.command_sender
+                .send(SyncCommand::SetMempoolDiscovery(req.mempool_discovery))
+                .await?;
+        }
+
+        Ok(SetMempoolDiscoveryResponse {})
+    }
+
     pub async fn set_target_peers(
         &mut self,
         req: SetTargetPeers,
@@ -117,11 +135,11 @@ impl Sage {
         Ok(SetNetworkOverrideResponse {})
     }
 
-    pub fn get_networks(&mut self, _req: GetNetworks) -> Result<GetNetworksResponse> {
+    pub fn get_networks(&self, _req: GetNetworks) -> Result<GetNetworksResponse> {
         Ok(self.network_list.clone())
     }
 
-    pub fn get_network(&mut self, _req: GetNetwork) -> Result<GetNetworkResponse> {
+    pub fn get_network(&self, _req: GetNetwork) -> Result<GetNetworkResponse> {
         let network = self.network();
 
         Ok(GetNetworkResponse {
@@ -159,6 +177,23 @@ impl Sage {
         Ok(SetDeltaSyncOverrideResponse {})
     }
 
+    pub fn get_selected_theme(&self, _req: GetSelectedTheme) -> Result<GetSelectedThemeResponse> {
+        Ok(GetSelectedThemeResponse {
+            theme: self.config.global.theme.clone(),
+        })
+    }
+
+    pub fn set_selected_theme(
+        &mut self,
+        req: SetSelectedTheme,
+    ) -> Result<SetSelectedThemeResponse> {
+        if self.config.global.theme != req.theme {
+            self.config.global.theme = req.theme;
+            self.save_config()?;
+        }
+        Ok(SetSelectedThemeResponse {})
+    }
+
     pub async fn set_change_address(
         &mut self,
         req: SetChangeAddress,
@@ -175,5 +210,44 @@ impl Sage {
         self.save_config()?;
         self.switch_wallet().await?;
         Ok(SetChangeAddressResponse {})
+    }
+
+    pub fn set_transaction_expiration(
+        &mut self,
+        req: SetTransactionExpiration,
+    ) -> Result<SetTransactionExpirationResponse> {
+        if req.seconds > 0 && req.seconds < MIN_TRANSACTION_EXPIRATION {
+            return Err(Error::TransactionExpirationTooShort(
+                MIN_TRANSACTION_EXPIRATION,
+            ));
+        }
+
+        self.wallet_config.defaults.transaction_expiration = req.seconds;
+        self.save_config()?;
+
+        // The wallet reads the setting whenever it creates a transaction, so it doesn't need to
+        // be reloaded.
+        if let Some(wallet) = &self.wallet {
+            wallet.set_transaction_expiration(req.seconds);
+        }
+
+        Ok(SetTransactionExpirationResponse {})
+    }
+
+    /// Sets the log level. The logger is set up when Sage starts, so it applies after a restart.
+    pub fn set_log_level(&mut self, level: &str) -> Result<()> {
+        let level: Level = level.parse()?;
+        self.config.global.log_level = level.to_string();
+        self.save_config()
+    }
+
+    /// Sets the RPC server's port. A running server keeps its port until it's restarted.
+    pub fn set_rpc_port(&mut self, port: u16) -> Result<()> {
+        if port == 0 {
+            return Err(Error::InvalidRpcPort);
+        }
+
+        self.config.rpc.port = port;
+        self.save_config()
     }
 }

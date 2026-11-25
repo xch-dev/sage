@@ -19,8 +19,8 @@ export const useLongPress = (
   { threshold = 500 }: LongPressOptions = {},
 ): LongPressHandlers => {
   const [longPressTriggered, setLongPressTriggered] = useState(false);
-  const timeout = useRef<NodeJS.Timeout>();
-  const target = useRef<EventTarget>();
+  const timeout = useRef<NodeJS.Timeout>(undefined);
+  const target = useRef<EventTarget | undefined>(undefined);
   const touchStart = useRef({ x: 0, y: 0 });
 
   const start = useCallback(

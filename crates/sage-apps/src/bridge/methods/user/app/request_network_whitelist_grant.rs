@@ -7,7 +7,7 @@ use crate::{
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, GrantNetworkWhitelistOutcome,
     RustBridgeApprovalBody, RustBridgeApprovalRequest, RustBridgeRequest,
     SageNetworkWhitelistEntry, UserBridgeCapability, grant_network_whitelist_entry,
-    parse_required_params, resolve_app_base_path,
+    parse_required_params,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -91,12 +91,9 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
     ) -> BridgeHandleResult {
         let params: RequestNetworkWhitelistGrantParams = parse_required_params(self, request)?;
 
-        let base_path = resolve_app_base_path(&tools)?;
-
         let grant_result = grant_network_whitelist_entry(
             tools.app_handle,
             tools.host_state,
-            &base_path,
             &ctx.app.id(),
             params.network_id.as_deref(),
             &params.entry,

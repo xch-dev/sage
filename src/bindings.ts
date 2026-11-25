@@ -8,6 +8,12 @@ export const commands = {
 async initialize() : Promise<null> {
     return await TAURI_INVOKE("initialize");
 },
+/**
+ * Exits the app. This is used when initialization fails, since Sage can't continue safely.
+ */
+async quit() : Promise<void> {
+    await TAURI_INVOKE("quit");
+},
 async login(req: Login) : Promise<LoginResponse> {
     return await TAURI_INVOKE("login", { req });
 },
@@ -20,29 +26,50 @@ async resync(req: Resync) : Promise<ResyncResponse> {
 async generateMnemonic(req: GenerateMnemonic) : Promise<GenerateMnemonicResponse> {
     return await TAURI_INVOKE("generate_mnemonic", { req });
 },
-async importKey(req: ImportKey) : Promise<ImportKeyResponse> {
-    return await TAURI_INVOKE("import_key", { req });
+async importWallet(req: ImportWallet) : Promise<ImportWalletResponse> {
+    return await TAURI_INVOKE("import_wallet", { req });
 },
-async deleteKey(req: DeleteKey) : Promise<DeleteKeyResponse> {
-    return await TAURI_INVOKE("delete_key", { req });
+async importWatchWallet(req: ImportWatchWallet) : Promise<ImportWatchWalletResponse> {
+    return await TAURI_INVOKE("import_watch_wallet", { req });
+},
+async addWatchAddresses(req: AddWatchAddresses) : Promise<AddWatchAddressesResponse> {
+    return await TAURI_INVOKE("add_watch_addresses", { req });
+},
+async removeWatchAddresses(req: RemoveWatchAddresses) : Promise<RemoveWatchAddressesResponse> {
+    return await TAURI_INVOKE("remove_watch_addresses", { req });
+},
+async deleteWallet(req: DeleteWallet) : Promise<DeleteWalletResponse> {
+    return await TAURI_INVOKE("delete_wallet", { req });
 },
 async deleteDatabase(req: DeleteDatabase) : Promise<DeleteDatabaseResponse> {
     return await TAURI_INVOKE("delete_database", { req });
 },
-async renameKey(req: RenameKey) : Promise<RenameKeyResponse> {
-    return await TAURI_INVOKE("rename_key", { req });
-},
-async getKeys(req: GetKeys) : Promise<GetKeysResponse> {
-    return await TAURI_INVOKE("get_keys", { req });
+async renameWallet(req: RenameWallet) : Promise<RenameWalletResponse> {
+    return await TAURI_INVOKE("rename_wallet", { req });
 },
 async setWalletEmoji(req: SetWalletEmoji) : Promise<SetWalletEmojiResponse> {
     return await TAURI_INVOKE("set_wallet_emoji", { req });
 },
-async getKey(req: GetKey) : Promise<GetKeyResponse> {
-    return await TAURI_INVOKE("get_key", { req });
+async getWallet(req: GetWallet) : Promise<GetWalletResponse> {
+    return await TAURI_INVOKE("get_wallet", { req });
+},
+async getWallets(req: GetWallets) : Promise<GetWalletsResponse> {
+    return await TAURI_INVOKE("get_wallets", { req });
 },
 async getWalletAddress(req: GetWalletAddress) : Promise<GetWalletAddressResponse> {
     return await TAURI_INVOKE("get_wallet_address", { req });
+},
+async getKey(req: GetKey) : Promise<GetKeyResponse> {
+    return await TAURI_INVOKE("get_key", { req });
+},
+async getKeys(req: GetKeys) : Promise<GetKeysResponse> {
+    return await TAURI_INVOKE("get_keys", { req });
+},
+async addKey(req: AddKey) : Promise<AddKeyResponse> {
+    return await TAURI_INVOKE("add_key", { req });
+},
+async deleteKey(req: DeleteKey) : Promise<DeleteKeyResponse> {
+    return await TAURI_INVOKE("delete_key", { req });
 },
 async getSecretKey(req: GetSecretKey) : Promise<GetSecretKeyResponse> {
     return await TAURI_INVOKE("get_secret_key", { req });
@@ -98,6 +125,9 @@ async transferOptions(req: TransferOptions) : Promise<TransactionResponse> {
 async exerciseOptions(req: ExerciseOptions) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("exercise_options", { req });
 },
+async cancelOptions(req: CancelOptions) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("cancel_options", { req });
+},
 async addNftUri(req: AddNftUri) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("add_nft_uri", { req });
 },
@@ -106,6 +136,9 @@ async assignNftsToDid(req: AssignNftsToDid) : Promise<TransactionResponse> {
 },
 async finalizeClawback(req: FinalizeClawback) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("finalize_clawback", { req });
+},
+async claimClawback(req: ClaimClawback) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("claim_clawback", { req });
 },
 async createTransaction(req: CreateTransaction) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("create_transaction", { req });
@@ -133,6 +166,42 @@ async performDatabaseMaintenance(req: PerformDatabaseMaintenance) : Promise<Perf
 },
 async checkAddress(req: CheckAddress) : Promise<CheckAddressResponse> {
     return await TAURI_INVOKE("check_address", { req });
+},
+async resolveHandle(req: ResolveHandle) : Promise<ResolveHandleResponse> {
+    return await TAURI_INVOKE("resolve_handle", { req });
+},
+async getHandle(req: GetHandle) : Promise<GetHandleResponse> {
+    return await TAURI_INVOKE("get_handle", { req });
+},
+async getHandles(req: GetHandles) : Promise<GetHandlesResponse> {
+    return await TAURI_INVOKE("get_handles", { req });
+},
+async lookupAddressHandles(req: LookupAddressHandles) : Promise<LookupAddressHandlesResponse> {
+    return await TAURI_INVOKE("lookup_address_handles", { req });
+},
+async getContacts(req: GetContacts) : Promise<GetContactsResponse> {
+    return await TAURI_INVOKE("get_contacts", { req });
+},
+async getContact(req: GetContact) : Promise<GetContactResponse> {
+    return await TAURI_INVOKE("get_contact", { req });
+},
+async addContact(req: AddContact) : Promise<AddContactResponse> {
+    return await TAURI_INVOKE("add_contact", { req });
+},
+async updateContact(req: UpdateContact) : Promise<UpdateContactResponse> {
+    return await TAURI_INVOKE("update_contact", { req });
+},
+async deleteContact(req: DeleteContact) : Promise<DeleteContactResponse> {
+    return await TAURI_INVOKE("delete_contact", { req });
+},
+async lookupAddressContacts(req: LookupAddressContacts) : Promise<LookupAddressContactsResponse> {
+    return await TAURI_INVOKE("lookup_address_contacts", { req });
+},
+async exportContacts(req: ExportContacts) : Promise<ExportContactsResponse> {
+    return await TAURI_INVOKE("export_contacts", { req });
+},
+async importContacts(req: ImportContacts) : Promise<ImportContactsResponse> {
+    return await TAURI_INVOKE("import_contacts", { req });
 },
 async getDerivations(req: GetDerivations) : Promise<GetDerivationsResponse> {
     return await TAURI_INVOKE("get_derivations", { req });
@@ -191,6 +260,9 @@ async getNftIcon(req: GetNftIcon) : Promise<GetNftIconResponse> {
 async getNftThumbnail(req: GetNftThumbnail) : Promise<GetNftThumbnailResponse> {
     return await TAURI_INVOKE("get_nft_thumbnail", { req });
 },
+async getNftMetadataUpdater(req: GetNftMetadataUpdater) : Promise<GetNftMetadataUpdaterResponse> {
+    return await TAURI_INVOKE("get_nft_metadata_updater", { req });
+},
 async getPendingTransactions(req: GetPendingTransactions) : Promise<GetPendingTransactionsResponse> {
     return await TAURI_INVOKE("get_pending_transactions", { req });
 },
@@ -242,6 +314,9 @@ async networkConfig() : Promise<NetworkConfig> {
 async setDiscoverPeers(req: SetDiscoverPeers) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_discover_peers", { req });
 },
+async setMempoolDiscovery(req: SetMempoolDiscovery) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_mempool_discovery", { req });
+},
 async setTargetPeers(req: SetTargetPeers) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_target_peers", { req });
 },
@@ -271,6 +346,9 @@ async setDeltaSyncOverride(req: SetDeltaSyncOverride) : Promise<EmptyResponse> {
 },
 async setChangeAddress(req: SetChangeAddress) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_change_address", { req });
+},
+async setTransactionExpiration(req: SetTransactionExpiration) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_transaction_expiration", { req });
 },
 async updateCat(req: UpdateCat) : Promise<UpdateCatResponse> {
     return await TAURI_INVOKE("update_cat", { req });
@@ -332,6 +410,12 @@ async signMessageByAddress(req: SignMessageByAddress) : Promise<SignMessageByAdd
 async sendTransactionImmediately(req: SendTransactionImmediately) : Promise<SendTransactionImmediatelyResponse> {
     return await TAURI_INVOKE("send_transaction_immediately", { req });
 },
+async getSelectedTheme(req: GetSelectedTheme) : Promise<GetSelectedThemeResponse> {
+    return await TAURI_INVOKE("get_selected_theme", { req });
+},
+async setSelectedTheme(req: SetSelectedTheme) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_selected_theme", { req });
+},
 async isRpcRunning() : Promise<boolean> {
     return await TAURI_INVOKE("is_rpc_running");
 },
@@ -346,6 +430,18 @@ async getRpcRunOnStartup() : Promise<boolean> {
 },
 async setRpcRunOnStartup(runOnStartup: boolean) : Promise<null> {
     return await TAURI_INVOKE("set_rpc_run_on_startup", { runOnStartup });
+},
+async getRpcPort() : Promise<number> {
+    return await TAURI_INVOKE("get_rpc_port");
+},
+async setRpcPort(port: number) : Promise<null> {
+    return await TAURI_INVOKE("set_rpc_port", { port });
+},
+async getLogLevel() : Promise<string> {
+    return await TAURI_INVOKE("get_log_level");
+},
+async setLogLevel(level: string) : Promise<null> {
+    return await TAURI_INVOKE("set_log_level", { level });
 },
 async switchWallet() : Promise<null> {
     return await TAURI_INVOKE("switch_wallet");
@@ -364,6 +460,9 @@ async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
 },
 async getXchUsdPrice(req: GetXchUsdPrice) : Promise<GetXchUsdPriceResponse> {
     return await TAURI_INVOKE("get_xch_usd_price", { req });
+},
+async getFeeRate(req: GetFeeRate) : Promise<GetFeeRateResponse> {
+    return await TAURI_INVOKE("get_fee_rate", { req });
 },
 async appsEnterWorkspace() : Promise<null> {
     return await TAURI_INVOKE("apps_enter_workspace");
@@ -456,6 +555,35 @@ syncEvent: "sync-event"
 
 export type Action = ({ type: "send" } & SendAction) | ({ type: "mint_nft" } & MintNftAction) | ({ type: "update_nft" } & UpdateNftAction) | ({ type: "fee" } & FeeAction)
 /**
+ * Add a contact to the address book
+ */
+export type AddContact = { name: string; 
+/**
+ * An address on the current network, or a handle written as `@handle`
+ */
+recipient: string; note?: string | null }
+/**
+ * Response with the new contact
+ */
+export type AddContactResponse = { contact: ContactRecord }
+/**
+ * Add a key to the keychain
+ */
+export type AddKey = { 
+/**
+ * Mnemonic phrase, or hex encoded secret or public key. A mnemonic or secret key is stored
+ * with its secret key
+ */
+key: string }
+/**
+ * Response with the added key
+ */
+export type AddKeyResponse = { 
+/**
+ * Fingerprint of the key
+ */
+fingerprint: number }
+/**
  * Add a URI to an NFT
  */
 export type AddNftUri = { 
@@ -472,6 +600,12 @@ uri: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Type of URI
  */
 kind: NftUriKind; 
@@ -484,9 +618,56 @@ auto_submit?: boolean }
  */
 export type AddPeer = { 
 /**
- * IP address or hostname with port
+ * IP address of the peer, which is connected to on the network's default port
  */
 ip: string }
+/**
+ * Watch more addresses in a watch wallet
+ */
+export type AddWatchAddresses = { 
+/**
+ * Fingerprint of the watch wallet
+ */
+fingerprint: number; 
+/**
+ * Addresses to watch, on any network
+ */
+addresses: string[] }
+/**
+ * Response for adding watched addresses
+ */
+export type AddWatchAddressesResponse = Record<string, never>
+/**
+ * The contacts which name an address
+ */
+export type AddressContactsRecord = { 
+/**
+ * The address or puzzle hash, as it was given
+ */
+address: string; 
+/**
+ * Contacts for this address, sorted by name. These are address contacts for it, and
+ * handle contacts whose stored mapping is verified, unexpired and resolves to it. Handle
+ * contacts whose mapping is outdated should be resolved again before they're relied on.
+ * A handle contact whose handle changed hands since it was last used, so that
+ * `resolution.changed_from` is set, is listed for the new address, which may belong to
+ * someone else; it must be shown with a warning, never as the contact
+ */
+contacts: ContactRecord[] }
+/**
+ * The known handles which resolve to an address
+ */
+export type AddressHandlesRecord = { 
+/**
+ * The address or puzzle hash, as it was given
+ */
+address: string; 
+/**
+ * Unexpired handles which resolve to it, sorted by handle. Only mappings which are
+ * verified or outdated are included, and outdated ones should be resolved again before
+ * they're relied on
+ */
+handles: HandleRecord[] }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
 export type Amount = string | number
 export type AppLaunchGateResult = { allowed: boolean; kind: string; capability: SandboxCapability | null; message: string | null }
@@ -515,6 +696,12 @@ did_id: string | null;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -538,6 +725,12 @@ max_coin_amount: Amount | null;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -575,6 +768,12 @@ max_coin_amount: Amount | null;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -611,9 +810,21 @@ did_id: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Response for bulk NFT minting
  */
@@ -651,6 +862,12 @@ amount: Amount;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to include the CAT hint
  */
 include_hint?: boolean; 
@@ -661,7 +878,13 @@ memos?: string[];
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Send XCH to multiple addresses
  */
@@ -679,13 +902,25 @@ amount: Amount;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Optional memos
  */
 memos?: string[]; 
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Cancel an offer on-chain
  */
@@ -699,9 +934,19 @@ offer_id: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Cancel multiple offers
  */
@@ -714,6 +959,38 @@ offer_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean; 
+/**
+ * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
+/**
+ * Cancel options
+ */
+export type CancelOptions = { 
+/**
+ * Option IDs to cancel
+ */
+option_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -735,6 +1012,28 @@ export type CheckAddressResponse = {
  */
 valid: boolean }
 /**
+ * Claim Clawback
+ */
+export type ClaimClawback = { 
+/**
+ * The coins to claim from the clawback v1 coin.
+ */
+coin_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
  * Coin structure
  */
 export type Coin = { 
@@ -752,8 +1051,8 @@ puzzle_hash: string;
 amount: Amount }
 export type CoinFilterMode = "all" | "selectable" | "owned" | "spent" | "clawback"
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
-export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null }
-export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height" | "clawback_timestamp"
+export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; clawback_version: number | null; clawback_is_sender: boolean | null; clawback_is_receiver: boolean | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null }
+export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height" | "clawback_timestamp" | "clawback_version"
 /**
  * Coin spend structure
  */
@@ -784,6 +1083,12 @@ coin_ids: string[];
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -803,6 +1108,92 @@ export type CombineOffersResponse = {
  * Combined offer string
  */
 offer: string }
+/**
+ * A contact in a portable form, for export and import
+ */
+export type ContactEntry = { name: string; 
+/**
+ * An address on the current network, or a handle written as `@handle`
+ */
+recipient: string; note?: string | null }
+/**
+ * What a contact names
+ */
+export type ContactKind = 
+/**
+ * A raw address
+ */
+"address" | 
+/**
+ * An XCHandles handle, which is resolved to an address when it's used
+ */
+"handle"
+/**
+ * A named entry in the address book
+ */
+export type ContactRecord = { 
+/**
+ * Stable identifier of the contact
+ */
+id: number; 
+/**
+ * The contact's name. No two contacts on the network have names which look the same,
+ * ignoring case, whitespace and invisible characters like zero-width joiners
+ */
+name: string; 
+/**
+ * A private note about the contact
+ */
+note: string | null; 
+/**
+ * Whether the contact is a raw address or an XCHandles handle
+ */
+kind: ContactKind; 
+/**
+ * What to enter as a recipient to send to this contact: the address, or the handle
+ * written as `@handle`. Handles are resolved and checked for changes when they're used
+ */
+recipient: string; 
+/**
+ * The handle, without the leading `@`, for handle contacts
+ */
+handle: string | null; 
+/**
+ * The address for address contacts. For handle contacts, the address the handle was
+ * last verified as resolving to, if it has ever been resolved. Check `resolution` before
+ * relying on it, since it may be outdated, unverified or changed
+ */
+address: string | null; 
+/**
+ * The stored mapping for handle contacts which have been resolved, including its
+ * verification state, the address it changed from and the address last sent to. It is
+ * read from the local store, so it is always marked as cached
+ */
+resolution: HandleRecord | null; 
+/**
+ * Unix timestamp the contact was created at
+ */
+created_at: number; 
+/**
+ * Unix timestamp the contact's name or note was last changed at
+ */
+updated_at: number }
+/**
+ * Why an imported contact wasn't added
+ */
+export type ContactSkipReason = 
+/**
+ * The name or recipient isn't valid on this network
+ */
+"invalid" | 
+/**
+ * A contact for the same recipient already exists. It's kept unchanged
+ */
+"duplicate_recipient" | 
+/**
+ * A contact for a different recipient already has this name
+ */
+"duplicate_name"
 export type CorruptedInstalledSageApp = { id: string; icon?: SageAppIconView | null; appDir: string; error: string; manifestHeader?: SageAppManifestRecoveryHeaderV0 | null; source?: UserSageAppSource | null; compatibility?: SageAppCompatibility | null }
 /**
  * Create a new DID
@@ -816,6 +1207,12 @@ name: string;
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -831,9 +1228,28 @@ selected_coin_ids?: string[];
  */
 actions: Action[]; 
 /**
+ * Fee rate in mojos per cost. When set, a fee is added until the transaction's fee covers
+ * its cost at this rate, including the coins that pay it, on top of any fee actions
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
+/**
+ * Delete a contact from the address book
+ */
+export type DeleteContact = { id: number }
+/**
+ * Response for contact deletion
+ */
+export type DeleteContactResponse = Record<string, never>
 /**
  * Delete a wallet database
  */
@@ -845,21 +1261,26 @@ fingerprint: number;
 /**
  * Network name
  */
-network: string }
+network: string; 
+/**
+ * Whether to also delete the database shared by the wallets on the wallet's network, which
+ * holds the address book and handle mappings
+ */
+shared?: boolean }
 /**
  * Response for database deletion
  */
 export type DeleteDatabaseResponse = Record<string, never>
 /**
- * Delete a wallet key
+ * Remove a key from the keychain
  */
 export type DeleteKey = { 
 /**
- * Wallet fingerprint to delete
+ * Key fingerprint
  */
 fingerprint: number }
 /**
- * Response for key deletion
+ * Response for key removal
  */
 export type DeleteKeyResponse = Record<string, never>
 /**
@@ -883,12 +1304,46 @@ export type DeleteUserTheme = {
  */
 nft_id: string }
 export type DeleteUserThemeResponse = Record<string, never>
+/**
+ * Delete a wallet
+ */
+export type DeleteWallet = { 
+/**
+ * Wallet fingerprint to delete
+ */
+fingerprint: number; 
+/**
+ * Whether to also remove the keys the wallet uses from the keychain, such as a BLS
+ * wallet's own key. Keys that another wallet still uses are kept regardless
+ */
+delete_keys?: boolean }
+/**
+ * Response for wallet deletion
+ */
+export type DeleteWalletResponse = Record<string, never>
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
 export type EnvironmentThemeView = { name: string; displayName: string; mostLike?: string | null; inherits?: string | null; cssVars: Partial<{ [key in string]: string }> }
-export type Error = { kind: ErrorKind; reason: string }
-export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
+export type Error = { kind: ErrorKind; reason: string; 
+/**
+ * Why an XCHandles request failed, if it did.
+ */
+handle_error_code?: HandleErrorCode | null; 
+/**
+ * The recipients which couldn't be used, if that's why the request failed.
+ */
+recipients?: RecipientError[] | null }
+export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | 
+/**
+ * The database shared by the wallets on a network, which holds the address book and handle
+ * mappings, couldn't be migrated. Deleting the wallet's own database doesn't fix this.
+ */
+"shared_database_migration" | "nfc" | 
+/**
+ * One or more recipients couldn't be used. See the attached recipient errors.
+ */
+"recipient" | "already_running"
 /**
  * Exercise options
  */
@@ -902,14 +1357,68 @@ option_ids: string[];
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
+/**
+ * Export the address book
+ */
+export type ExportContacts = Record<string, never>
+/**
+ * Response with the exported address book
+ */
+export type ExportContactsResponse = { 
+/**
+ * The network the contacts are for
+ */
+network_id: string; 
+/**
+ * The contacts, sorted by name
+ */
+contacts: ContactEntry[] }
 export type FeeAction = { 
 /**
  * The fee amount, in mojos
  */
 amount: Amount }
+/**
+ * A fee rate estimated to get a transaction confirmed within a target time
+ */
+export type FeeTier = { 
+/**
+ * Which tier this is
+ */
+name: FeeTierName; 
+/**
+ * How long, in seconds, a transaction paying this rate is expected to take to confirm
+ */
+target_time: number; 
+/**
+ * The fee rate, in mojos per cost. It's never below the minimum fee rate.
+ */
+fee_per_cost: number }
+/**
+ * A tier of fee rates, by how quickly the transaction is confirmed
+ */
+export type FeeTierName = 
+/**
+ * Within about a minute
+ */
+"fast" | 
+/**
+ * Within about five minutes
+ */
+"standard" | 
+/**
+ * Within about an hour
+ */
+"economy"
 /**
  * Filter unlocked coins from a list
  */
@@ -927,7 +1436,7 @@ export type FilterUnlockedCoinsResponse = {
  */
 coin_ids: string[] }
 /**
- * Send CAT tokens to an address
+ * Finalize the clawback for a set of coins
  */
 export type FinalizeClawback = { 
 /**
@@ -938,6 +1447,12 @@ coin_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -1075,6 +1590,47 @@ coins: CoinRecord[];
  */
 total: number }
 /**
+ * Get a contact from the address book
+ */
+export type GetContact = { id: number }
+/**
+ * Response with a contact
+ */
+export type GetContactResponse = { contact: ContactRecord }
+/**
+ * List contacts in the address book
+ */
+export type GetContacts = { 
+/**
+ * Only list contacts whose name, note or handle contains this text, ignoring ASCII
+ * case. An address or puzzle hash also matches the contacts which name it
+ */
+search?: string | null; 
+/**
+ * Only list contacts of this kind
+ */
+kind?: ContactKind | null; 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of contacts to return
+ */
+limit: number }
+/**
+ * Response with contacts
+ */
+export type GetContactsResponse = { 
+/**
+ * The contacts, sorted by name
+ */
+contacts: ContactRecord[]; 
+/**
+ * Total number of contacts matching the search
+ */
+total: number }
+/**
  * Retrieve database statistics
  */
 export type GetDatabaseStats = Record<string, never>
@@ -1151,13 +1707,105 @@ export type GetDidsResponse = {
  */
 dids: DidRecord[] }
 /**
- * Get a specific wallet key
+ * Get the fee rate to price transactions at
+ */
+export type GetFeeRate = Record<string, never>
+export type GetFeeRateResponse = { 
+/**
+ * The recommended fee rate, in mojos per cost, used when there's no estimate to go by
+ */
+fee_per_cost: number; 
+/**
+ * The lowest fee rate, in mojos per cost, at which a transaction is admitted to a full
+ * mempool and included in blocks by farmers that enforce a minimum fee. A transaction
+ * paying less may never be confirmed.
+ */
+minimum_fee_per_cost: number; 
+/**
+ * The fee rates estimated to get a transaction confirmed within each tier's target time,
+ * fastest first. It's empty if the network has no Coinset API to estimate them with, or
+ * the estimate couldn't be fetched.
+ */
+tiers: FeeTier[] }
+/**
+ * Get the full verified details of an XCHandles handle
+ */
+export type GetHandle = { 
+/**
+ * The handle, with or without a leading `@`
+ */
+handle: string }
+/**
+ * Response with the full verified details of a handle
+ */
+export type GetHandleResponse = { 
+/**
+ * The verified handle mapping
+ */
+handle: HandleRecord; 
+/**
+ * The registry slot the mapping was verified against
+ */
+slot: HandleSlotRecord; 
+/**
+ * Whether a transfer of the handle is pending
+ */
+pending_transfer_status: PendingTransferStatus; 
+/**
+ * The pending transfer reported by the API, unless the status is none or unavailable
+ */
+pending_transfer: PendingTransferRecord | null }
+/**
+ * List the handles Sage knows about
+ */
+export type GetHandles = { 
+/**
+ * Which handles to list
+ */
+filter?: HandleFilterMode; 
+/**
+ * Also list mappings which are unverified, stale or expired. Outdated mappings are
+ * always listed
+ */
+include_unverified?: boolean; 
+/**
+ * Verify the handles named by NFTs in this wallet before listing. This makes requests
+ * to the XCHandles API and peers
+ */
+refresh?: boolean; 
+/**
+ * Only list handles which contain this text, ignoring ASCII case and a leading `@`. An
+ * address or puzzle hash also matches the handles which resolve to it
+ */
+search?: string | null; 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of handles to return
+ */
+limit: number }
+/**
+ * Response with known handles
+ */
+export type GetHandlesResponse = { 
+/**
+ * The handles, sorted by handle
+ */
+handles: HandleRecord[]; 
+/**
+ * Total number of handles matching the filter
+ */
+total: number }
+/**
+ * Get a specific key from the keychain
  */
 export type GetKey = { 
 /**
- * Wallet fingerprint (uses currently logged in if null)
+ * Key fingerprint
  */
-fingerprint?: number | null }
+fingerprint: number }
 /**
  * Response with key information
  */
@@ -1167,15 +1815,15 @@ export type GetKeyResponse = {
  */
 key: KeyInfo | null }
 /**
- * List all wallet keys
+ * List all keys in the keychain
  */
 export type GetKeys = Record<string, never>
 /**
- * Response with all wallet keys
+ * Response with all keys in the keychain
  */
 export type GetKeysResponse = { 
 /**
- * List of wallet keys
+ * List of keys
  */
 keys: KeyInfo[] }
 /**
@@ -1307,6 +1955,26 @@ export type GetNftIconResponse = {
  */
 icon: string | null }
 /**
+ * Get the metadata updater of any NFT, including ones not in the wallet
+ */
+export type GetNftMetadataUpdater = { 
+/**
+ * NFT launcher ID
+ */
+nft_id: string }
+/**
+ * Response with an NFT's metadata updater kind
+ */
+export type GetNftMetadataUpdaterResponse = { 
+/**
+ * The metadata updater kind, or null if the NFT couldn't be found
+ */
+metadata_updater_kind: NftUpdaterKind | null; 
+/**
+ * The NFT's name, if it's known
+ */
+name: string | null }
+/**
  * Response with NFT details
  */
 export type GetNftResponse = { 
@@ -1397,7 +2065,35 @@ offer: OfferRecord }
 /**
  * List all offers
  */
-export type GetOffers = Record<string, never>
+export type GetOffers = { 
+/**
+ * Starting offset for pagination
+ */
+offset?: number | null; 
+/**
+ * Maximum number of offers to return (all when omitted)
+ */
+limit?: number | null; 
+/**
+ * Only return offers with this status
+ */
+status?: OfferRecordStatus | null; 
+/**
+ * Search by asset name, ticker, asset/offer id, or NFT/DID/option address
+ */
+find_value?: string | null; 
+/**
+ * Which side of the offer the search applies to (defaults to any)
+ */
+find_side?: OfferFindSide | null; 
+/**
+ * Sort column (defaults to creation time)
+ */
+sort_mode?: OfferSortMode | null; 
+/**
+ * Sort ascending (defaults to false, newest first)
+ */
+ascending?: boolean }
 /**
  * Get offers for a specific asset
  */
@@ -1421,7 +2117,11 @@ export type GetOffersResponse = {
 /**
  * List of offers
  */
-offers: OfferRecord[] }
+offers: OfferRecord[]; 
+/**
+ * Total number of offers matching the filters, before paging
+ */
+total: number }
 /**
  * Get a specific option
  */
@@ -1465,7 +2165,11 @@ find_value: string | null;
 /**
  * Include hidden options
  */
-include_hidden?: boolean }
+include_hidden?: boolean; 
+/**
+ * Which options to list (defaults to owned options)
+ */
+filter?: OptionFilter }
 /**
  * Response with options list
  */
@@ -1515,9 +2219,22 @@ fingerprint: number }
  */
 export type GetSecretKeyResponse = { 
 /**
- * Secret key information if authorized
+ * Secret key information, or null if the key isn't in the keychain or only its public key is
+ * stored
  */
 secrets: SecretKeyInfo | null }
+/**
+ * Get the UI theme the user last selected
+ */
+export type GetSelectedTheme = Record<string, never>
+/**
+ * Response with the selected UI theme
+ */
+export type GetSelectedThemeResponse = { 
+/**
+ * Theme name, if one has been selected
+ */
+theme: string | null }
 /**
  * Get the count of spendable coins
  */
@@ -1669,7 +2386,7 @@ theme: string | null }
 export type GetUserThemes = Record<string, never>
 export type GetUserThemesResponse = { 
 /**
- * List of theme NFT IDs
+ * The JSON of each saved theme
  */
 themes: string[] }
 /**
@@ -1684,6 +2401,14 @@ export type GetVersionResponse = {
  * Semantic version string
  */
 version: string }
+/**
+ * Get a specific wallet
+ */
+export type GetWallet = { 
+/**
+ * Wallet fingerprint (uses currently logged in if null)
+ */
+fingerprint?: number | null }
 /**
  * Get the receive address for any wallet without switching sessions
  */
@@ -1704,8 +2429,261 @@ export type GetWalletAddressResponse = {
  * The wallet's current receive address
  */
 address: string }
+/**
+ * Response with wallet information
+ */
+export type GetWalletResponse = { 
+/**
+ * Wallet information if found
+ */
+wallet: WalletInfo | null }
+/**
+ * List all wallets
+ */
+export type GetWallets = Record<string, never>
+/**
+ * Response with all wallets
+ */
+export type GetWalletsResponse = { 
+/**
+ * List of wallets
+ */
+wallets: WalletInfo[] }
 export type GetXchUsdPrice = Record<string, never>
 export type GetXchUsdPriceResponse = { usd: number }
+/**
+ * Confirms that a handle recipient was reviewed while it resolved to an address.
+ * 
+ * A transaction to a handle is rejected if the handle no longer resolves to the confirmed
+ * address. Confirming the address the handle resolves to now also acknowledges a change
+ * from the address it resolved to before, or from the address last sent to.
+ */
+export type HandleConfirmation = { 
+/**
+ * The handle, with or without a leading `@`
+ */
+handle: string; 
+/**
+ * The address the handle was reviewed as resolving to
+ */
+address: string }
+/**
+ * Why an XCHandles request failed
+ */
+export type HandleErrorCode = 
+/**
+ * The handle isn't syntactically valid
+ */
+"invalid_handle" | 
+/**
+ * XCHandles isn't deployed on the current network
+ */
+"unsupported_network" | 
+/**
+ * The handle isn't registered
+ */
+"not_found" | 
+/**
+ * The handle has expired
+ */
+"expired" | 
+/**
+ * The API or peers were unavailable or behind, so the handle couldn't be verified
+ * right now. Retrying later may succeed
+ */
+"unavailable" | 
+/**
+ * The API's answer failed verification against the chain
+ */
+"verification_failed"
+/**
+ * Which known handles to list
+ */
+export type HandleFilterMode = 
+/**
+ * Every handle Sage knows about
+ */
+"all" | 
+/**
+ * Handles whose owner NFT or DID is in this wallet
+ */
+"owned" | 
+/**
+ * Handles saved in the address book
+ */
+"contacts"
+/**
+ * A handle mapping which was verified against the chain
+ */
+export type HandleRecord = { 
+/**
+ * The handle, without the leading `@`
+ */
+handle: string; 
+/**
+ * The hash the registry stores the handle under
+ */
+handle_hash: string; 
+/**
+ * The address the handle resolves to
+ */
+address: string; 
+/**
+ * Whether the resolved address is new since it was last verified
+ */
+status: HandleStatus; 
+/**
+ * The address the handle resolved to before it changed, while the change is
+ * unacknowledged
+ */
+previous_address: string | null; 
+/**
+ * The address this handle last resolved to when it was sent to
+ */
+last_sent_address: string | null; 
+/**
+ * The address a send to this handle has to confirm the new address against, if any.
+ * This is the previous address while a change is unacknowledged, or otherwise the
+ * address last sent to if the handle now resolves somewhere else.
+ */
+changed_from: string | null; 
+/**
+ * Whether the mapping was verified against the chain before this request, rather
+ * than by it. Resolutions are only cached when the handle could not be verified right
+ * now, while mappings listed from the store are always cached
+ */
+cached: boolean; 
+/**
+ * Whether the stored mapping can currently be relied on
+ */
+verification: HandleVerification; 
+/**
+ * Why the mapping is no longer verified, if it isn't
+ */
+verification_reason: string | null; 
+/**
+ * Launcher ID of the singleton which owns the handle
+ */
+owner_launcher_id: string; 
+/**
+ * Launcher ID of the singleton the handle resolves to
+ */
+resolved_launcher_id: string; 
+/**
+ * Unix timestamp after which the handle expires
+ */
+expiration: number; 
+/**
+ * The handle's registry slot coin
+ */
+slot_coin_id: string; 
+/**
+ * Height the slot coin was confirmed at
+ */
+slot_confirmation_height: number; 
+/**
+ * The resolved singleton coin the address was derived from
+ */
+resolved_coin_id: string; 
+/**
+ * Height the resolved singleton coin was confirmed at
+ */
+resolved_confirmation_height: number; 
+/**
+ * The latest height at which the slot or the resolved singleton changed, so the
+ * latest height at which the address this handle resolves to could have changed. The
+ * slot is also recreated by activity on neighboring handles, so this can be later
+ * than the last time the handle itself was updated.
+ */
+updated_height: number; 
+/**
+ * Height of the peak transaction block the mapping was verified at
+ */
+verified_height: number; 
+/**
+ * Timestamp of the peak transaction block the mapping was verified at
+ */
+verified_timestamp: number; 
+/**
+ * Local Unix timestamp of the verification
+ */
+last_verified_at: number }
+/**
+ * The registry slot a handle was verified against
+ */
+export type HandleSlotRecord = { 
+/**
+ * Launcher ID of the registry singleton the handle is registered in
+ */
+registry_launcher_id: string; 
+/**
+ * The slot's counter, which increases whenever the handle's slot is updated
+ */
+counter: number; 
+/**
+ * Hash of the neighboring handle before this one in the registry
+ */
+left_handle_hash: string; 
+/**
+ * Hash of the neighboring handle after this one in the registry
+ */
+right_handle_hash: string; 
+/**
+ * The registry coin which created the slot
+ */
+parent_id: string; 
+/**
+ * The parent of the registry coin which created the slot
+ */
+parent_parent_id: string; 
+/**
+ * Inner puzzle hash of the registry coin which created the slot
+ */
+parent_inner_puzzle_hash: string; 
+/**
+ * The API's indexed peak height when the handle was last fetched
+ */
+indexed_height: number }
+/**
+ * Whether a verified handle mapping has changed
+ */
+export type HandleStatus = 
+/**
+ * The handle resolves to the same address as when it was first verified, or the
+ * change has been acknowledged
+ */
+"verified" | 
+/**
+ * The handle now resolves to a different address than it did previously
+ */
+"changed"
+/**
+ * Whether a stored handle mapping can currently be relied on
+ */
+export type HandleVerification = 
+/**
+ * The values were verified against the chain by the most recent lookup, within the
+ * last day
+ */
+"verified" | 
+/**
+ * The values were verified by the most recent lookup, but more than a day ago, so the
+ * handle may have changed since. Resolve it again before relying on it
+ */
+"outdated" | 
+/**
+ * The most recent lookup was rejected, or showed the handle is no longer registered,
+ * so the values are only the last ones that were verified
+ */
+"unverified" | 
+/**
+ * The values must be verified again before they are used, for example after a reorg
+ */
+"stale" | 
+/**
+ * The handle has expired since it was last verified
+ */
+"expired"
 export type Id = 
 /**
  * The XCH asset
@@ -1720,49 +2698,25 @@ export type Id =
  */
 { type: "new"; index: number }
 /**
- * Import a wallet key
+ * Import contacts into the address book
  */
-export type ImportKey = { 
+export type ImportContacts = { 
 /**
- * Display name for the wallet
+ * The network the contacts were exported from, which must be the current network
  */
-name: string; 
+network_id: string; contacts: ContactEntry[] }
 /**
- * Mnemonic phrase or private key
+ * Response with the outcome of an import
  */
-key: string; 
+export type ImportContactsResponse = { 
 /**
- * Starting derivation index
+ * The contacts which were added
  */
-derivation_index?: number; 
+added: ContactRecord[]; 
 /**
- * Optional hardened derivation count
+ * The entries which weren't added, and why
  */
-hardened?: boolean | null; 
-/**
- * Optional unhardened derivation count
- */
-unhardened?: boolean | null; 
-/**
- * Whether to save secrets to keychain
- */
-save_secrets?: boolean; 
-/**
- * Whether to automatically login after import
- */
-login?: boolean; 
-/**
- * Optional emoji identifier
- */
-emoji?: string | null }
-/**
- * Response with imported key fingerprint
- */
-export type ImportKeyResponse = { 
-/**
- * Fingerprint of the imported key
- */
-fingerprint: number }
+skipped: SkippedContact[] }
 /**
  * Import an offer
  */
@@ -1779,6 +2733,78 @@ export type ImportOfferResponse = {
  * ID of the imported offer
  */
 offer_id: string }
+/**
+ * Import a BLS wallet from a key
+ */
+export type ImportWallet = { 
+/**
+ * Display name for the wallet
+ */
+name: string; 
+/**
+ * Mnemonic phrase, or hex encoded private or public key
+ */
+key: string; 
+/**
+ * Number of addresses of each enabled kind to derive up front
+ */
+derivation_index?: number; 
+/**
+ * Whether to derive hardened addresses (defaults to true). Needs a secret key
+ */
+hardened?: boolean | null; 
+/**
+ * Whether to derive unhardened addresses (defaults to true)
+ */
+unhardened?: boolean | null; 
+/**
+ * Whether to save secrets to keychain
+ */
+save_secrets?: boolean; 
+/**
+ * Whether to automatically login after import
+ */
+login?: boolean; 
+/**
+ * Optional emoji identifier
+ */
+emoji?: string | null }
+/**
+ * Response with the imported wallet's fingerprint
+ */
+export type ImportWalletResponse = { 
+/**
+ * Fingerprint of the imported wallet, which is also its key's fingerprint
+ */
+fingerprint: number }
+/**
+ * Import a watch-only wallet from addresses
+ */
+export type ImportWatchWallet = { 
+/**
+ * Display name for the wallet
+ */
+name: string; 
+/**
+ * Addresses to watch, on any network. The first one is the receive address
+ */
+addresses: string[]; 
+/**
+ * Whether to automatically login after import
+ */
+login?: boolean; 
+/**
+ * Optional emoji identifier
+ */
+emoji?: string | null }
+/**
+ * Response with the imported watch wallet's fingerprint
+ */
+export type ImportWatchWalletResponse = { 
+/**
+ * Fingerprint assigned to the wallet. It's derived from its addresses, since it has no key
+ */
+fingerprint: number }
 /**
  * Increase the derivation index to generate more addresses
  */
@@ -1841,11 +2867,35 @@ revocable?: boolean;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
-export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; network_id: string; emoji: string | null }
-export type KeyKind = "bls"
+/**
+ * Public information about a key in the keychain
+ */
+export type KeyInfo = { fingerprint: number; kind: KeyKind; 
+/**
+ * The hex encoded public key. For BLS keys, this is the master public key
+ */
+public_key: string; 
+/**
+ * Whether the keychain holds the secret key, rather than only the public key
+ */
+has_secrets: boolean }
+/**
+ * The kind of a key in the keychain
+ */
+export type KeyKind = 
+/**
+ * A BLS key, which can be a wallet of its own
+ */
+"bls"
 /**
  * Lineage proof for CAT coins
  */
@@ -1885,6 +2935,38 @@ export type Logout = Record<string, never>
  */
 export type LogoutResponse = Record<string, never>
 /**
+ * Look up the contacts for addresses
+ */
+export type LookupAddressContacts = { 
+/**
+ * Addresses on the current network, or hex encoded puzzle hashes
+ */
+addresses: string[] }
+/**
+ * Response with the contacts for each address
+ */
+export type LookupAddressContactsResponse = { 
+/**
+ * One entry per requested address, in the same order
+ */
+results: AddressContactsRecord[] }
+/**
+ * Look up the known handles for addresses
+ */
+export type LookupAddressHandles = { 
+/**
+ * Addresses on the current network, or hex encoded puzzle hashes
+ */
+addresses: string[] }
+/**
+ * Response with the known handles for each address
+ */
+export type LookupAddressHandlesResponse = { 
+/**
+ * One entry per requested address, in the same order
+ */
+results: AddressHandlesRecord[] }
+/**
  * Create a new offer
  */
 export type MakeOffer = { 
@@ -1915,7 +2997,28 @@ auto_import?: boolean;
 /**
  * Optional specific coin IDs to use for the offer instead of auto-selecting
  */
-coin_ids?: string[] | null }
+coin_ids?: string[] | null; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[]; 
+/**
+ * If set, the XCH and CAT coins the offer would spend are first split into coins of the
+ * exact amounts it offers, in a transaction paying this fee, so the rest of the balance
+ * isn't locked up by the offer. The offer is always imported, and stays pending until
+ * that transaction is confirmed, so it shouldn't be shared before then. If the coins are
+ * already the exact amounts, nothing is split.
+ */
+pre_split_fee?: Amount | null; 
+/**
+ * Fee rate for the transaction that splits the coins, in mojos per cost. When set, its fee
+ * is raised until it covers that transaction's cost at this rate, and `pre_split_fee` is
+ * the least it pays. The offer's own fee is always `fee`, since an offer's cost isn't
+ * known until it's taken.
+ */
+pre_split_fee_per_cost?: number | null }
 /**
  * Response with created offer
  */
@@ -1927,7 +3030,12 @@ offer: string;
 /**
  * Offer ID
  */
-offer_id: string }
+offer_id: string; 
+/**
+ * The ID of the transaction splitting the offer's coins, if they had to be split. The
+ * offer is pending until it's confirmed.
+ */
+pre_split_transaction_id: string | null }
 export type MintNftAction = { 
 /**
  * The parent asset id of the minted NFT
@@ -1994,6 +3102,18 @@ strike: OptionAsset;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
+ * Take the fee, and the mojo the option itself is made of, out of the underlying amount,
+ * which must be XCH, so that minting spends exactly the underlying amount given. Use it to
+ * lock up a whole balance when the fee isn't known until the transaction is built
+ */
+deduct_fee?: boolean; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -2013,8 +3133,26 @@ summary: TransactionSummary;
  * Coin spends in the transaction
  */
 coin_spends: CoinSpendJson[] }
-export type Network = { name: string; ticker: string; prefix?: string | null; precision: number; network_id?: string | null; default_port: number; genesis_challenge: string; agg_sig_me?: string | null; dns_introducers: string[]; peer_introducers: string[]; inherit?: InheritedNetwork | null }
-export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean }
+export type Network = { name: string; ticker: string; prefix?: string | null; precision: number; network_id?: string | null; default_port: number; genesis_challenge: string; agg_sig_me?: string | null; dns_introducers: string[]; peer_introducers: string[]; inherit?: InheritedNetwork | null; 
+/**
+ * Overrides the XCHandles deployment for this network. When unset, the deployment
+ * is inherited from the built-in network named by `inherit`, if there is one.
+ */
+xchandles?: XchandlesConfig | null; 
+/**
+ * Whether to drop auto-discovered peers that stop sending new peaks. Disable this for
+ * networks that don't create blocks regularly, such as simulators, where a live peer can go
+ * quiet for a long time.
+ */
+drop_silent_peers: boolean }
+export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean; 
+/**
+ * Whether to look up the mempool transactions that full nodes announce for the wallet
+ * with the network's Coinset API, so that incoming and pending transactions show up
+ * before they're confirmed, including after a resync. This tells Coinset which mempool
+ * transactions involve the wallet.
+ */
+mempool_discovery: boolean }
 export type NetworkKind = "mainnet" | "testnet" | "unknown"
 export type NetworkList = { networks: Network[] }
 export type NewNftUri = { 
@@ -2076,7 +3214,7 @@ royalty_address?: string | null;
  * Royalty percentage in ten-thousandths (e.g., 300 = 3%)
  */
 royalty_ten_thousandths?: number }
-export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null; special_use_type: NftSpecialUseType | null }
+export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; metadata_updater_kind: NftUpdaterKind; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null; special_use_type: NftSpecialUseType | null }
 export type NftRoyalty = { royalty_address: string; royalty_basis_points: number }
 export type NftSortMode = "name" | "recent"
 export type NftSpecialUseType = "none" | "theme"
@@ -2085,6 +3223,25 @@ export type NftTransfer = {
  * The DID to assign as the owner
  */
 did_id: Id | null }
+/**
+ * The kind of metadata updater puzzle an NFT uses, which determines how its
+ * on-chain metadata can change.
+ */
+export type NftUpdaterKind = 
+/**
+ * The standard CHIP-7 updater. Metadata is append-only: URIs can be added, but
+ * nothing else can change.
+ */
+"default" | 
+/**
+ * The any metadata updater, used by `XCHandles`. The owner can replace all metadata
+ * at any time.
+ */
+"any" | 
+/**
+ * An updater that isn't recognized. Its metadata should be treated as mutable.
+ */
+"unknown"
 /**
  * Type of NFT URI
  */
@@ -2101,6 +3258,12 @@ did_ids: string[];
  * Transaction fee
  */
 fee: Amount; 
+/**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
@@ -2121,9 +3284,61 @@ hidden_puzzle_hash?: string | null;
  * Amount of the asset
  */
 amount: Amount }
-export type OfferAsset = { asset: Asset; amount: Amount; royalty: Amount; nft_royalty: NftRoyalty | null; option_assets: OptionAssets | null }
+export type OfferAsset = { asset: Asset; amount: Amount; royalty: Amount; nft_royalty: NftRoyalty | null; option_assets: OptionAssets | null; 
+/**
+ * The metadata updater kind, if the asset is an NFT. Mutable NFTs can have all of
+ * their metadata replaced by the owner, including after the offer is accepted.
+ */
+nft_metadata_updater_kind: NftUpdaterKind | null }
+/**
+ * Which side of an offer a search matches
+ */
+export type OfferFindSide = "any" | "offered" | "requested"
+/**
+ * An NFT offered in an offer whose metadata names an XCHandles handle
+ */
+export type OfferHandleNft = { 
+/**
+ * The offered NFT
+ */
+nft_id: string; 
+/**
+ * The handle named by the NFT's metadata, without the leading `@`. The owner can set
+ * this to anything, so it only says which handle to check.
+ */
+handle: string; status: OfferHandleStatus; 
+/**
+ * Why the handle couldn't be checked, or what is pending
+ */
+reason: string | null }
+/**
+ * What the registry says about a handle NFT in an offer
+ */
+export type OfferHandleStatus = 
+/**
+ * The registry confirms the handle belongs to the NFT, and no update is pending
+ */
+"verified" | 
+/**
+ * An update to the handle's owner or resolved singleton is pending, so the seller
+ * could take the handle back after the trade. The offer can't be taken.
+ */
+"pending_transfer" | 
+/**
+ * The registry doesn't associate the handle with this NFT, or the handle isn't
+ * registered, so the NFT isn't the handle it claims to be
+ */
+"not_associated" | 
+/**
+ * The handle couldn't be checked right now. The offer can't be taken until it is.
+ */
+"unavailable"
 export type OfferRecord = { offer_id: string; offer: string; status: OfferRecordStatus; creation_timestamp: number; summary: OfferSummary }
 export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled" | "expired"
+/**
+ * Offer list sort column
+ */
+export type OfferSortMode = "created" | "expiration"
 export type OfferSummary = { fee: Amount; maker: OfferAsset[]; taker: OfferAsset[]; expiration_height: number | null; expiration_timestamp: number | null }
 /**
  * Asset specification for options
@@ -2138,10 +3353,82 @@ asset_id: string | null;
  */
 amount: Amount }
 export type OptionAssets = { underlying_asset: Asset; underlying_amount: Amount; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number }
-export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null }
+export type OptionFilter = 
+/**
+ * Options currently held by the wallet
+ */
+"owned" | 
+/**
+ * Options minted by the wallet, including ones that have since been transferred
+ */
+"created" | 
+/**
+ * Both owned and created options
+ */
+"all"
+export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null; is_owned: boolean; 
+/**
+ * Whether this wallet minted the option
+ */
+is_creator: boolean }
 export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }
+/**
+ * A transfer of a handle to a new owner or resolved singleton, which has been initiated
+ * but not executed yet
+ */
+export type PendingTransferRecord = { 
+/**
+ * Launcher ID of the singleton which will own the handle
+ */
+new_owner_launcher_id: string; 
+/**
+ * Launcher ID of the singleton the handle will resolve to
+ */
+new_resolved_launcher_id: string; 
+/**
+ * Height from which the transfer can be executed
+ */
+minimum_execution_height: number; 
+/**
+ * The owner coin which initiated the transfer
+ */
+initiator_coin_id: string; 
+/**
+ * The coin the API expects to execute the transfer. Not verified
+ */
+executor_coin_id: string; 
+/**
+ * Height the API reports the transfer was initiated at. Not verified
+ */
+update_confirmation_height: number; 
+/**
+ * The registry's update slot coin which records the transfer, if it was verified
+ */
+update_slot_coin_id: string | null }
+/**
+ * Whether a handle has a pending transfer
+ */
+export type PendingTransferStatus = 
+/**
+ * The API reports no pending transfer. The API is the only source of pending
+ * transfers, so this can't be proven on chain
+ */
+"none" | 
+/**
+ * The API reports a pending transfer, and its update slot was found on chain
+ */
+"verified" | 
+/**
+ * The API reports a pending transfer, but no matching update slot from the registry
+ * was found on chain. It may already have been executed, or the claim may be false
+ */
+"unverified" | 
+/**
+ * Pending transfers couldn't be checked right now
+ */
+"unavailable"
 /**
  * Perform database maintenance operations
  */
@@ -2179,6 +3466,56 @@ pages_vacuumed: number;
  */
 wal_pages_checkpointed: number }
 /**
+ * A recipient which couldn't be used, so the transaction wasn't created
+ */
+export type RecipientError = { 
+/**
+ * The recipient as it was given
+ */
+recipient: string; kind: RecipientErrorKind; reason: string; 
+/**
+ * The handle, without the leading `@`, if the recipient is a handle
+ */
+handle: string | null; 
+/**
+ * The verified address the handle resolves to now
+ */
+address: string | null; 
+/**
+ * The address the handle resolved to before it changed. Confirm `address` with a
+ * [`HandleConfirmation`] to use the new address.
+ */
+previous_address: string | null }
+/**
+ * Why a recipient couldn't be used
+ */
+export type RecipientErrorKind = 
+/**
+ * The recipient isn't a valid address or handle for this network
+ */
+"invalid" | 
+/**
+ * XCHandles isn't supported on this network
+ */
+"unsupported_network" | 
+/**
+ * The handle isn't registered, or has expired
+ */
+"not_registered" | 
+/**
+ * The handle's registration couldn't be verified against the chain
+ */
+"unverified" | 
+/**
+ * The handle couldn't be verified right now, and there is no recent verified mapping
+ */
+"unavailable" | 
+/**
+ * The handle resolves to a different address than the one last sent to or confirmed,
+ * and the new address must be confirmed before it can be used
+ */
+"changed"
+/**
  * Re-download an `NFT`'s data and metadata from its URIs
  */
 export type RedownloadNft = { 
@@ -2195,7 +3532,7 @@ export type RedownloadNftResponse = Record<string, never>
  */
 export type RemovePeer = { 
 /**
- * IP address or hostname of the peer
+ * IP address of the peer
  */
 ip: string; 
 /**
@@ -2203,9 +3540,25 @@ ip: string;
  */
 ban: boolean }
 /**
- * Rename a wallet key
+ * Stop watching addresses in a watch wallet
  */
-export type RenameKey = { 
+export type RemoveWatchAddresses = { 
+/**
+ * Fingerprint of the watch wallet
+ */
+fingerprint: number; 
+/**
+ * Addresses to stop watching
+ */
+addresses: string[] }
+/**
+ * Response for removing watched addresses
+ */
+export type RemoveWatchAddressesResponse = Record<string, never>
+/**
+ * Rename a wallet
+ */
+export type RenameWallet = { 
 /**
  * Wallet fingerprint
  */
@@ -2215,10 +3568,26 @@ fingerprint: number;
  */
 name: string }
 /**
- * Response for key rename
+ * Response for wallet rename
  */
-export type RenameKeyResponse = Record<string, never>
+export type RenameWalletResponse = Record<string, never>
 export type ReorderTaskbarRuntimesParams = { windowLabel: string; appIds: string[] }
+/**
+ * Resolve an XCHandles handle to an address
+ */
+export type ResolveHandle = { 
+/**
+ * The handle, with or without a leading `@`
+ */
+handle: string }
+/**
+ * Response with the verified handle mapping
+ */
+export type ResolveHandleResponse = { 
+/**
+ * The verified handle mapping
+ */
+handle: HandleRecord }
 /**
  * Resynchronize wallet data with the blockchain
  */
@@ -2368,6 +3737,12 @@ amount: Amount;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to include the CAT hint
  */
 include_hint?: boolean; 
@@ -2382,7 +3757,17 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Optional coin IDs to spend first: coins of this CAT for the amount, XCH coins for the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Send a transaction immediately
  */
@@ -2420,6 +3805,18 @@ amount: Amount;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
+ * Take the fee out of `amount`, so that `amount` is what leaves the wallet in total and
+ * the recipient gets the rest. Use it to send a whole balance when the fee isn't known
+ * until the transaction is built
+ */
+deduct_fee?: boolean; 
+/**
  * Optional memos
  */
 memos?: string[]; 
@@ -2430,7 +3827,17 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Optional XCH coin IDs to spend first, for the amount and the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Set the change address for transactions
  */
@@ -2472,6 +3879,14 @@ export type SetDiscoverPeers = {
  */
 discover_peers: boolean }
 /**
+ * Enable or disable looking up announced mempool transactions with Coinset
+ */
+export type SetMempoolDiscovery = { 
+/**
+ * Whether to look up mempool transactions with Coinset
+ */
+mempool_discovery: boolean }
+/**
  * Set the active network
  */
 export type SetNetwork = { 
@@ -2492,6 +3907,14 @@ fingerprint: number;
  */
 name: string | null }
 /**
+ * Remember the UI theme the user selected
+ */
+export type SetSelectedTheme = { 
+/**
+ * Theme name (null to clear)
+ */
+theme: string | null }
+/**
  * Set target number of peers to maintain
  */
 export type SetTargetPeers = { 
@@ -2499,6 +3922,14 @@ export type SetTargetPeers = {
  * Target number of peer connections
  */
 target_peers: number }
+/**
+ * Set how long every wallet's transactions can be confirmed for after they're created
+ */
+export type SetTransactionExpiration = { 
+/**
+ * Seconds a transaction can be confirmed for, at least 300, or 0 for no limit
+ */
+seconds: number }
 /**
  * Set wallet emoji
  */
@@ -2530,7 +3961,12 @@ auto_submit?: boolean;
 /**
  * Whether to partially sign (for multi-signature)
  */
-partial?: boolean }
+partial?: boolean; 
+/**
+ * Existing aggregated signature to add this wallet's signatures to.
+ * It's returned unchanged if it already includes them.
+ */
+aggregated_signature?: string | null }
 /**
  * Response with signed spend bundle
  */
@@ -2583,6 +4019,18 @@ export type SignMessageWithPublicKeyResponse = {
  * Signature
  */
 signature: string }
+/**
+ * An imported contact which wasn't added
+ */
+export type SkippedContact = { 
+/**
+ * The entry as it was given
+ */
+entry: ContactEntry; reason: ContactSkipReason; 
+/**
+ * The existing contact it conflicts with, if any
+ */
+existing_id: number | null }
 /**
  * Spend bundle structure
  */
@@ -2641,6 +4089,12 @@ output_count: number;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -2679,6 +4133,12 @@ offer: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -2715,7 +4175,30 @@ summary: TransactionSummary;
  * Coin spends in the transaction
  */
 coin_spends: CoinSpendJson[] }
-export type TransactionSummary = { fee: Amount; inputs: TransactionInput[] }
+export type TransactionSummary = { 
+/**
+ * The fee the transaction actually pays: the value of the coins it spends minus the
+ * value of the coins it creates. If that's less than the declared fee, so the
+ * transaction isn't complete on its own, this is the declared fee instead. It's only the fee paid
+ * if the transaction is submitted as is: when only signatures are returned, spends that
+ * don't need them could be left out.
+ */
+fee: Amount; 
+/**
+ * The sum of the transaction's `RESERVE_FEE` conditions. When this differs from `fee`,
+ * some of the fee isn't declared.
+ */
+declared_fee?: Amount; 
+/**
+ * The cost the mempool charges for the transaction, which its fee is priced against. It's
+ * only known for a complete transaction, so it's missing for one side of an offer.
+ */
+cost?: number | null; inputs: TransactionInput[]; 
+/**
+ * The handle recipients of the transaction, and the verified addresses they were
+ * resolved to
+ */
+handles?: HandleRecord[] }
 /**
  * Transfer DIDs to a new address
  */
@@ -2733,13 +4216,25 @@ address: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Optional clawback timestamp
  */
 clawback?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Transfer NFTs to a new owner
  */
@@ -2757,13 +4252,25 @@ address: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Optional clawback timestamp
  */
 clawback?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 /**
  * Transfer options to another address
  */
@@ -2781,13 +4288,25 @@ address: string;
  */
 fee: Amount; 
 /**
+ * Fee rate in mojos per cost. When set, the fee is raised until it covers the
+ * transaction's cost at this rate, including the coins that pay it, and `fee` is the
+ * least it pays
+ */
+fee_per_cost?: number | null; 
+/**
  * Optional clawback timestamp
  */
 clawback?: number | null; 
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Handle recipients the caller has reviewed, and the addresses they resolved to. A
+ * handle which resolves to a different address than the one last sent to must be
+ * confirmed here before it can be used.
+ */
+confirmed_handles?: HandleConfirmation[] }
 export type Unit = { ticker: string; precision: number }
 /**
  * Update a `CAT` token's metadata and visibility
@@ -2801,6 +4320,18 @@ record: TokenRecord }
  * Response after updating a `CAT` token
  */
 export type UpdateCatResponse = Record<string, never>
+/**
+ * Rename a contact or change its note
+ */
+export type UpdateContact = { id: number; name: string; 
+/**
+ * The new note. Leave this out to clear it
+ */
+note?: string | null }
+/**
+ * Response with the updated contact
+ */
+export type UpdateContactResponse = { contact: ContactRecord }
 /**
  * Update a `DID`'s name and visibility settings
  */
@@ -2882,7 +4413,7 @@ visible: boolean }
  * Response after updating an option
  */
 export type UpdateOptionResponse = Record<string, never>
-export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
+export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_wallet" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.resolve_handle" | "wallet.get_handles" | "wallet.get_contacts" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.create_offer" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
 export type UserSageAppPendingUpdateDecisionReviewView = { requiredUserGrantableCapabilities: UserBridgeCapability[]; requiredNetworkWhitelist: SageNetworkWhitelistEntry[]; requiredNetworkWhitelistByNetwork: Partial<{ [key in string]: SageNetworkWhitelistEntry[] }> }
 export type UserSageAppPendingUpdateDecisionView = { kind: "apply" } | ({ kind: "review" } & UserSageAppPendingUpdateDecisionReviewView)
 export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest; decision: UserSageAppPendingUpdateDecisionView }
@@ -2923,10 +4454,55 @@ offer: OfferSummary;
 /**
  * Offer status
  */
-status: OfferRecordStatus }
-export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
-export type WalletDefaults = { delta_sync: boolean }
+status: OfferRecordStatus; 
+/**
+ * Offered NFTs which claim to be XCHandles handles, checked against the registry.
+ * An offer with a pending handle transfer, or a handle which couldn't be checked,
+ * can't be taken.
+ */
+handle_nfts?: OfferHandleNft[] }
+export type Wallet = 
+/**
+ * What the wallet is made of. It's stored alongside the wallet's own fields, under a `type`
+ * key, which is omitted for BLS wallets since every wallet was one before kinds existed.
+ */
+({ type: "bls" } | 
+/**
+ * The p2 puzzle hashes being watched. The first one is the wallet's receive address.
+ */
+{ type: "watch"; p2_puzzle_hashes: string[] }) & { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
+export type WalletDefaults = { delta_sync: boolean; 
+/**
+ * How many seconds after a transaction is created that it can no longer be confirmed, or 0
+ * for no limit. This doesn't apply to offers, which have their own expiration.
+ */
+transaction_expiration: number }
+export type WalletInfo = { name: string; fingerprint: number; kind: WalletKind; network_id: string; emoji: string | null }
+/**
+ * The kind of wallet, which determines how its addresses are found and whether it can sign
+ */
+export type WalletKind = 
+/**
+ * A BLS key, whose addresses are derived from its master public key. The key is in the
+ * keychain under the wallet's fingerprint
+ */
+"bls" | 
+/**
+ * A read-only list of addresses, whose puzzle reveals are unknown
+ */
+{ watch: { 
+/**
+ * The addresses being watched. The first one is the receive address
+ */
+addresses: string[] } }
 export type WindowTargetParams = { windowLabel: string }
+/**
+ * The XCHandles deployment used to resolve handles on a network.
+ * 
+ * The constants must match the ones committed to in the registry's launcher solution,
+ * since they determine the registry's puzzle and therefore which slots are authentic.
+ */
+export type XchandlesConfig = { registry_launcher_id: string; price_singleton_launcher_id: string; precommit_payout_puzzle_hash: string; relative_block_height: number; api_url: string }
 
 /** tauri-specta globals **/
 

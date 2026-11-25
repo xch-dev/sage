@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Amount, OfferRecord, OfferRecordStatus, OfferSummary, SpendBundleJson, TransactionSummary,
+    Amount, HandleConfirmation, OfferHandleNft, OfferRecord, OfferRecordStatus, OfferSummary,
+    SpendBundleJson, TransactionSummary,
 };
 
 use super::TransactionResponse;
@@ -11,7 +12,7 @@ use super::TransactionResponse;
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Create a new offer for peer-to-peer trading of assets."
+        description = "Create and sign an offer of assets from the active wallet in exchange for requested assets, optionally with an expiration. Unless auto_import is false, the offer is saved and its coins are locked while it's active. With pre_split_fee, a transaction splitting the coins is submitted right away if they need splitting, and the offer is always saved, staying pending until that transaction confirms."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,6 +41,26 @@ pub struct MakeOffer {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub coin_ids: Option<Vec<String>>,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
+    /// If set, the XCH and CAT coins the offer would spend are first split into coins of the
+    /// exact amounts it offers, in a transaction paying this fee, so the rest of the balance
+    /// isn't locked up by the offer. The offer is always imported, and stays pending until
+    /// that transaction is confirmed, so it shouldn't be shared before then. If the coins are
+    /// already the exact amounts, nothing is split.
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub pre_split_fee: Option<Amount>,
+    /// Fee rate for the transaction that splits the coins, in mojos per cost. When set, its fee
+    /// is raised until it covers that transaction's cost at this rate, and `pre_split_fee` is
+    /// the least it pays. The offer's own fee is always `fee`, since an offer's cost isn't
+    /// known until it's taken.
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub pre_split_fee_per_cost: Option<f64>,
 }
 
 /// Asset amount in an offer
@@ -70,6 +91,10 @@ pub struct MakeOfferResponse {
     pub offer: String,
     /// Offer ID
     pub offer_id: String,
+    /// The ID of the transaction splitting the offer's coins, if they had to be split. The
+    /// offer is pending until it's confirmed.
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub pre_split_transaction_id: Option<String>,
 }
 
 /// Accept an offer
@@ -77,7 +102,7 @@ pub struct MakeOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Accept and complete an offer created by another party."
+        description = "Take an offer, signing the wallet's side and combining it with the offer. Returns the signed spend bundle, which is submitted if auto_submit is set, or can be passed to submit_transaction. Offers of a handle NFT with a pending transfer, or one that can't be checked, are refused."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,6 +113,12 @@ pub struct TakeOffer {
     pub offer: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
@@ -113,7 +144,7 @@ pub struct TakeOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Combine multiple offers into a single compound offer."
+        description = "Combine several offers into one offer, which is taken all at once."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -139,7 +170,7 @@ pub struct CombineOffersResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "View the details of an offer without accepting it."
+        description = "Summarize an offer and its status without importing or taking it, and check any XCHandles handle NFTs it offers."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,6 +191,11 @@ pub struct ViewOfferResponse {
     pub offer: OfferSummary,
     /// Offer status
     pub status: OfferRecordStatus,
+    /// Offered NFTs which claim to be XCHandles handles, checked against the registry.
+    /// An offer with a pending handle transfer, or a handle which couldn't be checked,
+    /// can't be taken.
+    #[serde(default)]
+    pub handle_nfts: Vec<OfferHandleNft>,
 }
 
 /// Import an offer
@@ -167,7 +203,7 @@ pub struct ViewOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Import an offer file from an external source."
+        description = "Save an offer made by this wallet to its offer list, so its status is tracked and its coins are locked. Offers made by other wallets can't be imported. Returns its offer ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -193,13 +229,58 @@ pub struct ImportOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "List all offers created by or available to this wallet."
+        description = "List the offers made by this wallet, with filtering, searching, sorting and pagination."
     )
 )]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct GetOffers {}
+pub struct GetOffers {
+    /// Starting offset for pagination
+    #[serde(default)]
+    pub offset: Option<u32>,
+    /// Maximum number of offers to return (all when omitted)
+    #[serde(default)]
+    pub limit: Option<u32>,
+    /// Only return offers with this status
+    #[serde(default)]
+    pub status: Option<OfferRecordStatus>,
+    /// Search by asset name, ticker, asset/offer id, or NFT/DID/option address
+    #[serde(default)]
+    pub find_value: Option<String>,
+    /// Which side of the offer the search applies to (defaults to any)
+    #[serde(default)]
+    pub find_side: Option<OfferFindSide>,
+    /// Sort column (defaults to creation time)
+    #[serde(default)]
+    pub sort_mode: Option<OfferSortMode>,
+    /// Sort ascending (defaults to false, newest first)
+    #[serde(default)]
+    pub ascending: bool,
+}
+
+/// Which side of an offer a search matches
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum OfferFindSide {
+    #[default]
+    Any,
+    Offered,
+    Requested,
+}
+
+/// Offer list sort column
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum OfferSortMode {
+    #[default]
+    Created,
+    Expiration,
+}
 
 /// Response with list of offers
 #[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Offers"))]
@@ -209,6 +290,8 @@ pub struct GetOffers {}
 pub struct GetOffersResponse {
     /// List of offers
     pub offers: Vec<OfferRecord>,
+    /// Total number of offers matching the filters, before paging
+    pub total: u32,
 }
 
 /// Get offers for a specific asset
@@ -216,7 +299,7 @@ pub struct GetOffersResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Get all offers that involve a specific asset."
+        description = "List the active offers saved in the wallet that include an asset, given a CAT asset ID or an NFT or option ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -242,7 +325,7 @@ pub struct GetOffersForAssetResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Get detailed information about a specific offer by ID."
+        description = "Get an offer saved in the wallet by its offer ID."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -268,7 +351,7 @@ pub struct GetOfferResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Delete an offer from the wallet (doesn't cancel on-chain)."
+        description = "Remove an offer from the wallet, which unlocks its coins. The offer isn't cancelled, so anyone with a copy can still take it."
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -291,7 +374,7 @@ pub struct DeleteOfferResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Cancel an offer by spending the offered coins on-chain.",
+        description = "Cancel an offer on chain by spending its coins back to the wallet, so it can no longer be taken.",
         response_type = "TransactionResponse"
     )
 )]
@@ -303,10 +386,20 @@ pub struct CancelOffer {
     pub offer_id: String,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub coin_ids: Option<Vec<String>>,
 }
 
 pub type CancelOfferResponse = TransactionResponse;
@@ -316,7 +409,7 @@ pub type CancelOfferResponse = TransactionResponse;
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Cancel multiple offers in a single transaction.",
+        description = "Cancel several offers on chain in one transaction. The fee is paid once per offer.",
         response_type = "TransactionResponse"
     )
 )]
@@ -328,10 +421,20 @@ pub struct CancelOffers {
     pub offer_ids: Vec<String>,
     /// Transaction fee
     pub fee: Amount,
+    /// Fee rate in mojos per cost. When set, the fee is raised until it covers the
+    /// transaction's cost at this rate, including the coins that pay it, and `fee` is the
+    /// least it pays
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub coin_ids: Option<Vec<String>>,
 }
 
 pub type CancelOffersResponse = TransactionResponse;

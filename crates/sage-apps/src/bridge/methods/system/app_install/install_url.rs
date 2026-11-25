@@ -3,10 +3,10 @@ use std::{io, sync::Arc};
 use async_trait::async_trait;
 use serde::Deserialize;
 use specta::Type;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, State};
 
 use crate::{
-    AppInstallDownloadProgressEvent, AppInstallInstallResult, AppState, AppsHostState,
+    AppInstallDownloadProgressEvent, AppInstallInstallResult, AppsHostState,
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools,
     ProgressReportingUrlInstallSource, Result, RustBridgeRequest, SageAppUrl, SageAppWalletScope,
@@ -50,7 +50,6 @@ impl BridgeMethod for AppInstallInstallUrl {
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: AppInstallInstallUrlParams = parse_required_params(self, request)?;
-        let state = tools.app_handle.state::<AppState>();
         let progress_app_handle = tools.app_handle.clone();
         let progress_app = ctx.app.clone();
         let progress_reporter: SnapshotProgressReporter = Arc::new(move |progress| {
@@ -66,7 +65,6 @@ impl BridgeMethod for AppInstallInstallUrl {
 
         let app = install_app_url(
             tools.app_handle.clone(),
-            state,
             tools.host_state.clone(),
             params.app_url,
             params.granted_permissions,
@@ -82,24 +80,20 @@ impl BridgeMethod for AppInstallInstallUrl {
 
 pub async fn install_app_url(
     app: AppHandle,
-    state: State<'_, AppState>,
     host_state: State<'_, AppsHostState>,
     app_url: String,
     granted_permissions_input: SageGrantedPermissionsInput,
     wallet_scope: SageAppWalletScope,
     progress_reporter: SnapshotProgressReporter,
 ) -> Result<UserSageAppView> {
-    let base_path = {
-        let state = state.lock().await;
-        state.path.clone()
-    };
+    let base_path = &host_state.root;
     let parsed_app_url = SageAppUrl::parse(&app_url)
         .map_err(|err| io::Error::other(format!("invalid app URL {app_url}: {err}")))?;
     let source = ProgressReportingUrlInstallSource::new(parsed_app_url, progress_reporter);
     let result = install_app_from_source(
         &app,
         &host_state,
-        &base_path,
+        base_path,
         granted_permissions_input,
         wallet_scope,
         source,

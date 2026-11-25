@@ -20,8 +20,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import { DatabaseMigration, databaseMigration } from '@/lib/errors';
+import { watchedAddresses } from '@/lib/walletKind';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { t } from '@lingui/core/macro';
@@ -40,28 +43,32 @@ import {
   TrashIcon,
   WalletIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Spoiler } from 'spoiled';
 import { useTheme } from 'theme-o-rama';
-import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
+import { commands, KeyInfo, SecretKeyInfo, WalletInfo } from '../bindings';
 import { CustomError } from '../contexts/ErrorContext';
 import { useWallet } from '../contexts/WalletContext';
 import { loginAndUpdateState, logoutAndUpdateState } from '../state';
 
 interface WalletCardProps {
   draggable?: boolean;
-  info: KeyInfo;
-  keys: KeyInfo[];
-  setKeys: (keys: KeyInfo[]) => void;
+  info: WalletInfo;
+  /** The keychain entry of the wallet's key, `null` if it has none, or `undefined`
+   *  while the keychain is loading. */
+  keyInfo: KeyInfo | null | undefined;
+  wallets: WalletInfo[];
+  setWallets: (wallets: WalletInfo[]) => void;
 }
 
 export function WalletCard({
   draggable,
   info,
-  keys,
-  setKeys,
+  keyInfo,
+  wallets,
+  setWallets,
 }: WalletCardProps) {
   const navigate = useNavigate();
   const { addError } = useErrors();
@@ -69,21 +76,29 @@ export function WalletCard({
   const { promptIfEnabled } = useBiometric();
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteKeys, setDeleteKeys] = useState(true);
+  const deleteKeysId = useId();
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [isResyncOpen, setIsResyncOpen] = useState(false);
   const [isMigrationDialogOpen, setIsMigrationDialogOpen] = useState(false);
+  const [migration, setMigration] = useState<DatabaseMigration>('wallet');
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const { currentTheme } = useTheme();
 
   const deleteSelf = async () => {
     if (await promptIfEnabled()) {
       await commands
-        .deleteKey({ fingerprint: info.fingerprint })
+        .deleteWallet({
+          fingerprint: info.fingerprint,
+          delete_keys: deleteKeys,
+        })
         .then(() =>
-          setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
+          setWallets(
+            wallets.filter((wallet) => wallet.fingerprint !== info.fingerprint),
+          ),
         )
         .catch(addError);
     }
@@ -95,13 +110,13 @@ export function WalletCard({
     if (!newName) return;
 
     commands
-      .renameKey({ fingerprint: info.fingerprint, name: newName })
+      .renameWallet({ fingerprint: info.fingerprint, name: newName })
       .then(() =>
-        setKeys(
-          keys.map((key) =>
-            key.fingerprint === info.fingerprint
-              ? { ...key, name: newName }
-              : key,
+        setWallets(
+          wallets.map((wallet) =>
+            wallet.fingerprint === info.fingerprint
+              ? { ...wallet, name: newName }
+              : wallet,
           ),
         ),
       )
@@ -115,9 +130,11 @@ export function WalletCard({
     commands
       .setWalletEmoji({ fingerprint: info.fingerprint, emoji })
       .then(() =>
-        setKeys(
-          keys.map((key) =>
-            key.fingerprint === info.fingerprint ? { ...key, emoji } : key,
+        setWallets(
+          wallets.map((wallet) =>
+            wallet.fingerprint === info.fingerprint
+              ? { ...wallet, emoji }
+              : wallet,
           ),
         ),
       )
@@ -146,20 +163,20 @@ export function WalletCard({
     }
   };
 
-  const loginSelf = async () => {
+  // After a database is reset, logging in is retried once. If it still can't
+  // be migrated, resetting again wouldn't help, so the error is shown instead.
+  const loginSelf = async (afterReset = false) => {
     try {
       await loginAndUpdateState(info.fingerprint);
 
-      const data = await commands.getKey({});
-      setWallet(data.key);
+      const data = await commands.getWallet({});
+      setWallet(data.wallet);
       navigate('/wallet');
     } catch (error: unknown) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'kind' in error &&
-        error.kind === 'database_migration'
-      ) {
+      const failedMigration = databaseMigration(error);
+
+      if (failedMigration && !afterReset) {
+        setMigration(failedMigration);
         setIsMigrationDialogOpen(true);
       } else {
         addError(error as CustomError);
@@ -197,6 +214,7 @@ export function WalletCard({
   }
 
   const networkId = info.network_id;
+  const watched = watchedAddresses(info);
 
   return (
     <>
@@ -205,7 +223,7 @@ export function WalletCard({
         {...values.listeners}
         {...values.attributes}
         style={style}
-        onClick={loginSelf}
+        onClick={() => loginSelf()}
         className='cursor-pointer'
       >
         <CardHeader className='flex flex-row items-center justify-between p-5 pt-4 pb-2'>
@@ -325,6 +343,7 @@ export function WalletCard({
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
                   onClick={(e) => {
+                    setDeleteKeys(true);
                     setIsDeleteOpen(true);
                     e.stopPropagation();
                   }}
@@ -341,7 +360,14 @@ export function WalletCard({
         <CardContent className='p-0 px-5 pb-5'>
           <div className='flex items-center justify-between'>
             <span className='text-muted-foreground'>{info.fingerprint}</span>
-            {info.has_secrets ? (
+            {watched ? (
+              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
+                <EyeIcon className='h-4 w-4' />
+                <span>
+                  <Trans>Watch</Trans>
+                </span>
+              </div>
+            ) : keyInfo === undefined ? null : keyInfo?.has_secrets ? (
               <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
                 <FlameIcon className='h-4 w-4' />
                 <span>
@@ -382,13 +408,43 @@ export function WalletCard({
               <Trans>Permanently Delete</Trans>
             </DialogTitle>
             <DialogDescription>
-              <Trans>
-                Are you sure you want to delete this wallet? This cannot be
-                undone, and all funds will be lost unless you have saved your
-                mnemonic phrase.
-              </Trans>
+              {watched ? (
+                <Trans>
+                  Are you sure you want to delete this wallet? Its addresses and
+                  their funds aren&apos;t affected, and you can watch them again
+                  later.
+                </Trans>
+              ) : (
+                <Trans>
+                  Are you sure you want to delete this wallet? This cannot be
+                  undone, and all funds will be lost unless you have saved your
+                  mnemonic phrase.
+                </Trans>
+              )}
             </DialogDescription>
           </DialogHeader>
+          {keyInfo && (
+            <div className='flex flex-col gap-1'>
+              <div className='flex items-center gap-2'>
+                <Switch
+                  id={deleteKeysId}
+                  checked={deleteKeys}
+                  onCheckedChange={setDeleteKeys}
+                />
+                <Label htmlFor={deleteKeysId}>
+                  <Trans>Also remove its keys from the keychain</Trans>
+                </Label>
+              </div>
+              {!deleteKeys && (
+                <p className='text-sm text-muted-foreground'>
+                  <Trans>
+                    Its keys will stay in the keychain, under Advanced in
+                    Settings.
+                  </Trans>
+                </p>
+              )}
+            </div>
+          )}
           <DialogFooter>
             <Button variant='outline' onClick={() => setIsDeleteOpen(false)}>
               <Trans>Cancel</Trans>
@@ -469,14 +525,31 @@ export function WalletCard({
                 {networkId}
               </p>
             </div>
-            <div>
-              <h3 className='font-semibold'>
-                <Trans>Public Key</Trans>
-              </h3>
-              <p className='break-all text-sm text-muted-foreground'>
-                {info.public_key}
-              </p>
-            </div>
+            {keyInfo && (
+              <div>
+                <h3 className='font-semibold'>
+                  <Trans>Public Key</Trans>
+                </h3>
+                <p className='break-all text-sm text-muted-foreground'>
+                  {keyInfo.public_key}
+                </p>
+              </div>
+            )}
+            {watched && (
+              <div>
+                <h3 className='font-semibold'>
+                  <Trans>Watched Addresses</Trans>
+                </h3>
+                {watched.map((address) => (
+                  <p
+                    key={address}
+                    className='break-all text-sm text-muted-foreground'
+                  >
+                    {address}
+                  </p>
+                ))}
+              </div>
+            )}
             {secrets && (
               <>
                 <div>
@@ -494,7 +567,7 @@ export function WalletCard({
                     <h3 className='font-semibold'>
                       <Trans>Mnemonic</Trans>
                     </h3>
-                    <p className='break-words text-sm text-muted-foreground'>
+                    <p className='wrap-break-word text-sm text-muted-foreground'>
                       <Spoiler theme={currentTheme?.mostLike ?? 'light'}>
                         {secrets.mnemonic}
                       </Spoiler>
@@ -514,6 +587,7 @@ export function WalletCard({
 
       <MigrationDialog
         open={isMigrationDialogOpen}
+        shared={migration === 'shared'}
         onOpenChange={(open) => !open && setIsMigrationDialogOpen(false)}
         onCancel={async () => {
           setIsMigrationDialogOpen(false);
@@ -529,8 +603,9 @@ export function WalletCard({
           await commands.deleteDatabase({
             fingerprint: info.fingerprint,
             network: info.network_id,
+            shared: migration === 'shared',
           });
-          await loginSelf();
+          await loginSelf(true);
         }}
       />
     </>

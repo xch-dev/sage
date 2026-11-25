@@ -13,3 +13,6 @@ thiserror = { workspace = true }
 
 [build-dependencies]
 tauri-plugin = { workspace = true, features = ["build"] }
+
+# Generated Tauri plugin scaffolding; it does not follow the workspace lints.
+[lints]

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO contacts (\n            name, name_key, note, kind, puzzle_hash, handle, created_at, updated_at\n        )\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n        RETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "98c70dc959d0ddc5e4ab6da539942b78ce7a5caa7645f99f1fa396e37ea25e15"
+}

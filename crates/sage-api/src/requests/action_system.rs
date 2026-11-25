@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Amount, NftUriKind, TransactionResponse};
+use crate::{Amount, HandleConfirmation, NftUriKind, TransactionResponse};
 
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
         tag = "Transactions",
-        description = "Create a new transaction using the action system.",
+        description = "Build a transaction from a list of actions: sends to an address or handle, NFT mints, NFT updates and fees. Actions can refer to assets created earlier in the list.",
         response_type = "TransactionResponse"
     )
 )]
@@ -19,10 +19,20 @@ pub struct CreateTransaction {
     pub selected_coin_ids: Vec<String>,
     /// The list of actions to perform in the transaction
     pub actions: Vec<Action>,
+    /// Fee rate in mojos per cost. When set, a fee is added until the transaction's fee covers
+    /// its cost at this rate, including the coins that pay it, on top of any fee actions
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_per_cost: Option<f64>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Handle recipients the caller has reviewed, and the addresses they resolved to. A
+    /// handle which resolves to a different address than the one last sent to must be
+    /// confirmed here before it can be used.
+    #[serde(default)]
+    pub confirmed_handles: Vec<HandleConfirmation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

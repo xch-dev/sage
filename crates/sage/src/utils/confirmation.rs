@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 
-use chia_wallet_sdk::{chia::puzzle_types::nft::NftMetadata, driver::BURN_PUZZLE_HASH, prelude::*};
+use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, prelude::*, puzzles::SETTLEMENT_PAYMENT_HASH};
 use sage_api::{
-    Amount, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput, TransactionOutput,
-    TransactionSummary,
+    Amount, CoinJson, CoinSpendJson, HandleRecord, SpendBundleJson, TransactionInput,
+    TransactionOutput, TransactionSummary,
 };
 use sage_assets::{Data, base64_data_uri};
-use sage_database::{Asset, AssetKind, Database};
+use sage_database::{Asset, AssetKind, Database, ParsedNftMetadata};
 use sage_wallet::{CoinKind, Transaction, compute_nft_info};
 
-use crate::{Error, Result, Sage};
+use crate::{Error, HandleSend, Result, Sage};
 
 use super::{parse_coin_id, parse_hash, parse_program, parse_signature};
 
@@ -17,6 +17,11 @@ use super::{parse_coin_id, parse_hash, parse_program, parse_signature};
 pub struct ConfirmationInfo {
     pub nft_data: HashMap<Bytes32, Data>,
     pub uri_hashes: HashMap<Vec<String>, Bytes32>,
+    /// The verified handle recipients, shown in the summary.
+    pub handles: Vec<HandleRecord>,
+    /// The handle recipients to check again before the transaction is submitted, and to
+    /// record once it is.
+    pub handle_sends: Vec<HandleSend>,
 }
 
 impl Sage {
@@ -27,7 +32,25 @@ impl Sage {
     ) -> Result<TransactionSummary> {
         let wallet = self.wallet()?;
 
+        let cost = self.cost_rules().await?.cost(&coin_spends);
         let transaction = Transaction::from_coin_spends(coin_spends)?;
+        let declared_fee = transaction.fee;
+        // A transaction that leaves less than its declared fee can't be valid on its own, so
+        // the rest must come from spends that aren't here, like one that creates more than it
+        // spends. Any transaction it's part of pays at least the declared fee.
+        let fee = transaction
+            .actual_fee
+            .filter(|actual_fee| *actual_fee >= declared_fee)
+            .unwrap_or(declared_fee);
+
+        let input_coins: HashMap<Bytes32, Coin> = transaction
+            .inputs
+            .iter()
+            .map(|input| {
+                let coin = input.coin_spend.coin;
+                (coin.coin_id(), coin)
+            })
+            .collect();
 
         let mut inputs = Vec::with_capacity(transaction.inputs.len());
 
@@ -39,7 +62,9 @@ impl Sage {
             let asset = match input.kind {
                 CoinKind::Launcher => None,
                 CoinKind::Unknown => {
-                    if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
+                    if let Some(owner_puzzle_hash) = owner_puzzle_hash(coin, &input_coins)
+                        && wallet.db.is_p2_puzzle_hash(owner_puzzle_hash).await?
+                    {
                         wallet.db.asset(Bytes32::default()).await?
                     } else {
                         None
@@ -57,8 +82,14 @@ impl Sage {
                     let metadata = info.metadata.to_clvm(&mut allocator)?;
                     p2_puzzle_hash = info.p2_puzzle_hash;
                     Some(
-                        self.cache_nft(&allocator, info.launcher_id, metadata, &mut cache)
-                            .await?,
+                        self.cache_nft(
+                            &allocator,
+                            info.launcher_id,
+                            metadata,
+                            info.metadata_updater_puzzle_hash,
+                            &mut cache,
+                        )
+                        .await?,
                     )
                 }
                 CoinKind::Did { info, .. } => {
@@ -123,10 +154,25 @@ impl Sage {
         }
 
         Ok(TransactionSummary {
-            fee: Amount::u64(transaction.fee),
+            fee: Amount::u64(fee),
+            declared_fee: Amount::u64(declared_fee),
+            cost,
             inputs,
+            handles: cache.handles,
         })
     }
+}
+
+/// Settlement coins don't have an owner, but ones we created are still our XCH. This is the
+/// puzzle hash of the first ancestor in the transaction that isn't a settlement coin.
+fn owner_puzzle_hash(coin: Coin, input_coins: &HashMap<Bytes32, Coin>) -> Option<Bytes32> {
+    let mut owner = coin;
+
+    while owner.puzzle_hash == SETTLEMENT_PAYMENT_HASH.into() {
+        owner = *input_coins.get(&owner.parent_coin_info)?;
+    }
+
+    Some(owner.puzzle_hash)
 }
 
 #[derive(Debug, Default)]
@@ -139,7 +185,7 @@ pub struct ExtractedNftData {
 
 pub async fn extract_nft_data(
     db: Option<&Database>,
-    onchain_metadata: Option<NftMetadata>,
+    onchain_metadata: Option<ParsedNftMetadata>,
     cache: &ConfirmationInfo,
 ) -> Result<ExtractedNftData> {
     let mut result = ExtractedNftData::default();
@@ -174,6 +220,11 @@ pub async fn extract_nft_data(
             let info = compute_nft_info(None, &metadata.data);
             result.name = info.name;
         }
+    }
+
+    // The display name from on-chain metadata takes precedence over the file's name
+    if onchain_metadata.display_name.is_some() {
+        result.name = onchain_metadata.display_name;
     }
 
     Ok(result)
@@ -233,4 +284,36 @@ pub fn rust_coin(coin: CoinJson) -> Result<Coin> {
             .to_u64()
             .ok_or(Error::InvalidCoinAmount(coin.amount.to_string()))?,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_owner_puzzle_hash() {
+        let settlement_hash = SETTLEMENT_PAYMENT_HASH.into();
+        let wallet_hash = Bytes32::new([1; 32]);
+
+        let wallet_coin = Coin::new(Bytes32::new([2; 32]), wallet_hash, 1);
+        let settlement = Coin::new(wallet_coin.coin_id(), settlement_hash, 1);
+        let nested = Coin::new(settlement.coin_id(), settlement_hash, 1);
+        let external = Coin::new(Bytes32::new([3; 32]), settlement_hash, 1);
+
+        let input_coins: HashMap<Bytes32, Coin> = [wallet_coin, settlement, nested]
+            .into_iter()
+            .map(|coin| (coin.coin_id(), coin))
+            .collect();
+
+        assert_eq!(
+            owner_puzzle_hash(wallet_coin, &input_coins),
+            Some(wallet_hash)
+        );
+        assert_eq!(
+            owner_puzzle_hash(settlement, &input_coins),
+            Some(wallet_hash)
+        );
+        assert_eq!(owner_puzzle_hash(nested, &input_coins), Some(wallet_hash));
+        assert_eq!(owner_puzzle_hash(external, &input_coins), None);
+    }
 }

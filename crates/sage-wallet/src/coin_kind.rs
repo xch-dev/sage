@@ -1,7 +1,7 @@
-use chia_wallet_sdk::{
-    chia::puzzle_types::nft::NftMetadata, prelude::*, puzzles::SINGLETON_LAUNCHER_HASH,
+use chia_wallet_sdk::{prelude::*, puzzles::SINGLETON_LAUNCHER_HASH};
+use sage_database::{
+    NftUpdaterKindExt, ParsedNftMetadata, SerializePrimitive, SerializedDidInfo, SerializedNftInfo,
 };
-use sage_database::{SerializePrimitive, SerializedDidInfo, SerializedNftInfo};
 use tracing::{debug_span, warn};
 
 use crate::WalletError;
@@ -19,7 +19,7 @@ pub enum CoinKind {
     },
     Nft {
         info: SerializedNftInfo,
-        metadata: Option<NftMetadata>,
+        metadata: Option<ParsedNftMetadata>,
     },
     Option {
         info: OptionInfo,
@@ -69,7 +69,11 @@ impl CoinKind {
 
             // If the coin is a NFT coin, return the relevant information.
             Ok(Some((nft, _inner_puzzle))) => {
-                let metadata = NftMetadata::from_clvm(allocator, nft.metadata.ptr()).ok();
+                let metadata = ParsedNftMetadata::parse(
+                    allocator,
+                    nft.metadata.ptr(),
+                    nft.metadata_updater_kind(),
+                );
 
                 return Ok(Self::Nft {
                     info: nft.serialize(allocator)?,

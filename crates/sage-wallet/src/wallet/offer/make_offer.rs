@@ -1,8 +1,8 @@
 use chia_wallet_sdk::{
     chia::puzzle_types::offer::{NotarizedPayment, Payment},
     driver::{
-        TransferNftById, calculate_royalty_payments, calculate_trade_price_amounts,
-        calculate_trade_prices,
+        FungibleSpends, TransferNftById, calculate_royalty_amounts, calculate_royalty_payments,
+        calculate_trade_price_amounts, calculate_trade_prices, coin_amount, payable_trade_prices,
     },
     prelude::*,
     puzzles::SETTLEMENT_PAYMENT_HASH,
@@ -38,6 +38,54 @@ pub struct RequestedCat {
     pub hidden_puzzle_hash: Option<Bytes32>,
 }
 
+/// The royalty NFTs among the requested NFTs, in the order they're paid.
+fn offer_royalties(requested: &Requested) -> Vec<RoyaltyInfo> {
+    requested
+        .nfts
+        .iter()
+        .map(|(&launcher_id, nft)| {
+            RoyaltyInfo::new(
+                launcher_id,
+                nft.royalty_puzzle_hash,
+                nft.royalty_basis_points,
+            )
+        })
+        .filter(|info| info.basis_points > 0)
+        .collect_vec()
+}
+
+fn offered_amounts(offered: &Offered) -> OfferAmounts {
+    OfferAmounts {
+        xch: offered.xch.into(),
+        cats: offered
+            .cats
+            .iter()
+            .map(|(&asset_id, &amount)| (asset_id, amount.into()))
+            .collect(),
+    }
+}
+
+/// The royalties that [`Wallet::make_offer`] pays on top of the offered XCH and CATs, for the
+/// royalty NFTs it requests, so they can be shown before the offer is made.
+pub fn offer_royalty_amounts(
+    offered: &Offered,
+    requested: &Requested,
+) -> Result<OfferAmounts, WalletError> {
+    let royalties = offer_royalties(requested);
+    let trade_prices = calculate_trade_price_amounts(&offered_amounts(offered), royalties.len());
+    Ok(calculate_royalty_amounts(&trade_prices, &royalties)?)
+}
+
+/// An offer whose coins may first need to be split to the exact amounts it offers.
+#[derive(Debug, Clone)]
+pub struct PreSplitOffer {
+    /// The unsigned offer.
+    pub offer: SpendBundle,
+    /// The unsigned coin spends that create the coins the offer spends, if the selected coins
+    /// weren't already the exact amounts. The offer can't be taken until they're confirmed.
+    pub split_coin_spends: Option<Vec<CoinSpend>>,
+}
+
 impl Wallet {
     pub async fn make_offer(
         &self,
@@ -45,40 +93,53 @@ impl Wallet {
         requested: Requested,
         expires_at: Option<u64>,
     ) -> Result<SpendBundle, WalletError> {
+        Ok(self
+            .make_offer_with_split(offered, requested, expires_at, None)
+            .await?
+            .offer)
+    }
+
+    /// Makes an offer which only locks up the amounts it offers. If the selected XCH or CAT coins
+    /// add up to more than that, they're first split into coins of the exact amounts, in a
+    /// transaction which pays `split_fee`, and the offer spends those coins instead.
+    pub async fn make_pre_split_offer(
+        &self,
+        offered: Offered,
+        requested: Requested,
+        expires_at: Option<u64>,
+        split_fee: u64,
+    ) -> Result<PreSplitOffer, WalletError> {
+        self.make_offer_with_split(offered, requested, expires_at, Some(split_fee))
+            .await
+    }
+
+    async fn make_offer_with_split(
+        &self,
+        offered: Offered,
+        requested: Requested,
+        expires_at: Option<u64>,
+        split_fee: Option<u64>,
+    ) -> Result<PreSplitOffer, WalletError> {
         let mut ctx = SpendContext::new();
         let mut asset_info = AssetInfo::new();
 
         let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
-        let offer_amounts = OfferAmounts {
-            xch: offered.xch,
-            cats: offered.cats.clone(),
-        };
+        let offer_amounts = offered_amounts(&offered);
 
         let requested_amounts = OfferAmounts {
-            xch: requested.xch,
+            xch: requested.xch.into(),
             cats: requested
                 .cats
                 .iter()
                 .map(|(asset_id, cat)| {
                     asset_info.insert_cat(*asset_id, CatAssetInfo::new(cat.hidden_puzzle_hash))?;
-                    Ok((*asset_id, cat.amount))
+                    Ok((*asset_id, cat.amount.into()))
                 })
                 .collect::<Result<_, WalletError>>()?,
         };
 
-        let offer_royalties = requested
-            .nfts
-            .iter()
-            .map(|(&launcher_id, nft)| {
-                RoyaltyInfo::new(
-                    launcher_id,
-                    nft.royalty_puzzle_hash,
-                    nft.royalty_basis_points,
-                )
-            })
-            .filter(|info| info.basis_points > 0)
-            .collect_vec();
+        let offer_royalties = offer_royalties(&requested);
 
         let offer_trade_price_amounts =
             calculate_trade_price_amounts(&offer_amounts, offer_royalties.len());
@@ -136,6 +197,19 @@ impl Wallet {
             .prepare_spends_for_selection(&mut ctx, &offered.selected_coin_ids)
             .await?;
         self.select_spends(&mut ctx, &mut spends, &actions).await?;
+
+        let mut split_coin_spends = None;
+
+        if let Some(split_fee) = split_fee
+            && has_change(&spends, &Deltas::from_actions(&actions))
+        {
+            let (coin_spends, pre_split_spends) = self
+                .pre_split_offer_coins(&mut ctx, spends, &actions, split_fee)
+                .await?;
+
+            spends = pre_split_spends;
+            split_coin_spends = Some(coin_spends);
+        }
 
         let nonce = Offer::nonce(spends.non_settlement_coin_ids());
 
@@ -219,7 +293,7 @@ impl Wallet {
         let trade_prices = calculate_trade_prices(
             &calculate_trade_price_amounts(&requested_amounts, royalty_nft_count),
             &asset_info,
-        );
+        )?;
 
         for nft in spends.nfts.values().rev() {
             let nft = nft.last()?;
@@ -235,11 +309,7 @@ impl Wallet {
                     vec![],
                     Some(TransferNftById::new(
                         None,
-                        if nft.asset.info.royalty_basis_points > 0 {
-                            trade_prices.clone()
-                        } else {
-                            vec![]
-                        },
+                        payable_trade_prices(&trade_prices, nft.asset.info.royalty_basis_points),
                     )),
                 ),
             );
@@ -261,7 +331,9 @@ impl Wallet {
         // Finish the spend
         let deltas = spends.apply(&mut ctx, &actions)?;
 
-        self.complete_spends(&mut ctx, &deltas, spends).await?;
+        // The offer can be taken until its own expiration, if it has one.
+        self.complete_spends_without_expiration(&mut ctx, &deltas, spends)
+            .await?;
 
         let coin_spends = ctx.take();
 
@@ -272,6 +344,171 @@ impl Wallet {
             asset_info,
         )?;
 
-        Ok(offer.to_spend_bundle(&mut ctx)?)
+        Ok(PreSplitOffer {
+            offer: offer.to_spend_bundle(&mut ctx)?,
+            split_coin_spends,
+        })
+    }
+
+    /// Spends the XCH and CAT coins selected for an offer, creating a coin of the exact amount
+    /// the offer needs of each, and returns those coin spends along with the [`Spends`] the offer
+    /// should use instead. Singletons aren't split, so they're spent by the offer directly.
+    async fn pre_split_offer_coins(
+        &self,
+        ctx: &mut SpendContext,
+        selected: Spends,
+        actions: &[Action],
+        split_fee: u64,
+    ) -> Result<(Vec<CoinSpend>, Spends), WalletError> {
+        let deltas = Deltas::from_actions(actions);
+        let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
+
+        // If a split coin is identical to the change, the action system creates it from an
+        // intermediate coin, so the two never share a coin id. Either of them can then be used.
+        let split_puzzle_hash = change_puzzle_hash;
+
+        let fungible_amount = |id: &Id| coin_amount(deltas.get(id).map_or(0, |delta| delta.output));
+
+        let xch_amount = fungible_amount(&Id::Xch)?;
+        let mut cat_amounts = Vec::new();
+
+        for &id in selected.cats.keys() {
+            let amount = fungible_amount(&id)?;
+
+            if amount > 0 {
+                cat_amounts.push((id, amount));
+            }
+        }
+
+        let mut split_spends = Spends::new(change_puzzle_hash);
+
+        for item in &selected.xch.items {
+            split_spends.add(item.asset);
+        }
+
+        for cats in selected.cats.values() {
+            for item in &cats.items {
+                split_spends.add(item.asset);
+            }
+        }
+
+        let mut split_actions = vec![Action::fee(split_fee)];
+
+        if xch_amount > 0 {
+            split_actions.push(Action::send(
+                Id::Xch,
+                split_puzzle_hash,
+                xch_amount,
+                Memos::None,
+            ));
+        }
+
+        let hint = ctx.hint(split_puzzle_hash)?;
+
+        for &(id, amount) in &cat_amounts {
+            split_actions.push(Action::send(id, split_puzzle_hash, amount, hint));
+        }
+
+        // The split fee may need more XCH than the offer selected.
+        self.select_spends(ctx, &mut split_spends, &split_actions)
+            .await?;
+
+        let split_deltas = split_spends.apply(ctx, &split_actions)?;
+        let outputs = self
+            .complete_spends(ctx, &split_deltas, split_spends)
+            .await?;
+        let split_coin_spends = ctx.take();
+
+        // The offer keeps the singletons it selected, but not the coins that were split.
+        let mut spends = selected;
+        spends.xch = FungibleSpends::new();
+        spends.cats.clear();
+
+        if xch_amount > 0 {
+            let coin = outputs
+                .xch
+                .iter()
+                .find(|coin| coin.puzzle_hash == split_puzzle_hash && coin.amount == xch_amount)
+                .ok_or(WalletError::MissingPreSplitCoin)?;
+
+            spends.add(*coin);
+        }
+
+        for (id, amount) in cat_amounts {
+            let cat = outputs
+                .cats
+                .get(&id)
+                .and_then(|cats| {
+                    cats.iter().find(|cat| {
+                        cat.info.p2_puzzle_hash == split_puzzle_hash && cat.coin.amount == amount
+                    })
+                })
+                .ok_or(WalletError::MissingPreSplitCoin)?;
+
+            spends.add(*cat);
+        }
+
+        Ok((split_coin_spends, spends))
+    }
+}
+
+/// Whether the XCH or CAT coins selected add up to more than the actions need, leaving change.
+fn has_change(spends: &Spends, deltas: &Deltas) -> bool {
+    let output = |id: &Id| deltas.get(id).map_or(0, |delta| delta.output);
+
+    spends.xch.selected_amount() > output(&Id::Xch)
+        || spends
+            .cats
+            .iter()
+            .any(|(id, cats)| cats.selected_amount() > output(id))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn requested_nfts(basis_points: &[u16]) -> Requested {
+        Requested {
+            nfts: basis_points
+                .iter()
+                .enumerate()
+                .map(|(index, &royalty_basis_points)| {
+                    (
+                        Bytes32::new([u8::try_from(index).unwrap() + 1; 32]),
+                        NftOfferInfo {
+                            metadata: Program::default(),
+                            metadata_updater_puzzle_hash: Bytes32::default(),
+                            royalty_puzzle_hash: Bytes32::new([9; 32]),
+                            royalty_basis_points,
+                        },
+                    )
+                })
+                .collect(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn royalty_amounts_follow_the_offered_amounts() {
+        let cat = Bytes32::new([7; 32]);
+        let offered = Offered {
+            xch: 1000,
+            cats: [(cat, 100)].into_iter().collect(),
+            ..Default::default()
+        };
+
+        // A royalty-free NFT doesn't count towards the trade price split.
+        let royalties = offer_royalty_amounts(&offered, &requested_nfts(&[300, 0])).unwrap();
+        assert_eq!(royalties.xch, 30);
+        assert_eq!(royalties.cats[&cat], 3);
+
+        // Each royalty NFT takes its share of the price, and each royalty rounds down.
+        let royalties = offer_royalty_amounts(&offered, &requested_nfts(&[300, 300])).unwrap();
+        assert_eq!(royalties.xch, 30);
+        assert_eq!(royalties.cats[&cat], 2);
+
+        let royalties = offer_royalty_amounts(&offered, &Requested::default()).unwrap();
+        assert_eq!(royalties.xch, 0);
+        assert!(royalties.cats.is_empty());
     }
 }

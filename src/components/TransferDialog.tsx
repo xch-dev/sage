@@ -1,13 +1,16 @@
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
-import { amount } from '@/lib/formTypes';
+import { xchandlesEnabled } from '@/lib/features';
+import { feeWithinBalance } from '@/lib/fees';
+import { isHandleInput, isValidHandle } from '@/lib/handles';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import BigNumber from 'bignumber.js';
 import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { ContactPicker, RecipientContact } from './contacts/ContactPicker';
+import { HandleResolution } from './HandleResolution';
 import { PasteInput } from './PasteInput';
 import { WalletAddressPicker } from './WalletAddressPicker';
 import { Button } from './ui/button';
@@ -46,11 +49,16 @@ export function TransferDialog({
   const walletState = useWalletState();
 
   const schema = z.object({
-    address: z.string().min(1, t`Address is required`),
-    fee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
+    address: z
+      .string()
+      .min(1, t`Address is required`)
+      .refine(
+        (address) => !isHandleInput(address) || isValidHandle(address),
+        t`Invalid handle`,
+      ),
+    fee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
     ),
   });
 
@@ -68,7 +76,7 @@ export function TransferDialog({
   );
 
   const handler = (values: z.infer<typeof schema>) => {
-    onSubmit(values.address, values.fee);
+    onSubmit(values.address.trim(), values.fee);
   };
 
   return (
@@ -89,18 +97,35 @@ export function TransferDialog({
                     <FormLabel>
                       <Trans>Address</Trans>
                     </FormLabel>
-                    <WalletAddressPicker
-                      onSelect={(address) => form.setValue('address', address)}
-                    />
+                    <div className='flex items-center gap-1'>
+                      <ContactPicker
+                        onSelect={(recipient) =>
+                          form.setValue('address', recipient, {
+                            shouldValidate: true,
+                          })
+                        }
+                      />
+                      <WalletAddressPicker
+                        onSelect={(address) =>
+                          form.setValue('address', address)
+                        }
+                      />
+                    </div>
                   </div>
                   <FormControl>
                     <PasteInput
                       {...field}
-                      placeholder={t`Enter address`}
+                      placeholder={
+                        xchandlesEnabled
+                          ? t`Enter address or @handle`
+                          : t`Enter address`
+                      }
                       onEndIconClick={handleScanOrPaste}
                       onScanImage={handleScanImage}
                     />
                   </FormControl>
+                  <RecipientContact value={field.value} />
+                  <HandleResolution value={field.value} />
                   <FormMessage />
                 </FormItem>
               )}

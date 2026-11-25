@@ -1,5 +1,6 @@
 import {
   commands,
+  OfferHandleNft,
   OfferRecordStatus,
   OfferSummary,
   TakeOfferResponse,
@@ -10,6 +11,10 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Loading } from '@/components/Loading';
 import { OfferCard } from '@/components/OfferCard';
+import {
+  isOfferHandleBlocked,
+  OfferHandleNftWarning,
+} from '@/components/OfferHandleNftWarning';
 import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -17,8 +22,8 @@ import { FeeAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
+import { feeParams } from '@/lib/fees';
 import { resolveOfferData } from '@/lib/offerData';
-import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -37,6 +42,7 @@ export function Offer() {
   const [loadingStatus, setLoadingStatus] = useState(t`Initializing...`);
   const [summary, setSummary] = useState<OfferSummary | null>(null);
   const [status, setStatus] = useState<OfferRecordStatus | null>(null);
+  const [handleNfts, setHandleNfts] = useState<OfferHandleNft[]>([]);
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
   const [fee, setFee] = useState('');
   const [resolvedOffer, setResolvedOffer] = useState<string | null>(null);
@@ -55,6 +61,7 @@ export function Offer() {
       const data = await commands.viewOffer({ offer: resolvedOffer });
       setSummary(data.offer);
       setStatus(data.status);
+      setHandleNfts(data.handle_nfts ?? []);
       setLoadingStatus(t`Processing offer data...`);
     } catch (error) {
       addError(error as CustomError);
@@ -87,6 +94,8 @@ export function Offer() {
     // also triggers this.
     if (isReadOnly) return;
 
+    if (isOfferHandleBlocked(handleNfts)) return;
+
     // Check for expired options in the offered side (maker)
     const currentTime = Math.floor(Date.now() / 1000);
     const expiredOptions = summary.maker
@@ -108,7 +117,7 @@ export function Offer() {
     try {
       const result = await commands.takeOffer({
         offer: resolvedOffer,
-        fee: toMojos(fee || '0', walletState.sync.unit.precision),
+        ...(await feeParams(fee, walletState.sync.unit.precision)),
       });
       setResponse(result);
     } catch (error) {
@@ -137,6 +146,7 @@ export function Offer() {
                     <FeeAmountInput
                       id='fee'
                       className='pr-12'
+                      value={fee}
                       onValueChange={(values) => setFee(values.value)}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {
@@ -149,6 +159,8 @@ export function Offer() {
                 }
               />
 
+              <OfferHandleNftWarning handleNfts={handleNfts} className='mt-4' />
+
               <div className='mt-4 flex gap-2'>
                 <Button variant='outline' onClick={importOffer}>
                   <Trans>Import Offer</Trans>
@@ -160,7 +172,8 @@ export function Offer() {
                   disabled={
                     status === 'completed' ||
                     status === 'cancelled' ||
-                    status === 'expired'
+                    status === 'expired' ||
+                    isOfferHandleBlocked(handleNfts)
                   }
                 >
                   <Trans>Take Offer</Trans>

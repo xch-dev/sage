@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT DISTINCT display_name AS \"display_name!\" FROM owned_nfts\n        WHERE metadata_updater_kind = 1 AND display_name IS NOT NULL\n        ORDER BY display_name ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "display_name!",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "63fc41e381cd6bd5878095e9cf2e2ff964881d14a0014a08a388d0e2a4f7f75f"
+}

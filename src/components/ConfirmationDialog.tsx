@@ -10,7 +10,9 @@ import {
 import { LoadingButton } from '@/components/ui/loading-button';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import { useFeeRates } from '@/hooks/useFeeRates';
 import { useWallet } from '@/contexts/WalletContext';
+import { IDENTITY_SIGNATURE, stringifySpendBundle } from '@/lib/spendBundle';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -21,6 +23,7 @@ import {
   AlertCircleIcon,
   ArrowUpIcon,
   ArrowUpRightIcon,
+  AtSignIcon,
   BadgeMinus,
   BadgePlus,
   BoxIcon,
@@ -36,7 +39,11 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { commands, TakeOfferResponse, TransactionResponse } from '../bindings';
 import { formatNumber } from '../i18n';
-import { calculateTransaction } from './AdvancedTransactionSummary';
+import { AddressLabels } from './AddressLabels';
+import {
+  calculateTransaction,
+  groupSentAssets,
+} from './AdvancedTransactionSummary';
 import { CopyButton } from './CopyButton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { ReadOnlyButton } from './ReadOnlyButton';
@@ -44,6 +51,7 @@ import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { UndeclaredFeeAlert } from './UndeclaredFeeAlert';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -76,6 +84,8 @@ export default function ConfirmationDialog({
   const [signature, setSignature] = useState<string | null>(null);
   const [jsonCopied, setJsonCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('summary');
+  // Without the minimum, a low fee just isn't warned about.
+  const minimumFeePerCost = useFeeRates()?.minimum_fee_per_cost ?? null;
 
   useEffect(() => {
     if (response !== null && 'spend_bundle' in response) {
@@ -99,22 +109,33 @@ export default function ConfirmationDialog({
     ? calculateTransaction(walletState.sync.unit, response.summary)
     : { spent: [], created: [] };
   const fee = BigNumber(response?.summary.fee || 0);
+  const handles = response?.summary.handles ?? [];
   const isHighFee = fee.isGreaterThan(1000_000_000); // Adjust threshold as needed
+  const cost = response?.summary.cost ?? null;
+  // The rate the fee pays for the transaction's cost, which is what decides whether the
+  // mempool and farmers accept it.
+  const feePerCost =
+    cost !== null && cost > 0
+      ? fee.dividedBy(cost).decimalPlaces(2, BigNumber.ROUND_DOWN)
+      : null;
+  const feeRateLabel = feePerCost?.toString();
+  const minimumRateLabel = minimumFeePerCost?.toString();
+  const isLowFee =
+    feePerCost !== null &&
+    minimumFeePerCost !== null &&
+    feePerCost.isLessThan(minimumFeePerCost);
 
-  const json = JSON.stringify(
+  const json =
     response === null
-      ? null
-      : 'coin_spends' in response
-        ? {
-            coin_spends: response.coin_spends,
-            aggregated_signature:
-              signature ||
-              '0xc00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-          }
-        : response.spend_bundle,
-    null,
-    2,
-  ).replace(/"amount": "(.*?)"/g, '"amount": $1');
+      ? 'null'
+      : stringifySpendBundle(
+          'coin_spends' in response
+            ? {
+                coin_spends: response.coin_spends,
+                aggregated_signature: signature || IDENTITY_SIGNATURE,
+              }
+            : response.spend_bundle,
+        );
 
   const copyJson = () => {
     writeText(json);
@@ -123,83 +144,19 @@ export default function ConfirmationDialog({
     toast.success(t`JSON copied to clipboard`);
   };
 
-  // Group assets by type for combined display
-  const groupedAssets = created
-    .filter((item) => item.address !== t`Change` && item.address !== t`You`)
-    .sort((a, b) => a.sort - b.sort)
-    .reduce(
-      (acc, item) => {
-        // Extract amount and ticker from the label (e.g., "1.234 XCH")
-        const labelParts = item.label.split(' ');
-        const amount = labelParts[0];
-        const ticker = labelParts.length > 1 ? labelParts[1] : '';
-
-        // Group by badge and ticker to combine identical assets
-        const key = `${item.badge}-${ticker}`;
-        if (!acc[key]) {
-          acc[key] = {
-            badge: item.badge,
-            label: item.label,
-            originalLabel: item.label, // Store original label
-            ticker: ticker,
-            recipients: [item.address],
-            amounts: [amount],
-            totalAmount: amount,
-          };
-        } else {
-          // Add recipient if not already in the list
-          if (!acc[key].recipients.includes(item.address)) {
-            acc[key].recipients.push(item.address);
-            acc[key].amounts.push(amount);
-
-            // Update total amount
-            try {
-              const currentTotal = parseFloat(
-                acc[key].totalAmount.replace(/,/g, ''),
-              );
-              const newAmount = parseFloat(amount.replace(/,/g, ''));
-              const newTotal = currentTotal + newAmount;
-              acc[key].totalAmount = formatNumber({
-                value: newTotal,
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 12,
-              });
-              // Keep the original label format but update the total
-              acc[key].label = acc[key].originalLabel;
-            } catch {
-              // If parsing fails, keep the original amount
-            }
-          }
-        }
-        return acc;
-      },
-      {} as Record<
-        string,
-        {
-          badge: string;
-          label: string;
-          originalLabel: string;
-          ticker: string;
-          recipients: string[];
-          amounts: string[];
-          totalAmount: string;
-        }
-      >,
-    );
+  const sentAssets = groupSentAssets(created);
 
   return (
     <Dialog open={!!response} onOpenChange={reset}>
-      <DialogContent className='max-w-none w-full h-full md:max-w-[500px] md:h-[80vh] flex flex-col p-2.5 md:p-6 border-0 md:border !rounded-none md:rounded-lg'>
-        <DialogHeader className='flex-shrink-0 mt-12 sm:mt-0'>
+      <DialogContent className='max-w-none w-full h-full md:max-w-[500px] md:h-[80vh] flex flex-col p-2.5 md:p-6 border-0 md:border rounded-none! md:rounded-lg'>
+        <DialogHeader className='shrink-0 mt-12 sm:mt-0'>
           <DialogTitle className='text-xl font-semibold'>
             <Trans>Confirm Transaction</Trans>
           </DialogTitle>
           <DialogDescription>
-            <div className='text-sm text-muted-foreground'>
-              <Trans>
-                Please review the transaction details before submitting.
-              </Trans>
-            </div>
+            <Trans>
+              Please review the transaction details before submitting.
+            </Trans>
           </DialogDescription>
         </DialogHeader>
 
@@ -209,7 +166,7 @@ export default function ConfirmationDialog({
             onValueChange={setActiveTab}
             className='w-full h-full flex flex-col'
           >
-            <div className='flex items-center justify-between mb-4 flex-shrink-0'>
+            <div className='flex items-center justify-between mb-4 shrink-0'>
               <TabsList className='w-full inline-flex h-9 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground'>
                 <TabsTrigger
                   value='summary'
@@ -265,6 +222,31 @@ export default function ConfirmationDialog({
                   </Alert>
                 )}
 
+                {isLowFee && (
+                  <Alert variant='warning' className='mb-3'>
+                    <AlertCircleIcon className='h-4 w-4' aria-hidden='true' />
+                    <AlertTitle>
+                      <Trans>Low Transaction Fee</Trans>
+                    </AlertTitle>
+                    <AlertDescription>
+                      <Trans>
+                        The fee pays {feeRateLabel} mojos per cost, below the
+                        minimum of {minimumRateLabel}. The transaction may never
+                        be confirmed.
+                      </Trans>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {response && (
+                  <UndeclaredFeeAlert
+                    fee={response.summary.fee}
+                    declaredFee={response.summary.declared_fee}
+                    unit={walletState.sync.unit}
+                    className='mb-3'
+                  />
+                )}
+
                 {additionalData && (
                   <div className='mb-4'>
                     <h3 className='text-sm font-medium mb-2 flex items-center'>
@@ -273,9 +255,52 @@ export default function ConfirmationDialog({
                     </h3>
                     <div className='space-y-2'>
                       <div className='flex items-start gap-2 text-sm border border-border rounded-md p-2 bg-card/30'>
-                        <div className='break-words whitespace-pre-wrap w-full'>
+                        <div className='wrap-break-word whitespace-pre-wrap w-full'>
                           {additionalData.content}
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {handles.length > 0 && (
+                  <div className='mb-4'>
+                    <h3 className='text-sm font-medium mb-2 flex items-center'>
+                      <AtSignIcon className='h-4 w-4 mr-1' aria-hidden='true' />
+                      <Trans>Handles</Trans>
+                    </h3>
+                    <div className='space-y-2'>
+                      {handles.map((handle) => (
+                        <div
+                          key={handle.handle}
+                          className='rounded-md border p-2 text-sm space-y-1'
+                        >
+                          <div className='flex items-center gap-2'>
+                            <span className='font-medium'>
+                              @{handle.handle}
+                            </span>
+                            {handle.cached ? (
+                              <Badge variant='outline'>
+                                <Trans>Verified recently</Trans>
+                              </Badge>
+                            ) : (
+                              <Badge variant='outline'>
+                                <Trans>Verified</Trans>
+                              </Badge>
+                            )}
+                          </div>
+                          <div className='font-mono text-xs break-all'>
+                            {handle.address}
+                          </div>
+                          <HandleUpdatedHeight height={handle.updated_height} />
+                        </div>
+                      ))}
+                      <div className='text-xs text-muted-foreground'>
+                        <Trans>
+                          Handles are checked again before submitting. If any
+                          resolve to a different address by then, nothing is
+                          sent.
+                        </Trans>
                       </div>
                     </div>
                   </div>
@@ -291,12 +316,12 @@ export default function ConfirmationDialog({
                       <Trans>Sending</Trans>
                     </h3>
                     <div className='space-y-4'>
-                      {Object.entries(groupedAssets).map(([key, group]) => {
-                        const groupLabel = group.label;
+                      {sentAssets.map((group) => {
+                        const groupLabel = group.total;
                         const recipientCount = group.recipients.length;
                         return (
                           <div
-                            key={key}
+                            key={group.key}
                             className='flex flex-col gap-1.5 rounded-md border p-3'
                           >
                             <div className='flex items-center justify-between'>
@@ -310,7 +335,7 @@ export default function ConfirmationDialog({
                                 />
                                 <Trans>Total:</Trans>{' '}
                                 <span className='font-medium text-foreground ml-1'>
-                                  {group.totalAmount} {group.ticker}
+                                  {group.total}
                                 </span>
                               </div>
                             </div>
@@ -351,6 +376,7 @@ export default function ConfirmationDialog({
                                     <div className='text-sm truncate flex-1'>
                                       {address}
                                     </div>
+                                    <AddressLabels address={address} compact />
                                     {address !== t`Permanently Burned` &&
                                       address !== t`You` &&
                                       address !== t`Change` && (
@@ -372,10 +398,7 @@ export default function ConfirmationDialog({
                         );
                       })}
 
-                      {created.filter(
-                        (item) =>
-                          item.address !== t`Change` && item.address !== t`You`,
-                      ).length === 0 && (
+                      {sentAssets.length === 0 && (
                         <div className='text-sm text-muted-foreground p-3 border rounded-md'>
                           <Trans>
                             No assets being sent to external recipients.
@@ -487,6 +510,7 @@ export default function ConfirmationDialog({
                               <div className='text-sm truncate flex-1'>
                                 {item.address}
                               </div>
+                              <AddressLabels address={item.address} compact />
                               {item.address !== t`Permanently Burned` &&
                                 item.address !== t`You` &&
                                 item.address !== t`Change` && (
@@ -600,7 +624,7 @@ export default function ConfirmationDialog({
             <span>
               <Trans>Transaction Fee</Trans>
             </span>
-            <span>
+            <span className='text-right'>
               {fee.isZero() ? (
                 '-'
               ) : (
@@ -613,11 +637,16 @@ export default function ConfirmationDialog({
                   {ticker}
                 </>
               )}
+              {feePerCost !== null && !fee.isZero() && (
+                <span className='block text-xs'>
+                  <Trans>{feeRateLabel} mojos per cost</Trans>
+                </span>
+              )}
             </span>
           </div>
         </div>
 
-        <DialogFooter className='pt-4 flex-shrink-0 border-t mt-auto mb-6 sm:mb-0 mr-4 sm:mr-0'>
+        <DialogFooter className='pt-4 shrink-0 border-t mt-auto mb-6 sm:mb-0 mr-4 sm:mr-0'>
           <Button variant='ghost' onClick={reset}>
             <Trans>Cancel</Trans>
           </Button>
@@ -698,5 +727,15 @@ export default function ConfirmationDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function HandleUpdatedHeight({ height }: { height: number }) {
+  const updatedHeight = height.toLocaleString();
+
+  return (
+    <div className='text-xs text-muted-foreground'>
+      <Trans>Last updated at height {updatedHeight}</Trans>
+    </div>
   );
 }

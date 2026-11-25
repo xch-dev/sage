@@ -7,14 +7,20 @@ export interface ParsedFee {
   xch: string;
 }
 
-function formatXch(mojos: bigint) {
-  const whole = mojos / MOJOS_PER_XCH;
-  const fraction = (mojos % MOJOS_PER_XCH)
+/** Formats mojos as an amount with `precision` decimal places, without trailing zeros. */
+export function formatMojos(mojos: bigint, precision: number) {
+  const scale = 10n ** BigInt(precision);
+  const whole = mojos / scale;
+  const fraction = (mojos % scale)
     .toString()
-    .padStart(MOJO_DECIMAL_PLACES, '0')
+    .padStart(precision, '0')
     .replace(/0+$/, '');
 
   return fraction.length > 0 ? `${whole}.${fraction}` : whole.toString();
+}
+
+function formatXch(mojos: bigint) {
+  return formatMojos(mojos, MOJO_DECIMAL_PLACES);
 }
 
 export function parseMojos(value: string): ParsedFee | null {

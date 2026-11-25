@@ -3,13 +3,7 @@ import { spacescanCoinUrl } from '@/lib/urls';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import {
-  ColumnDef,
-  OnChangeFn,
-  Row,
-  RowSelectionState,
-  Table,
-} from '@tanstack/react-table';
+import { OnChangeFn, RowSelectionState } from '@tanstack/react-table';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { ArrowDown, ArrowUp, FilterIcon, FilterXIcon } from 'lucide-react';
 import { useMemo } from 'react';
@@ -18,10 +12,19 @@ import { NumberFormat } from './NumberFormat';
 import { SimplePagination } from './SimplePagination';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
-import { DataTable } from './ui/data-table';
+import {
+  DataTable,
+  DataTableColumnDef,
+  DataTableInstance,
+  DataTableRow,
+} from './ui/data-table';
 
 // Extract column header and cell components
-const SelectAllHeader = ({ table }: { table: Table<CoinRecord> }) => (
+const SelectAllHeader = ({
+  table,
+}: {
+  table: DataTableInstance<CoinRecord>;
+}) => (
   <div className='flex justify-center items-center'>
     <Checkbox
       checked={
@@ -34,7 +37,7 @@ const SelectAllHeader = ({ table }: { table: Table<CoinRecord> }) => (
   </div>
 );
 
-const SelectRowCell = ({ row }: { row: Row<CoinRecord> }) => (
+const SelectRowCell = ({ row }: { row: DataTableRow<CoinRecord> }) => (
   <div className='flex justify-center items-center'>
     <Checkbox
       checked={row.getIsSelected()}
@@ -87,7 +90,7 @@ const CoinIdCell = ({
   row,
   isTestnet,
 }: {
-  row: Row<CoinRecord>;
+  row: DataTableRow<CoinRecord>;
   isTestnet: boolean;
 }) => {
   const coinId = row.original.coin_id;
@@ -156,7 +159,7 @@ const AmountCell = ({
   row,
   precision,
 }: {
-  row: Row<CoinRecord>;
+  row: DataTableRow<CoinRecord>;
   precision: number;
 }) => (
   <div className='font-mono truncate'>
@@ -207,7 +210,7 @@ const ConfirmedHeader = ({
   </Button>
 );
 
-const ConfirmedCell = ({ row }: { row: Row<CoinRecord> }) =>
+const ConfirmedCell = ({ row }: { row: DataTableRow<CoinRecord> }) =>
   row.original.created_timestamp
     ? formatTimestamp(row.original.created_timestamp, 'short', 'short')
     : row.original.created_height
@@ -253,10 +256,71 @@ const ClawbackHeader = ({
   </Button>
 );
 
-const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) =>
-  row.original.clawback_timestamp
-    ? formatTimestamp(row.original.clawback_timestamp, 'short', 'short')
-    : t`No expiration`;
+const ClawbackVersionHeader = ({
+  sortMode,
+  sortDirection,
+  onSortModeChange,
+  onSortDirectionChange,
+  setCurrentPage,
+}: {
+  sortMode: CoinSortMode;
+  sortDirection: boolean;
+  onSortModeChange: (mode: CoinSortMode) => void;
+  onSortDirectionChange: (ascending: boolean) => void;
+  setCurrentPage: (page: number) => void;
+}) => (
+  <Button
+    className='px-0'
+    variant='link'
+    onClick={() => {
+      if (sortMode === 'clawback_version') {
+        onSortDirectionChange(!sortDirection);
+      } else {
+        onSortModeChange('clawback_version');
+        onSortDirectionChange(false);
+      }
+      setCurrentPage(0);
+    }}
+  >
+    <Trans>Clawback Version</Trans>
+    {sortMode === 'clawback_version' ? (
+      sortDirection ? (
+        <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+      ) : (
+        <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+      )
+    ) : (
+      <span className='ml-2 w-4 h-4' />
+    )}
+  </Button>
+);
+
+const ClawbackCell = ({ row }: { row: DataTableRow<CoinRecord> }) => {
+  const expiration = row.original.clawback_timestamp;
+  if (expiration == null) {
+    return t`No expiration`;
+  }
+
+  const lockSeconds = Number(expiration);
+  if (!Number.isFinite(lockSeconds)) {
+    return t`No expiration`;
+  }
+
+  // V1 stores relative seconds; unlock = birth block time + timelock.
+  if (row.original.clawback_version === 1) {
+    const created = row.original.created_timestamp;
+    if (created == null) {
+      // The unlock time isn't known until the coin is confirmed and its block time is synced.
+      return row.original.created_height == null ? t`Pending` : t`Unknown`;
+    }
+    return formatTimestamp(Number(created) + lockSeconds, 'short', 'short');
+  }
+
+  return formatTimestamp(lockSeconds, 'short', 'short');
+};
+
+const ClawbackVersionCell = ({ row }: { row: DataTableRow<CoinRecord> }) =>
+  row.original.clawback_version;
 
 const SpentHeader = ({
   sortMode,
@@ -327,7 +391,7 @@ const SpentHeader = ({
   </div>
 );
 
-const SpentCell = ({ row }: { row: Row<CoinRecord> }) =>
+const SpentCell = ({ row }: { row: DataTableRow<CoinRecord> }) =>
   row.original.spent_timestamp
     ? formatTimestamp(row.original.spent_timestamp, 'short', 'short')
     : row.original.spent_height
@@ -393,16 +457,28 @@ const ClawbackHeaderWrapper = (props: CoinListProps) => (
   />
 );
 
+const ClawbackVersionHeaderWrapper = (props: CoinListProps) => (
+  <ClawbackVersionHeader
+    sortMode={props.sortMode}
+    sortDirection={props.sortDirection}
+    onSortModeChange={props.onSortModeChange}
+    onSortDirectionChange={props.onSortDirectionChange}
+    setCurrentPage={props.setCurrentPage}
+  />
+);
+
 const AmountCellWrapper = ({
   row,
   precision,
 }: {
-  row: Row<CoinRecord>;
+  row: DataTableRow<CoinRecord>;
   precision: number;
 }) => <AmountCell row={row} precision={precision} />;
 
 // Factory function to create columns outside the component
-const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
+const createColumns = (
+  props: CoinListProps,
+): DataTableColumnDef<CoinRecord>[] => [
   {
     id: 'select',
     size: 30,
@@ -414,7 +490,7 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
     accessorKey: 'coin_id',
     size: 100,
     header: () => <CoinIdHeaderWrapper {...props} />,
-    cell: ({ row }: { row: Row<CoinRecord> }) => (
+    cell: ({ row }: { row: DataTableRow<CoinRecord> }) => (
       <CoinIdCell row={row} isTestnet={props.isTestnet} />
     ),
   },
@@ -422,7 +498,7 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
     accessorKey: 'amount',
     size: 100,
     header: () => <AmountHeaderWrapper {...props} />,
-    cell: ({ row }: { row: Row<CoinRecord> }) => (
+    cell: ({ row }: { row: DataTableRow<CoinRecord> }) => (
       <AmountCellWrapper row={row} precision={props.precision} />
     ),
   },
@@ -432,19 +508,28 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
     size: 140,
     cell: ConfirmedCell,
   },
-  props.clawback
-    ? {
-        accessorKey: 'clawback_timestamp',
-        header: () => <ClawbackHeaderWrapper {...props} />,
-        size: 120,
-        cell: ClawbackCell,
-      }
-    : {
-        accessorKey: 'spent_height',
-        header: () => <SpentHeaderWrapper {...props} />,
-        size: 120,
-        cell: SpentCell,
-      },
+  {
+    accessorKey: 'spent_height',
+    header: () => <SpentHeaderWrapper {...props} />,
+    size: 120,
+    cell: SpentCell,
+  },
+  ...(props.clawback
+    ? [
+        {
+          accessorKey: 'clawback_timestamp',
+          header: () => <ClawbackHeaderWrapper {...props} />,
+          size: 120,
+          cell: ClawbackCell,
+        },
+        {
+          accessorKey: 'clawback_version',
+          header: () => <ClawbackVersionHeaderWrapper {...props} />,
+          size: 120,
+          cell: ClawbackVersionCell,
+        },
+      ]
+    : []),
 ];
 
 export interface CoinListProps {
@@ -458,6 +543,9 @@ export interface CoinListProps {
   totalPages: number;
   setCurrentPage: (page: number) => void;
   maxRows: number;
+  pageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
+  pageSizeOptions?: number[];
   actions?: React.ReactNode;
   // Backend sorting and filtering props
   sortMode: CoinSortMode;
@@ -473,7 +561,7 @@ export default function CoinList(props: CoinListProps) {
   // Use the factory function to create columns
   const columns = useMemo(() => createColumns(props), [props]);
 
-  const getRowStyles = (row: Row<CoinRecord>) => {
+  const getRowStyles = (row: DataTableRow<CoinRecord>) => {
     const coin = row.original;
     const isSpent = !!coin.spent_height || !!coin.transaction_id;
     const isSelected = row.getIsSelected();
@@ -540,7 +628,7 @@ export default function CoinList(props: CoinListProps) {
         rowLabel={t`coin`}
         rowLabelPlural={t`coins`}
       />
-      <div className='flex-shrink-0 pt-4'>
+      <div className='shrink-0 pt-4'>
         <SimplePagination
           currentPage={props.currentPage}
           pageCount={props.totalPages}
@@ -548,6 +636,9 @@ export default function CoinList(props: CoinListProps) {
           size='sm'
           align='between'
           actions={props.actions}
+          pageSize={props.pageSize}
+          onPageSizeChange={props.onPageSizeChange}
+          pageSizeOptions={props.pageSizeOptions}
         />
       </div>
     </div>

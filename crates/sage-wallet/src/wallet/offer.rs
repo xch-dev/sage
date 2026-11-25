@@ -16,10 +16,45 @@ mod tests {
     use test_log::test;
 
     use crate::{
-        Offered, Requested, RequestedCat, TakenOffer, TestWallet, WalletError, WalletNftMint,
+        CoinSelectionAsset, Offered, PreSplitOffer, Requested, RequestedCat, TakenOffer,
+        TestWallet, WalletError, WalletNftMint, assert_before_seconds,
     };
 
     use super::aggregate_offers;
+
+    #[test(tokio::test)]
+    async fn test_offer_ignores_transaction_expiration() -> anyhow::Result<()> {
+        let alice = TestWallet::new(1000).await?;
+        alice.wallet.set_transaction_expiration(3600);
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 1000,
+                    ..Default::default()
+                },
+                Requested::default(),
+                None,
+            )
+            .await?;
+        assert!(assert_before_seconds(&offer.coin_spends)?.is_empty());
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 1000,
+                    ..Default::default()
+                },
+                Requested::default(),
+                Some(100),
+            )
+            .await?;
+        assert_eq!(assert_before_seconds(&offer.coin_spends)?, [100]);
+
+        Ok(())
+    }
 
     async fn sign_taken_offer(
         wallet: &TestWallet,
@@ -73,8 +108,13 @@ mod tests {
             .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
-        // Take offer
+        // Taking an offer is an ordinary transaction, so it expires, unlike the offer.
+        bob.wallet.set_transaction_expiration(3600);
         let offer = bob.wallet.take_offer(offer, 0).await?;
+        assert_eq!(
+            assert_before_seconds(&offer.spend_bundle.coin_spends)?.len(),
+            1
+        );
         let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
@@ -164,6 +204,85 @@ mod tests {
     }
 
     #[test(tokio::test)]
+    async fn test_take_offer_skips_trade_price_with_zero_royalty() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1063).await?;
+        let mut bob = alice.next(2).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1030, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let (coin_spends, did) = bob.wallet.create_did(0).await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        let (coin_spends, mut nfts) = bob
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![WalletNftMint {
+                    metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
+                    royalty_puzzle_hash: Some(Bytes32::default()),
+                    royalty_basis_points: 300,
+                }],
+            )
+            .await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        let nft = nfts.remove(0);
+
+        let mut allocator = Allocator::new();
+        let metadata = nft.info.metadata.to_clvm(&mut allocator)?;
+        let metadata = Program::from_clvm(&allocator, metadata)?;
+
+        // A 3% royalty on 33 mojos rounds down to zero, so the NFT can't reveal that trade price.
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 33,
+                    cats: indexmap! { asset_id => 1000 },
+                    ..Default::default()
+                },
+                Requested {
+                    nfts: indexmap! {
+                        nft.info.launcher_id => NftOfferInfo {
+                            metadata,
+                            metadata_updater_puzzle_hash: nft.info.metadata_updater_puzzle_hash,
+                            royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
+                            royalty_basis_points: nft.info.royalty_basis_points,
+                        },
+                    },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        assert_ne!(alice.wallet.db.nft(nft.info.launcher_id).await?, None);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 0);
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 0);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 33);
+        assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 1000);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
     async fn test_offer_nft_for_xch() -> anyhow::Result<()> {
         let mut alice = TestWallet::new(2).await?;
         let mut bob = alice.next(1030).await?;
@@ -221,6 +340,81 @@ mod tests {
 
         // Check balances
         assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
+        assert_ne!(bob.wallet.db.nft(nft.info.launcher_id).await?, None);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_offer_nft_skips_trade_price_with_zero_royalty() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2).await?;
+        let mut bob = alice.next(1063).await?;
+
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let (coin_spends, mut nfts) = alice
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![WalletNftMint {
+                    metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
+                    royalty_puzzle_hash: Some(Bytes32::default()),
+                    royalty_basis_points: 300,
+                }],
+            )
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let nft = nfts.remove(0);
+
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1030, 0, None).await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        // A 3% royalty on 33 mojos rounds down to zero, so the NFT can't reveal that trade price.
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    nfts: vec![nft.info.launcher_id],
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 33,
+                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None } },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+
+        let mut allocator = Allocator::new();
+        let parsed = Offer::from_spend_bundle(&mut allocator, &offer)?;
+        let royalties = parsed.requested_royalty_amounts()?;
+        assert_eq!(royalties.xch, 0);
+        assert_eq!(royalties.cats.get(&asset_id).copied(), Some(30));
+
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        alice.wait_for_puzzles().await;
+        bob.wait_for_coins().await;
+
+        assert_eq!(alice.wallet.db.xch_balance().await?, 33);
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 0);
+        assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 0);
         assert_ne!(bob.wallet.db.nft(nft.info.launcher_id).await?, None);
 
         Ok(())
@@ -857,7 +1051,7 @@ mod tests {
 
         let result = alice.wallet.take_offer(offer, 0).await;
         assert!(
-            matches!(result, Err(WalletError::CoinSelection(_))),
+            matches!(result, Err(WalletError::InsufficientCoins { .. })),
             "taking the offer should not reuse the offer input coin"
         );
 
@@ -936,6 +1130,99 @@ mod tests {
     }
 
     #[test(tokio::test)]
+    async fn test_cancel_offers_share_one_fee_coin() -> anyhow::Result<()> {
+        // 1000 mojos back the CAT; 3 are left as a single XCH coin for fees.
+        let mut alice = TestWallet::new(1003).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let cats = alice.wallet.db.selectable_cat_coins(asset_id).await?;
+        let coin_spends = alice
+            .wallet
+            .split(vec![cats[0].coin.coin_id()], 2, 0)
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let cats = alice.wallet.db.selectable_cat_coins(asset_id).await?;
+        assert_eq!(cats.len(), 2);
+        let fee_coins = alice.wallet.db.selectable_xch_coins().await?;
+        assert_eq!(fee_coins.len(), 1);
+        let fee_coin_id = fee_coins[0].coin_id();
+
+        // Two offers of CAT only: neither holds XCH, so each cancel needs an XCH fee coin,
+        // and the wallet has just one.
+        let mut offers = Vec::new();
+
+        for cat in &cats {
+            let offer = alice
+                .wallet
+                .make_offer(
+                    Offered {
+                        cats: indexmap! { asset_id => cat.coin.amount },
+                        selected_coin_ids: vec![cat.coin.coin_id()],
+                        ..Default::default()
+                    },
+                    Requested {
+                        xch: 1,
+                        ..Default::default()
+                    },
+                    None,
+                )
+                .await?;
+            offers.push(
+                alice
+                    .wallet
+                    .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+                    .await?,
+            );
+        }
+
+        // Built one by one (as cancel_offers used to), both cancels pick the same fee coin,
+        // and the joined bundle spends it twice.
+        let mut one_by_one = Vec::new();
+        for offer in &offers {
+            one_by_one.extend(alice.wallet.cancel_offer(offer.clone(), 1).await?);
+        }
+        assert_eq!(
+            one_by_one
+                .iter()
+                .filter(|cs| cs.coin.coin_id() == fee_coin_id)
+                .count(),
+            2
+        );
+
+        // Cancelled together, the fee coin is selected once.
+        let coin_spends = alice.wallet.cancel_offers(offers, 2, Vec::new()).await?;
+        let fee_coin_spends = coin_spends
+            .iter()
+            .filter(|cs| cs.coin.coin_id() == fee_coin_id)
+            .count();
+        assert_eq!(fee_coin_spends, 1);
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1);
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert!(
+            alice
+                .wallet
+                .db
+                .selectable_cat_coins(asset_id)
+                .await?
+                .iter()
+                .all(|cat| cats
+                    .iter()
+                    .all(|old| old.coin.coin_id() != cat.coin.coin_id()))
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
     async fn test_offer_cat_single_sided() -> anyhow::Result<()> {
         let mut alice = TestWallet::new(1000).await?;
         let mut bob = alice.next(0).await?;
@@ -971,6 +1258,56 @@ mod tests {
 
         // Check balances
         assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 1000);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_take_cat_offer_without_xch_for_the_fee() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let bob = alice.next(0).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    cats: indexmap! { asset_id => 1000 },
+                    ..Default::default()
+                },
+                Requested::default(),
+                None,
+            )
+            .await?;
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        // Bob gets the CAT for free, but the network fee is paid in XCH, which he doesn't have
+        let error = bob
+            .wallet
+            .take_offer(offer, 1)
+            .await
+            .expect_err("the fee needs XCH");
+
+        assert!(matches!(
+            error,
+            WalletError::InsufficientCoins {
+                asset: CoinSelectionAsset::Xch,
+                needed: 1,
+                available: 0,
+                ..
+            }
+        ));
+        assert!(
+            error
+                .to_string()
+                .contains("network fee is always paid in XCH")
+        );
 
         Ok(())
     }
@@ -1711,6 +2048,314 @@ mod tests {
             bob.wallet.db.cat_balance(asset_id).await?,
             offer_amount as u128
         );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_pre_split_offer_xch_for_cat() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(1000).await?;
+
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None).await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        let PreSplitOffer {
+            offer,
+            split_coin_spends,
+        } = alice
+            .wallet
+            .make_pre_split_offer(
+                Offered {
+                    xch: 300,
+                    fee: 50,
+                    ..Default::default()
+                },
+                Requested {
+                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None } },
+                    ..Default::default()
+                },
+                None,
+                10,
+            )
+            .await?;
+
+        let split_coin_spends = split_coin_spends.expect("the 1000 coin should be split");
+
+        // The offer only spends a coin of the amount it offers plus its fee.
+        let mut allocator = Allocator::new();
+        let parsed = Offer::from_spend_bundle(&mut allocator, &offer)?;
+        let offered_coins = parsed
+            .cancellable_coin_spends()?
+            .into_iter()
+            .map(|coin_spend| coin_spend.coin)
+            .collect::<Vec<_>>();
+        assert_eq!(offered_coins.len(), 1);
+        assert_eq!(offered_coins[0].amount, 350);
+        assert_eq!(
+            offered_coins[0].parent_coin_info,
+            split_coin_spends[0].coin.coin_id()
+        );
+
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        alice.transact(split_coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        // Everything but the offered coin and the split fee is change.
+        assert_eq!(alice.wallet.db.xch_balance().await?, 990);
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 640);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 300);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_pre_split_offer_cat_for_xch() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1010).await?;
+        let mut bob = alice.next(500).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let PreSplitOffer {
+            offer,
+            split_coin_spends,
+        } = alice
+            .wallet
+            .make_pre_split_offer(
+                Offered {
+                    cats: indexmap! { asset_id => 400 },
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 500,
+                    ..Default::default()
+                },
+                None,
+                10,
+            )
+            .await?;
+
+        let split_coin_spends = split_coin_spends.expect("the 1000 CAT coin should be split");
+
+        let mut allocator = Allocator::new();
+        let parsed = Offer::from_spend_bundle(&mut allocator, &offer)?;
+        let offered_amounts = parsed
+            .cancellable_coin_spends()?
+            .into_iter()
+            .map(|coin_spend| coin_spend.coin.amount)
+            .collect::<Vec<_>>();
+        assert_eq!(offered_amounts, vec![400]);
+
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        alice.transact(split_coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 400);
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 600);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 500);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_pre_split_offer_nft_keeps_nft_and_splits_fee() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1001).await?;
+        let mut bob = alice.next(0).await?;
+
+        let (coin_spends, did) = alice.wallet.create_did(0).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let (coin_spends, mut nfts) = alice
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![WalletNftMint {
+                    metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
+                    royalty_puzzle_hash: Some(Bytes32::default()),
+                    royalty_basis_points: 0,
+                }],
+            )
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let nft = nfts.remove(0);
+
+        let PreSplitOffer {
+            offer,
+            split_coin_spends,
+        } = alice
+            .wallet
+            .make_pre_split_offer(
+                Offered {
+                    nfts: vec![nft.info.launcher_id],
+                    fee: 100,
+                    ..Default::default()
+                },
+                Requested::default(),
+                None,
+                0,
+            )
+            .await?;
+
+        let split_coin_spends = split_coin_spends.expect("the fee coin should be split");
+
+        // The NFT isn't part of the split, only the coin paying the offer's fee.
+        assert!(
+            split_coin_spends
+                .iter()
+                .all(|coin_spend| coin_spend.coin != nft.coin)
+        );
+
+        let mut allocator = Allocator::new();
+        let parsed = Offer::from_spend_bundle(&mut allocator, &offer)?;
+        let mut offered_amounts = parsed
+            .cancellable_coin_spends()?
+            .into_iter()
+            .map(|coin_spend| coin_spend.coin.amount)
+            .collect::<Vec<_>>();
+        offered_amounts.sort_unstable();
+        assert_eq!(offered_amounts, vec![1, 100]);
+
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        alice.transact(split_coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+
+        assert!(
+            bob.wallet
+                .db
+                .spendable_nft(nft.info.launcher_id)
+                .await?
+                .is_some()
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_pre_split_offer_exact_coins_skip_split() -> anyhow::Result<()> {
+        let alice = TestWallet::new(1000).await?;
+
+        let PreSplitOffer {
+            split_coin_spends, ..
+        } = alice
+            .wallet
+            .make_pre_split_offer(
+                Offered {
+                    xch: 900,
+                    fee: 100,
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 1,
+                    ..Default::default()
+                },
+                None,
+                10,
+            )
+            .await?;
+
+        assert!(split_coin_spends.is_none());
+
+        Ok(())
+    }
+    #[test(tokio::test)]
+    async fn test_pre_split_offer_change_matches_offered_amount() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(1).await?;
+
+        // Splitting 500 from the 1000 coin leaves 500 of change, which would be an identical
+        // coin to the split coin if they were made from the same coin.
+        let PreSplitOffer {
+            offer,
+            split_coin_spends,
+        } = alice
+            .wallet
+            .make_pre_split_offer(
+                Offered {
+                    xch: 500,
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 1,
+                    ..Default::default()
+                },
+                None,
+                0,
+            )
+            .await?;
+
+        let split_coin_spends = split_coin_spends.expect("the 1000 coin should be split");
+
+        // The action system makes one of them from an intermediate coin instead.
+        assert_eq!(split_coin_spends.len(), 2);
+
+        let mut allocator = Allocator::new();
+        let parsed = Offer::from_spend_bundle(&mut allocator, &offer)?;
+        let offered_amounts = parsed
+            .cancellable_coin_spends()?
+            .into_iter()
+            .map(|coin_spend| coin_spend.coin.amount)
+            .collect::<Vec<_>>();
+        assert_eq!(offered_amounts, vec![500]);
+
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        alice.transact(split_coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        assert_eq!(alice.wallet.db.xch_balance().await?, 501);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 500);
 
         Ok(())
     }

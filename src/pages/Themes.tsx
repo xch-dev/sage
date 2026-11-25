@@ -10,12 +10,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { DataTable } from '@/components/ui/data-table';
+import { DataTable, DataTableColumnDef } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ColumnDef } from '@tanstack/react-table';
 import { Info, Loader2, Palette } from 'lucide-react';
 import { useTheme } from 'theme-o-rama';
 
@@ -28,7 +27,7 @@ interface DemoTableData {
 }
 
 // Add demo table columns
-const demoColumns: ColumnDef<DemoTableData>[] = [
+const demoColumns: DataTableColumnDef<DemoTableData>[] = [
   {
     accessorKey: 'name',
     header: 'Name',

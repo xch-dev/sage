@@ -1,13 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
-use chia_wallet_sdk::{
-    chia::puzzle_types::{LineageProof, nft::NftMetadata},
-    prelude::*,
-};
+use chia_wallet_sdk::{chia::puzzle_types::LineageProof, prelude::*};
 use sage_assets::base64_data_uri;
 use sage_database::{
     Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo, OptionCoinInfo,
-    SerializedNftInfo,
+    ParsedNftMetadata, SerializedNftInfo,
 };
 use tracing::{error, warn};
 
@@ -15,23 +12,26 @@ use crate::{
     ChildKind, OptionContext, PuzzleContext, Transaction, WalletError, WalletPeer, compute_nft_info,
 };
 
+/// Whether any of the custody p2 puzzle hashes of a coin of this kind belong to the wallet.
+async fn has_custody_p2_puzzle_hash(
+    tx: &mut DatabaseTx<'_>,
+    kind: &ChildKind,
+) -> Result<bool, WalletError> {
+    for custody_p2_puzzle_hash in kind.custody_p2_puzzle_hashes() {
+        if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
 pub async fn validate_wallet_coin(
     tx: &mut DatabaseTx<'_>,
     coin_id: Bytes32,
     info: &ChildKind,
 ) -> Result<bool, WalletError> {
-    let custody_p2_puzzle_hashes = info.custody_p2_puzzle_hashes();
-
-    let mut is_relevant = false;
-
-    for custody_p2_puzzle_hash in custody_p2_puzzle_hashes {
-        if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
-            is_relevant = true;
-            break;
-        }
-    }
-
-    if !is_relevant {
+    if !has_custody_p2_puzzle_hash(tx, info).await? {
         warn!(
             "Deleting coin {} because it isn't relevant to this wallet",
             coin_id
@@ -75,6 +75,18 @@ pub async fn insert_puzzle(
             }
 
             tx.insert_clawback_p2_puzzle(info).await?;
+
+            tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into())
+                .await?;
+        }
+        ChildKind::ClawbackV1 { info } => {
+            if underlying_p2_puzzle_hash.is_some() {
+                warn!("Deleting underlying coin {coin_id} because clawbacks are unsupported");
+                tx.delete_coin(coin_id).await?;
+                return Ok(false);
+            }
+
+            tx.insert_clawback_v1_p2_puzzle(info).await?;
 
             tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into())
                 .await?;
@@ -254,7 +266,7 @@ pub async fn insert_nft(
     coin_state: CoinState,
     lineage_proof: Option<LineageProof>,
     info: SerializedNftInfo,
-    metadata: Option<NftMetadata>,
+    metadata: Option<ParsedNftMetadata>,
     context: PuzzleContext,
 ) -> Result<(), WalletError> {
     if let Some(lineage_proof) = lineage_proof {
@@ -299,8 +311,9 @@ pub async fn insert_nft(
         data_hash: metadata.as_ref().and_then(|m| m.data_hash),
         metadata_hash: metadata.as_ref().and_then(|m| m.metadata_hash),
         license_hash: metadata.as_ref().and_then(|m| m.license_hash),
-        edition_number: metadata.as_ref().map(|m| m.edition_number),
-        edition_total: metadata.as_ref().map(|m| m.edition_total),
+        edition_number: metadata.as_ref().and_then(|m| m.edition_number),
+        edition_total: metadata.as_ref().and_then(|m| m.edition_total),
+        display_name: metadata.as_ref().and_then(|m| m.display_name.clone()),
     };
 
     if let Some(metadata_hash) = &metadata.as_ref().and_then(|m| m.metadata_hash)
@@ -317,11 +330,53 @@ pub async fn insert_nft(
         }
     }
 
+    // The display name from on-chain metadata takes precedence over the metadata file's name
+    if let Some(display_name) = &coin_info.display_name {
+        asset.name = Some(display_name.clone());
+    }
+
+    let is_current = coin_state.spent_height.is_none() || lineage_proof.is_none();
+    let is_mutable = !coin_info.metadata_updater_kind().is_append_only();
+
+    // A mutable NFT's earlier versions may have had different metadata, so only its current
+    // version sets its name, description, and icon.
+    if !is_current && is_mutable {
+        asset.name = None;
+        asset.description = None;
+        asset.icon_url = None;
+        asset.is_sensitive_content = false;
+    }
+
+    // Mutable NFTs can replace their metadata, so when their files or display name change,
+    // the name and icon from the previous metadata are cleared rather than kept. They're
+    // filled in again once the new files are downloaded.
+    //
+    // This includes the first time the NFT is synced, since any name and icon saved before
+    // then came from an offer's claimed metadata rather than the NFT itself.
+    if is_current
+        && is_mutable
+        && tx.nft_display_source(info.launcher_id).await?
+            != Some((
+                coin_info.data_hash,
+                coin_info.metadata_hash,
+                coin_info.display_name.clone(),
+            ))
+    {
+        tx.reset_nft_asset_display(
+            asset.hash,
+            asset.name.clone(),
+            asset.description.clone(),
+            asset.icon_url.clone(),
+            asset.is_sensitive_content,
+        )
+        .await?;
+    }
+
     tx.insert_asset(asset).await?;
 
     tx.insert_nft(info.launcher_id, &coin_info).await?;
 
-    if coin_state.spent_height.is_none() || lineage_proof.is_none() {
+    if is_current {
         tx.update_nft(info.launcher_id, &coin_info).await?;
     }
 
@@ -334,15 +389,13 @@ pub async fn insert_nft(
         .await?;
     }
 
-    let (data_uris, metadata_uris, license_uris) = metadata
-        .map(|metadata| {
-            (
-                metadata.data_uris,
-                metadata.metadata_uris,
-                metadata.license_uris,
-            )
-        })
-        .unwrap_or_default();
+    let (data_uris, metadata_uris, license_uris) = metadata.map_or_default(|metadata| {
+        (
+            metadata.data_uris,
+            metadata.metadata_uris,
+            metadata.license_uris,
+        )
+    });
 
     if let Some(hash) = coin_info.data_hash {
         tx.insert_file(hash).await?;
@@ -509,6 +562,91 @@ pub async fn insert_option(
     Ok(true)
 }
 
+/// The ids of the coins the transaction creates.
+fn output_coin_ids(transaction: &Transaction) -> HashSet<Bytes32> {
+    transaction
+        .inputs
+        .iter()
+        .flat_map(|input| &input.outputs)
+        .map(|output| output.coin.coin_id())
+        .collect()
+}
+
+/// Whether [`insert_transaction`] would attach any of the wallet's coins to the transaction,
+/// either a coin it spends or one it creates.
+pub async fn is_wallet_transaction(
+    db: &Database,
+    transaction: &Transaction,
+) -> Result<bool, WalletError> {
+    let mut tx = db.tx().await?;
+    let output_coin_ids = output_coin_ids(transaction);
+
+    for input in &transaction.inputs {
+        let coin_id = input.coin_spend.coin.coin_id();
+
+        if !output_coin_ids.contains(&coin_id) && tx.is_known_coin(coin_id).await? {
+            return Ok(true);
+        }
+
+        for output in &input.outputs {
+            if tx
+                .is_custody_p2_puzzle_hash(output.coin.puzzle_hash)
+                .await?
+                || has_custody_p2_puzzle_hash(&mut tx, &output.kind).await?
+            {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+/// Whether the wallet already knows the transaction left the mempool by being confirmed,
+/// because a coin it spends is spent or a coin it creates exists.
+async fn is_confirmed(
+    tx: &mut DatabaseTx<'_>,
+    transaction: &Transaction,
+) -> Result<bool, WalletError> {
+    for input in &transaction.inputs {
+        let spent = tx
+            .coin_heights(input.coin_spend.coin.coin_id())
+            .await?
+            .is_some_and(|heights| heights.spent_height.is_some());
+
+        if spent {
+            return Ok(true);
+        }
+
+        for output in &input.outputs {
+            let created = tx
+                .coin_heights(output.coin.coin_id())
+                .await?
+                .is_some_and(|heights| heights.created_height.is_some());
+
+            if created {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+/// Removes a pending transaction that can no longer be included, so the coins it spends can be
+/// spent again and the coins it would have created are forgotten.
+pub async fn remove_failed_transaction(
+    db: &Database,
+    transaction_id: Bytes32,
+) -> Result<(), WalletError> {
+    let mut tx = db.tx().await?;
+    tx.set_transaction_children_unsynced(transaction_id).await?;
+    tx.remove_mempool_item(transaction_id).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// Inserts a transaction the wallet submits, and returns the coin ids to subscribe to.
 pub async fn insert_transaction(
     db: &Database,
     peer: &WalletPeer,
@@ -517,16 +655,72 @@ pub async fn insert_transaction(
     transaction: Transaction,
     aggregated_signature: Signature,
 ) -> Result<Vec<Bytes32>, WalletError> {
+    let prepared = prepare_transaction(peer, genesis_challenge, transaction).await?;
+
+    let mut tx = db.tx().await?;
+    let subscriptions =
+        write_transaction(&mut tx, transaction_id, aggregated_signature, prepared).await?;
+    tx.commit().await?;
+
+    Ok(subscriptions)
+}
+
+/// Inserts a transaction found in a peer's mempool as already submitted, and returns the coin
+/// ids to subscribe to, or [`None`] if it was already confirmed.
+///
+/// Unlike a transaction the wallet submits, it may be confirmed while it's being fetched, and
+/// inserting it then would reset the heights of its confirmed coins. That's checked in the same
+/// database transaction as the insert, so a coin state update that confirms it either comes
+/// first and is seen here, or comes after and confirms the inserted item.
+pub async fn insert_discovered_transaction(
+    db: &Database,
+    peer: &WalletPeer,
+    genesis_challenge: Bytes32,
+    transaction_id: Bytes32,
+    transaction: Transaction,
+    aggregated_signature: Signature,
+) -> Result<Option<Vec<Bytes32>>, WalletError> {
+    let prepared = prepare_transaction(peer, genesis_challenge, transaction).await?;
+
+    let mut tx = db.tx().await?;
+
+    if is_confirmed(&mut tx, &prepared.transaction).await? {
+        return Ok(None);
+    }
+
+    let subscriptions =
+        write_transaction(&mut tx, transaction_id, aggregated_signature, prepared).await?;
+
+    // It's already in the peer's mempool, so it isn't submitted again right away.
+    tx.update_mempool_item_time(transaction_id).await?;
+
+    tx.commit().await?;
+
+    Ok(Some(subscriptions))
+}
+
+/// A transaction with what inserting it needs from the peer, fetched before the database
+/// transaction is opened.
+struct PreparedTransaction {
+    transaction: Transaction,
+    coin_spends: HashMap<Bytes32, CoinSpend>,
+    output_coin_ids: HashSet<Bytes32>,
+    puzzle_contexts: HashMap<Bytes32, PuzzleContext>,
+}
+
+async fn prepare_transaction(
+    peer: &WalletPeer,
+    genesis_challenge: Bytes32,
+    transaction: Transaction,
+) -> Result<PreparedTransaction, WalletError> {
     // Make lookups faster for inputs and outputs, and prepare pending coin spends.
     let mut coin_spends = HashMap::new();
-    let mut output_coin_ids = HashSet::new();
     let mut cached_coin_states = HashMap::new();
 
     for input in &transaction.inputs {
         coin_spends.insert(input.coin_spend.coin.coin_id(), input.coin_spend.clone());
 
         for output in &input.outputs {
-            output_coin_ids.insert(output.coin.coin_id());
             cached_coin_states.insert(
                 output.coin.coin_id(),
                 CoinState::new(output.coin, None, None),
@@ -545,8 +739,28 @@ pub async fn insert_transaction(
         }
     }
 
-    // Insert the transaction into the database.
-    let mut tx = db.tx().await?;
+    Ok(PreparedTransaction {
+        output_coin_ids: output_coin_ids(&transaction),
+        transaction,
+        coin_spends,
+        puzzle_contexts,
+    })
+}
+
+/// Writes the transaction and its coins into the database, and returns the coin ids to
+/// subscribe to.
+async fn write_transaction(
+    tx: &mut DatabaseTx<'_>,
+    transaction_id: Bytes32,
+    aggregated_signature: Signature,
+    prepared: PreparedTransaction,
+) -> Result<Vec<Bytes32>, WalletError> {
+    let PreparedTransaction {
+        transaction,
+        coin_spends,
+        output_coin_ids,
+        puzzle_contexts,
+    } = prepared;
 
     tx.insert_mempool_item(transaction_id, aggregated_signature, transaction.fee)
         .await?;
@@ -595,18 +809,7 @@ pub async fn insert_transaction(
             }
 
             // We don't want to insert output coins that we won't own in the future.
-            let custody_p2_puzzle_hashes = output.kind.custody_p2_puzzle_hashes();
-
-            let mut is_relevant = false;
-
-            for custody_p2_puzzle_hash in custody_p2_puzzle_hashes {
-                if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
-                    is_relevant = true;
-                    break;
-                }
-            }
-
-            if !is_relevant {
+            if !has_custody_p2_puzzle_hash(tx, &output.kind).await? {
                 continue;
             }
 
@@ -623,9 +826,9 @@ pub async fn insert_transaction(
 
             // Do the busy work of inserting the asset information into the database now that the coin exists.
 
-            let is_inserted = validate_wallet_coin(&mut tx, coin_id, &output.kind).await?
+            let is_inserted = validate_wallet_coin(tx, coin_id, &output.kind).await?
                 && insert_puzzle(
-                    &mut tx,
+                    tx,
                     coin_state,
                     output.kind.clone(),
                     puzzle_contexts
@@ -654,8 +857,6 @@ pub async fn insert_transaction(
         tx.set_children_synced(input.coin_spend.coin.coin_id())
             .await?;
     }
-
-    tx.commit().await?;
 
     Ok(subscriptions)
 }

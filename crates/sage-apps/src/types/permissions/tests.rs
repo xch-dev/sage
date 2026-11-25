@@ -286,3 +286,41 @@ fn requested_permissions_reject_required_secret_access_with_external_url_opening
         "unexpected error: {err}"
     );
 }
+
+#[test]
+fn requested_permissions_reject_secret_access_with_handle_resolution() {
+    // Handles an app resolves are sent to the XCHandles API, which could carry secrets out.
+    let err = SageRequestedPermissions::new(
+        SageRequestedNetworkPermissions::empty(),
+        SageRequestedCapabilities::new(
+            [
+                UserBridgeCapability::WalletGetSecretKey,
+                UserBridgeCapability::WalletResolveHandle,
+            ],
+            [],
+        ),
+    )
+    .unwrap_err();
+
+    assert!(
+        err.to_string()
+            .contains("cannot include both external access and sensitive secret access"),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
+fn requested_permissions_allow_secret_access_with_known_handles() {
+    // Reading known handles never leaves the device.
+    SageRequestedPermissions::new(
+        SageRequestedNetworkPermissions::empty(),
+        SageRequestedCapabilities::new(
+            [
+                UserBridgeCapability::WalletGetSecretKey,
+                UserBridgeCapability::WalletGetHandles,
+            ],
+            [],
+        ),
+    )
+    .unwrap();
+}

@@ -26,6 +26,8 @@ impl Default for Config {
 pub struct GlobalConfig {
     pub log_level: String,
     pub fingerprint: Option<u32>,
+    /// The name of the UI theme the user last selected.
+    pub theme: Option<String>,
 }
 
 impl Default for GlobalConfig {
@@ -33,6 +35,7 @@ impl Default for GlobalConfig {
         Self {
             log_level: "INFO".to_string(),
             fingerprint: None,
+            theme: None,
         }
     }
 }
@@ -43,6 +46,11 @@ pub struct NetworkConfig {
     pub default_network: String,
     pub target_peers: u32,
     pub discover_peers: bool,
+    /// Whether to look up the mempool transactions that full nodes announce for the wallet
+    /// with the network's Coinset API, so that incoming and pending transactions show up
+    /// before they're confirmed, including after a resync. This tells Coinset which mempool
+    /// transactions involve the wallet.
+    pub mempool_discovery: bool,
 }
 
 impl Default for NetworkConfig {
@@ -51,6 +59,7 @@ impl Default for NetworkConfig {
             default_network: "mainnet".to_string(),
             target_peers: 5,
             discover_peers: true,
+            mempool_discovery: true,
         }
     }
 }
@@ -68,5 +77,43 @@ impl Default for RpcConfig {
             enabled: false,
             port: 9257,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_without_theme() {
+        let config: Config = toml::from_str(
+            r#"
+            version = 2
+
+            [global]
+            log_level = "DEBUG"
+            fingerprint = 1000000
+            "#,
+        )
+        .expect("Failed to parse config");
+
+        assert_eq!(config.global.log_level, "DEBUG");
+        assert_eq!(config.global.fingerprint, Some(1_000_000));
+        assert_eq!(config.global.theme, None);
+
+        // Configs from before the setting existed get the default.
+        assert!(config.network.mempool_discovery);
+    }
+
+    #[test]
+    fn test_config_theme_round_trip() {
+        let mut config = Config::default();
+        config.global.theme = Some("dark".to_string());
+
+        let toml = toml::to_string_pretty(&config).expect("Failed to serialize config");
+        let parsed: Config = toml::from_str(&toml).expect("Failed to parse config");
+
+        assert_eq!(parsed, config);
+        assert_eq!(parsed.global.theme.as_deref(), Some("dark"));
     }
 }

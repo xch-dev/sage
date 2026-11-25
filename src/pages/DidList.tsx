@@ -29,8 +29,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useDids } from '@/hooks/useDids';
+import { feeParams } from '@/lib/fees';
+import { withHandleConfirmation } from '@/lib/handles';
 import { useErrors } from '@/hooks/useErrors';
-import { toMojos } from '@/lib/utils';
 import { useWallet } from '@/contexts/WalletContext';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -56,7 +57,7 @@ import { commands, DidRecord, TransactionResponse } from '../bindings';
 
 export function DidList() {
   const navigate = useNavigate();
-  const { dids, updateDids } = useDids();
+  const { dids, updateDids, loaded } = useDids();
 
   const [showHidden, setShowHidden] = useState(false);
 
@@ -87,7 +88,7 @@ export function DidList() {
           </div>
         )}
 
-        {dids.length === 0 && (
+        {loaded && dids.length === 0 && (
           <Alert className='mt-4'>
             <UserRoundPlus className='h-4 w-4' />
             <AlertTitle>
@@ -165,12 +166,14 @@ function Profile({ did, updateDids }: ProfileProps) {
   const onTransferSubmit = (address: string, fee: string) => {
     setIsTransferring(true);
     setTransferAddress(address);
-    commands
-      .transferDids({
+    withHandleConfirmation(async (confirmed_handles) =>
+      commands.transferDids({
         did_ids: [did.launcher_id],
         address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+        ...(await feeParams(fee, walletState.sync.unit.precision)),
+        confirmed_handles,
+      }),
+    )
       .then(setResponse)
       .catch((err) => {
         setIsTransferring(false);
@@ -181,12 +184,14 @@ function Profile({ did, updateDids }: ProfileProps) {
 
   const onBurnSubmit = (fee: string) => {
     setIsBurning(true);
-    commands
-      .transferDids({
-        did_ids: [did.launcher_id],
-        address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.transferDids({
+          did_ids: [did.launcher_id],
+          address: walletState.sync.burn_address,
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err) => {
         setIsBurning(false);
@@ -197,11 +202,13 @@ function Profile({ did, updateDids }: ProfileProps) {
 
   const onNormalizeSubmit = (fee: string) => {
     setIsNormalizing(true);
-    commands
-      .normalizeDids({
-        did_ids: [did.launcher_id],
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
+    feeParams(fee, walletState.sync.unit.precision)
+      .then((fees) =>
+        commands.normalizeDids({
+          did_ids: [did.launcher_id],
+          ...fees,
+        }),
+      )
       .then(setResponse)
       .catch((err) => {
         setIsNormalizing(false);

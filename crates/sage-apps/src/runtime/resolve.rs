@@ -72,19 +72,11 @@ pub fn is_allowed_app_url(url: &Url, app: &SharedSageApp) -> bool {
 }
 
 fn is_allowed_app_origin_url(url: &Url, protocol_scheme: &str, origin_id: &str) -> bool {
-    if url.scheme() == protocol_scheme && url.host_str() == Some(origin_id) {
-        return true;
-    }
-
-    #[cfg(target_os = "windows")]
-    if is_webview2_mapped_app_origin(url, protocol_scheme, origin_id) {
-        return true;
-    }
-
-    false
+    (url.scheme() == protocol_scheme && url.host_str() == Some(origin_id))
+        || (cfg!(target_os = "windows")
+            && is_webview2_mapped_app_origin(url, protocol_scheme, origin_id))
 }
 
-#[cfg(any(target_os = "windows", test))]
 fn is_webview2_mapped_app_origin(url: &Url, protocol_scheme: &str, origin_id: &str) -> bool {
     // WebView2 cannot navigate directly to custom protocols, so Wry maps
     // `{scheme}://{host}` to `https://{scheme}.{host}` on Windows. Navigation
@@ -220,11 +212,13 @@ pub(crate) async fn resolve_app_with_extra(
         )));
     }
 
-    if let Some(app) = build_builtin_test_app(app_id).map_err(|err| {
-        ResolveError::BuildFailed(format!(
-            "failed to resolve builtin sandbox app {app_id}: {err}"
-        ))
-    })? {
+    if let Some(app) = build_builtin_test_app(app_id, state.builtin_storage_namespace.as_deref())
+        .map_err(|err| {
+            ResolveError::BuildFailed(format!(
+                "failed to resolve builtin sandbox app {app_id}: {err}"
+            ))
+        })?
+    {
         return Ok(ResolvedApp::Stopped(ResolvedStoppedApp::new(
             SharedSageApp::new(app),
             guard,

@@ -7,7 +7,7 @@ use sage_api_macro::impl_endpoints;
 use sage_client::{Client, SageRpcError};
 use sage_rpc::start_rpc;
 use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 impl_endpoints! {
     #[derive(Debug, Parser)]
@@ -24,14 +24,14 @@ impl_endpoints! {
     }
 
     impl RpcCommand {
-        pub async fn handle(self, path: PathBuf) -> anyhow::Result<()> {
+        pub async fn handle(self) -> anyhow::Result<()> {
             match self {
                 Self::Start => {
-                    let mut sage = Sage::new(&path, false);
+                    let mut sage = Sage::new(&sage_root()?, false);
                     let mut receiver = sage.initialize().await?;
                     sage.switch_wallet().await?;
                     tokio::spawn(async move { while let Some(_message) = receiver.recv().await {} });
-                    start_rpc(Arc::new(Mutex::new(sage))).await
+                    start_rpc(Arc::new(RwLock::new(sage))).await
                 },
                 Self::GenerateOpenapi { output } => {
                     let openapi = sage_rpc::generate_openapi_spec();
@@ -52,6 +52,10 @@ impl_endpoints! {
             }
         }
     }
+}
+
+fn sage_root() -> Result<PathBuf> {
+    sage_config::sage_root().ok_or_else(|| anyhow::anyhow!("could not get Sage root directory"))
 }
 
 fn handle<T: Serialize>(result: Result<T, SageRpcError>) {

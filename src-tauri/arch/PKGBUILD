@@ -44,9 +44,6 @@ prepare() {
 build() {
   _build_env
   export CARGO_NET_OFFLINE=true
-  # glibc 2.44's const-preserving memchr trips AWS-LC 0.34's old wrapper.
-  # Keep this diagnostic as a warning only for that dependency.
-  export AWS_LC_SYS_CFLAGS="$CFLAGS -Wno-error=discarded-qualifiers"
   cd "$_repo_dir"
 
   # Tauri's beforeBuildCommand builds the frontend and built-in apps once.

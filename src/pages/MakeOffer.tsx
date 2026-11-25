@@ -1,4 +1,10 @@
 import Container from '@/components/Container';
+import { ExpirationInput } from '@/components/ExpirationInput';
+import {
+  OfferChoice,
+  OfferSettingCard,
+  OfferSidesDivider,
+} from '@/components/OfferSettings';
 import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
 import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
 import Header from '@/components/Header';
@@ -7,28 +13,32 @@ import { AssetSelector } from '@/components/selectors/AssetSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { FeeAmountInput, IntegerInput } from '@/components/ui/masked-input';
-import { Switch } from '@/components/ui/switch';
+import { FeeAmountInput } from '@/components/ui/masked-input';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
+import { useNowSeconds } from '@/hooks/useNowSeconds';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
-import { useWalletState } from '@/state';
+import { expirationError, futureExpirationTimestamp } from '@/lib/expiration';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { HandCoins, Handshake } from 'lucide-react';
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();
-  const location = useLocation();
   const { expiry } = useDefaultOfferExpiry();
-  const walletState = useWalletState();
   const navigate = useNavigate();
   const { addError } = useErrors();
-  const [splitNftOffers, setSplitNftOffers] = useState(
-    location.state?.splitNftOffers || false,
-  );
+  const now = useNowSeconds();
+  // Kept in the offer state so they survive leaving the page, like the assets.
+  const { splitNftOffers, preSplit, preSplitFee } = state;
+
+  // Each separate NFT offer would split coins of its own, and the change from
+  // one split can't be spent on the next offer until it's confirmed.
+  const offeredNftCount = state.offered.nfts.filter((n) => n).length;
+  const isSplittingNftOffers = splitNftOffers && offeredNftCount > 1;
+  const isPreSplitting = preSplit && !isSplittingNftOffers;
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
@@ -37,16 +47,10 @@ export function MakeOffer() {
 
   const makeAction = () => {
     if (state.expiration !== null) {
-      const days = parseInt(state.expiration.days) || 0;
-      const hours = parseInt(state.expiration.hours) || 0;
-      const minutes = parseInt(state.expiration.minutes) || 0;
-      const totalSeconds = days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60;
-
-      if (totalSeconds <= 0) {
-        addError({
-          kind: 'invalid',
-          reason: t`Expiration must be at least 1 second in the future`,
-        });
+      try {
+        futureExpirationTimestamp(state.expiration);
+      } catch (error) {
+        addError({ kind: 'invalid', reason: (error as Error).message });
         return;
       }
     }
@@ -71,16 +75,14 @@ export function MakeOffer() {
     const hasRequestedOptions =
       state.requested.options.filter((o) => o).length > 0;
 
-    if (
-      !(
-        hasOfferedTokens ||
-        hasOfferedNfts ||
-        hasRequestedTokens ||
-        hasRequestedNfts ||
-        hasOfferedOptions ||
-        hasRequestedOptions
-      )
-    ) {
+    if (!(
+      hasOfferedTokens ||
+      hasOfferedNfts ||
+      hasRequestedTokens ||
+      hasRequestedNfts ||
+      hasOfferedOptions ||
+      hasRequestedOptions
+    )) {
       addError({
         kind: 'invalid',
         reason: t`Offer must include at least one offered or requested asset.`,
@@ -104,7 +106,13 @@ export function MakeOffer() {
     setIsConfirmDialogOpen(true);
   };
 
-  const handleConfirm = () => {
+  // The split fee as it was confirmed, with an automatic one fixed at the rate it was shown at.
+  const [confirmedPreSplitFee, setConfirmedPreSplitFee] = useState<
+    string | null
+  >(null);
+
+  const handleConfirm = (fee: string | null) => {
+    setConfirmedPreSplitFee(fee);
     setIsProgressDialogOpen(true);
   };
 
@@ -116,189 +124,201 @@ export function MakeOffer() {
 
   const invalid =
     state.expiration !== null &&
-    (parseInt(state.expiration.days) || 0) === 0 &&
-    (parseInt(state.expiration.hours) || 0) === 0 &&
-    (parseInt(state.expiration.minutes) || 0) === 0;
+    expirationError(state.expiration, now) !== undefined;
 
   return (
     <>
       <Header title={t`New Offer`} />
 
       <Container>
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-screen-lg'>
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
-              <CardTitle className='text-md font-medium truncate flex items-center'>
-                <HandCoins className='mr-2 h-4 w-4' />
-                <Trans>Offered</Trans>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='text-sm text-muted-foreground'>
-                <Trans>Add the assets you are offering.</Trans>
-              </div>
+        <div className='flex max-w-(--breakpoint-lg) flex-col gap-6'>
+          <div className='flex flex-col lg:flex-row lg:items-stretch'>
+            <Card className='min-w-0 lg:flex-1'>
+              <CardHeader className='pb-4'>
+                <CardTitle className='flex items-center text-lg'>
+                  <HandCoins className='mr-2 h-5 w-5' aria-hidden='true' />
+                  <Trans>You offer</Trans>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AssetSelector
+                  offering
+                  prefix='offer'
+                  assets={state.offered}
+                  setAssets={(assets) => setState({ offered: assets })}
+                  emptyMessage={<Trans>Add the assets you are offering.</Trans>}
+                  fee={state.fee}
+                />
+              </CardContent>
+            </Card>
 
-              <AssetSelector
-                offering
-                prefix='offer'
-                assets={state.offered}
-                setAssets={(assets) => setState({ offered: assets })}
-                splitNftOffers={splitNftOffers}
-                setSplitNftOffers={setSplitNftOffers}
-                fee={state.fee}
-              />
-            </CardContent>
-          </Card>
+            <OfferSidesDivider />
 
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
-              <CardTitle className='text-md font-medium truncate flex items-center'>
-                <Handshake className='mr-2 h-4 w-4' />
-                <Trans>Requested</Trans>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='text-sm text-muted-foreground'>
-                <Trans>Add the assets you are requesting.</Trans>
-              </div>
+            <Card className='min-w-0 lg:flex-1'>
+              <CardHeader className='pb-4'>
+                <CardTitle className='flex items-center text-lg'>
+                  <Handshake className='mr-2 h-5 w-5' aria-hidden='true' />
+                  <Trans>You request</Trans>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AssetSelector
+                  prefix='requested'
+                  assets={state.requested}
+                  setAssets={(assets) => setState({ requested: assets })}
+                  emptyMessage={
+                    <Trans>
+                      Add the assets you are requesting, or leave this empty to
+                      give the offered assets away.
+                    </Trans>
+                  }
+                />
+              </CardContent>
+            </Card>
+          </div>
 
-              <AssetSelector
-                prefix='requested'
-                assets={state.requested}
-                setAssets={(assets) => setState({ requested: assets })}
-                splitNftOffers={splitNftOffers}
-                setSplitNftOffers={setSplitNftOffers}
-              />
-            </CardContent>
-          </Card>
+          <div className='flex flex-col gap-3'>
+            <h2 className='font-heading text-xl font-semibold tracking-tight'>
+              <Trans>Offer Settings</Trans>
+            </h2>
 
-          <div className='flex flex-col gap-4'>
-            <div className='flex flex-col space-y-1.5'>
-              <Label htmlFor='fee'>
-                <Trans>Network Fee</Trans>
-              </Label>
-              <div className='relative'>
+            <OfferSettingCard
+              title={<Trans>Network Fee</Trans>}
+              description={
+                <Trans>
+                  Paid by you when the offer is taken. Required if you are only
+                  requesting assets.
+                </Trans>
+              }
+            >
+              <div className='max-w-xs'>
                 <FeeAmountInput
                   id='fee'
-                  className='pr-12'
-                  onValueChange={(values: { value: string }) => {
+                  allowAuto={false}
+                  value={state.fee}
+                  onValueChange={(values, sourceInfo) => {
+                    // A prop change only echoes the stored fee. Writing it back
+                    // would recreate the offer while Cancel is clearing it.
+                    if (sourceInfo?.source === 'prop') return;
+                    setState({ fee: values.value });
+                  }}
+                />
+              </div>
+            </OfferSettingCard>
+
+            <OfferSettingCard
+              title={<Trans>Expiration</Trans>}
+              description={
+                state.expiration !== null ? (
+                  <Trans>
+                    The offer closes automatically once the time runs out.
+                  </Trans>
+                ) : (
+                  <Trans>
+                    The offer stays open until it&apos;s taken or you cancel it.
+                  </Trans>
+                )
+              }
+              toggle={{
+                checked: state.expiration !== null,
+                onCheckedChange: (checked) => {
+                  if (checked) {
                     setState({
-                      fee: values.value,
+                      expiration: {
+                        days: expiry?.days?.toString() ?? '1',
+                        hours: expiry?.hours?.toString() ?? '0',
+                        minutes: expiry?.minutes?.toString() ?? '0',
+                      },
                     });
-                  }}
-                />
-                <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span
-                    className='text-muted-foreground text-sm'
-                    id='price-currency'
-                  >
-                    {walletState.sync.unit.ticker}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className='flex flex-col gap-2'>
-              <div className='flex items-center gap-2'>
-                <label htmlFor='expiring'>
-                  <Trans>Expiring offer</Trans>
-                </label>
-                <Switch
-                  id='expiring'
-                  checked={state.expiration !== null}
-                  onCheckedChange={(value) => {
-                    if (value) {
-                      setState({
-                        expiration: {
-                          days: expiry?.days?.toString() ?? '1',
-                          hours: expiry?.hours?.toString() ?? '0',
-                          minutes: expiry?.minutes?.toString() ?? '0',
-                        },
-                      });
-                    } else {
-                      setState({ expiration: null });
-                    }
-                  }}
-                />
-              </div>
-
+                  } else {
+                    setState({ expiration: null });
+                  }
+                },
+              }}
+            >
               {state.expiration !== null && (
-                <div className='flex gap-2'>
-                  <div className='relative'>
-                    <IntegerInput
-                      className='pr-12'
-                      value={state.expiration?.days ?? ''}
-                      placeholder='0'
-                      min={0}
-                      onValueChange={(values) => {
-                        if (!state.expiration) return;
-                        setState({
-                          expiration: {
-                            ...state.expiration,
-                            days: values.value,
-                          },
-                        });
-                      }}
-                    />
-                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-muted-foreground text-sm'>
-                        <Trans>Days</Trans>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className='relative'>
-                    <IntegerInput
-                      className='pr-12'
-                      value={state.expiration?.hours ?? ''}
-                      placeholder='0'
-                      min={0}
-                      onValueChange={(values) => {
-                        if (!state.expiration) return;
-                        setState({
-                          expiration: {
-                            ...state.expiration,
-                            hours: values.value,
-                          },
-                        });
-                      }}
-                    />
-                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-muted-foreground text-sm'>
-                        <Trans>Hours</Trans>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className='relative'>
-                    <IntegerInput
-                      className='pr-12'
-                      value={state.expiration?.minutes ?? ''}
-                      placeholder='0'
-                      min={0}
-                      onValueChange={(values) => {
-                        if (!state.expiration) return;
-                        setState({
-                          expiration: {
-                            ...state.expiration,
-                            minutes: values.value,
-                          },
-                        });
-                      }}
-                    />
-                    <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-muted-foreground text-sm'>
-                        <Trans>Minutes</Trans>
-                      </span>
-                    </div>
-                  </div>
+                <div className='max-w-lg'>
+                  <ExpirationInput
+                    value={state.expiration}
+                    onChange={(expiration) => setState({ expiration })}
+                  />
                 </div>
               )}
-            </div>
+            </OfferSettingCard>
+
+            {offeredNftCount > 1 && (
+              <OfferSettingCard title={<Trans>NFT Offers</Trans>}>
+                <OfferChoice
+                  label={t`NFT offers`}
+                  value={splitNftOffers ? 'split' : 'together'}
+                  onValueChange={(value) =>
+                    setState({ splitNftOffers: value === 'split' })
+                  }
+                  options={[
+                    {
+                      value: 'together',
+                      label: <Trans>One offer</Trans>,
+                      description: (
+                        <Trans>All of the NFTs are taken together.</Trans>
+                      ),
+                    },
+                    {
+                      value: 'split',
+                      label: <Trans>One offer per NFT</Trans>,
+                      description: (
+                        <Trans>
+                          Each NFT gets its own offer, requesting the same
+                          assets.
+                        </Trans>
+                      ),
+                    },
+                  ]}
+                />
+              </OfferSettingCard>
+            )}
+
+            <OfferSettingCard
+              title={<Trans>Split coins first</Trans>}
+              description={
+                isSplittingNftOffers ? (
+                  <Trans>Not available when each NFT gets its own offer.</Trans>
+                ) : isPreSplitting ? (
+                  <Trans>
+                    Keeps the rest of your balance spendable. The offer is
+                    shared once the split is confirmed.
+                  </Trans>
+                ) : (
+                  <Trans>
+                    Without a split, the offer may lock up more of your balance
+                    than it needs.
+                  </Trans>
+                )
+              }
+              toggle={{
+                checked: isPreSplitting,
+                onCheckedChange: (checked) => setState({ preSplit: checked }),
+                disabled: isSplittingNftOffers,
+              }}
+            >
+              <div className='flex max-w-xs flex-col gap-1.5'>
+                <Label htmlFor='pre-split-fee'>
+                  <Trans>Split fee</Trans>
+                </Label>
+                <FeeAmountInput
+                  id='pre-split-fee'
+                  aria-label={t`Split fee`}
+                  value={preSplitFee}
+                  onValueChange={(values, sourceInfo) => {
+                    if (sourceInfo?.source === 'prop') return;
+                    setState({ preSplitFee: values.value });
+                  }}
+                />
+              </div>
+            </OfferSettingCard>
           </div>
         </div>
 
-        <div className='mt-4 flex gap-2'>
+        <div className='mt-6 flex gap-2'>
           <Button
             variant='outline'
             onClick={() => {
@@ -306,7 +326,7 @@ export function MakeOffer() {
               navigate('/offers', { replace: true });
             }}
           >
-            <Trans>Cancel Offer</Trans>
+            <Trans>Cancel</Trans>
           </Button>
           <ReadOnlyButton
             requiresSigning
@@ -324,6 +344,7 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           fee={state.fee || '0'}
+          preSplitFee={isPreSplitting ? preSplitFee : null}
           enabledMarketplaces={enabledMarketplaces}
           setEnabledMarketplaces={setEnabledMarketplaces}
         />
@@ -333,6 +354,7 @@ export function MakeOffer() {
           onOpenChange={handleProgressDialogClose}
           offerState={state}
           splitNftOffers={splitNftOffers}
+          preSplitFee={confirmedPreSplitFee}
           enabledMarketplaces={enabledMarketplaces}
           clearOfferState={() => {
             setState(null);

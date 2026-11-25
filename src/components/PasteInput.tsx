@@ -53,7 +53,7 @@ export const PasteInput = forwardRef<HTMLInputElement, PasteInputProps>(
           placeholder={placeholder}
           className={cn(
             onScanImage ? 'pr-16' : 'pr-10',
-            'w-full focus:outline-none select-none',
+            'w-full focus:outline-hidden select-none',
             truncate && 'truncate',
           )}
           onChange={onChange}

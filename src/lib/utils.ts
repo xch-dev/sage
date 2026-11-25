@@ -1,4 +1,4 @@
-import { AssetKind, NftRecord, OfferRecordStatus } from '@/bindings';
+import { AssetKind, NftRecord } from '@/bindings';
 import { t } from '@lingui/core/macro';
 import { bech32m } from 'bech32';
 import BigNumber from 'bignumber.js';
@@ -12,16 +12,6 @@ export function cn(...inputs: ClassValue[]) {
 export function dbg<T>(value: T): T {
   console.log(value);
   return value;
-}
-
-export function getOfferStatus(status: OfferRecordStatus): string {
-  return status === 'active' || status === 'pending'
-    ? 'Pending'
-    : status === 'completed'
-      ? 'Completed'
-      : status === 'cancelled'
-        ? 'Cancelled'
-        : 'Expired';
 }
 
 export function deepMerge<T>(target: T, source: Partial<T>): T {
@@ -49,6 +39,8 @@ export function emptyNftRecord(nftId: string): NftRecord {
   return {
     launcher_id: nftId,
     name: `${nftId.slice(0, 8)}...${nftId.slice(-4)}`,
+    // Nothing is known about the NFT, so it isn't assumed to be append-only.
+    metadata_updater_kind: 'unknown',
     icon_url: null,
     collection_id: null,
     collection_name: null,
@@ -117,13 +109,26 @@ export function formatAddress(
   return `${cleanAddress.slice(0, chars)}...${cleanAddress.slice(-trailingChars)}`;
 }
 
-export function formatUsdPrice(price: number): string {
-  if (price < 0.01) {
-    return '< 0.01¢';
-  } else if (price < 1) {
-    return `${(price * 100).toFixed(2)}¢`;
+/** A unit price in a fiat currency, with more precision for prices below 1. */
+export function formatFiatPrice(price: number, currency: string): string {
+  const format = (value: number, options: Intl.NumberFormatOptions) =>
+    value.toLocaleString(navigator.language, {
+      style: 'currency',
+      currency,
+      ...options,
+    });
+
+  if (price > 0 && price < 0.0001) {
+    return `< ${format(0.0001, { maximumFractionDigits: 4 })}`;
+  } else if (price > 0 && Number(price.toPrecision(3)) < 1) {
+    // At least two digits, so half a dollar reads $0.50 rather than $0.5.
+    return format(price, {
+      minimumSignificantDigits: 2,
+      maximumSignificantDigits: 3,
+    });
   } else {
-    return `$${price.toFixed(2)}`;
+    // The currency's usual decimal places, such as 2 for USD and none for JPY.
+    return format(price, {});
   }
 }
 

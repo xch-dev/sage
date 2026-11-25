@@ -5,7 +5,7 @@ use serde::Deserialize;
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeApprovalBody,
-    RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability, current_scoped_key,
+    RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability, current_scoped_wallet,
     parse_optional_params,
 };
 
@@ -33,8 +33,8 @@ impl BridgeMethod for WalletGetSecretKey {
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
         let _params: WalletGetSecretKeyParams = parse_optional_params(self, request)?;
-        let sage = tools.app_state.lock().await;
-        let (_, fingerprint) = current_scoped_key(&ctx, &sage)?;
+        let sage = tools.app_state.read().await;
+        let (_, fingerprint) = current_scoped_wallet(&ctx, &sage)?;
 
         Ok(Some(RustBridgeApprovalRequest {
             body: RustBridgeApprovalBody::GetSecretKey { fingerprint },
@@ -49,8 +49,8 @@ impl BridgeMethod for WalletGetSecretKey {
     ) -> BridgeHandleResult {
         let _params: WalletGetSecretKeyParams = parse_optional_params(self, request)?;
 
-        let sage = tools.app_state.lock().await;
-        let (_, fingerprint) = current_scoped_key(&ctx, &sage)?;
+        let sage = tools.app_state.read().await;
+        let (_, fingerprint) = current_scoped_wallet(&ctx, &sage)?;
 
         let response = sage
             .get_secret_key(GetSecretKey { fingerprint })

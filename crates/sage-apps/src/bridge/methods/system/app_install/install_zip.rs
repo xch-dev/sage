@@ -3,10 +3,10 @@ use std::{fs, io};
 use async_trait::async_trait;
 use serde::Deserialize;
 use specta::Type;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, State};
 
 use crate::{
-    AppInstallInstallResult, AppState, AppsHostState, BridgeApprovalRequestResult, BridgeContext,
+    AppInstallInstallResult, AppsHostState, BridgeApprovalRequestResult, BridgeContext,
     BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools,
     Result, RustBridgeRequest, SageAppWalletScope, SageGrantedPermissionsInput,
     SystemBridgeCapability, UserSageAppView, ZipInstallSource, apps_root, install_app_from_source,
@@ -49,11 +49,8 @@ impl BridgeMethod for AppInstallInstallZip {
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: AppInstallInstallZipParams = parse_required_params(self, request)?;
-        let state = tools.app_handle.state::<AppState>();
-
         let app = install_app_zip(
             tools.app_handle.clone(),
-            state,
             tools.host_state.clone(),
             params.zip_path,
             params.granted_permissions,
@@ -68,18 +65,14 @@ impl BridgeMethod for AppInstallInstallZip {
 
 pub async fn install_app_zip(
     app: AppHandle,
-    state: State<'_, AppState>,
     host_state: State<'_, AppsHostState>,
     zip_path: String,
     granted_permissions_input: SageGrantedPermissionsInput,
     wallet_scope: SageAppWalletScope,
 ) -> Result<UserSageAppView> {
-    let base_path = {
-        let state = state.lock().await;
-        state.path.clone()
-    };
+    let base_path = &host_state.root;
 
-    let root = apps_root(&base_path);
+    let root = apps_root(base_path);
 
     fs::create_dir_all(&root).map_err(|err| {
         io::Error::other(format!(
@@ -94,7 +87,7 @@ pub async fn install_app_zip(
     let result = install_app_from_source(
         &app,
         &host_state,
-        &base_path,
+        base_path,
         granted_permissions_input,
         wallet_scope,
         source,

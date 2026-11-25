@@ -28,7 +28,8 @@ impl Database {
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,
                 metadata, recovery_list_hash, num_verifications_required,
                 offer_hash, created_timestamp, spent_timestamp,
-                clawback_expiration_seconds AS clawback_timestamp
+                clawback_expiration_seconds AS clawback_timestamp,
+                clawback_version
             FROM owned_coins
             INNER JOIN dids ON dids.asset_id = owned_coins.asset_id
             ORDER BY asset_name ASC
@@ -67,6 +68,9 @@ impl Database {
                     mempool_item_hash: None,
                     offer_hash: row.offer_hash.convert()?,
                     clawback_timestamp: row.clawback_timestamp.convert()?,
+                    clawback_version: row.clawback_version.convert()?,
+                    clawback_is_sender: false,
+                    clawback_is_receiver: false,
                     created_height: row.created_height.convert()?,
                     spent_height: row.spent_height.convert()?,
                     created_timestamp: row.created_timestamp.convert()?,

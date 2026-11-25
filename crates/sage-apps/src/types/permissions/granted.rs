@@ -438,4 +438,15 @@ mod tests {
                 .contains("granted shared network whitelist entry not requested")
         );
     }
+
+    #[test]
+    fn granted_permissions_load_renamed_capabilities() -> anyhow::Result<()> {
+        // Apps installed before `wallet.get_key` was renamed have it stored in their grants.
+        let granted: SageGrantedPermissions =
+            serde_json::from_str(r#"{"capabilities":["wallet.get_key"]}"#)?;
+
+        assert!(granted.has_capability(UserBridgeCapability::WalletGetWallet));
+
+        Ok(())
+    }
 }

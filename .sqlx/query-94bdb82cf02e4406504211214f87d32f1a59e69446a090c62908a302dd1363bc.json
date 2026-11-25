@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE xchandles\n        SET previous_resolved_launcher_id = NULL, previous_resolved_puzzle_hash = NULL\n        WHERE registry_launcher_id = ? AND handle = ?\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "94bdb82cf02e4406504211214f87d32f1a59e69446a090c62908a302dd1363bc"
+}

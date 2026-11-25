@@ -4,9 +4,11 @@ import {
   commands,
   events,
   GetSyncStatusResponse,
-  KeyInfo,
+  WalletInfo,
 } from './bindings';
 import { CustomError } from './contexts/ErrorContext';
+import { Expiration } from './lib/expiration';
+import { clearFeeRates } from './lib/fees';
 
 export interface WalletState {
   sync: GetSyncStatusResponse;
@@ -28,6 +30,11 @@ export interface OfferState {
   requested: Assets;
   fee: string;
   expiration: OfferExpiration | null;
+  /** Make a separate offer for each offered NFT. */
+  splitNftOffers: boolean;
+  /** Split coins before making the offer, paying `preSplitFee`. */
+  preSplit: boolean;
+  preSplitFee: string;
 }
 
 export interface Assets {
@@ -41,11 +48,7 @@ export interface TokenAmount {
   amount: Amount;
 }
 
-export interface OfferExpiration {
-  days: string;
-  hours: string;
-  minutes: string;
-}
+export type OfferExpiration = Expiration;
 
 export interface ReturnValue {
   status: 'success' | 'completed' | 'cancelled';
@@ -67,9 +70,20 @@ export const useNavigationStore = create<NavigationStore>((set) => ({
     })),
 }));
 
+/**
+ * Turns on one offer per NFT for the offer being made. It does nothing once
+ * the offer has been cleared, since a partial state isn't a whole offer.
+ */
+export function splitOfferNfts() {
+  useOfferState.setState(
+    (state) => state && { ...state, splitNftOffers: true },
+  );
+}
+
 export function clearState() {
   useWalletState.setState(defaultState());
   useOfferState.setState(null);
+  clearFeeRates();
 }
 
 export async function fetchState() {
@@ -85,10 +99,10 @@ export function updateSyncStatus() {
   }
 
   updateSyncStatusPromise = commands
-    .getKey({})
-    .then((key) => {
-      // Only call getSyncStatus if key and key.key are not null
-      if (key && key.key) {
+    .getWallet({})
+    .then((data) => {
+      // Only call getSyncStatus if a wallet is logged in
+      if (data && data.wallet) {
         return commands.getSyncStatus({});
       }
       return null;
@@ -133,10 +147,10 @@ export async function loginAndUpdateState(
 }
 
 // Create a separate function to handle wallet state updates
-let setWalletState: ((wallet: KeyInfo | null) => void) | null = null;
+let setWalletState: ((wallet: WalletInfo | null) => void) | null = null;
 
 export function initializeWalletState(
-  setter: (wallet: KeyInfo | null) => void,
+  setter: (wallet: WalletInfo | null) => void,
 ) {
   setWalletState = setter;
 }

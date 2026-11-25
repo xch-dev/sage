@@ -1,3 +1,4 @@
+import { DataTableColumnDef } from '@/components/ui/data-table';
 import { AssetKind } from '@/bindings';
 import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -10,10 +11,10 @@ import {
 import { formatAddress, formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ColumnDef } from '@tanstack/react-table';
 import { Copy, MoreHorizontal, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { AddressLabels } from './AddressLabels';
 import { AmountCell } from './AmountCell';
 import { AssetIcon } from './AssetIcon';
 import { AssetLink } from './AssetLink';
@@ -33,7 +34,7 @@ export interface FlattenedTransaction {
   transactionId?: string;
 }
 
-export const columns: ColumnDef<FlattenedTransaction>[] = [
+export const columns: DataTableColumnDef<FlattenedTransaction>[] = [
   {
     accessorKey: 'transactionHeight',
     header: ({ column }) => (
@@ -89,7 +90,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
 
       return (
         <div className='flex items-center gap-3'>
-          <div className='w-6 h-6 flex-shrink-0' role='img' aria-hidden='true'>
+          <div className='w-6 h-6 shrink-0' role='img' aria-hidden='true'>
             <AssetIcon
               asset={{
                 icon_url: row.original.iconUrl ?? null,
@@ -137,9 +138,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
       className: 'hidden md:table-cell',
     },
     cell: ({ row }) => (
-      <div className='hidden md:block font-mono'>
-        {formatAddress(row.getValue<string | null>('address') || '', 7, 4)}
-      </div>
+      <AddressCell address={row.getValue<string | null>('address')} />
     ),
   },
   {
@@ -189,3 +188,14 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     },
   },
 ];
+
+function AddressCell({ address }: { address: string | null }) {
+  return (
+    <div className='hidden md:flex flex-col items-start gap-0.5 min-w-0'>
+      <span className='font-mono' title={address ?? undefined}>
+        {formatAddress(address || '', 7, 4)}
+      </span>
+      <AddressLabels address={address} compact />
+    </div>
+  );
+}

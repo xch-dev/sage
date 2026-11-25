@@ -1,4 +1,4 @@
-import { KeyInfo } from '@/bindings';
+import { WalletInfo } from '@/bindings';
 import {
   Tooltip,
   TooltipContent,
@@ -7,8 +7,9 @@ import {
 } from '@/components/ui/tooltip';
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
+import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/lib/viewPreferences';
 import { t } from '@lingui/core/macro';
-import { PanelLeft, PanelLeftClose, Snowflake } from 'lucide-react';
+import { Eye, PanelLeft, PanelLeftClose, Snowflake } from 'lucide-react';
 import { PropsWithChildren } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Insets } from 'tauri-plugin-safe-area-insets';
@@ -23,7 +24,7 @@ function WalletTransitionWrapper({
   props,
   insets,
 }: PropsWithChildren<{ props: LayoutProps; insets: Insets }>) {
-  const { isSwitching, wallet, isReadOnly } = useWallet();
+  const { isSwitching, wallet, isReadOnly, isWatchOnly } = useWallet();
 
   // Only show content if we have a wallet or we're not switching
   // This prevents old wallet data from showing during transition
@@ -33,7 +34,7 @@ function WalletTransitionWrapper({
     <div
       className={`transition-all duration-300 ${
         !shouldShow
-          ? 'opacity-0 blur-sm pointer-events-none'
+          ? 'opacity-0 blur-xs pointer-events-none'
           : 'opacity-100 blur-0'
       } flex flex-col h-screen overflow-hidden ${
         props.transparentBackground ? 'bg-transparent' : 'bg-background'
@@ -46,17 +47,22 @@ function WalletTransitionWrapper({
     >
       {shouldShow ? (
         <>
-          {isReadOnly && (
+          {isWatchOnly ? (
             <Banner
-              message={t`Read-only wallet — transactions require private keys`}
-              aria-label={t`Read-only wallet`}
-              icon={
-                <Snowflake
-                  className='h-3 w-3 flex-shrink-0'
-                  aria-hidden='true'
-                />
-              }
+              message={t`Watch-only wallet — these addresses can't be spent from here`}
+              aria-label={t`Watch-only wallet`}
+              icon={<Eye className='h-3 w-3 shrink-0' aria-hidden='true' />}
             />
+          ) : (
+            isReadOnly && (
+              <Banner
+                message={t`Read-only wallet — transactions require private keys`}
+                aria-label={t`Read-only wallet`}
+                icon={
+                  <Snowflake className='h-3 w-3 shrink-0' aria-hidden='true' />
+                }
+              />
+            )
           )}
           {children}
         </>
@@ -65,11 +71,9 @@ function WalletTransitionWrapper({
   );
 }
 
-const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
-
 type LayoutProps = PropsWithChildren<object> & {
   transparentBackground?: boolean;
-  wallet?: KeyInfo;
+  wallet?: WalletInfo;
 };
 
 export function FullLayout(props: LayoutProps) {
@@ -104,7 +108,7 @@ export function FullLayout(props: LayoutProps) {
         >
           <div className='bg-background flex h-full max-h-screen flex-col gap-2'>
             <div
-              className={`flex h-14 items-center pt-2 px-5 ${isCollapsed ? 'flex-col gap-2 justify-center' : 'justify-between'}`}
+              className={`flex h-14 items-center pt-2 px-5 ${isCollapsed ? 'flex-col gap-2 justify-center' : 'justify-between gap-2'}`}
             >
               <WalletSwitcher isCollapsed={isCollapsed} wallet={wallet} />
               <Tooltip>
@@ -112,7 +116,7 @@ export function FullLayout(props: LayoutProps) {
                   <button
                     type='button'
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className='text-muted-foreground hover:text-primary transition-colors'
+                    className='shrink-0 text-muted-foreground hover:text-primary transition-colors'
                     aria-label={
                       isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`
                     }
@@ -202,7 +206,9 @@ export default function Layout(props: LayoutProps) {
 
   if (
     !wallet &&
-    (location.pathname === '/settings' || location.pathname === '/themes')
+    (location.pathname === '/settings' ||
+      location.pathname.startsWith('/settings/') ||
+      location.pathname === '/themes')
   ) {
     return <MinimalLayout {...props} />;
   }

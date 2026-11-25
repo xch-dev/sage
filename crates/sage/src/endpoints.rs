@@ -1,5 +1,6 @@
 mod action_system;
 mod actions;
+mod contacts;
 mod data;
 mod keys;
 mod offers;
@@ -7,3 +8,6 @@ mod settings;
 mod themes;
 mod transactions;
 mod wallet_connect;
+mod xchandles;
+
+pub use offers::MakeOfferRoyalties;

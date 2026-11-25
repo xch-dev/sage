@@ -112,11 +112,11 @@ Allows the app to request additional capabilities and network targets in one app
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
-## `wallet.get_key`
+## `wallet.get_wallet`
 
-**Read wallet key**
+**Read wallet**
 
-Allows the app to read public information about a wallet key.
+Allows the app to read public information about the selected wallet.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |
@@ -224,6 +224,48 @@ Allows the app to validate whether an address belongs to this wallet.
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.resolve_handle`
+
+**Resolve XCHandles**
+
+Allows the app to look up XCHandles handles, which sends them to the XCHandles API, and verify them against the blockchain.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
+| Accesses sensitive secret | `false` |
+
+## `wallet.get_handles`
+
+**Read known XCHandles**
+
+Allows the app to read the XCHandles handles Sage has already verified on this network, in any wallet, including which ones this wallet owns and which handles point to an address.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
+## `wallet.get_contacts`
+
+**Read address book**
+
+Allows the app to read the contacts in your address book, which every wallet on this network shares, including their names, notes, addresses and handles.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.filter_unlocked_coins`
 
 **Filter unlocked wallet coins**
@@ -271,6 +313,20 @@ Allows the app to read confirmed and spendable balances for XCH, CAT, DID, or NF
 **Sign wallet coin spends**
 
 Allows the app to request signatures for custom coin spends after per-request approval.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
+| Accesses sensitive secret | `false` |
+
+## `wallet.create_offer`
+
+**Create offers**
+
+Allows the app to request offers made from your wallet's coins after per-request approval. The offer is listed on the Offers page and its coins are reserved.
 
 | Flag                      | Value   |
 | ------------------------- | ------- |

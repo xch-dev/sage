@@ -1,3 +1,4 @@
+import { DataTableColumnDef } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -6,11 +7,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { dexieAssetUrl } from '@/lib/urls';
-import { formatUsdPrice, getAssetDisplayName, toDecimal } from '@/lib/utils';
+import { formatFiatPrice, getAssetDisplayName, toDecimal } from '@/lib/utils';
 import { PricedTokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ColumnDef } from '@tanstack/react-table';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   CircleAlertIcon,
@@ -33,10 +33,12 @@ export interface TokenActionHandlers {
   onToggleVisibility?: (asset: PricedTokenRecord) => void;
 }
 
+/** `currency` is the fiat currency for the value and price columns, or null to leave them out. */
 export const columns = (
-  actionHandlers?: TokenActionHandlers,
-  isTestnet = false,
-): ColumnDef<PricedTokenRecord>[] => [
+  actionHandlers: TokenActionHandlers | undefined,
+  isTestnet: boolean,
+  currency: string | null,
+): DataTableColumnDef<PricedTokenRecord>[] => [
   {
     id: 'icon',
     enableSorting: false,
@@ -116,39 +118,7 @@ export const columns = (
       );
     },
   },
-  {
-    accessorKey: 'balanceInUsd',
-    header: () => <Trans>Value</Trans>,
-    size: 90,
-    meta: {
-      className: 'hidden md:table-cell',
-    },
-    cell: ({ row }) => (
-      <div>
-        <span className='sr-only'>{t`USD Value: `}</span>
-        <NumberFormat
-          value={row.original.balanceInUsd}
-          style='currency'
-          currency='USD'
-          maximumFractionDigits={2}
-        />
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'priceInUsd',
-    header: () => <Trans>Price</Trans>,
-    size: 60,
-    meta: {
-      className: 'hidden md:table-cell',
-    },
-    cell: ({ row }) => (
-      <div>
-        <span className='sr-only'>{t`Price per token: `}</span>
-        {formatUsdPrice(row.original.priceInUsd)}
-      </div>
-    ),
-  },
+  ...(currency === null ? [] : fiatColumns(currency)),
   {
     id: 'actions',
     enableSorting: false,
@@ -242,3 +212,42 @@ export const columns = (
     },
   },
 ];
+
+function fiatColumns(
+  currency: string,
+): DataTableColumnDef<PricedTokenRecord>[] {
+  return [
+    {
+      accessorKey: 'balanceInFiat',
+      header: () => <Trans>Value</Trans>,
+      size: 90,
+      meta: {
+        className: 'hidden md:table-cell',
+      },
+      cell: ({ row }) => (
+        <div>
+          <span className='sr-only'>{t`Value in ${currency}: `}</span>
+          <NumberFormat
+            value={row.original.balanceInFiat}
+            style='currency'
+            currency={currency}
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'priceInFiat',
+      header: () => <Trans>Price</Trans>,
+      size: 60,
+      meta: {
+        className: 'hidden md:table-cell',
+      },
+      cell: ({ row }) => (
+        <div>
+          <span className='sr-only'>{t`Price per token: `}</span>
+          {formatFiatPrice(row.original.priceInFiat, currency)}
+        </div>
+      ),
+    },
+  ];
+}

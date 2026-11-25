@@ -1,17 +1,24 @@
 use std::{
     collections::{HashMap, HashSet},
+    sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use chia_wallet_sdk::{
     chia::puzzle_types::offer::SettlementPaymentsSolution,
-    driver::{P2DelegatedConditionsLayer, SpendKind, SpendableAsset},
+    driver::{
+        Clawback as ClawbackV1, ClawbackV2, P2DelegatedConditionsLayer, SpendKind, SpendableAsset,
+        coin_amount,
+    },
     prelude::*,
     puzzles::SETTLEMENT_PAYMENT_HASH,
     types::puzzles::P2DelegatedConditionsSolution,
 };
 use indexmap::IndexMap;
-use sage_database::{AssetKind, CoinKind, Database, DeserializePrimitive, P2Puzzle};
+use sage_database::{
+    AssetKind, CoinKind, Database, DeserializePrimitive, P2Puzzle, SharedDatabase,
+};
+use tokio::sync::{Mutex, MutexGuard};
 
 mod cats;
 mod coin_management;
@@ -23,6 +30,7 @@ mod nfts;
 mod offer;
 mod options;
 mod signing;
+mod wallet_kind;
 mod xch;
 
 pub use memos::*;
@@ -30,35 +38,106 @@ pub use multi_send::*;
 pub use nfts::*;
 pub use offer::*;
 pub use options::*;
+pub use signing::*;
+pub use wallet_kind::*;
 
-use crate::WalletError;
+use crate::{CoinSelectionAsset, WalletError};
+
+/// Shows that a wallet's spend lock is held, until it's dropped. See [`Wallet::lock_spends`].
+#[derive(Debug)]
+pub struct SpendGuard<'a> {
+    _guard: MutexGuard<'a, ()>,
+}
 
 #[derive(Debug)]
 pub struct Wallet {
     pub db: Database,
+    /// The database shared by every wallet on this wallet's network, for the address book
+    /// and verified handle mappings.
+    pub shared_db: SharedDatabase,
     pub fingerprint: u32,
-    pub intermediate_pk: PublicKey,
+    pub kind: WalletKind,
     pub genesis_challenge: Bytes32,
     pub agg_sig_constants: AggSigConstants,
     pub change_p2_puzzle_hash: Option<Bytes32>,
+    /// How many seconds a transaction can be confirmed for after it's created, or 0 for no
+    /// limit. It's atomic so that changing the setting doesn't need the wallet to be reloaded.
+    transaction_expiration: AtomicU64,
+    /// Held from when coins are selected for a transaction or offer until it's recorded, so
+    /// that coin selection never picks a coin another request is about to spend or lock.
+    spend_lock: Mutex<()>,
 }
 
 impl Wallet {
     pub fn new(
         db: Database,
+        shared_db: SharedDatabase,
         fingerprint: u32,
-        intermediate_pk: PublicKey,
+        kind: WalletKind,
         genesis_challenge: Bytes32,
         agg_sig_constants: AggSigConstants,
         change_p2_puzzle_hash: Option<Bytes32>,
     ) -> Self {
         Self {
             db,
+            shared_db,
             fingerprint,
-            intermediate_pk,
+            kind,
             genesis_challenge,
             agg_sig_constants,
             change_p2_puzzle_hash,
+            transaction_expiration: AtomicU64::new(0),
+            spend_lock: Mutex::new(()),
+        }
+    }
+
+    /// Waits until no other request is creating a transaction or offer for this wallet, and
+    /// keeps others waiting until the guard is dropped.
+    ///
+    /// Coins are only marked as spent or locked once a transaction is submitted or an offer
+    /// is saved, so the guard has to be held from coin selection until then. Otherwise two
+    /// requests could select the same coin, or a transaction could spend a coin that an offer
+    /// created at the same time locks.
+    ///
+    /// The helpers that record a transaction or offer take a [`SpendGuard`], so an endpoint
+    /// that forgets the lock doesn't compile. Take it before selecting any coins, not just
+    /// before recording, or the selection isn't covered.
+    pub async fn lock_spends(&self) -> SpendGuard<'_> {
+        SpendGuard {
+            _guard: self.spend_lock.lock().await,
+        }
+    }
+
+    /// Sets how many seconds the transactions this wallet creates can be confirmed for, or 0
+    /// for no limit. Offers aren't affected, since they have their own expiration.
+    pub fn set_transaction_expiration(&self, seconds: u64) {
+        self.transaction_expiration
+            .store(seconds, Ordering::Relaxed);
+    }
+
+    pub fn transaction_expiration(&self) -> u64 {
+        self.transaction_expiration.load(Ordering::Relaxed)
+    }
+
+    /// The timestamp a transaction created now must be confirmed before, if the wallet's
+    /// transactions expire.
+    fn transaction_expires_at(&self) -> Result<Option<u64>, WalletError> {
+        let expiration = self.transaction_expiration();
+
+        if expiration == 0 {
+            return Ok(None);
+        }
+
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+
+        Ok(Some(now.saturating_add(expiration)))
+    }
+
+    /// Watch wallets don't know the puzzle reveals of their coins, so they can't spend them.
+    fn ensure_spendable(&self) -> Result<(), WalletError> {
+        match self.kind {
+            WalletKind::Bls { .. } => Ok(()),
+            WalletKind::Watch => Err(WalletError::WatchOnly),
         }
     }
 
@@ -70,7 +149,7 @@ impl Wallet {
         let mut selectable_coins = self.db.selectable_xch_coins().await?;
         selectable_coins.retain(|coin| !selected_coin_ids.contains(&coin.coin_id()));
 
-        Ok(select_coins(selectable_coins, amount)?)
+        select_coins_of(CoinSelectionAsset::Xch, selectable_coins, amount)
     }
 
     async fn select_cat_coins(
@@ -90,10 +169,12 @@ impl Wallet {
             selectable_coins.push(cat.coin);
         }
 
-        Ok(select_coins(selectable_coins, amount)?
-            .into_iter()
-            .map(|coin| cats[&coin])
-            .collect())
+        Ok(
+            select_coins_of(CoinSelectionAsset::Cat(asset_id), selectable_coins, amount)?
+                .into_iter()
+                .map(|coin| cats[&coin])
+                .collect(),
+        )
     }
 
     pub async fn spend(
@@ -112,6 +193,8 @@ impl Wallet {
         ctx: &mut SpendContext,
         selected_coin_ids: &[Bytes32],
     ) -> Result<Spends, WalletError> {
+        self.ensure_spendable()?;
+
         let change_p2_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let mut spends = Spends::new(change_p2_puzzle_hash);
@@ -202,7 +285,23 @@ impl Wallet {
         actions: &[Action],
         excluded_coin_ids: &[Bytes32],
     ) -> Result<(), WalletError> {
-        let mut deltas = Deltas::from_actions(actions);
+        self.select_spends_for_deltas(
+            ctx,
+            spends,
+            Deltas::from_actions(actions),
+            excluded_coin_ids,
+        )
+        .await
+    }
+
+    async fn select_spends_for_deltas(
+        &self,
+        ctx: &mut SpendContext,
+        spends: &mut Spends,
+        mut deltas: Deltas,
+        excluded_coin_ids: &[Bytes32],
+    ) -> Result<(), WalletError> {
+        self.ensure_spendable()?;
 
         deltas.update(Id::Xch).input += spends.xch.selected_amount();
 
@@ -228,7 +327,7 @@ impl Wallet {
                     }
 
                     let coins = self
-                        .select_xch_coins(required_amount, &selected_coin_ids)
+                        .select_xch_coins(coin_amount(required_amount)?, &selected_coin_ids)
                         .await?;
 
                     for coin in coins {
@@ -248,7 +347,11 @@ impl Wallet {
                         }
 
                         let coins = self
-                            .select_cat_coins(asset_id, required_amount, &selected_coin_ids)
+                            .select_cat_coins(
+                                asset_id,
+                                coin_amount(required_amount)?,
+                                &selected_coin_ids,
+                            )
                             .await?;
 
                         for coin in coins {
@@ -308,12 +411,35 @@ impl Wallet {
         Ok(())
     }
 
+    /// Finishes a transaction, which can only be confirmed until the wallet's transaction
+    /// expiration has passed.
     pub async fn complete_spends(
+        &self,
+        ctx: &mut SpendContext,
+        deltas: &Deltas,
+        mut spends: Spends,
+    ) -> Result<Outputs, WalletError> {
+        if let Some(expires_at) = self.transaction_expires_at()? {
+            spends.conditions.required = spends
+                .conditions
+                .required
+                .assert_before_seconds_absolute(expires_at);
+        }
+
+        self.complete_spends_without_expiration(ctx, deltas, spends)
+            .await
+    }
+
+    /// Finishes the spends without the wallet's transaction expiration, for offers, which can
+    /// be taken until their own expiration instead.
+    pub async fn complete_spends_without_expiration(
         &self,
         ctx: &mut SpendContext,
         deltas: &Deltas,
         spends: Spends,
     ) -> Result<Outputs, WalletError> {
+        self.ensure_spendable()?;
+
         let mut p2_puzzles = IndexMap::new();
 
         for p2_puzzle_hash in spends.p2_puzzle_hashes() {
@@ -341,6 +467,32 @@ impl Wallet {
                     match p2_puzzle {
                         P2Puzzle::PublicKey(public_key) => StandardLayer::new(*public_key)
                             .spend_with_conditions(ctx, spend.finish())?,
+                        P2Puzzle::Clawback(clawback) if clawback.version == 1 => {
+                            // The V1 key lookup only resolves the sender key, since the sender can
+                            // claw back at any time. Receivers must go through claim_clawback.
+                            let Some(public_key) = clawback.public_key else {
+                                if self
+                                    .db
+                                    .public_key(clawback.receiver_puzzle_hash)
+                                    .await?
+                                    .is_some()
+                                {
+                                    return Err(WalletError::ClawbackClaimRequired);
+                                }
+
+                                return Err(DriverError::MissingKey.into());
+                            };
+
+                            let spend = StandardLayer::new(public_key)
+                                .spend_with_conditions(ctx, spend.finish())?;
+
+                            ClawbackV1::new(
+                                clawback.seconds,
+                                clawback.sender_puzzle_hash,
+                                clawback.receiver_puzzle_hash,
+                            )
+                            .sender_spend(ctx, spend)?
+                        }
                         P2Puzzle::Clawback(clawback) => {
                             let Some(public_key) = clawback.public_key else {
                                 return Err(DriverError::MissingKey.into());
@@ -348,8 +500,12 @@ impl Wallet {
 
                             let custody = StandardLayer::new(public_key);
                             let spend = custody.spend_with_conditions(ctx, spend.finish())?;
+                            let is_receiver =
+                                custody.tree_hash() == clawback.receiver_puzzle_hash.into();
+                            let is_sender =
+                                custody.tree_hash() == clawback.sender_puzzle_hash.into();
 
-                            let clawback = ClawbackV2::new(
+                            let v2 = ClawbackV2::new(
                                 clawback.sender_puzzle_hash,
                                 clawback.receiver_puzzle_hash,
                                 clawback.seconds,
@@ -357,20 +513,12 @@ impl Wallet {
                                 !matches!(asset, SpendableAsset::Xch(..)),
                             );
 
-                            let is_receiver =
-                                custody.tree_hash() == clawback.receiver_puzzle_hash.into();
-                            let is_sender =
-                                custody.tree_hash() == clawback.sender_puzzle_hash.into();
-
                             if is_sender && timestamp < clawback.seconds {
-                                clawback.sender_spend(ctx, spend)?
+                                v2.sender_spend(ctx, spend)?
                             } else if is_receiver && timestamp >= clawback.seconds {
-                                clawback.receiver_spend(ctx, spend)?
+                                v2.receiver_spend(ctx, spend)?
                             } else if is_sender || is_receiver {
-                                return Err(DriverError::Custom(
-                                    "Cannot fulfill clawback spend".to_string(),
-                                )
-                                .into());
+                                return Err(WalletError::ClawbackSpendNotAllowed);
                             } else {
                                 return Err(DriverError::MissingKey.into());
                             }
@@ -400,6 +548,7 @@ impl Wallet {
                                     spend.finish().into_iter().collect(),
                                 ),
                             )?,
+                        P2Puzzle::External => return Err(WalletError::WatchOnly),
                     }
                 }
                 SpendKind::Settlement(spend) => SettlementLayer
@@ -411,4 +560,22 @@ impl Wallet {
 
         Ok(spends.spend(ctx, coin_spends)?)
     }
+}
+
+/// Selects coins of `asset` covering `amount`, saying what was short if they can't.
+fn select_coins_of(
+    asset: CoinSelectionAsset,
+    selectable_coins: Vec<Coin>,
+    amount: u64,
+) -> Result<Vec<Coin>, WalletError> {
+    let available = selectable_coins
+        .iter()
+        .fold(0u64, |total, coin| total.saturating_add(coin.amount));
+
+    select_coins(selectable_coins, amount).map_err(|error| WalletError::InsufficientCoins {
+        asset,
+        needed: amount,
+        available,
+        error,
+    })
 }

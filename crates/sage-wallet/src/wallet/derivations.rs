@@ -9,7 +9,7 @@ use chia_wallet_sdk::{
 };
 use sage_database::{DatabaseTx, Derivation};
 
-use crate::WalletError;
+use crate::{WalletError, WalletKind};
 
 use super::Wallet;
 
@@ -20,13 +20,14 @@ impl Wallet {
         tx: &mut DatabaseTx<'_>,
         range: Range<u32>,
     ) -> Result<Vec<Bytes32>, WalletError> {
+        let WalletKind::Bls { intermediate_pk } = &self.kind else {
+            return Err(WalletError::DerivationsNotSupported);
+        };
+
         let mut puzzle_hashes = Vec::new();
 
         for index in range {
-            let synthetic_key = self
-                .intermediate_pk
-                .derive_unhardened(index)
-                .derive_synthetic();
+            let synthetic_key = intermediate_pk.derive_unhardened(index).derive_synthetic();
 
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
 
@@ -52,6 +53,10 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<Bytes32>, WalletError> {
+        if !matches!(self.kind, WalletKind::Bls { .. }) {
+            return Err(WalletError::DerivationsNotSupported);
+        }
+
         let mut tx = self.db.read_tx().await?;
 
         let unused_index = tx.unused_derivation_index(hardened).await?;
@@ -85,6 +90,12 @@ impl Wallet {
         if let Some(change_p2_puzzle_hash) = self.change_p2_puzzle_hash {
             return Ok(change_p2_puzzle_hash);
         }
+
+        // Change only comes from spends, which watch wallets can't make.
+        if matches!(self.kind, WalletKind::Watch) {
+            return Err(WalletError::WatchOnly);
+        }
+
         Ok(self.p2_puzzle_hashes(1, false, true).await?[0])
     }
 }

@@ -5,7 +5,6 @@ edition = "2024"
 license = "Apache-2.0"
 description = "Fetches non-critical data from various APIs for use in Sage wallet."
 authors = ["Rigidity <me@rigidnetwork.com>"]
-homepage = "https://github.com/rigidity/sage"
 repository = "https://github.com/rigidity/sage"
 readme = { workspace = true }
 keywords = { workspace = true }
@@ -27,5 +26,6 @@ tracing = { workspace = true }
 mime-sniffer = { workspace = true }
 image = { workspace = true }
 webp = { workspace = true }
-tokio = { workspace = true, features = ["sync"] }
+tokio = { workspace = true, features = ["sync", "time", "macros", "rt"] }
 base64 = { workspace = true }
+percent-encoding = { workspace = true }

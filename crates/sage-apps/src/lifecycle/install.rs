@@ -146,7 +146,7 @@ where
         anyhow::bail!("App is already installed");
     }
 
-    let registered_storage = allocate_new_storage(app, host_state, base_path).await?;
+    let registered_storage = allocate_new_storage(app, host_state).await?;
     let origin_id = fresh_origin_id(&app_id);
 
     let target = ResolvedInstallTarget {

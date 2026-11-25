@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use chia_wallet_sdk::prelude::*;
 use sqlx::{Row, SqliteConnection, SqliteExecutor, query};
 
-use crate::tables::transactions::create_transaction_coin;
+use crate::tables::transactions::{CUSTODY_COLUMNS, CUSTODY_JOINS, create_transaction_coin};
 use crate::{Convert, Database, DatabaseTx, Result, TransactionCoin};
 
 #[derive(Debug, Clone)]
@@ -27,9 +27,8 @@ impl Database {
     pub async fn mempool_items_to_submit(
         &self,
         check_every_seconds: i64,
-        limit: i64,
     ) -> Result<Vec<MempoolItem>> {
-        mempool_items_to_submit(&self.pool, check_every_seconds, limit).await
+        mempool_items_to_submit(&self.pool, check_every_seconds).await
     }
 
     pub async fn mempool_coin_spends(&self, mempool_item_id: Bytes32) -> Result<Vec<CoinSpend>> {
@@ -84,6 +83,10 @@ impl DatabaseTx<'_> {
 
     pub async fn mempool_items_for_output(&mut self, coin_id: Bytes32) -> Result<Vec<Bytes32>> {
         mempool_items_for_output(&mut *self.tx, coin_id).await
+    }
+
+    pub async fn update_mempool_item_time(&mut self, mempool_item_id: Bytes32) -> Result<()> {
+        update_mempool_item_time(&mut *self.tx, mempool_item_id).await
     }
 
     pub async fn remove_mempool_item(&mut self, mempool_item_id: Bytes32) -> Result<()> {
@@ -178,20 +181,19 @@ async fn insert_mempool_spend(
     Ok(())
 }
 
+/// Never-submitted items come first, then the ones that have waited the longest.
 async fn mempool_items_to_submit(
     conn: impl SqliteExecutor<'_>,
     check_every_seconds: i64,
-    limit: i64,
 ) -> Result<Vec<MempoolItem>> {
     query!(
         "
         SELECT hash, aggregated_signature, fee, submitted_timestamp
         FROM mempool_items
         WHERE submitted_timestamp IS NULL OR unixepoch() - submitted_timestamp >= ?
-        LIMIT ?
+        ORDER BY submitted_timestamp IS NOT NULL, submitted_timestamp ASC, id ASC
         ",
-        check_every_seconds,
-        limit
+        check_every_seconds
     )
     .fetch_all(conn)
     .await?
@@ -248,11 +250,12 @@ async fn mempool_items_for_input(
 
     query!(
         "
-        SELECT mempool_items.hash AS mempool_item_hash 
+        SELECT mempool_items.hash AS mempool_item_hash
         FROM mempool_items
         INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
-        INNER JOIN coins ON coins.hash = ?
-        WHERE mempool_coins.is_input = TRUE
+        INNER JOIN coins ON coins.id = mempool_coins.coin_id
+        WHERE coins.hash = ?
+          AND mempool_coins.is_input = TRUE
         ",
         coin_id
     )
@@ -271,11 +274,12 @@ async fn mempool_items_for_output(
 
     query!(
         "
-        SELECT mempool_items.hash AS mempool_item_hash 
+        SELECT mempool_items.hash AS mempool_item_hash
         FROM mempool_items
         INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
-        INNER JOIN coins ON coins.hash = ?
-        WHERE mempool_coins.is_output = TRUE
+        INNER JOIN coins ON coins.id = mempool_coins.coin_id
+        WHERE coins.hash = ?
+          AND mempool_coins.is_output = TRUE
         ",
         coin_id
     )
@@ -352,7 +356,7 @@ async fn mempool_items_with_coins(
 ) -> Result<Vec<MempoolItemWithCoins>> {
     use std::collections::HashMap;
 
-    let rows = sqlx::query(
+    let sql = format!(
         "
         SELECT
             mempool_items.hash AS item_hash,
@@ -363,7 +367,6 @@ async fn mempool_items_with_coins(
             coins.amount,
             mempool_coins.is_input,
             mempool_coins.is_output,
-            p2_puzzles.hash AS p2_puzzle_hash,
             assets.hash AS asset_hash,
             assets.name AS asset_name,
             assets.ticker AS asset_ticker,
@@ -373,17 +376,19 @@ async fn mempool_items_with_coins(
             assets.description AS asset_description,
             assets.is_visible AS asset_is_visible,
             assets.is_sensitive_content AS asset_is_sensitive_content,
-            assets.hidden_puzzle_hash AS asset_hidden_puzzle_hash
+            assets.hidden_puzzle_hash AS asset_hidden_puzzle_hash,
+            {CUSTODY_COLUMNS}
         FROM mempool_items
         INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
         INNER JOIN coins ON coins.id = mempool_coins.coin_id
         INNER JOIN assets ON assets.id = coins.asset_id
         LEFT JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id
+        {CUSTODY_JOINS}
         ORDER BY mempool_items.submitted_timestamp DESC, mempool_items.hash ASC
-        ",
-    )
-    .fetch_all(conn)
-    .await?;
+        "
+    );
+
+    let rows = sqlx::query(&sql).fetch_all(conn).await?;
 
     // Group rows by mempool item hash, preserving order
     let mut order: Vec<Bytes32> = Vec::new();

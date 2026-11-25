@@ -18,8 +18,13 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  COIN_PAGE_SIZE_OPTIONS,
+  useCoinPageSize,
+} from '@/hooks/useCoinPageSize';
 import { useErrors } from '@/hooks/useErrors';
 import { useNetwork } from '@/hooks/useNetwork';
+import { feeParams, feeWithinBalance } from '@/lib/fees';
 import { amount } from '@/lib/formTypes';
 import { fromMojos, toMojos } from '@/lib/utils';
 import { useWallet } from '@/contexts/WalletContext';
@@ -33,6 +38,7 @@ import { MergeIcon, SplitIcon, XIcon } from 'lucide-react';
 import {
   Dispatch,
   SetStateAction,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -78,7 +84,15 @@ export function OwnedCoinsCard({
   const [sortMode, setSortMode] = useState<CoinSortMode>('created_height');
   const [sortDirection, setSortDirection] = useState<boolean>(false); // false = descending, true = ascending
   const [includeSpentCoins, setIncludeSpentCoins] = useState<boolean>(false);
-  const pageSize = 10;
+  const { pageSize, setPageSize } = useCoinPageSize();
+
+  const handlePageSizeChange = useCallback(
+    (size: number) => {
+      setPageSize(size);
+      setCurrentPage(0);
+    },
+    [setPageSize],
+  );
 
   // Use ref to track current page to avoid dependency issues
   const currentPageRef = useRef(currentPage);
@@ -253,10 +267,9 @@ export function OwnedCoinsCard({
   const [autoCombineOpen, setAutoCombineOpen] = useState(false);
 
   const combineFormSchema = z.object({
-    combineFee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
+    combineFee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
     ),
   });
 
@@ -265,18 +278,23 @@ export function OwnedCoinsCard({
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    const fee = toMojos(values.combineFee, walletState.sync.unit.precision);
+    const feeFields = feeParams(
+      values.combineFee,
+      walletState.sync.unit.precision,
+    );
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
       (record) => record.coin_id,
     );
 
-    commands
-      .combine({
-        coin_ids: coinIdsForRequest,
-        fee,
-      })
+    feeFields
+      .then((fees) =>
+        commands.combine({
+          coin_ids: coinIdsForRequest,
+          ...fees,
+        }),
+      )
       .then((result) => {
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
@@ -299,10 +317,9 @@ export function OwnedCoinsCard({
 
   const splitFormSchema = z.object({
     outputCount: z.number().int().min(2).max(4294967295),
-    splitFee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
+    splitFee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
     ),
   });
 
@@ -314,19 +331,24 @@ export function OwnedCoinsCard({
   });
 
   const onSplitSubmit = (values: z.infer<typeof splitFormSchema>) => {
-    const fee = toMojos(values.splitFee, walletState.sync.unit.precision);
+    const feeFields = feeParams(
+      values.splitFee,
+      walletState.sync.unit.precision,
+    );
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
       (record) => record.coin_id,
     );
 
-    commands
-      .split({
-        coin_ids: coinIdsForRequest,
-        output_count: values.outputCount,
-        fee,
-      })
+    feeFields
+      .then((fees) =>
+        commands.split({
+          coin_ids: coinIdsForRequest,
+          output_count: values.outputCount,
+          ...fees,
+        }),
+      )
       .then((result) => {
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
@@ -349,10 +371,9 @@ export function OwnedCoinsCard({
   };
 
   const autoCombineFormSchema = z.object({
-    autoCombineFee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
+    autoCombineFee: feeWithinBalance(
+      walletState.sync.unit.precision,
+      walletState.sync.selectable_balance,
     ),
     maxCoins: amount(0),
     maxCoinAmount: amount(asset.precision).optional(),
@@ -369,23 +390,29 @@ export function OwnedCoinsCard({
   const onAutoCombineSubmit = (
     values: z.infer<typeof autoCombineFormSchema>,
   ) => {
-    const fee = toMojos(values.autoCombineFee, walletState.sync.unit.precision);
+    const feeFields = feeParams(
+      values.autoCombineFee,
+      walletState.sync.unit.precision,
+    );
     const maxCoins = values.maxCoins;
     const maxCoinAmount = values.maxCoinAmount
       ? toMojos(values.maxCoinAmount, asset.precision)
       : null;
 
-    (!asset?.asset_id
-      ? commands.autoCombineXch
-      : (...[req]: Parameters<typeof commands.autoCombineXch>) =>
-          commands.autoCombineCat({
-            ...req,
-            asset_id: asset?.asset_id ?? '',
-          }))({
-      max_coins: parseInt(toMojos(maxCoins, 0)),
-      max_coin_amount: maxCoinAmount,
-      fee,
-    })
+    feeFields
+      .then((fees) =>
+        (!asset?.asset_id
+          ? commands.autoCombineXch
+          : (...[req]: Parameters<typeof commands.autoCombineXch>) =>
+              commands.autoCombineCat({
+                ...req,
+                asset_id: asset?.asset_id ?? '',
+              }))({
+          max_coins: parseInt(toMojos(maxCoins, 0)),
+          max_coin_amount: maxCoinAmount,
+          ...fees,
+        }),
+      )
       .then(async (result) => {
         // Find coin records for the returned coin IDs
         const resultCoins = await commands.getCoinsByIds({
@@ -446,6 +473,9 @@ export function OwnedCoinsCard({
           totalPages={pageCount}
           setCurrentPage={setCurrentPage}
           maxRows={totalCoins}
+          pageSize={pageSize}
+          onPageSizeChange={handlePageSizeChange}
+          pageSizeOptions={COIN_PAGE_SIZE_OPTIONS}
           sortMode={sortMode}
           sortDirection={sortDirection}
           includeSpentCoins={includeSpentCoins}

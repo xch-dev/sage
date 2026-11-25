@@ -5,7 +5,6 @@ edition = "2024"
 license = "Apache-2.0"
 description = "The SQLite database for Sage."
 authors = ["Rigidity <me@rigidnetwork.com>"]
-homepage = "https://github.com/rigidity/sage"
 repository = "https://github.com/rigidity/sage"
 readme = { workspace = true }
 keywords = { workspace = true }
@@ -20,3 +19,10 @@ sqlx = { workspace = true, features = ["sqlite"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 hex = { workspace = true }
+unicode-normalization = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+hex-literal = { workspace = true }
+sqlx = { workspace = true, features = ["sqlite", "runtime-tokio", "migrate"] }
+tokio = { workspace = true, features = ["macros", "rt"] }

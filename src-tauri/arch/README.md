@@ -31,9 +31,7 @@ The recipe uses the existing Tauri build and its `beforeBuildCommand` to build
 the frontend and built-in apps. Rustup and pnpm select the versions pinned in
 `rust-toolchain.toml` and `package.json`. Preparation downloads dependencies;
 Cargo and pnpm use their normal caches, and Rust output stays in `target/`.
-GCC from `base-devel` is the supported C compiler. AWS-LC 0.34 needs a scoped
-compiler flag for its old `memchr` wrapper with glibc 2.44; recheck it when
-updating that dependency.
+GCC from `base-devel` is the supported C compiler.
 
 Arch is an entry in the existing CI build matrix, using an Arch container and
 a non-root makepkg user. The recipe's `check()` hook validates the desktop entry

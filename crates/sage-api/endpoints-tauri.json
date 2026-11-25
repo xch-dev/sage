@@ -3,5 +3,7 @@
   "get_asset_coins": true,
   "sign_message_with_public_key": true,
   "sign_message_by_address": true,
-  "send_transaction_immediately": true
+  "send_transaction_immediately": true,
+  "get_selected_theme": false,
+  "set_selected_theme": false
 }

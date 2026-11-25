@@ -1,4 +1,4 @@
-import { commands, KeyInfo } from '@/bindings';
+import { commands, WalletInfo } from '@/bindings';
 import { MigrationDialog } from '@/components/dialogs/MigrationDialog';
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useErrors } from '@/hooks/useErrors';
+import { DatabaseMigration, databaseMigration } from '@/lib/errors';
 import { clearState, loginAndUpdateState, logoutAndUpdateState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -29,7 +30,7 @@ import iconLight from '@/icon-light.png';
 
 interface WalletSwitcherProps {
   isCollapsed?: boolean;
-  wallet?: KeyInfo;
+  wallet?: WalletInfo;
 }
 
 export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
@@ -37,20 +38,25 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
   const { currentTheme } = useTheme();
   const { setWallet, setIsSwitching, isSwitching } = useWallet();
   const { addError } = useErrors();
-  const [wallets, setWallets] = useState<KeyInfo[]>([]);
+  const [wallets, setWallets] = useState<WalletInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const debouncedIsHovering = useDebounce(isHovering, 300);
   const [isMigrationDialogOpen, setIsMigrationDialogOpen] = useState(false);
-  const [migrationWallet, setMigrationWallet] = useState<KeyInfo | null>(null);
+  const [migrationWallet, setMigrationWallet] = useState<WalletInfo | null>(
+    null,
+  );
+  const [migration, setMigration] = useState<DatabaseMigration>('wallet');
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
     const fetchWallets = async () => {
       try {
-        const data = await commands.getKeys({});
-        setWallets([...data.keys].sort((a, b) => a.name.localeCompare(b.name)));
+        const data = await commands.getWallets({});
+        setWallets(
+          [...data.wallets].sort((a, b) => a.name.localeCompare(b.name)),
+        );
       } catch (error) {
         addError(error as CustomError);
       } finally {
@@ -65,7 +71,12 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
     setIsOpen(debouncedIsHovering);
   }, [debouncedIsHovering]);
 
-  const handleSwitchWallet = async (fingerprint: number) => {
+  // After a database is reset, the switch is retried once. If it still can't
+  // be migrated, resetting again wouldn't help, so the error is shown instead.
+  const handleSwitchWallet = async (
+    fingerprint: number,
+    afterReset = false,
+  ) => {
     if (isSwitching) {
       return;
     }
@@ -78,9 +89,9 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       await loginAndUpdateState(fingerprint);
-      const data = await commands.getKey({});
+      const data = await commands.getWallet({});
 
-      setWallet(data.key);
+      setWallet(data.wallet);
 
       await new Promise((resolve) => setTimeout(resolve, 50));
 
@@ -90,11 +101,8 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
       setIsSwitching(false);
 
       const targetWallet = wallets.find((w) => w.fingerprint === fingerprint);
-      const isDatabaseMigration =
-        typeof error === 'object' &&
-        error !== null &&
-        'kind' in error &&
-        error.kind === 'database_migration';
+      const failedMigration = databaseMigration(error);
+      const isDatabaseMigration = failedMigration !== null && !afterReset;
 
       // Always logout cleanly first to prevent auth error cascade
       try {
@@ -106,6 +114,7 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
       if (isDatabaseMigration && targetWallet) {
         // Show migration dialog - don't navigate yet
         setMigrationWallet(targetWallet);
+        setMigration(failedMigration);
         setIsMigrationDialogOpen(true);
       } else {
         // Navigate to login and show error
@@ -138,6 +147,7 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
   const migrationDialog = (
     <MigrationDialog
       open={isMigrationDialogOpen}
+      shared={migration === 'shared'}
       onOpenChange={(open) => {
         if (!open) {
           setIsMigrationDialogOpen(false);
@@ -158,10 +168,11 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
           await commands.deleteDatabase({
             fingerprint: migrationWallet.fingerprint,
             network: migrationWallet.network_id,
+            shared: migration === 'shared',
           });
           setMigrationWallet(null);
           // Retry the wallet switch
-          await handleSwitchWallet(fingerprint);
+          await handleSwitchWallet(fingerprint, true);
         } catch (error) {
           setMigrationWallet(null);
           addError(error as CustomError);
@@ -303,21 +314,26 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
       <>
         <button
           type='button'
-          className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+          className={`flex min-w-0 items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+          title={wallet?.name}
           onClick={() => navigate('/wallet')}
         >
           {wallet?.emoji ? (
-            <span className='text-xl' role='img' aria-label='Wallet emoji'>
+            <span
+              className='shrink-0 text-xl'
+              role='img'
+              aria-label='Wallet emoji'
+            >
               {wallet.emoji}
             </span>
           ) : (
             <img
               src={currentTheme?.mostLike === 'light' ? iconDark : iconLight}
-              className='h-6 w-6'
+              className='h-6 w-6 shrink-0'
               alt={t`Wallet icon`}
             />
           )}
-          <span className='text-lg'>{wallet?.name ?? t`Wallet`}</span>
+          <span className='truncate text-lg'>{wallet?.name ?? t`Wallet`}</span>
         </button>
         {migrationDialog}
       </>
@@ -331,24 +347,31 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
         <DropdownMenuTrigger asChild>
           <button
             type='button'
-            className={`flex items-center gap-2 font-semibold font-heading group ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+            className={`flex min-w-0 items-center gap-2 font-semibold font-heading group ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+            title={wallet?.name}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
             {wallet?.emoji ? (
-              <span className='text-xl' role='img' aria-label='Wallet emoji'>
+              <span
+                className='shrink-0 text-xl'
+                role='img'
+                aria-label='Wallet emoji'
+              >
                 {wallet.emoji}
               </span>
             ) : (
               <img
                 src={currentTheme?.mostLike === 'light' ? iconDark : iconLight}
-                className='h-6 w-6'
+                className='h-6 w-6 shrink-0'
                 alt={t`Wallet icon`}
               />
             )}
-            <span className='text-lg'>{wallet?.name ?? t`Wallet`}</span>
+            <span className='truncate text-lg'>
+              {wallet?.name ?? t`Wallet`}
+            </span>
             <ChevronDown
-              className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+              className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
               aria-hidden='true'
             />
           </button>

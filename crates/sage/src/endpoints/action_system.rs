@@ -10,12 +10,14 @@ use sage_api::{CreateTransaction, NftUriKind, TransactionResponse};
 use sage_wallet::{Hint, calculate_memos};
 
 use crate::{
-    ConfirmationInfo, Result, Sage, parse_amount, parse_any_asset_id, parse_coin_ids, parse_memos,
+    ConfirmationInfo, Result, Sage, build_with_fee, parse_amount, parse_any_asset_id,
+    parse_coin_ids, parse_memos,
 };
 
 impl Sage {
     pub async fn create_transaction(&self, req: CreateTransaction) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
+        let spends = wallet.lock_spends().await;
 
         let sender_puzzle_hash = wallet.change_p2_puzzle_hash().await?;
         let selected_coin_ids = parse_coin_ids(req.selected_coin_ids)?;
@@ -24,10 +26,23 @@ impl Sage {
         let mut actions = vec![];
         let mut info = ConfirmationInfo::default();
 
+        let addresses = req
+            .actions
+            .iter()
+            .filter_map(|action| match action {
+                sage_api::Action::Send(action) => Some(action.address.as_str()),
+                sage_api::Action::MintNft(action) => action.royalty_address.as_deref(),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let recipients = self
+            .resolve_recipient_map(&addresses, &req.confirmed_handles, &mut info)
+            .await?;
+
         for action in req.actions {
             match action {
                 sage_api::Action::Send(action) => {
-                    let receiver_puzzle_hash = self.parse_address(action.address)?;
+                    let receiver_puzzle_hash = recipients.get(&action.address)?;
                     let amount = parse_amount(action.amount)?;
                     let id = parse_id(action.id)?;
                     let hinted = id != Id::Xch;
@@ -86,6 +101,7 @@ impl Sage {
                                 royalty_address: action.royalty_address,
                                 royalty_ten_thousandths: action.royalty_ten_thousandths,
                             },
+                            &recipients,
                             &mut info,
                         )
                         .await?;
@@ -103,6 +119,14 @@ impl Sage {
                 }
                 sage_api::Action::UpdateNft(action) => {
                     let id = parse_id(action.id)?;
+
+                    // NFTs minted in this transaction use the default updater, but existing
+                    // NFTs may not support appending URIs.
+                    if !action.new_uris.is_empty()
+                        && let Id::Existing(nft_id) = id
+                    {
+                        wallet.ensure_append_only_nft(nft_id).await?;
+                    }
 
                     let mut metadata_update_spends = vec![];
 
@@ -135,19 +159,29 @@ impl Sage {
                     }));
                 }
                 sage_api::Action::Fee(action) => {
-                    actions.push(Action::Fee(FeeAction {
-                        amount: parse_amount(action.amount)?,
-                        reserved: true,
-                    }));
+                    actions.push(Action::Fee(FeeAction::new(parse_amount(action.amount)?)));
                 }
             }
         }
 
-        wallet.spend(&mut ctx, selected_coin_ids, &actions).await?;
+        // The fee actions are paid as given, and any fee needed to cover the cost at the fee
+        // rate is added as another fee action.
+        let coin_spends = build_with_fee!(self, 0, req.fee_per_cost, |fee| {
+            let mut actions = actions.clone();
 
-        let coin_spends = ctx.take();
+            if fee > 0 {
+                actions.push(Action::fee(fee));
+            }
 
-        self.transact_with(coin_spends, req.auto_submit, info).await
+            wallet
+                .spend(&mut ctx, selected_coin_ids.clone(), &actions)
+                .await?;
+
+            ctx.take()
+        });
+
+        self.transact_with(coin_spends, req.auto_submit, info, &spends)
+            .await
     }
 }
 

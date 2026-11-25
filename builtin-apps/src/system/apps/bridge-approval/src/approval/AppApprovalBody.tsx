@@ -1,5 +1,6 @@
 import type { RustBridgeApprovalRequest } from 'sage-system-app-sdk';
 import { CapabilityGrantApprovalCard } from './CapabilityGrantApprovalCard';
+import { CreateOfferApprovalCard } from './CreateOfferApprovalCard';
 import { GetSecretKeyApprovalCard } from './GetSecretKeyApprovalCard';
 import { NetworkWhitelistGrantApprovalCard } from './NetworkWhitelistGrantApprovalCard';
 import { OpenExternalUrlApprovalCard } from './OpenExternalUrlApprovalCard';
@@ -15,6 +16,8 @@ interface Props {
   working: boolean;
   feeInput: string;
   onFeeInputChange: (value: string) => void;
+  handleChangeAcknowledged: boolean;
+  onHandleChangeAcknowledgedChange: (value: boolean) => void;
 }
 
 export function AppApprovalBody({
@@ -24,6 +27,8 @@ export function AppApprovalBody({
   working,
   feeInput,
   onFeeInputChange,
+  handleChangeAcknowledged,
+  onHandleChangeAcknowledgedChange,
 }: Props) {
   switch (approval.kind) {
     case 'getSecretKey':
@@ -44,6 +49,8 @@ export function AppApprovalBody({
           working={working}
           feeInput={feeInput}
           onFeeInputChange={onFeeInputChange}
+          handleChangeAcknowledged={handleChangeAcknowledged}
+          onHandleChangeAcknowledgedChange={onHandleChangeAcknowledgedChange}
         />
       );
 
@@ -51,6 +58,9 @@ export function AppApprovalBody({
       return (
         <SignCoinSpendsApprovalCard approval={approval} appName={appName} />
       );
+
+    case 'createOffer':
+      return <CreateOfferApprovalCard approval={approval} appName={appName} />;
 
     case 'signMessage':
       return <SignMessageApprovalCard approval={approval} appName={appName} />;

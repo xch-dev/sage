@@ -1,24 +1,25 @@
 use chia_wallet_sdk::{
     chia::{
         bls::master_to_wallet_hardened_intermediate,
-        puzzle_types::{DeriveSynthetic, nft::NftMetadata, standard::StandardArgs},
+        puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
+    driver::MIN_FEE_PER_COST,
     prelude::*,
 };
 use sage_api::{
-    GetXchUsdPrice, GetXchUsdPriceResponse, IncreaseDerivationIndex,
-    IncreaseDerivationIndexResponse, RedownloadNft, RedownloadNftResponse, ResyncCat,
-    ResyncCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse, UpdateNft,
-    UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse, UpdateOption,
+    GetFeeRate, GetFeeRateResponse, GetXchUsdPrice, GetXchUsdPriceResponse,
+    IncreaseDerivationIndex, IncreaseDerivationIndexResponse, RedownloadNft, RedownloadNftResponse,
+    ResyncCat, ResyncCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse,
+    UpdateNft, UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse, UpdateOption,
     UpdateOptionResponse,
 };
 use sage_assets::{DexieCat, XchUsdPrice};
 use sage_database::{Asset, AssetKind, Derivation};
-use sage_wallet::SyncCommand;
+use sage_wallet::{SyncCommand, WalletError, WalletKind};
 
 use crate::{
-    Error, Result, Sage, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
-    parse_option_id,
+    Error, RECOMMENDED_FEE_PER_COST, Result, Sage, parse_asset_id, parse_collection_id,
+    parse_did_id, parse_nft_id, parse_option_id,
 };
 
 impl Sage {
@@ -147,13 +148,7 @@ impl Sage {
             return Err(Error::MissingNft(nft_id));
         };
 
-        let mut allocator = Allocator::new();
-        let metadata = nft
-            .info
-            .metadata
-            .to_clvm(&mut allocator)
-            .ok()
-            .and_then(|ptr| NftMetadata::from_clvm(&allocator, ptr).ok());
+        let metadata = nft.info.parsed_metadata();
 
         if let Some(metadata) = metadata {
             let mut tx = wallet.db.tx().await?;
@@ -191,6 +186,10 @@ impl Sage {
         req: IncreaseDerivationIndex,
     ) -> Result<IncreaseDerivationIndexResponse> {
         let wallet = self.wallet()?;
+
+        if !matches!(wallet.kind, WalletKind::Bls { .. }) {
+            return Err(WalletError::DerivationsNotSupported.into());
+        }
 
         let hardened = req.hardened.is_none_or(|hardened| hardened);
         let unhardened = req.unhardened.is_none_or(|unhardened| unhardened);
@@ -260,5 +259,17 @@ impl Sage {
         let price = XchUsdPrice::fetch().await?;
 
         Ok(GetXchUsdPriceResponse { usd: price.usd })
+    }
+
+    /// The recommended rate is the minimum that gets a transaction into blocks and into a full
+    /// mempool. Where the network has a Coinset API, the tiers estimate what the market is
+    /// paying, and they're never below that minimum.
+    #[allow(clippy::cast_precision_loss)]
+    pub async fn get_fee_rate(&self, _req: GetFeeRate) -> Result<GetFeeRateResponse> {
+        Ok(GetFeeRateResponse {
+            fee_per_cost: RECOMMENDED_FEE_PER_COST as f64,
+            minimum_fee_per_cost: MIN_FEE_PER_COST as f64,
+            tiers: self.fee_tiers().await,
+        })
     }
 }

@@ -1,10 +1,13 @@
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
-    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKeyResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKeyResponse,
-    GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse,
-    GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
-    GetVersionResponse, GetXchUsdPriceResponse, TransactionResponse,
+    GetCoinsResponse, GetContacts, GetDerivations, GetDerivationsResponse, GetHandle,
+    GetHandleResponse, GetHandles, GetHandlesResponse, GetPendingTransactions,
+    GetPendingTransactionsResponse, GetSecretKeyResponse, GetSpendableCoinCount,
+    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
+    GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
+    GetVersionResponse, GetWalletResponse, GetXchUsdPriceResponse, LookupAddressContacts,
+    LookupAddressHandles, LookupAddressHandlesResponse, ResolveHandle, ResolveHandleResponse,
+    TransactionResponse,
 };
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
@@ -30,12 +33,14 @@ use crate::{
     RustBridgeInvokeResult, SageAppCapabilityDefinitionView, SageAppWalletScope,
     SageNetworkPermissionInfo, SandboxStateChangedEvent, SandboxStateView,
     SelectedWalletChangedEvent, SetBeforeStopListenerParams, SystemKillRuntimeResult,
-    SystemWalletView, WalletFilterUnlockedCoinsParams, WalletFilterUnlockedCoinsResult,
-    WalletGetAssetBalanceParams, WalletGetAssetBalanceResult, WalletGetAssetCoinsParams,
-    WalletGetAssetCoinsResult, WalletGetPublicKeysParams, WalletGetPublicKeysResult,
-    WalletListWalletsResult, WalletSendTransactionParams, WalletSendTransactionResult,
-    WalletSendXchApprovalResponse, WalletSendXchParams, WalletSignCoinSpendsParams,
-    WalletSignCoinSpendsResult, WalletSignMessageParams, WalletSignMessageResult,
+    SystemWalletView, WalletCreateOfferParams, WalletCreateOfferResult,
+    WalletFilterUnlockedCoinsParams, WalletFilterUnlockedCoinsResult, WalletGetAssetBalanceParams,
+    WalletGetAssetBalanceResult, WalletGetAssetCoinsParams, WalletGetAssetCoinsResult,
+    WalletGetContactsResult, WalletGetPublicKeysParams, WalletGetPublicKeysResult,
+    WalletListWalletsResult, WalletLookupAddressContactsResult, WalletSendTransactionParams,
+    WalletSendTransactionResult, WalletSendXchApprovalResponse, WalletSendXchParams,
+    WalletSignCoinSpendsParams, WalletSignCoinSpendsResult, WalletSignMessageParams,
+    WalletSignMessageResult,
 };
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -61,7 +66,7 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<SetBeforeStopListenerParams>();
     types.register::<ReadyToStopParams>();
     types.register::<RuntimeAckResult>();
-    types.register::<GetKeyResponse>();
+    types.register::<GetWalletResponse>();
     types.register::<GetXchUsdPriceResponse>();
     types.register::<GetSecretKeyResponse>();
     types.register::<WalletGetPublicKeysParams>();
@@ -78,6 +83,8 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<WalletSignMessageResult>();
     types.register::<WalletSendTransactionParams>();
     types.register::<WalletSendTransactionResult>();
+    types.register::<WalletCreateOfferParams>();
+    types.register::<WalletCreateOfferResult>();
     types.register::<GetSyncStatus>();
     types.register::<GetSyncStatusResponse>();
     types.register::<GetVersion>();
@@ -86,6 +93,18 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<GetPendingTransactionsResponse>();
     types.register::<CheckAddress>();
     types.register::<CheckAddressResponse>();
+    types.register::<ResolveHandle>();
+    types.register::<ResolveHandleResponse>();
+    types.register::<GetHandle>();
+    types.register::<GetHandleResponse>();
+    types.register::<GetHandles>();
+    types.register::<GetHandlesResponse>();
+    types.register::<LookupAddressHandles>();
+    types.register::<LookupAddressHandlesResponse>();
+    types.register::<GetContacts>();
+    types.register::<WalletGetContactsResult>();
+    types.register::<LookupAddressContacts>();
+    types.register::<WalletLookupAddressContactsResult>();
     types.register::<GetDerivations>();
     types.register::<GetDerivationsResponse>();
     types.register::<GetSpendableCoinCount>();

@@ -2,23 +2,15 @@ use std::{fs, io};
 
 use tauri::{AppHandle, State, command};
 
-use crate::{
-    AppState, AppsHostState, ListedSageAppView, Result, apps_root, list_installed_apps_internal,
-};
+use crate::{AppsHostState, ListedSageAppView, Result, apps_root, list_installed_apps_internal};
 
 #[command]
 #[specta::specta]
 pub async fn apps_list_installed_apps(
     app_handle: AppHandle,
-    state: State<'_, AppState>,
     apps_state: State<'_, AppsHostState>,
 ) -> Result<Vec<ListedSageAppView>> {
-    let base_path = {
-        let state = state.lock().await;
-        state.path.clone()
-    };
-
-    let root = apps_root(&base_path);
+    let root = apps_root(&apps_state.root);
 
     fs::create_dir_all(&root).map_err(|err| {
         io::Error::other(format!(

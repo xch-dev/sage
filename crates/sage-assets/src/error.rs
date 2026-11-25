@@ -20,9 +20,32 @@ pub enum UriError {
     #[error("No URIs provided")]
     NoUris,
 
+    #[error("Timed out fetching NFT data")]
+    Timeout,
+
+    #[error("MintGarden archive served content that doesn't match the hash")]
+    InvalidArchiveContent,
+
     #[error("Failed to create thumbnail: {0}")]
     Thumbnail(#[from] ThumbnailError),
 
     #[error("Invalid XCH/USD price response")]
     InvalidPriceResponse,
+}
+
+impl UriError {
+    /// Whether the error is likely to go away if the request is retried later,
+    /// such as a timeout, rate limit, or server error.
+    pub fn is_transient(&self) -> bool {
+        match self {
+            Self::Fetch(error) => {
+                error.is_timeout()
+                    || error.status().is_some_and(|status| {
+                        status == reqwest::StatusCode::TOO_MANY_REQUESTS || status.is_server_error()
+                    })
+            }
+            Self::Timeout | Self::InvalidArchiveContent => true,
+            _ => false,
+        }
+    }
 }

@@ -38,6 +38,12 @@ pub(crate) trait BridgeMethod: Send + Sync {
         false
     }
 
+    /// Whether the method signs with the wallet's keys. Watch wallets have none, so these are
+    /// refused before the user is asked to approve them.
+    fn requires_signing(&self) -> bool {
+        false
+    }
+
     /// Override only when approved execution differs from the normal request path.
     async fn handle_approved(
         &self,
