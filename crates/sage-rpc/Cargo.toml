@@ -25,7 +25,7 @@ tracing = { workspace = true }
 serde = { workspace = true }
 rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
-utoipa = "5.2.0"
+utoipa = "6.0.0"
 serde_json = { workspace = true }
 indexmap = { workspace = true }
 
