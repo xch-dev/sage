@@ -24,16 +24,16 @@ semver = { workspace = true }
 hex = { workspace = true }
 unicode-normalization = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
-sha2 = "0.10.9"
+sha2 = "0.11.1"
 uuid = { workspace = true, features = ["v4", "serde"] }
 tempfile = "3"
-zip = "8.5.1"
+zip = "9.1.2"
 mime_guess = "2"
 url = "2"
 async-trait = "0.1.89"
 erased-serde = "0.4.9"
 serde_path_to_error = "0.1.20"
-parking_lot = "0.12.5"
+parking_lot = "0.13.0"
 futures = "0.3.32"
 
 [dev-dependencies]
